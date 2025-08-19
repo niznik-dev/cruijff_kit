@@ -145,7 +145,7 @@ def heterogeneity_scorer():
 def heterogeneity_task():
     # Usage: INPUT_FILE=datafile.csv GROUP_COLUMN=COLUMN_NAME inspect eval heterogeneity_eval.py
 
-    input_file = os.environ.get('INPUT_FILE', 'synthetic_predictions.csv')
+    input_file = os.environ.get('INPUT_FILE', 'predictions.csv')
     group_column = os.environ.get('GROUP_COLUMN', 'GROUP')
     
     print(f"Running heterogeneity task with:")
