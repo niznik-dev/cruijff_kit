@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import json
 import argparse
 import os
-from sklearn.metrics import accuracy_score, roc_auc_score, 
+from sklearn.metrics import accuracy_score, roc_auc_score 
 from scipy.stats import f_oneway
 
 def load_data(file_path, group_column='GROUP'):

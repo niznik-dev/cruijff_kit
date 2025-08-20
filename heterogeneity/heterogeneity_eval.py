@@ -8,7 +8,7 @@ from heterogeneity_report import (
     calculate_group_metrics,
     find_heterogeneity,
     identify_groups,
-    create_visualizations,
+    visualizations,
     generate_report
 )
 
@@ -44,7 +44,7 @@ def load_samples_for_inspect(csv_path, group_column='GROUP'):
             metadata={
                 'prediction': int(row['PREDICTION']),
                 'probability': float(row['P(TRUE LABEL)']),
-                'group': str(row[group_column])  # Convert to string for consistency
+                'group': str(row[group_column])
             }
         )
         samples.append(sample)
@@ -95,7 +95,7 @@ def heterogeneity_metric():
             output_dir = 'inspect_results'
             os.makedirs(output_dir, exist_ok=True)
             
-            create_visualizations(group_metrics, output_dir)
+            visualizations(group_metrics, output_dir)
             report = generate_report(df, group_metrics, heterogeneity_results, 
                                    identified_groups, output_dir)
             
