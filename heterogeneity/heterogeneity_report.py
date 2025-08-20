@@ -197,6 +197,7 @@ def visualizations(group_metrics, output_dir='results'):
     print(f"Visualization saved to {output_dir}/group_performance.png")
 
 def generate_report(df, group_metrics, heterogeneity_results, identified_groups, output_dir='results'):
+    """Generate a heterogeneity report"""
 
     os.makedirs(output_dir, exist_ok=True)
     
