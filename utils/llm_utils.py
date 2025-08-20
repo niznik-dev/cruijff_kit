@@ -2,62 +2,62 @@ import os
 import json
 import numpy as np
 
+from tqdm.auto import tqdm
+
 import torch
 from torch import nn
 
 import h5py
 
-from tqdm.auto import tqdm
-
-from functools import partial
-
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
 
+from functools import partial
 
 
 
 '''
 Notes:
-    - **kwargs functionality built into get_logits() and get_embeddings() methods. Need to check difference between model() and model.generate() methods...
+    - **kwargs functionality built into get_logits(), get_next_tokens(), and get_embeddings() methods for forward passes.
     - Example usage in 'test-utils.py' / 'test-utils.slurm'.
 '''
 
 '''
 TODO:
-    - Use a dataloader?
     - Wrap load_model differently for base and PEFT models
     - Emphasizing accessibility / usability for newer users.
     - Functions should check incoming / outcoming things! Maybe not for internal functions...?
     - New function to return distribution of prompt lengths
     - Wrap pool_hidden_states() differently for ones requiring att. mask and not.
-    - 
+    - Need to check difference between model() and model.generate() methods...
 '''
 
+
+## DATA & MODEL LOADING UTILITIES
 class PromptDataset(torch.utils.data.Dataset):
     def __init__(self, prompts):
         self.prompts = prompts
 
     def __len__(self):
         return len(self.prompts)
-
+    
     def __getitem__(self, idx):
-        return self.prompts[idx]
-    
+        return self.prompts[idx]  
 
-    
+
 def collate_fn(batch, tokenizer, preprompt, use_chat_template):
-    ## Batch is a list of prompts to tokenize
-    batch_inputs = tokenize_prompts(tokenizer, batch, 
+    # Batch is a list of prompts
+    # Tokenize inside collate_fn for parallelism
+    batch_inputs = tokenize_prompts(tokenizer, batch,
                                     preprompt = preprompt,
                                     use_chat_template = use_chat_template)
+    #batch_inputs = batch_inputs.to(device)
     return batch_inputs
 
 
 def load_prompts_and_targets(eval_file: str, num_obs: int = None,
-                            input_colname = 'input', output_colname = 'output',
-                            id_colname = None,
-                            ) -> tuple[list[str], list[str], list[str] | None]:
+                             input_colname = 'input', output_colname = 'output',
+                             id_colname = None) -> tuple[list[str], list[str]]:
     """
     Loads prompts and target outputs from a JSON file.
     
@@ -66,15 +66,15 @@ def load_prompts_and_targets(eval_file: str, num_obs: int = None,
             each with at least the keys "input" (prompt) and "output" (target).
         num_obs (int): Optional, defaults to None. Number of observations to load.
             If None defaults to the total number of examples in the file.
-        input_colname (str): Optional, defaults to 'input'. name of input key in .json file
-        output_colname (str): Optional, defaults to 'output'. name of output key in .json file
-        id_colname (str): Optional, defaults to None. name of id key in .json file
-
+        input_colname (str): Optional, name of input object in eval_file
+        output_colname (str): Optional, name of output object in eval_file
+        id_colname (str): Optional, name of id object in eval_file
+    
     Returns:
         tuple:
             - prompts (list of str): List of prompt strings extracted from the data.
-            - targets (list of str): List of target output strings corresponding to the prompts.
-            - prompt_ids (list of str, or None): List of prompt ids from data 
+            - targets (list of str): List of target output strings (stripped of leading/trailing whitespace) corresponding to the prompts.
+            - prompt_ids (list of str): List of id strings from data
     """
     
     # ─── Load evaluation data ─────────────────────────────────────────────────────
@@ -99,9 +99,8 @@ def load_prompts_and_targets(eval_file: str, num_obs: int = None,
     return prompts, targets, prompt_ids
 
 
-def load_model(model_path: str, tokenizer_path: str = None, 
-                adapter_path: str = None, compile = False, torch_dtype = torch.float16,
-                **kwargs) -> tuple[AutoTokenizer,nn.Module]:
+def load_model(model_path: str, tokenizer_path: str = None, adapter_path: str = None,
+               compile = False, torch_dtype = torch.bfloat16) -> tuple[AutoTokenizer,nn.Module]:
     """
     Loads a model checkpoint with folder specified by model_path. If adapter_path is None, returns base model.
     Automatically adds a padding token if the tokenizer does not have one.
@@ -110,9 +109,7 @@ def load_model(model_path: str, tokenizer_path: str = None,
         base_model_path (str): The base model path
         tokenizer_path (str): Optional, defaults to None. The path to the tokenizer. If None, uses base_model_path.
         adapter_path (str): Optional, defaults to None. The path to the PEFT adapter.
-        compile (bool): Optional, defauls to 'False'. Whether to compile the model before returning.
-        torch_dtype (torch.dtype): Optional, defaults to torch.float16. The data type to use for the model.
-        kwargs (dict): Additional keyword arguments to pass to the model loading methods.
+        compile (bool): Optional, defaults to False. Whether to compile the loaded model.
     
     Returns:
         tuple:
@@ -130,11 +127,12 @@ def load_model(model_path: str, tokenizer_path: str = None,
 
     # Load models
     assert os.path.exists(model_path), f"Model path {model_path} does not exist."
-    base_model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch_dtype, device_map="auto", **kwargs)
+    base_model = AutoModelForCausalLM.from_pretrained(model_path, device_map = 'auto', 
+                                                      low_cpu_mem_usage = True, torch_dtype = torch_dtype)
 
     if adapter_path is not None:
         assert os.path.exists(adapter_path), f"Adapter path {adapter_path} does not exist."
-        model_out = PeftModel.from_pretrained(base_model, adapter_path, torch_dtype=torch_dtype)        
+        model_out = PeftModel.from_pretrained(base_model, adapter_path, torch_dtype = torch_dtype)        
     else:
         model_out = base_model
 
@@ -149,6 +147,8 @@ def load_model(model_path: str, tokenizer_path: str = None,
 
     return tokenizer, model_out
 
+
+## INFERENCE UTILITIES
 
 def tokenize_prompts(tokenizer: AutoTokenizer, prompts: list[str],
                     preprompt: str = '',
@@ -221,33 +221,32 @@ def get_logits(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str],
     
     # Set up dataloader
     dataset = PromptDataset(prompts)
-    collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt, use_chat_template = use_chat_template)
-    loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, collate_fn = collate,
-                                        pin_memory = True)
+    collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt, 
+                      use_chat_template = use_chat_template)
+    loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, collate_fn = collate, pin_memory = True)
 
     with torch.no_grad(), torch.amp.autocast("cuda"):
         for batch_inputs in tqdm(loader):
-
             batch_inputs = {k: v.to(model.device) for k,v in batch_inputs.items()}
-            len_prompts = batch_inputs["input_ids"].shape[0]
+            len_batch = batch_inputs['input_ids'].shape[0]
 
             outputs = model(**batch_inputs, **kwargs)
             # outputs.logits of shape: (batch_size, max_len, vocab_size)
 
             # Get logits of last NON-padding token (not really needed when inputs are of same length)
             input_lengths = (batch_inputs["attention_mask"].sum(dim=1) - 1)  # subtract 1 for zero-based indexing
-
-            batch_logits = outputs.logits[torch.arange(len_prompts), input_lengths] # shape: (batch_size, vocab_size)
+            
+            batch_logits = outputs.logits[torch.arange(len_batch), input_lengths] # shape: (batch_size, vocab_size)
 
             # Downcast to desired data type
             batch_logits = batch_logits.to(dtype=dtype)
 
             # Concatenate
             if logits is None:
-                logits = batch_logits
+                logits = batch_logits.detach().cpu()
                 # shape: (batch_size, vocab_size)
             else:
-                logits = torch.cat((logits, batch_logits), dim=0)
+                logits = torch.cat((logits, batch_logits.detach().cpu()), dim=0)
                 # shape: (batch_size*i, vocab_size)
 
     return logits
@@ -287,15 +286,14 @@ def get_next_tokens(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[st
     
     # Set up dataloader
     dataset = PromptDataset(prompts)
-    collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt, use_chat_template = use_chat_template)
-    loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, collate_fn = collate,
-                                        pin_memory = True)
-
+    collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt, 
+                      use_chat_template = use_chat_template)
+    loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, collate_fn = collate, pin_memory = True)
+    
     with torch.no_grad(), torch.amp.autocast("cuda"):
         for batch_inputs in tqdm(loader):
-
             batch_inputs = {k: v.to(model.device) for k,v in batch_inputs.items()}
-            len_prompts = batch_inputs["input_ids"].shape[0]
+            len_batch = batch_inputs['input_ids'].shape[0]
 
             batch_generated_tokens = model.generate(**batch_inputs, **kwargs)
 
@@ -307,7 +305,7 @@ def get_next_tokens(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[st
             # Reshape if num_return_sequences>2
             num_return_sequences = kwargs.get("num_return_sequences", 1)
             if num_return_sequences > 1:
-                batch_generated_tokens = batch_generated_tokens.reshape(len_prompts, num_return_sequences, -1)
+                batch_generated_tokens = batch_generated_tokens.reshape(len_batch, num_return_sequences, -1) 
                 # shape: (batch_size, num_return_sequences, seq_len<=max_new_tokens)
 
             # Concatenate
@@ -322,8 +320,9 @@ def get_next_tokens(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[st
 
 def get_embeddings(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str], 
                     preprompt: str = '',
-                    use_chat_template = True, pool = "last",
+                    use_chat_template = True, pool = "last_non_padding",
                     batch_size = 4, return_mask = False, last_layer_only = True,
+                    dtype = torch.float16,
                     **kwargs) -> tuple[torch.Tensor, torch.Tensor | None]:
     """
     Get the embeddings for the given prompts.
@@ -334,15 +333,19 @@ def get_embeddings(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str
         prompts (list[str]): The list of prompts to evaluate.
         preprompt (str): Optional, defaults to ''. Common text to prepend to each prompt.
         use_chat_template (bool): Optional, defaults to True. Whether to use chat template for encoding.
-        pool (str): Optional, defaults to "last". Pooling method for the hidden states. See pool_hidden_states() for details.
+        pool (str): Optional, defaults to "last_non_padding". Pooling method for the hidden states. See pool_hidden_states() for details.
         batch_size (int): Optional, defaults to 4. The batch size to use for inference.
         return_mask (bool): Optional, defaults to False. Whether to return the attention mask associated with the prompts.
-        last_layer_only (bool): Optional, defaults to True. Whether to return only the last layer of the hidden states.
+        last_layer_only (bool): Optional, defaults to True. Whether to return only last layer embeddings.
+        dtype (torch.dtype): Optional, defaults to torch.float16. The data type to use for the embeddings.
+            - DEPRECATED DUE TO AUTOMATIC MIXED PRECISION
         kwargs (dict): Additional keyword arguments to pass to model() method.
 
     Returns:
         tuple:
             - torch.Tensor: The embeddings for the prompts.
+                Shape of (B, L, T, H) if pool is None
+                Shape of (B, L, H) otherwise
             - torch.Tensor: The attention mask for the prompts if return_mask is True, else None.
     
     Notes: 
@@ -369,38 +372,39 @@ def get_embeddings(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str
     attention_mask = None
 
     model.eval()  # Ensure the model is in evaluation mode
-    
+
     # Set up dataloader
     dataset = PromptDataset(prompts)
-    collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt, use_chat_template = use_chat_template)
-    loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, collate_fn = collate,
-                                        pin_memory = True)
-
+    collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt, 
+                      use_chat_template = use_chat_template)
+    loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, collate_fn = collate, pin_memory = True)
+    
     with torch.no_grad(), torch.amp.autocast("cuda"):
         for batch_inputs in tqdm(loader):
-
             batch_inputs = {k: v.to(model.device) for k,v in batch_inputs.items()}
+
             batch_mask = batch_inputs["attention_mask"]
 
             outputs = model(**batch_inputs, output_hidden_states=True, **kwargs)
 
-
+            # Take only last layer if needed (done by default)
             if last_layer_only:
-                batch_embed = outputs.hidden_states[-1] # Shape: (B, T, H)
-                batch_embed = batch_embed.unsqueeze(1) # Shape: (B, 1, T, H)
+                batch_embed = outputs.hidden_states[-1] # shape (B, T, H)
+                batch_embed = batch_embed.unsqueeze(1) # shape (B, 1, T, H)
             else:
-                batch_embed = torch.stack(outputs.hidden_states, dim = 1) # Shape: (B, L, T, H)
-
+                batch_embed = torch.stack(outputs.hidden_states, dim = 1) # shape: (B, L, T, H)
+            
 
             # Pool hidden states over the token dimension
             batch_pooled_embed = pool_hidden_states(batch_embed, pool=pool, attention_mask=batch_mask) 
-            # shape: (B, L, H), or (B, L, T, H) if pool is None
+            # shape: (B, L / 1, H), or (B, L / 1, T, H) if pool is None
+
 
             if pooled_embeds is None:
                 pooled_embeds = batch_pooled_embed
             else:
                 pooled_embeds = torch.cat((pooled_embeds, batch_pooled_embed), dim=0)
-                # shape: (B*i, L, H), or (B*i, L, T, H) if pool is None
+                # shape: default: (B*i, L or 1, H),  if pool is None: (B*i, L or 1, T, H)
 
             if return_mask:
                 if attention_mask is None:
@@ -557,4 +561,5 @@ def load_tensor_with_ids(filename,
     print(f"Loaded tensor of shape {tensor.shape}{', attention_mask' if attention_mask is not None else ''} and ids from {filename}")
 
     return tensor, ids, attention_mask
+
 
