@@ -1,5 +1,6 @@
-finetune_m.yaml
 *.out
+*_m.yaml
+*_m.slurm
 *_filled.yaml
 *_filled.slurm
 *.pyc
@@ -13,3 +14,4 @@ logs/
 finetune_*.slurm
 finetune_*.yaml
 *G/
+*.eval
