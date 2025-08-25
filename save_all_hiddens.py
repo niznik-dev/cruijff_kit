@@ -10,8 +10,6 @@ Description: Extracts Embeddings based on a configuration file.
 -------------------------------------------------------------
 '''
 
-
-
 import os
 import torch
 import yaml
@@ -86,14 +84,6 @@ def main(config_filename):
     RETURN_MASK = config.get('RETURN_MASK', False) # default to no mask
     POOL_TYPES = config.get('POOL_TYPES')
     LAST_LAYER_ONLY = config.get('LAST_LAYER_ONLY', True) # default to only last layer
-
-
-
-
-    ## ------------- Hardcoded Params -------------
-    DTYPE_EMBEDS = torch.float16 # DEPRECATED DUE TO AUTOMATIC MIXED PRECISION
-
-
 
     ## ------------- Find Valid Adapter Paths -------------
 
@@ -170,9 +160,6 @@ def main(config_filename):
         # Load model and tokenizer
         tokenizer, model = load_model(BASE_MODEL_PATH, adapter_path=ADAPTER_PATH)
 
-        # NOTE: Should only send to device if model isn't already on device...
-        model.to(device)
-
         # Loop over pooling types specified in POOL_TYPES
         for POOL_TYPE in POOL_TYPES:
             print(f"\n    Pooling type: {POOL_TYPE}")
@@ -183,10 +170,10 @@ def main(config_filename):
                                         preprompt=PREPROMPT,
                                         use_chat_template=USE_CHAT_TEMPLATE, pool=POOL_TYPE,
                                         batch_size=BATCH_SIZE, return_mask=RETURN_MASK,
-                                        last_layer_only=LAST_LAYER_ONLY,
-                                        dtype = DTYPE_EMBEDS)
+                                        last_layer_only=LAST_LAYER_ONLY)
 
             # Move to CPU
+            # TODO - Make this optional in the future
             embeds = embeds.detach().cpu()
             if mask is not None:
                 mask = mask.detach().cpu()
@@ -209,6 +196,7 @@ def main(config_filename):
     os.system(f"cp slurm-{slurm_jobnum}.out {SAVE_PATH_ALL}/")
 
 
+# TODO - Simplify the below
 if __name__ == "__main__":
     args = argparse.ArgumentParser()
     args.add_argument("--config", type = str, required = True,

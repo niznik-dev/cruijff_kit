@@ -1,0 +1,77 @@
+# -------------------------------------------------------------
+# Description: Configuration File for save_all_hiddens.py
+#   Used to specify: 
+#     - Input and output directories
+#     - Data file to build embeddings for
+#     - Model and Adapter paths (if any) to generate embeddings with
+#     - Tokenization parameters (e.g. using chat template, and any preprompt)
+#   Automatically copied into the output directory of the generated books.
+# -------------------------------------------------------------
+
+
+
+# ----------- Static Directories (using della as an example - change as needed)
+USERNAME: drigobon
+MODELS_BASE_DIR: /scratch/gpfs/${USERNAME}/torchtune_models/
+    # If BASE_MODEL_NAME == 'Llama-3-2-1b-Instruct' , use MODELS_BASE_DIR: '/gpfs/ostor/ossc9424/torchtune/models/'
+    # Else, use: MODELS_BASE_DIR: '/gpfs/ostor/ossc9424/hugging_face_models/'
+FINETUNED_BASE_DIR: /scratch/gpfs/${USERNAME}/zyg_out/
+INPUT_DATA_DIR: /scratch/gpfs/${USERNAME}/zyg_in/
+OUTPUT_DATA_DIR: /scratch/gpfs/${USERNAME}/zyg_out/embeddings/
+    # TODO - this may need to be changed as we learn how this works on della
+
+
+# ----------- Run name for outputs
+RUN_NAME: 'books-DBC-full-prompted-v2'
+    # Automatically addes date suffix "-YYYY-MM-DD" (or DATE below) and "/BASE_MODEL_NAME/" to output directory
+    # If 'null', uses the same name as CHECKPOINT_RUN_NAME defined below
+    # Outputs saved to:
+    #     {OUTPUT_BASE_DIR}/{RUN_NAME}-{DATE}/{BASE_MODEL_NAME}/[base_model , epoch_0 , epoch_1 , ...]/embeds_pooled_{POOL_TYPE}.pt
+DATE: '2025-07-21'
+    # If null, adds current date to output folder name
+    # Else, appends date here to end of RUN_NAME to make output folder name
+
+# ----------- Model Directories
+BASE_MODEL_NAME: 'Llama-3-2-1b-Instruct' 
+    # Model name found within MODELS_BASE_DIR
+USE_BASE_MODEL: true 
+    # bool. Whether or not we evaluate on the base model
+CHECKPOINT_RUN_NAME: "DBC-full-2021-ft-on-2022-expenses-2"
+    # Only matters if MAX_EPOCHS is not None
+    # Torchtune output folder found within FINETUNED_BASE_DIR. 
+    # Contains model checkpoints [epoch_0/, epoch_1/, ...] for adapters
+MAX_EPOCHS: 9 
+    # int, or 'null'
+    # If 'null', will not evaluate on fine-tuned models
+    # Note: OK if larger than max epochs of fine-tuned runs, will only use adapters it finds in {FINETUNED_BASE_DIR}/{CHECKPOINT_RUN_NAME}
+
+# ----------- Data Parameters
+DATA_FILE: '/books-DBC-full-2025-07-21/books/shard_5.json' 
+    # Filename found within INPUT_DATA_DIR. 
+    # Must be .json containing list of dictionaries each with "input" and "output" keys, though "output" is unused here.
+NUM_OBS: null
+    # int or 'null'. None implies full use of dataset
+ID_COLNAME: 'RINPERSOON' # should be RINPERSOON
+INPUT_COLNAME: 'text' # should be 'book_content'
+OUTPUT_COLNAME: 'output' # should be 'outcome' (Though it's irrelevant for embeddings extraction)
+
+# ----------- Tokenization Params
+BATCH_SIZE: 32
+    # int
+USE_CHAT_TEMPLATE: true 
+    # bool
+PREPROMPT: null
+    # Preprompt to append before each prompt
+    # TODO - make sure null is valid!
+
+
+# ----------- Embedding & Pooling Params
+RETURN_MASK: false 
+    # bool. Whether we return attention mask. Shouldn't really be true ever...
+POOL_TYPES:
+  - 'last_non_padding'
+    # Leave as list, even if there's just one pooling type
+    # For options, see documentation in llm_utils.get_embeddings(...)
+LAST_LAYER_ONLY: true 
+    # bool. Whether we only get the last layer's embeddings
+
