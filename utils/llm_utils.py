@@ -57,7 +57,7 @@ def collate_fn(batch, tokenizer, preprompt, use_chat_template):
 
 def load_prompts_and_targets(eval_file: str, num_obs: int = None,
                              input_colname = 'input', output_colname = 'output',
-                             id_colname = None) -> tuple[list[str], list[str]]:
+                             id_colname = None) -> tuple[list[str], list[str], list[str] | None]:
     """
     Loads prompts and target outputs from a JSON file.
     
@@ -242,6 +242,8 @@ def get_logits(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str],
             batch_logits = batch_logits.to(dtype=dtype)
 
             # Concatenate
+            # TODO - Note that we changed this to detach when we were having issues with GPU memory
+            # running out with a big dataset - could be reverted later if not causing issues
             if logits is None:
                 logits = batch_logits.detach().cpu()
                 # shape: (batch_size, vocab_size)
@@ -322,10 +324,11 @@ def get_embeddings(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str
                     preprompt: str = '',
                     use_chat_template = True, pool = "last_non_padding",
                     batch_size = 4, return_mask = False, last_layer_only = True,
-                    dtype = torch.float16,
                     **kwargs) -> tuple[torch.Tensor, torch.Tensor | None]:
     """
     Get the embeddings for the given prompts.
+
+    TODO - we currently use autocast but if we are very interested in a specific dtype, we may want to allow for that.
 
     Args:
         model (nn.Module): The model to use for inference.
@@ -337,8 +340,6 @@ def get_embeddings(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str
         batch_size (int): Optional, defaults to 4. The batch size to use for inference.
         return_mask (bool): Optional, defaults to False. Whether to return the attention mask associated with the prompts.
         last_layer_only (bool): Optional, defaults to True. Whether to return only last layer embeddings.
-        dtype (torch.dtype): Optional, defaults to torch.float16. The data type to use for the embeddings.
-            - DEPRECATED DUE TO AUTOMATIC MIXED PRECISION
         kwargs (dict): Additional keyword arguments to pass to model() method.
 
     Returns:
