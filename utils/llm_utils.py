@@ -212,7 +212,7 @@ def get_logits(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str],
         torch.Tensor: The logits for the prompts. Shape: (batch_size, vocab_size). Correspond to the last non-padding token in each prompt.
     
     Notes: 
-        - Outputs are NOT sent to CPU.
+        - OUTPUTS ARE ON CPU.
     """
 
     logits = None

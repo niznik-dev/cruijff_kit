@@ -1,0 +1,55 @@
+# -------------------------------------------------------------
+# Description: Configuration File for ??.py
+#   Used to specify: 
+#     - ??
+# -------------------------------------------------------------
+
+
+# ----------- Static Directories:
+BASE_DIR: '/home/drigobon/scratch/'
+  # Directory wherein everything else is relative
+
+
+# ----------- Input / Output Data
+EVAL_DATASET_PATH: '/zyg-in/ptwindat_eval.json' # TODO -- come up with something for testing this
+  # Within "{BASE_DIR}"
+NUM_OBS: null
+INPUT_COLNAME: 'input'
+OUTPUT_COLNAME: 'output'
+ID_COLNAME: null
+
+OUTPUT_PATH: '/zyg-out/' # TODO -- come up with somethign for testing this
+  # Within ...?
+  
+
+# ----------- Model Params
+MODEL_PATH: "/torchtune-models/Llama-3.2-1B-Instruct/"
+  # Within "{BASE_DIR}"
+ADAPTER_PATH: "/zyg-out/100k-20epoch/"
+  # Within "{BASE_DIR}"
+ADAPTER_NAMES:
+  - null
+  - epoch_0
+  - epoch_1
+  - epoch_2
+  - epoch_3
+  - epoch_4
+  - epoch_5
+  - epoch_6
+  - epoch_7
+  - epoch_8
+  - epoch_9
+  # Within "{BASE_DIR}/{ADAPTER_PATH}" (except for 'null', which evaluates base model)
+
+# ----------- Task & Tokenization Params
+VALID_NEXT_TOKENS: ['0', '1', '2']
+
+PREPROMPT: "The following contains features about two individuals, serialized into text. The features and their units, along with the individuals, are anonymized. Your task is to predict whether the two individuals are twins. Return a '1' if you believe they are, and a '0' otherwise. Do not return more than one number, and do not provide any explanation or justification.'"
+
+# ----------- Execution Params
+BATCH_SIZE: 16
+USE_CHAT_TEMPLATE: true
+NUM_GPUS: 1
+MAX_LENGTH: null
+
+
