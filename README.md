@@ -1,6 +1,10 @@
 # cruijff-kit
 A torchtune-based toolkit for fine-tuning and evaluating large language models using twin data and beyond, featuring automated SLURM script generation and preprocessing pipelines.
 
+# ⚠️ Pre-Alpha Warning ⚠️
+
+This project is in early development and things may break without notice; you may encounter bugs or changes between updates. Your feedback and bug reports are valuable for development. We appreciate your patience!
+
 # Prerequisites
 
 - Cloning and Pulling from GitHub (properly!)
