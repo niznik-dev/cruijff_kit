@@ -1,18 +1,24 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+import os
 import json
 import argparse
-import os
-from sklearn.metrics import accuracy_score, roc_auc_score 
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.metrics import accuracy_score, roc_auc_score
 from scipy.stats import f_oneway
 
 def load_data(file_path, group_column='GROUP'):
     """Load CSV data for analysis"""
     df = pd.read_csv(file_path)
     
-    if group_column != 'GROUP' and group_column in df.columns:
+    if group_column != 'GROUP':
+        if group_column not in df.columns:
+            raise ValueError(f"Group column '{group_column}' not found in data columns: {df.columns.tolist()}")
         df['GROUP'] = df[group_column]
+    elif 'GROUP' not in df.columns:
+        raise ValueError("Default 'GROUP' column not found and no alternative group column specified.")
     
     print(f"Loaded {len(df)} samples from {len(df['GROUP'].unique())} groups")
     return df
@@ -144,7 +150,7 @@ def identify_groups(group_metrics, z_threshold=-1.5, auc_threshold=0.6):
     
     return identified_groups
 
-def visualizations(group_metrics, output_dir='results'):
+def visualize_data(group_metrics, output_dir='results'):
     """Create performance visualizations"""
     os.makedirs(output_dir, exist_ok=True)
     
@@ -216,7 +222,7 @@ def generate_report(df, group_metrics, heterogeneity_results, identified_groups,
     }
     
     with open(f'{output_dir}/heterogeneity_report.json', 'w') as f:
-        json.dump(report, f, indent=2, default=str)
+        json.dump(report, f, indent=2, default=str, sort_keys=False)
     
     print(f"\nHeterogeneity found: {report['summary']['heterogeneity_found']}")
     if identified_groups['outlying_in_both']:
@@ -232,7 +238,7 @@ def run_analysis(input_file, group_column='GROUP', output_dir='results'):
     heterogeneity_results = find_heterogeneity(df, group_metrics)
     identified_groups = identify_groups(group_metrics)
     
-    visualizations(group_metrics, output_dir)
+    visualize_data(group_metrics, output_dir)
     report = generate_report(df, group_metrics, heterogeneity_results, identified_groups, output_dir)
     
     print(f"\nAnalysis complete. Results saved to {output_dir}/")
