@@ -3,7 +3,7 @@ A torchtune-based toolkit for fine-tuning and evaluating large language models u
 
 # ⚠️ Pre-Alpha Warning ⚠️
 
-This project is in early development and things may break without notice; you may encounter bugs or changes between updates. Your feedback and bug reports are valuable for development. We appreciate your patience!
+This project is in early development and things may break without notice; you may encounter bugs or changes between updates. If you would like to use this toolkit, please let us know and reach out for assistance - we'd love to collaborate! Your feedback and bug reports are valuable for development.
 
 # Prerequisites
 
