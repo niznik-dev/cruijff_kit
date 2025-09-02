@@ -242,7 +242,6 @@ def run_analysis(input_file, group_column='GROUP', output_dir='results'):
     report = generate_report(df, group_metrics, heterogeneity_results, identified_groups, output_dir)
     
     print(f"\nAnalysis complete. Results saved to {output_dir}/")
-    return report
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyze model predictions for heterogeneity")
