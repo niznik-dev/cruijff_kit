@@ -1,6 +1,6 @@
 BASE_DIR: /scratch/gpfs/niznik/
 EVAL_PATH: GitHub/cruijff-kit/tests/capitalization/
-EVAL_FILE: val.json
+EVAL_FILE: input/val.json
 
 MODEL_PATH: torchtune_models/Llama-3.2-1B-Instruct/
 ADAPTER_PATH: zyg_out_finetune-five/epoch_9/
@@ -8,7 +8,7 @@ ADAPTER_PATH: zyg_out_finetune-five/epoch_9/
 INPUT_COLNAME: 'input'
 OUTPUT_COLNAME: 'output'
 ID_COLNAME: null
-NUM_OBS: 100
+NUM_OBS: 1000
 BATCH_SIZE: 1
 NUM_ADDITIONAL: 100
 
