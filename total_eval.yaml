@@ -1,7 +1,9 @@
 # -------------------------------------------------------------
-# Description: Configuration File for ??.py
+# Description: Configuration File for total_eval.py
 #   Used to specify: 
-#     - ??
+#     - Directories for model, adapters, and data
+#     - Target tokens to obtain probabilities for
+#     - Tokenization, batch, and token generation parameters
 # -------------------------------------------------------------
 
 
