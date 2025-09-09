@@ -289,7 +289,7 @@ def get_next_tokens(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[st
     # Set up dataloader
     dataset = PromptDataset(prompts)
     collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt, 
-                      use_chat_template = use_chat_template)
+                        use_chat_template = use_chat_template)
     loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, collate_fn = collate, pin_memory = True)
     
     with torch.no_grad(), torch.amp.autocast("cuda"):

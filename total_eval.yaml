@@ -42,7 +42,7 @@ ADAPTER_NAMES:
   # Within "{BASE_DIR}/{ADAPTER_PATH}" (except for 'null', which evaluates base model)
 
 # ----------- Task & Tokenization Params
-VALID_NEXT_TOKENS: ['0', '1', '2']
+TARGET_TOKENS: ['0', '1', '2']
 
 PREPROMPT: "The following contains features about two individuals, serialized into text. The features and their units, along with the individuals, are anonymized. Your task is to predict whether the two individuals are twins. Return a '1' if you believe they are, and a '0' otherwise. Do not return more than one number, and do not provide any explanation or justification.'"
 
@@ -51,5 +51,6 @@ BATCH_SIZE: 16
 USE_CHAT_TEMPLATE: true
 NUM_GPUS: 1
 MAX_LENGTH: null
+MAX_NEW_TOKENS: 1
 
 

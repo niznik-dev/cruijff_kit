@@ -56,7 +56,7 @@ def main(cfg_file):
     ADAPTER_PATH = cfg.get("ADAPTER_PATH")
     ADAPTER_NAMES = cfg.get("ADAPTER_NAMES")
 
-    VALID_NEXT_TOKENS = cfg.get("VALID_NEXT_TOKENS")
+    TARGET_TOKENS = cfg.get("TARGET_TOKENS")
 
     PREPROMPT = cfg.get("PREPROMPT", "")
 
@@ -70,11 +70,17 @@ def main(cfg_file):
     NUM_GPUS = cfg.get("NUM_GPUS", 1)
     MAX_LENGTH = cfg.get("MAX_LENGTH", None)
 
+    MAX_NEW_TOKENS = cfg.get("MAX_NEW_TOKENS", 1)
+
 
 
     # Make output directory if it doesn't exist
     if not os.path.exists(OUTPUT_PATH):
         os.makedirs(OUTPUT_PATH)
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available. Please ensure you have a compatible GPU and the necessary drivers installed.")
+
 
     ## LOOP: OVER ADAPTER NAMES
     for ADAPTER_NAME in ADAPTER_NAMES:
@@ -87,11 +93,7 @@ def main(cfg_file):
         else:
             CURR_ADAPTER = None
             OUTPUT_NAME = f"base_model"
-
         
-        if not torch.cuda.is_available():
-            raise RuntimeError("CUDA is not available. Please ensure you have a compatible GPU and the necessary drivers installed.")
-
         tokenizer, model = llm_utils.load_model(
             model_path=f"{BASE_DIR}/{MODEL_PATH}",
             adapter_path=CURR_ADAPTER,
@@ -119,12 +121,27 @@ def main(cfg_file):
         # Get token ids of any valid next tokens specified in config
         cand_token_ids = {
             cand: tokenizer(cand, add_special_tokens=False)["input_ids"][0]
-            for cand in VALID_NEXT_TOKENS
+            for cand in TARGET_TOKENS
         }
+
+        cand_token_lengths = {
+            cand: len(tokenizer(cand, add_special_tokens=False)["input_ids"])
+            for cand in TARGET_TOKENS
+        }
+
+        # Check if any in CANDIDATE TOKENS are more than one token long
+        if any([length > 1 for length in cand_token_lengths.values()]):
+            print("  Warning: One or more candidate tokens are more than one token long.")
+            # Print items in cand_token_lengths that are more than one token long
+            for cand, length in cand_token_lengths.items():
+                if length > 1:
+                    print(f"   {cand}: {length} tokens")
+                    print(f"     First Token in Target: {tokenizer.decode(cand_token_ids[cand])}")
+
 
         cand_raw_probs = {
             f"raw_prob_{token}": probs[:, cand_token_ids[token]].tolist()
-            for token in VALID_NEXT_TOKENS
+            for token in TARGET_TOKENS
         }
         cand_prob_df = pd.DataFrame(cand_raw_probs)
 
@@ -134,58 +151,28 @@ def main(cfg_file):
 
         df_out = pd.concat([df_out, cand_prob_df], axis=1)
 
-        df_out.loc[:,'raw_prob_sum'] = df_out.loc[:,[f"raw_prob_{token}" for token in VALID_NEXT_TOKENS]].sum(axis = 1)
+        df_out.loc[:,'raw_prob_sum'] = df_out.loc[:,[f"raw_prob_{token}" for token in TARGET_TOKENS]].sum(axis = 1)
 
-        most_likely_cand = df_out.loc[:,[f"raw_prob_{token}" for token in VALID_NEXT_TOKENS]].idxmax(axis = 1)
+        most_likely_cand = df_out.loc[:,[f"raw_prob_{token}" for token in TARGET_TOKENS]].idxmax(axis = 1)
         df_out.loc[:,'prediction'] = ["_".join(item.split('_')[2:]) for item in most_likely_cand]
 
         # Delete to free up memory
         del probs
 
+
+        # Generate next most likely tokens
+        generated_tokens = llm_utils.get_next_tokens(model, tokenizer, prompts,
+                    preprompt = PREPROMPT,
+                    use_chat_template = True, only_new_tokens = True, batch_size = 4,
+                    max_new_tokens = MAX_NEW_TOKENS, top_k = 1) 
+            # Only most likely token gets sampled from (top_k = 1)
+        
+        # Add to output dataframe
+        df_out.loc[:,'generated_tokens'] = [tokenizer.decode(generated_tokens[i], skip_special_tokens=True) for i in range(len(generated_tokens))]
+
         # Save to csv
         df_out.to_csv(f"{OUTPUT_PATH}/{OUTPUT_NAME}.csv")
-        
-
-        '''
-        additional_details = []
-        for i in range(0, 5):
-            detail = {
-                "p(1) (raw)": float(cand1_raw_probs[i]),
-                "p(0) (raw)": float(cand0_raw_probs[i]),
-                "p(1) (norm)": float(cand1_norm_probs[i]),
-                "p(0) (norm)": float(cand0_norm_probs[i]),
-                "p(0) + p(1) (raw)": float(candidate_prob_sum[i]),
-            }
-            additional_details.append(detail)
-    
-        # Compute classification metrics.
-        accuracy = accuracy_score(targets, predictions)
-        precision = precision_score(targets, predictions, pos_label="1", average="binary")
-        recall = recall_score(targets, predictions, pos_label="1", average="binary")
-        f1 = f1_score(targets, predictions, pos_label="1", average="binary")
-        cm = confusion_matrix(targets, predictions, labels=["1", "0"])
-        report = classification_report(targets, predictions, labels=["1", "0"])
-        
-        with open(f"{OUTPUT_PATH}/{OUTPUT_NAME}.txt", "w") as f:
-            f.write(f"Accuracy: {accuracy * 100:.2f}%\n")
-            f.write(f"Precision (Positive=1): {precision:.4f}\n")
-            f.write(f"Recall (Positive=1): {recall:.4f}\n")
-            f.write(f"F1 Score (Positive=1): {f1:.4f}\n")
-            f.write("Confusion Matrix:\n")
-            f.write(str(cm) + "\n")
-            f.write("\nClassification Report:\n")
-            f.write(report + "\n\n")
-
-            # Record details for the first 5 examples.
-            for i, detail in enumerate(additional_details):
-                f.write(f"Example {i+1}:\n")
-                f.write(f"  p(1) (raw): {detail['p(1) (raw)']:.4f}\n")
-                f.write(f"  p(0) (raw): {detail['p(0) (raw)']:.4f}\n")
-                f.write(f"  p(1) (norm): {detail['p(1) (norm)']:.4f}\n")
-                f.write(f"  p(0) (norm): {detail['p(0) (norm)']:.4f}\n")
-                f.write(f"  p(0) + p(1) (raw): {detail['p(0) + p(1) (raw)']:.4f}\n")
-        '''
-
+        print(f"  Saved results to {OUTPUT_PATH}/{OUTPUT_NAME}.csv")
 
 
 if __name__ == "__main__":
