@@ -212,7 +212,7 @@ def get_logits(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str],
         torch.Tensor: The logits for the prompts. Shape: (batch_size, vocab_size). Correspond to the last non-padding token in each prompt.
     
     Notes: 
-        - Outputs are NOT sent to CPU.
+        - OUTPUTS ARE ON CPU.
     """
 
     logits = None
@@ -289,7 +289,7 @@ def get_next_tokens(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[st
     # Set up dataloader
     dataset = PromptDataset(prompts)
     collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt, 
-                      use_chat_template = use_chat_template)
+                        use_chat_template = use_chat_template)
     loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, collate_fn = collate, pin_memory = True)
     
     with torch.no_grad(), torch.amp.autocast("cuda"):

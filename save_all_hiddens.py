@@ -204,8 +204,4 @@ if __name__ == "__main__":
     
     args = vars(args.parse_args())
 
-    
-    ## Hardcoded Inputs
-    #args = {config: 'save_all_hiddens.yaml'}
-
     main(args['config'])
