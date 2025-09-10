@@ -49,7 +49,7 @@ def main(cfg_file):
         os.makedirs(OUTPUT_PATH)
 
     MODEL_PATH = BASE_DIR + cfg.get("MODEL_PATH")
-    ADAPTER_PATH = BASE_DIR + cfg.get("ADAPTER_PATH")
+    ADAPTER_PATH = None if not cfg.get("ADAPTER_PATH") else (BASE_DIR + cfg.get("ADAPTER_PATH"))
     
     INPUT_COLNAME = cfg.get("INPUT_COLNAME")
     OUTPUT_COLNAME = cfg.get("OUTPUT_COLNAME")
@@ -59,6 +59,8 @@ def main(cfg_file):
     NUM_ADDITIONAL = cfg.get("NUM_ADDITIONAL")
 
     USE_CHAT_TEMPLATE = cfg.get("USE_CHAT_TEMPLATE")
+    PREPROMPT = cfg.get("PREPROMPT")
+    SYSPROMPT = cfg.get("SYSPROMPT")
 
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please ensure you have a compatible GPU and the necessary drivers installed")
@@ -91,7 +93,8 @@ def main(cfg_file):
 
         logits = llm_utils.get_logits(
             model, tokenizer, [prompt],
-            batch_size=BATCH_SIZE, use_chat_template=USE_CHAT_TEMPLATE
+            batch_size=BATCH_SIZE, use_chat_template=USE_CHAT_TEMPLATE,
+            preprompt=PREPROMPT, sysprompt=SYSPROMPT
         )
 
         probs_l.append(torch.softmax(logits, dim=1)[0])
@@ -149,6 +152,7 @@ def main(cfg_file):
 
     with open(f"{OUTPUT_PATH}/{OUTPUT_NAME}.txt", "w") as f:
         f.write(f"Accuracy: {accuracy * 100:.2f}%\n")
+        f.write(f"Average p(1) norm: {cand1_norm_probs.mean():.4f}\n")
         f.write(f"Precision (Positive=1): {precision:.4f}\n")
         f.write(f"Recall (Positive=1): {recall:.4f}\n")
         f.write(f"F1 Score (Positive=1): {f1:.4f}\n")

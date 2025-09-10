@@ -45,11 +45,12 @@ class PromptDataset(torch.utils.data.Dataset):
         return self.prompts[idx]  
 
 
-def collate_fn(batch, tokenizer, preprompt, use_chat_template):
+def collate_fn(batch, tokenizer, preprompt, sysprompt, use_chat_template):
     # Batch is a list of prompts
     # Tokenize inside collate_fn for parallelism
     batch_inputs = tokenize_prompts(tokenizer, batch,
                                     preprompt = preprompt,
+                                    sysprompt = sysprompt,
                                     use_chat_template = use_chat_template)
     #batch_inputs = batch_inputs.to(device)
     return batch_inputs
@@ -152,6 +153,7 @@ def load_model(model_path: str, tokenizer_path: str = None, adapter_path: str = 
 
 def tokenize_prompts(tokenizer: AutoTokenizer, prompts: list[str],
                     preprompt: str = '',
+                    sysprompt: str = '',
                     use_chat_template = True, max_length = None) -> dict:
     """    
     Tokenizes the given prompts using the specified tokenizer.
@@ -178,7 +180,11 @@ def tokenize_prompts(tokenizer: AutoTokenizer, prompts: list[str],
 
     if use_chat_template:
         # Apply chat template to prompts
-        chat_prompts = [[{"role": "user", "content": preprompt+prompt}] for prompt in prompts]
+        if sysprompt:
+            chat_prompts = [[{"role": "system", "content": sysprompt},
+                             {"role": "user", "content": preprompt+prompt}] for prompt in prompts]
+        else:
+            chat_prompts = [[{"role": "user", "content": preprompt+prompt}] for prompt in prompts]
 
         inputs = tokenizer.apply_chat_template(chat_prompts, tokenize=True, 
                                                 add_generation_prompt=True, 
@@ -191,7 +197,7 @@ def tokenize_prompts(tokenizer: AutoTokenizer, prompts: list[str],
 
 
 def get_logits(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str],
-                    preprompt: str = '',
+                    preprompt: str = '', sysprompt: str = '',
                     use_chat_template = True, batch_size = 4,
                     dtype = torch.float16,
                     **kwargs) -> torch.Tensor:
@@ -203,6 +209,7 @@ def get_logits(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str],
         tokenizer (AutoTokenizer): The tokenizer to use for encoding prompts.
         prompts (list[str]): The list of prompts to evaluate.
         preprompt (str): Optional, defaults to ''. Common text to prepend to each prompt.
+        sysprompt (str): Optional, defaults to ''. A system prompt to begin with before the user prompt.
         use_chat_template (bool): Optional, defaults to True. Whether to use chat template for encoding.
         batch_size (int): Optional, defaults to 4. The batch size to use for inference.
         dtype (torch.dtype): Optional, defaults to torch.float16. The data type to use for the logits.
@@ -222,7 +229,7 @@ def get_logits(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str],
     # Set up dataloader
     dataset = PromptDataset(prompts)
     collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt, 
-                      use_chat_template = use_chat_template)
+                      sysprompt = sysprompt, use_chat_template = use_chat_template)
     loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, collate_fn = collate, pin_memory = True)
 
     with torch.no_grad(), torch.amp.autocast("cuda"):
@@ -255,7 +262,7 @@ def get_logits(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str],
 
 
 def get_next_tokens(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str],
-                    preprompt: str = '',
+                    preprompt: str = '', sysprompt: str = '',
                     use_chat_template = True, only_new_tokens = True, batch_size = 4,
                     **kwargs) -> torch.Tensor:
     """
@@ -266,6 +273,7 @@ def get_next_tokens(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[st
         tokenizer (AutoTokenizer): The tokenizer to use for encoding prompts.
         prompts (list[str]): The list of prompts to evaluate.
         preprompt (str): Optional, defaults to ''. Common text to prepend to each prompt.
+        sysprompt (str): Optional, defaults to ''. A system prompt to begin with before the user prompt.
         use_chat_template (bool): Optional, defaults to True. Whether to use chat template for encoding.
         only_new_tokens (bool): Optional, defaults to True. If True, only return the newly generated tokens, excluding the input tokens.
         batch_size (int): Optional, defaults to 4. The batch size to use for inference.
@@ -288,8 +296,8 @@ def get_next_tokens(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[st
     
     # Set up dataloader
     dataset = PromptDataset(prompts)
-    collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt, 
-                        use_chat_template = use_chat_template)
+    collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt,
+                      sysprompt = sysprompt, use_chat_template = use_chat_template)
     loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, collate_fn = collate, pin_memory = True)
     
     with torch.no_grad(), torch.amp.autocast("cuda"):
@@ -321,7 +329,7 @@ def get_next_tokens(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[st
 
 
 def get_embeddings(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str], 
-                    preprompt: str = '',
+                    preprompt: str = '', sys_prompt: str = '',
                     use_chat_template = True, pool = "last_non_padding",
                     batch_size = 4, return_mask = False, last_layer_only = True,
                     **kwargs) -> tuple[torch.Tensor, torch.Tensor | None]:
@@ -335,6 +343,7 @@ def get_embeddings(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str
         tokenizer (AutoTokenizer): The tokenizer to use for encoding prompts.
         prompts (list[str]): The list of prompts to evaluate.
         preprompt (str): Optional, defaults to ''. Common text to prepend to each prompt.
+        sysprompt (str): Optional, defaults to ''. A system prompt to begin with before the user prompt.
         use_chat_template (bool): Optional, defaults to True. Whether to use chat template for encoding.
         pool (str): Optional, defaults to "last_non_padding". Pooling method for the hidden states. See pool_hidden_states() for details.
         batch_size (int): Optional, defaults to 4. The batch size to use for inference.
@@ -377,7 +386,7 @@ def get_embeddings(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str
     # Set up dataloader
     dataset = PromptDataset(prompts)
     collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt, 
-                      use_chat_template = use_chat_template)
+                      sys_prompt = sys_prompt, use_chat_template = use_chat_template)
     loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, collate_fn = collate, pin_memory = True)
     
     with torch.no_grad(), torch.amp.autocast("cuda"):

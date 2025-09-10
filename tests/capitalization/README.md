@@ -28,10 +28,12 @@ python generate_slurm_script.py \
   --input_dir_base /home/niznik/scratch/GitHub/predicting-zygosity/tests/capitalization/input/ \
   --input_formatting '' \
   --dataset_filename finetune_words_5L_4000.json \
+  --system_prompt 'Capitalize the given word...' \
   --batch_size 1 \
   --epochs 1 \
   --log_every_n_steps 1 \
   --run_val_every_n_steps 0 \
+  --save_adapter_weights_only true \
   --conda_env ttenv-nightly \
   --custom_recipe lora_finetune_single_device_val.py \
   --account msalganik \
