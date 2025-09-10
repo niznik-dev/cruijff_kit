@@ -51,6 +51,7 @@ PREPROMPT: "The following contains features about two individuals, serialized in
 # ----------- Execution Params
 BATCH_SIZE: 16
 USE_CHAT_TEMPLATE: true
+ONLY_NEW_TOKENS: true
 NUM_GPUS: 1
 MAX_LENGTH: null
 MAX_NEW_TOKENS: 1

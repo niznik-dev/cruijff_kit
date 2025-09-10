@@ -67,6 +67,7 @@ def main(cfg_file):
 
     BATCH_SIZE = cfg.get("BATCH_SIZE")
     USE_CHAT_TEMPLATE = cfg.get("USE_CHAT_TEMPLATE", True)
+    ONLY_NEW_TOKENS = cfg.get("ONLY_NEW_TOKENS", True)
     NUM_GPUS = cfg.get("NUM_GPUS", 1)
     MAX_LENGTH = cfg.get("MAX_LENGTH", None)
 
@@ -163,7 +164,7 @@ def main(cfg_file):
         # Generate next most likely tokens
         generated_tokens = llm_utils.get_next_tokens(model, tokenizer, prompts,
                     preprompt = PREPROMPT,
-                    use_chat_template = True, only_new_tokens = True, batch_size = 4,
+                    use_chat_template = USE_CHAT_TEMPLATE, only_new_tokens = ONLY_NEW_TOKENS, batch_size = BATCH_SIZE,
                     max_new_tokens = MAX_NEW_TOKENS, top_k = 1) 
             # Only most likely token gets sampled from (top_k = 1)
         
