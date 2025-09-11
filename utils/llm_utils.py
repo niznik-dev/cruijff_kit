@@ -191,7 +191,8 @@ def tokenize_prompts(tokenizer: AutoTokenizer, prompts: list[str],
                                                 padding=padding, max_length=max_length,
                                                 return_tensors="pt", return_dict=True, return_attention_mask=True)
     else:
-        inputs = tokenizer(prompts, return_tensors="pt",
+        flat_prompts = [sysprompt + preprompt + prompt for prompt in prompts]
+        inputs = tokenizer(flat_prompts, return_tensors="pt",
                             padding=padding, max_length=max_length)
     return inputs
 
