@@ -113,7 +113,7 @@ def main(cfg_file):
     cand0_norm_probs = cand0_raw_probs / candidate_prob_sum
 
     # Predictions need to be a string because targets are strings and sklearn metrics expect string labels
-    predictions = ["1" if cand1_norm_probs[i] >= cand0_norm_probs[i] else "0" for i in range(len(cand1_norm_probs))]
+    predictions = ["1" if predictions_raw[i] == tokenizer.decode(tokenizer(targets[i], add_special_tokens=False)["input_ids"][0]) else "0" for i in range(len(cand1_norm_probs))]
     target_probs = [cand1_norm_probs[i].item() for i in range(len(targets))]
 
     df_out = pd.DataFrame({"index": range(len(cand1_norm_probs))})
