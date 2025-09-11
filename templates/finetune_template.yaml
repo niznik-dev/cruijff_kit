@@ -70,7 +70,6 @@ dataset:
   _component_: torchtune.datasets.instruct_dataset
   source: "json"
   data_files: "${input_dir}/${dataset_filename}"
-  description: "Twin zygosity prediction dataset formatted for instruction tuning with binary outputs"
   packed: True
 
 run_val_every_n_steps: 50
