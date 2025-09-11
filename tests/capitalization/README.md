@@ -24,8 +24,8 @@ Use `generate_slurm_script.py` with the following arguments:
 ```bash
 python generate_slurm_script.py \
   --my_wandb_project capitalization \
-  --my_wandb_run_name finetune-five \
-  --input_dir_base /home/niznik/scratch/GitHub/predicting-zygosity/tests/capitalization/input/ \
+  --my_wandb_run_name oct1-prompt-1 \
+  --input_dir_base /home/niznik/scratch/GitHub/cruijff-kit/tests/capitalization/input/ \
   --input_formatting '' \
   --dataset_filename finetune_words_5L_4000.json \
   --system_prompt 'Capitalize the given word...' \
@@ -36,8 +36,7 @@ python generate_slurm_script.py \
   --save_adapter_weights_only true \
   --conda_env ttenv-nightly \
   --custom_recipe lora_finetune_single_device_val.py \
-  --account msalganik \
-  --constraint gpu80
+  --account msalganik
 ```
 
 Then, run
