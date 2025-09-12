@@ -1,5 +1,9 @@
 import os
+import sys
+import argparse
+
 import pandas as pd
+
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
 from inspect_ai.scorer import Scorer, scorer, Score, metric
@@ -22,6 +26,23 @@ class _MetricState:
         self.expected_samples = None
 
 _state = _MetricState()
+
+if '--' not in sys.argv:
+    raise ValueError("Arguments must be passed after '--'")
+
+seperator_index = sys.argv.index('--')
+args_to_parse = sys.argv[seperator_index + 1:]
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--input_file', type=str, required=True, 
+                   help='Path to the input CSV file')
+parser.add_argument('--group_column', type=str, required=True,
+                   help='Column name for group identifiers')
+
+args, unknown = parser.parse_known_args(args_to_parse)
+
+INPUT_FILE = args.input_file
+GROUP_COLUMN = args.group_column
 
 def load_samples_for_inspect(csv_path, group_column='GROUP'):
     """Convert CSV to Inspect AI Samples - works with ANY group column"""
@@ -145,16 +166,13 @@ def heterogeneity_scorer():
 @task
 def heterogeneity_task():
     _state.reset()
-
-    input_file = os.environ.get('INPUT_FILE', 'predictions.csv')
-    group_column = os.environ.get('GROUP_COLUMN', 'GROUP')
     
     print(f"Running heterogeneity task with:")
-    print(f"  Input file: {input_file}")
-    print(f"  Group column: {group_column}")
+    print(f"  Input file: {INPUT_FILE}")
+    print(f"  Group column: {GROUP_COLUMN}")
     
     return Task(
-        dataset=load_samples_for_inspect(input_file, group_column),
+        dataset=load_samples_for_inspect(INPUT_FILE, GROUP_COLUMN),
         solver=[],
         scorer=heterogeneity_scorer()
     )

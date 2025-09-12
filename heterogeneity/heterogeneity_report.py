@@ -246,7 +246,7 @@ def run_analysis(input_file, group_column='GROUP', output_dir='results'):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyze model predictions for heterogeneity")
     parser.add_argument('--input_file', type=str, required=True)
-    parser.add_argument('--group_column', type=str, default='GROUP')
+    parser.add_argument('--group_column', type=str, required=True)
     parser.add_argument('--output_dir', type=str, default='results')
     
     args = parser.parse_args()
