@@ -13,9 +13,11 @@ To run a simple fine-tuning task on a small dataset of five-letter words and the
 
 ### Part 1 - Setup
 
-First, obtain words.txt from the following repo: https://github.com/dwyl/english-words (and star it!)
+(If not done already, clone this repo onto the machine you're using!)
 
-Place words.txt inside the input folder. Next, run `sample_words.py --word-len 5 --num-words 4000` (you can choose your own params for this part) - this will generate a file like `finetune_words_5L_4000.json` which we will use in finetuning.
+First, obtain words_alpha.txt from the following repo: https://github.com/dwyl/english-words (and star it!)
+
+Place words_alpha.txt inside the input folder. Next, run `python sample_words.py --word-len 5 --num-words 4000` (you can choose your own params for this part) - this will generate a file like `finetune_words_5L_4000.json` which we will use in finetuning.
 
 ### Part 2 - Finetuning
 

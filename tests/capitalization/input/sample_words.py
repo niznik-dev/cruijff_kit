@@ -18,7 +18,7 @@ if args.num_words <= 0:
 WORD_LEN = args.word_len
 NUMBER_OF_WORDS = args.num_words
 
-INFILE = "words.txt"
+INFILE = "words_alpha.txt"
 OUTFILE = f"finetune_words_{WORD_LEN}L_{NUMBER_OF_WORDS}.json"
 VALFILE = "val.json"
 
