@@ -17,4 +17,4 @@ module purge
 module load anaconda3/2024.10
 conda activate ttenv
 
-inspect eval eval_inspect.py --model hf/local -M model_path=<PATH_TO_MERGED_MODEL>
+inspect eval eval_inspect.py -T data_path="input/<VAL_JSON_FILENAME>" -T system_prompt="Capitalize!" --model hf/local -M model_path=<PATH_TO_MODEL>

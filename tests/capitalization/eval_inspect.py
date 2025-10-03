@@ -4,17 +4,20 @@ from inspect_ai.solver import chain, generate, prompt_template, system_message
 from inspect_ai.scorer import match, includes
 
 @task
-def cap_task():
+def cap_task(
+    data_path: str,
+    system_prompt: str = ""
+    ) -> Task:
     return Task(
         dataset=json_dataset(
-            "input/val_words_5L_80P_10000_test.json",
+            data_path,
             sample_fields=FieldSpec(
                 input="input",
                 target="output",
             )
         ),
         solver=chain(
-            system_message("Complete the pattern: appleApple funnyFunny "),
+            system_message(system_prompt),
             prompt_template("{prompt}"),
             generate(),
         ),

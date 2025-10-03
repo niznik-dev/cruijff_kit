@@ -57,7 +57,7 @@ wandb sync /path/to/output/folder/logs/wandb/latest-run
 
 ### Part 4 - Test the model
 
-Now navigate inside the tests/capitalization folder. Edit the eval_inspect.slurm and eval_inspect.py files as appropriate. Then run
+Now navigate inside the tests/capitalization folder. Edit eval_inspect.slurm as appropriate. Then run
 
 ```
 sbatch eval_inspect.slurm
