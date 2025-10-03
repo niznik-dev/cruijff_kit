@@ -1,11 +1,14 @@
 import json
 from transformers import AutoTokenizer
+import argparse
 
 import matplotlib.pyplot as plt
 
-json_file_path = 'finetune_words_5L_80P_10000.json'
-#json_file_path = 'val_words_5L_80P_10000.json'
-with open(json_file_path, 'r') as file:
+parser = argparse.ArgumentParser(description="Process a JSON file to calculate token statistics.")
+parser.add_argument('--json_filename', type=str, help='Name of the input file (should be in the same directory as this script).')
+args = parser.parse_args()
+
+with open(args.json_filename, 'r') as file:
     data = json.load(file)
 
 # Count tokens for each word in "input"
