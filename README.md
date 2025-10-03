@@ -72,6 +72,8 @@ For Meta, you can typically follow a URL like this: https://huggingface.co/meta-
 
 ## Step 2 - Run the Command
 
+If you don't already have access to the model via a group/shared directory (e.g. MSALGANIK for the research group on della), you can download the model using torchtune as follows:
+
 ```
 tune download meta-llama/<model_name> --output-dir <model_dir> --hf-token <hf-token>
 ```
