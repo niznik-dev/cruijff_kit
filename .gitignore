@@ -11,6 +11,7 @@ tests/capitalization/*.json
 tests/capitalization/eval_output/
 tests/capitalization/input/*_words*.json
 tests/capitalization/input/words*.txt
+tests/capitalization/input/*.png
 tests/predictable_or_not/*.json
 tests/capitalization/*.txt
 logs/
