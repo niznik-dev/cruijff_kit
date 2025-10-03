@@ -17,7 +17,7 @@ To run a simple fine-tuning task on a small dataset of five-letter words and the
 
 First, obtain words_alpha.txt from the following repo: https://github.com/dwyl/english-words (and star it!)
 
-Place words_alpha.txt inside the input folder. Next, run `python sample_words.py --word-len 5 --num-words 4000` (you can choose your own params for this part) - this will generate a file like `finetune_words_5L_4000.json` which we will use in finetuning.
+Place words_alpha.txt inside the input folder. Next, run `python sample_words.py --word-len 5 --num-words 10000` (you can choose your own params for this part) - this will generate a file like `finetune_words_5L_80P_10000.json` which we will use in finetuning.
 
 ### Part 2 - Finetuning
 
@@ -29,16 +29,14 @@ python generate_slurm_script.py \
   --my_wandb_run_name oct1-prompt-1 \
   --input_dir_base /home/niznik/scratch/GitHub/cruijff-kit/tests/capitalization/input/ \
   --input_formatting '' \
-  --dataset_filename finetune_words_5L_4000.json \
-  --system_prompt 'Capitalize the given word...' \
+  --dataset_filename finetune_words_5L_80P_10000.json \
+  --system_prompt 'Capitalize the given word' \
   --batch_size 1 \
   --epochs 1 \
   --log_every_n_steps 1 \
   --run_val_every_n_steps 0 \
-  --save_adapter_weights_only true \
   --conda_env ttenv-nightly \
-  --custom_recipe lora_finetune_single_device_val.py \
-  --account msalganik
+  --custom_recipe lora_finetune_single_device_val.py
 ```
 
 Then, run
@@ -59,10 +57,18 @@ wandb sync /path/to/output/folder/logs/wandb/latest-run
 
 ### Part 4 - Test the model
 
-Now navigate inside the tests/capitalization folder. Edit the eval.yaml and eval.slurm files as appropriate. Then run
+Now navigate inside the tests/capitalization folder. Edit the eval_inspect.slurm and eval_inspect.py files as appropriate. Then run
 
 ```
-sbatch eval.slurm
+sbatch eval_inspect.slurm
 ```
 
-and examine the slurm log file for the output.
+and examine the slurm log file for the output; you can also run
+
+```
+inspect view
+```
+
+which will supply a link to a website to view the results of the evaluation with inspect-ai.
+
+Did your finetuning and/or choice of prompt help?
