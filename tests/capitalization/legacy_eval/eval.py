@@ -27,7 +27,7 @@ from sklearn.metrics import (
 )
 from sklearn.calibration import calibration_curve
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 from utils import llm_utils
 
 
