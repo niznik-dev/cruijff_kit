@@ -590,7 +590,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # !--- cruijff-kit patch ---!
                 # Filter for specified split if the 'split' field exists in the data
                 if split is not None and len(dataset) > 0 and 'split' in dataset[0]:
+                    original_len = len(dataset)
                     dataset = dataset.filter(lambda x: x.get('split') == split)
+                    log.info(f"Filtered dataset by 'split' field: {original_len} -> {len(dataset)} examples ({split} split)")
                 # !--- end cruijff-kit patch ---!
                 datasets.append(dataset)
             ds = ConcatDataset(datasets=datasets)
@@ -600,7 +602,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             # !--- cruijff-kit patch ---!
             # Filter for specified split if the 'split' field exists in the data
             if split is not None and len(ds) > 0 and 'split' in ds[0]:
+                original_len = len(ds)
                 ds = ds.filter(lambda x: x.get('split') == split)
+                log.info(f"Filtered dataset by 'split' field: {original_len} -> {len(ds)} examples ({split} split)")
             # !--- end cruijff-kit patch ---!
             packed = cfg_dataset.get("packed", False)
 
