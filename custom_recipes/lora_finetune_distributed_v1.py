@@ -6,6 +6,9 @@
 
 import sys
 import time
+import json
+import tempfile
+import os
 
 from functools import partial
 from typing import Any, Dict, List, Optional, Union
@@ -590,6 +593,38 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         utils.log_rank_zero(log, "Learning rate scheduler is initialized.")
         return lr_scheduler
 
+    def _filter_dataset_by_split(self, cfg: DictConfig) -> Optional[str]:
+        """
+        Filter JSON dataset by split field if split_key and split_value are provided.
+        Returns path to temp file if filtering occurred, None otherwise.
+
+        !--- cruijff-kit patch ---!
+        """
+        split_key = cfg.get("split_key")
+        split_value = cfg.get("split_value")
+        data_files = cfg.get("data_files")
+
+        if split_key is None or split_value is None or data_files is None:
+            return None
+
+        # Load the JSON file
+        with open(data_files, 'r') as f:
+            data = json.load(f)
+
+        # Filter by split field
+        original_len = len(data)
+        filtered_data = [item for item in data if item.get(split_key) == split_value]
+        filtered_len = len(filtered_data)
+
+        utils.log_rank_zero(log, f"Filtered dataset by '{split_key}' field: {original_len} -> {filtered_len} examples ({split_value})")
+
+        # Write to temp file
+        temp_fd, temp_path = tempfile.mkstemp(suffix='.json', prefix=f'filtered_{split_value}_')
+        with os.fdopen(temp_fd, 'w') as f:
+            json.dump(filtered_data, f)
+
+        return temp_path
+
     def _setup_data(
         self,
         cfg_dataset: DictConfig,
@@ -603,16 +638,45 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         map-style datasets. If a state_dict is provided (meaning we are resuming a training run),
         it is loaded into the dataloader.
         """
+        # !--- cruijff-kit patch ---!
+        # Track temp files for cleanup
+        temp_files = []
+        # !--- end cruijff-kit patch ---!
+
         if isinstance(cfg_dataset, ListConfig):
-            datasets = [
-                config.instantiate(single_cfg_dataset, self._tokenizer)
-                for single_cfg_dataset in cfg_dataset
-            ]
+            datasets = []
+            for single_cfg_dataset in cfg_dataset:
+                # !--- cruijff-kit patch ---!
+                temp_path = self._filter_dataset_by_split(single_cfg_dataset)
+                if temp_path:
+                    temp_files.append(temp_path)
+                    single_cfg_dataset = single_cfg_dataset.copy()
+                    single_cfg_dataset.data_files = temp_path
+                # !--- end cruijff-kit patch ---!
+                dataset = config.instantiate(single_cfg_dataset, self._tokenizer)
+                datasets.append(dataset)
             ds = ConcatDataset(datasets=datasets)
             packed = getattr(ds, "packed", False)
         else:
+            # !--- cruijff-kit patch ---!
+            temp_path = self._filter_dataset_by_split(cfg_dataset)
+            if temp_path:
+                temp_files.append(temp_path)
+                cfg_dataset = cfg_dataset.copy()
+                cfg_dataset.data_files = temp_path
+            # !--- end cruijff-kit patch ---!
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
+
+        # !--- cruijff-kit patch ---!
+        # Clean up temp files
+        for temp_file in temp_files:
+            try:
+                os.unlink(temp_file)
+                utils.log_rank_zero(log, f"Cleaned up temporary filtered dataset file: {temp_file}")
+            except Exception as e:
+                utils.log_rank_zero(log, f"Failed to clean up temp file {temp_file}: {e}", level=logging.WARNING)
+        # !--- end cruijff-kit patch ---!
 
         # Instantiate collate_fn
         if "left_pad_sequence" in collate_fn:

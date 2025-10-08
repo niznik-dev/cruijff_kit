@@ -67,7 +67,7 @@ gradient_accumulation_steps: 1
 compile: False
 
 dataset:
-  _component_: custom_datasets.filtered_instruct_dataset.filtered_instruct_dataset
+  _component_: torchtune.datasets.instruct_dataset
   source: "json"
   data_files: "${input_dir}/${dataset_filename}"
   split_key: "split"
@@ -76,7 +76,7 @@ dataset:
 
 run_val_every_n_steps: 50
 dataset_val:
-  _component_: custom_datasets.filtered_instruct_dataset.filtered_instruct_dataset
+  _component_: torchtune.datasets.instruct_dataset
   source: "json"
   data_files: "${input_dir}/${dataset_val_filename}"
   split_key: "split"
