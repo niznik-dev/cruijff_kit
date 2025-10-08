@@ -27,7 +27,7 @@ Use `generate_slurm_script.py` with the following arguments:
 python generate_slurm_script.py \
   --my_wandb_project capitalization \
   --my_wandb_run_name oct1-prompt-1 \
-  --input_dir_base /home/niznik/scratch/GitHub/cruijff-kit/tests/capitalization/input/ \
+  --input_dir_base /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff-kit/tests/capitalization/input/ \
   --input_formatting '' \
   --dataset_filename words_5L_80P_1000.json \
   --system_prompt 'Capitalize the given word' \
