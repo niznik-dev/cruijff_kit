@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import yaml
 
@@ -45,7 +46,7 @@ parser.add_argument("--epochs_to_save", type=parse_epochs, default="all", help="
 parser.add_argument("--max_steps_per_epoch", type=int, help="Maximum steps per epoch (useful for debugging)")
 parser.add_argument("--log_every_n_steps", type=int, default=5, help="How often to log (in steps)")
 parser.add_argument("--run_val_every_n_steps", type=int, default=0, help="How often to run validation (in steps)")
-parser.add_argument("--dataset_split_point", type=int, default=80, help="Percentage of the dataset to use for finetuning")
+parser.add_argument("--dataset_split_point", type=int, default=None, help="Percentage of the dataset to use for finetuning")
 parser.add_argument("--system_prompt", type=str, default="", help="System prompt to use (if any)")
 parser.add_argument("--train_on_input", type=str, default="false", help="Whether to train on the input data (true/false)")
 
@@ -67,6 +68,35 @@ args = parser.parse_args()
 model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
 username = os.environ.get("USER")
 
+# Check if dataset files contain a 'split' field
+def dataset_has_split_field(filepath):
+    """Check if a JSON dataset file contains a 'split' field in its first entry."""
+    try:
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+            if isinstance(data, list) and len(data) > 0:
+                return 'split' in data[0]
+    except (FileNotFoundError, json.JSONDecodeError, KeyError):
+        pass
+    return False
+
+# Construct full paths to dataset files
+input_dir = args.input_dir_base + args.input_formatting + ("/" if args.input_formatting else "")
+dataset_path = os.path.join(input_dir, args.dataset_filename)
+dataset_val_path = os.path.join(input_dir, args.dataset_val_filename)
+
+# Check for conflicting split mechanisms
+if args.dataset_split_point is not None:  # User explicitly set dataset_split_point
+    if dataset_has_split_field(dataset_path) or (args.run_val_every_n_steps > 0 and dataset_has_split_field(dataset_val_path)):
+        raise ValueError(
+            "Conflicting dataset split methods detected. Both --dataset_split_point and a 'split' field "
+            "in your JSON data accomplish the same goal (splitting train/validation data), but only one "
+            "method can be used at a time.\n\n"
+            "Choose one approach:\n"
+            "  1. Use --dataset_split_point (remove the 'split' field from your JSON files)\n"
+            "  2. Use a 'split' field in your JSON files (don't set --dataset_split_point)"
+        )
+
 # First edit the yaml template
 with open("templates/finetune_template.yaml", "r") as f:
     config = yaml.safe_load(f)
@@ -83,8 +113,9 @@ for key, value in vars(args).items():
         full_output_dir = value + "ck-out-" + model_run_name + "/"
         config["output_dir"] = full_output_dir
     elif key == "dataset_split_point":
-        config["dataset"]["split"] = f"train[:{value}%]"
-        config["dataset_val"]["split"] = f"train[{value}%:]"
+        if value is not None:
+            config["dataset"]["split"] = f"train[:{value}%]"
+            config["dataset_val"]["split"] = f"train[{value}%:]"
     elif key == "system_prompt":
         if value:
             config["dataset"]["new_system_prompt"] = value
