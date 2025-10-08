@@ -48,7 +48,7 @@ def filtered_instruct_dataset(
     split = kwargs.pop('split', 'train')
     train_on_input = kwargs.pop('train_on_input', False)
 
-    # Load the raw dataset
+    # Load the raw dataset (kwargs contains load_dataset args like data_files)
     ds = load_dataset(source, split=split, **kwargs)
 
     # Filter by the split field if specified
@@ -65,16 +65,12 @@ def filtered_instruct_dataset(
         new_system_prompt=new_system_prompt,
     )
 
-    # Monkey-patch the dataset onto the SFTDataset to avoid re-loading
-    # Create SFTDataset but override its _data with our pre-filtered dataset
-    sft_ds = SFTDataset(
-        tokenizer=tokenizer,
-        source=source,
-        message_transform=message_transform,
-        model_transform=tokenizer,
-        packed=packed,
-    )
-    # Replace the internally loaded dataset with our filtered one
+    # Create SFTDataset with a dummy source to prevent it from loading
+    # We'll override _data immediately after
+    sft_ds = SFTDataset.__new__(SFTDataset)
     sft_ds._data = ds
+    sft_ds._message_transform = message_transform
+    sft_ds._model_transform = tokenizer
+    sft_ds.packed = packed
 
     return sft_ds
