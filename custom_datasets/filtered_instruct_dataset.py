@@ -5,7 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 from datasets import load_dataset
-from torchtune.datasets import instruct_dataset
+from torchtune.datasets._sft import SFTDataset
+from torchtune.data import InputOutputToMessages
 
 
 def filtered_instruct_dataset(
@@ -16,7 +17,7 @@ def filtered_instruct_dataset(
     **kwargs,
 ):
     """
-    Wrapper around torchtune's instruct_dataset that filters by a split field.
+    Dataset that filters by a split field before applying instruction formatting.
 
     This allows loading a single JSON file with a column for splits and filtering
     to only specific split values (e.g., 'train' or 'validation').
@@ -26,7 +27,7 @@ def filtered_instruct_dataset(
         source: Source of the dataset (e.g., "json" or HuggingFace dataset name)
         split_key: Name of the field/column to filter on (e.g., "split")
         split_value: Value to filter for (e.g., "train" or "validation")
-        **kwargs: Additional arguments passed to instruct_dataset and load_dataset
+        **kwargs: Additional arguments passed to SFTDataset and load_dataset
 
     Returns:
         The filtered and processed dataset
@@ -40,29 +41,40 @@ def filtered_instruct_dataset(
           split_value: "train"
           packed: True
     """
-    # If no filtering requested, just use the regular instruct_dataset
-    if split_key is None or split_value is None:
-        return instruct_dataset(tokenizer=tokenizer, source=source, **kwargs)
-
-    # Load the raw dataset first
-    # Extract load_dataset specific kwargs
-    data_files = kwargs.pop('data_files', None)
+    # Extract dataset-specific kwargs
+    column_map = kwargs.pop('column_map', None)
+    new_system_prompt = kwargs.pop('new_system_prompt', None)
+    packed = kwargs.pop('packed', False)
     split = kwargs.pop('split', 'train')
+    train_on_input = kwargs.pop('train_on_input', False)
 
-    # Load raw HuggingFace dataset
-    ds = load_dataset(source, data_files=data_files, split=split)
+    # Load the raw dataset
+    ds = load_dataset(source, split=split, **kwargs)
 
-    # Filter by the split field
-    original_len = len(ds)
-    ds = ds.filter(lambda x: x.get(split_key) == split_value)
-    filtered_len = len(ds)
+    # Filter by the split field if specified
+    if split_key is not None and split_value is not None:
+        original_len = len(ds)
+        ds = ds.filter(lambda x: x.get(split_key) == split_value)
+        filtered_len = len(ds)
+        print(f"Filtered dataset by '{split_key}' field: {original_len} -> {filtered_len} examples ({split_value})")
 
-    print(f"Filtered dataset by '{split_key}' field: {original_len} -> {filtered_len} examples ({split_value})")
-
-    # Now pass the filtered dataset to instruct_dataset
-    # We need to pass it as a pre-loaded dataset, not reload from source
-    return instruct_dataset(
-        tokenizer=tokenizer,
-        source=ds,  # Pass the filtered dataset directly
-        **kwargs
+    # Create message transform (same as instruct_dataset does)
+    message_transform = InputOutputToMessages(
+        train_on_input=train_on_input,
+        column_map=column_map,
+        new_system_prompt=new_system_prompt,
     )
+
+    # Monkey-patch the dataset onto the SFTDataset to avoid re-loading
+    # Create SFTDataset but override its _data with our pre-filtered dataset
+    sft_ds = SFTDataset(
+        tokenizer=tokenizer,
+        source=source,
+        message_transform=message_transform,
+        model_transform=tokenizer,
+        packed=packed,
+    )
+    # Replace the internally loaded dataset with our filtered one
+    sft_ds._data = ds
+
+    return sft_ds
