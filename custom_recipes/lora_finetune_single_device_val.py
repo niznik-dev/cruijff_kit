@@ -347,6 +347,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if self._resume_from_checkpoint
                 else None
             ),
+            split='train',  # !--- cruijff-kit patch ---!
         )
 
         # Setup validation dataloader if validation dataset is provided
@@ -358,6 +359,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 batch_size=batch_size_val,
                 collate_fn=collate_name,
                 shuffle=False,
+                split='validation',  # !--- cruijff-kit patch ---!
             )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -574,6 +576,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         batch_size: int,
         collate_fn: str,
         dataloader_state_dict: Optional[Dict[str, Any]] = None,
+        split: Optional[str] = None,  # !--- cruijff-kit patch ---!
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -581,14 +584,24 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         it is loaded into the dataloader.
         """
         if isinstance(cfg_dataset, ListConfig):
-            datasets = [
-                config.instantiate(single_cfg_dataset, self._tokenizer)
-                for single_cfg_dataset in cfg_dataset
-            ]
+            datasets = []
+            for single_cfg_dataset in cfg_dataset:
+                dataset = config.instantiate(single_cfg_dataset, self._tokenizer)
+                # !--- cruijff-kit patch ---!
+                # Filter for specified split if the 'split' field exists in the data
+                if split is not None and len(dataset) > 0 and 'split' in dataset[0]:
+                    dataset = dataset.filter(lambda x: x.get('split') == split)
+                # !--- end cruijff-kit patch ---!
+                datasets.append(dataset)
             ds = ConcatDataset(datasets=datasets)
             packed = getattr(ds, "packed", False)
         else:
             ds = config.instantiate(cfg_dataset, self._tokenizer)
+            # !--- cruijff-kit patch ---!
+            # Filter for specified split if the 'split' field exists in the data
+            if split is not None and len(ds) > 0 and 'split' in ds[0]:
+                ds = ds.filter(lambda x: x.get('split') == split)
+            # !--- end cruijff-kit patch ---!
             packed = cfg_dataset.get("packed", False)
 
         # Instantiate collate_fn

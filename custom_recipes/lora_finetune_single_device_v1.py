@@ -543,14 +543,24 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         it is loaded into the dataloader.
         """
         if isinstance(cfg_dataset, ListConfig):
-            datasets = [
-                config.instantiate(single_cfg_dataset, self._tokenizer)
-                for single_cfg_dataset in cfg_dataset
-            ]
+            datasets = []
+            for single_cfg_dataset in cfg_dataset:
+                dataset = config.instantiate(single_cfg_dataset, self._tokenizer)
+                # !--- cruijff-kit patch ---!
+                # Filter for 'train' split if the 'split' field exists in the data
+                if len(dataset) > 0 and 'split' in dataset[0]:
+                    dataset = dataset.filter(lambda x: x.get('split') == 'train')
+                # !--- end cruijff-kit patch ---!
+                datasets.append(dataset)
             ds = ConcatDataset(datasets=datasets)
             packed = getattr(ds, "packed", False)
         else:
             ds = config.instantiate(cfg_dataset, self._tokenizer)
+            # !--- cruijff-kit patch ---!
+            # Filter for 'train' split if the 'split' field exists in the data
+            if len(ds) > 0 and 'split' in ds[0]:
+                ds = ds.filter(lambda x: x.get('split') == 'train')
+            # !--- end cruijff-kit patch ---!
             packed = cfg_dataset.get("packed", False)
 
         # Instantiate collate_fn
