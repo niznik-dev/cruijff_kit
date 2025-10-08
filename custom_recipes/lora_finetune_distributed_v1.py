@@ -597,14 +597,21 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         """
         Filter JSON dataset by split field if split_key and split_value are provided.
         Returns path to temp file if filtering occurred, None otherwise.
+        Only works for JSON files - skips filtering for other sources.
 
         !--- cruijff-kit patch ---!
         """
         split_key = cfg.get("split_key")
         split_value = cfg.get("split_value")
         data_files = cfg.get("data_files")
+        source = cfg.get("source")
 
+        # Only filter if we have the required params and it's a JSON source
         if split_key is None or split_value is None or data_files is None:
+            return None
+
+        if source != "json":
+            utils.log_rank_zero(log, f"Skipping split filtering for non-JSON source: {source}")
             return None
 
         # Load the JSON file
