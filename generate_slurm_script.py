@@ -34,7 +34,6 @@ parser.add_argument("--my_wandb_run_name", type=str, help="Name for when results
 parser.add_argument("--input_formatting", type=str, default="raw", help="Name of the folder where your input files are stored within input_dir; useful for multiple formatting styles (e.g. difference vs raw values). If same directory, set to empty string.")
 
 parser.add_argument("--dataset_filename", type=str, default="tune_dataset", help="Name of the HF dataset folder or JSON file (should be in input_dir)")
-parser.add_argument("--use_json_format", type=str, default="false", help="Whether to use JSON format instead of HF Dataset (true/false)")
 
 parser.add_argument("--output_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/", help="Full path to the output file folders (final output folder will be 'ck-out-' + my_wandb_name within this folder)")
 parser.add_argument("--input_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/zyg_in/", help="Full path to the input file folders")
@@ -103,16 +102,16 @@ for key, value in vars(args).items():
     elif key == "output_dir_base":
         full_output_dir = value + "ck-out-" + model_run_name + "/"
         config["output_dir"] = full_output_dir
-    elif key == "use_json_format":
-        if value == "true":
+    elif key == "dataset_filename":
+        config["dataset_filename"] = value
+        if value.endswith('.json'):
             # Override to use JSON format instead of Parquet
             config["dataset"]["source"] = "json"
             config["dataset"]["data_files"] = config["dataset"].pop("data_dir")
             config["dataset"]["field"] = config["dataset"].pop("split")
-            if "dataset_val" in config:
-                config["dataset_val"]["source"] = "json"
-                config["dataset_val"]["data_files"] = config["dataset_val"].pop("data_dir")
-                config["dataset_val"]["field"] = config["dataset_val"].pop("split")
+            config["dataset_val"]["source"] = "json"
+            config["dataset_val"]["data_files"] = config["dataset_val"].pop("data_dir")
+            config["dataset_val"]["field"] = config["dataset_val"].pop("split")
     elif key == "system_prompt":
         if value:
             config["dataset"]["new_system_prompt"] = value

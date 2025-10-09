@@ -15,7 +15,7 @@ def cap_task() -> Task:
     try:
         DATA_PATH = total_config['input_dir_base'] + total_config['dataset_filename']
         SYSTEM_PROMPT = total_config['system_prompt']
-        USE_JSON_FORMAT = total_config.get('use_json_format', 'false') == 'true'
+        USE_JSON_FORMAT = DATA_PATH.endswith('.json')
     except KeyError as e:
         raise KeyError(f"Missing required key in total_config.yaml: {e}")
 
@@ -34,6 +34,7 @@ def cap_task() -> Task:
             path="json",
             data_files=DATA_PATH,
             field=SPLIT_VALUE,
+            split="train", # 'train' here refers to the top-level split in JSON - don't get confused!
             sample_fields=FieldSpec(
                 input=INPUT_FIELD,
                 target=TARGET_FIELD,
@@ -56,7 +57,9 @@ def cap_task() -> Task:
         solver=chain(
             system_message(SYSTEM_PROMPT),
             prompt_template("{prompt}"),
-            generate(),
+            generate({
+                "temperature": 0.0,
+            }),
         ),
         scorer=[
             match("exact", ignore_case=False),
