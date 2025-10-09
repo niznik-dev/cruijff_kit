@@ -68,10 +68,21 @@ args = parser.parse_args()
 model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
 username = os.environ.get("USER")
 
-
 # First edit the yaml template
 with open("templates/finetune_template.yaml", "r") as f:
     config = yaml.safe_load(f)
+
+# Check for conflicting split mechanisms
+if args.dataset_split_point is not None:
+    has_split_key_in_template = config.get("dataset", {}).get("split_key") is not None
+    if has_split_key_in_template:
+        raise ValueError(
+            "Conflicting dataset split methods detected. Both --dataset_split_point and split_key/split_value "
+            "accomplish the same goal (splitting train/validation data), but only one method can be used at a time.\n\n"
+            "Choose one approach:\n"
+            "  1. Use --dataset_split_point (remove split_key and split_value from the template YAML)\n"
+            "  2. Use split_key/split_value in your JSON files (don't set --dataset_split_point)"
+        )
 
 for key, value in vars(args).items():
     if key in SLURM_ONLY:
