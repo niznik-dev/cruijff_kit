@@ -17,7 +17,7 @@ import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
 
 # !--- cruijff-kit patch ---!
-from custom_recipes.custom_recipe_utils import filter_dataset_by_split
+from custom_recipes.custom_recipe_utils import filter_dataset_by_split, stash_adapter_files
 # !--- end cruijff-kit patch ---!
 
 from torch import nn
@@ -167,6 +167,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._save_last_epoch_only = cfg.get("save_last_epoch_only", False)
+        self._stash_adapter_weights = cfg.get("stash_adapter_weights", False)
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
@@ -1006,6 +1007,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                             time.perf_counter() - start_save_checkpoint
                         )
                     )
+
+                    # Stash adapter files if configured (to avoid confusing inspect-ai)
+                    if self._stash_adapter_weights and not self._save_adapter_weights_only:
+                        log.info("Stashing adapter files from merged model checkpoint...")
+                        stash_adapter_files(self._output_dir, curr_epoch, log)
                 else:
                     log.info(f"Skipping checkpoint save for epoch {curr_epoch + 1}...")
 

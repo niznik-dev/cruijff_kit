@@ -12,6 +12,7 @@ Utility functions for custom recipes.
 
 import json
 import os
+import shutil
 import tempfile
 from typing import Optional
 
@@ -67,3 +68,54 @@ def filter_dataset_by_split(cfg: DictConfig, logger=None) -> Optional[str]:
         json.dump(filtered_data, f)
 
     return temp_path
+
+
+def stash_adapter_files(output_dir: str, epoch: int, logger=None) -> None:
+    """
+    Move adapter files from the merged model checkpoint directory to a subdirectory
+    to prevent inspect-ai from being confused about whether this is a merged model.
+
+    This stashes:
+    - adapter_config.json
+    - adapter_model.pt
+    - adapter_model.safetensors
+
+    into an 'adapter_weights' subdirectory within the checkpoint directory.
+
+    Args:
+        output_dir: Base output directory containing checkpoint subdirectories
+        epoch: Epoch number for the checkpoint directory
+        logger: Optional logger to use (defaults to module-level log)
+    """
+    if logger is None:
+        logger = log
+
+    # Get the checkpoint directory for this epoch
+    checkpoint_dir = os.path.join(output_dir, f"epoch_{epoch}")
+
+    if not os.path.exists(checkpoint_dir):
+        logger.warning(f"Checkpoint directory not found: {checkpoint_dir}")
+        return
+
+    # Create adapter_weights subdirectory
+    adapter_stash_dir = os.path.join(checkpoint_dir, "adapter_weights")
+    os.makedirs(adapter_stash_dir, exist_ok=True)
+
+    # List of adapter files to stash
+    adapter_files = [
+        "adapter_config.json",
+        "adapter_model.pt",
+        "adapter_model.safetensors"
+    ]
+
+    stashed_count = 0
+    for filename in adapter_files:
+        src_path = os.path.join(checkpoint_dir, filename)
+        if os.path.exists(src_path):
+            dst_path = os.path.join(adapter_stash_dir, filename)
+            shutil.move(src_path, dst_path)
+            logger.info(f"Stashed {filename} to adapter_weights/ subdirectory")
+            stashed_count += 1
+
+    if stashed_count == 0:
+        logger.info(f"No adapter files found to stash in {checkpoint_dir}")
