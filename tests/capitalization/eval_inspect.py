@@ -39,14 +39,16 @@ def cleanup_temp_file(path: str):
         print(f"Error deleting temp file {path}: {e}")
 
 @task
-def cap_task(
-    data_path: str,
-    system_prompt: str = "",
-    split_key: str = "split",
-    split_value: str = "test",
-    input_field: str = "input",
-    target_field: str = "output",
-    ) -> Task:
+def cap_task() -> Task:
+    with open('../../total_config.yaml', 'r') as total_config_file:
+        total_config = json.load(total_config_file)
+
+    data_path = total_config['input_dir_base'] + total_config['dataset_filename']
+    system_prompt = total_config['system_prompt']
+    split_key = total_config['split_key']
+    split_value = total_config['split_value_inspect']
+    input_field = total_config['input_field']
+    target_field = total_config['output_field']
 
     # Build a filtered, on-disk JSON array view from your JSON array
     filtered_json = filter_to_temp_json(data_path, split_key=split_key, split_value=split_value)

@@ -25,6 +25,9 @@ def parse_epochs(value):
 
 parser = argparse.ArgumentParser()
 
+# ----- Config File -----
+parser.add_argument("--config", type=str, default="generate_slurm_script.yaml", help="Path to YAML configuration file. Values from this file will be used as defaults, and can be overridden by CLI arguments.")
+
 # ----- Required YAML Args Reused in Templating -----
 parser.add_argument("--my_wandb_project", type=str, default="PredictingZygosity", help="Project for when results are synced to wandb")
 parser.add_argument("--my_wandb_run_name", type=str, help="Name for when results are synced to wandb; if not provided, a random name will be generated")
@@ -64,6 +67,23 @@ parser.add_argument("--constraint", type=str, help="Slurm constraint to use")
 parser.add_argument("--custom_recipe", type=str, help="Full name of a custom recipe file in the repo's custom_recipes folder to use for fine-tuning")
 
 args = parser.parse_args()
+
+# Load config file if it exists and merge with CLI arguments
+config_data = {}
+if args.config and os.path.exists(args.config):
+    with open(args.config, "r") as f:
+        config_data = yaml.safe_load(f) or {}
+
+    # For each argument, use CLI value if provided, otherwise use config file value
+    for key, value in config_data.items():
+        # Only use config value if the argument wasn't explicitly provided on CLI
+        # We check if it's still at its default value
+        if hasattr(args, key):
+            default_value = parser.get_default(key)
+            current_value = getattr(args, key)
+            # If current value equals default, use config file value
+            if current_value == default_value:
+                setattr(args, key, value)
 
 model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
 username = os.environ.get("USER")
