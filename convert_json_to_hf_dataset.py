@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """
-Convert JSON files with 'split' field to HuggingFace Dataset format.
+Convert nested JSON files to HuggingFace Dataset format.
 
-This script takes a JSON file containing examples with a 'split' field
-(e.g., 'train', 'validation', 'test') and converts it to a HuggingFace
-DatasetDict with proper splits saved to disk.
+This script takes a JSON file with nested structure like:
+{
+    "train": [...],
+    "validation": [...],
+    "test": [...]
+}
+
+and converts it to a HuggingFace DatasetDict with proper splits saved to disk.
 
 Usage:
     python convert_json_to_hf_dataset.py \
         --input_json /path/to/data.json \
-        --output_dir /path/to/output \
-        --split_field split
+        --output_dir /path/to/output
 
 The output will be a DatasetDict saved to disk that can be loaded with:
     from datasets import load_from_disk
@@ -21,7 +25,6 @@ The output will be a DatasetDict saved to disk that can be loaded with:
 import argparse
 import json
 from pathlib import Path
-from collections import defaultdict
 
 from datasets import Dataset, DatasetDict
 
@@ -29,16 +32,14 @@ from datasets import Dataset, DatasetDict
 def convert_json_to_hf_dataset(
     input_json: str,
     output_dir: str,
-    split_field: str = "split",
     verbose: bool = True
 ):
     """
-    Convert JSON file with split field to HuggingFace DatasetDict.
+    Convert nested JSON file to HuggingFace DatasetDict.
 
     Args:
-        input_json: Path to input JSON file
+        input_json: Path to input JSON file with nested structure
         output_dir: Directory to save the HuggingFace dataset
-        split_field: Name of the field containing split information
         verbose: Whether to print progress information
     """
     # Load JSON data
@@ -48,29 +49,26 @@ def convert_json_to_hf_dataset(
     with open(input_json, 'r') as f:
         data = json.load(f)
 
+    # Check if data is a dict with split keys
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"Expected JSON to be a dict with split keys (e.g., 'train', 'validation'), "
+            f"but got {type(data).__name__}"
+        )
+
     if verbose:
-        print(f"Loaded {len(data)} examples")
-
-    # Group examples by split
-    split_data = defaultdict(list)
-    examples_without_split = []
-
-    for idx, example in enumerate(data):
-        split_value = example.get(split_field)
-        if split_value is None:
-            examples_without_split.append(idx)
-        else:
-            split_data[split_value].append(example)
-
-    # Warn about examples without split field
-    if examples_without_split:
-        print(f"WARNING: {len(examples_without_split)} examples missing '{split_field}' field")
-        print(f"         These examples will be skipped: {examples_without_split[:10]}...")
+        print(f"Found splits: {list(data.keys())}")
 
     # Create DatasetDict
     dataset_dict = {}
 
-    for split_name, examples in split_data.items():
+    for split_name, examples in data.items():
+        if not isinstance(examples, list):
+            raise ValueError(
+                f"Expected split '{split_name}' to contain a list of examples, "
+                f"but got {type(examples).__name__}"
+            )
+
         if verbose:
             print(f"Creating split '{split_name}' with {len(examples)} examples")
 
@@ -102,7 +100,7 @@ def convert_json_to_hf_dataset(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Convert JSON with split field to HuggingFace Dataset format",
+        description="Convert nested JSON to HuggingFace Dataset format",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__
     )
@@ -111,7 +109,7 @@ def main():
         "--input_json",
         type=str,
         required=True,
-        help="Path to input JSON file"
+        help="Path to input JSON file with nested structure"
     )
 
     parser.add_argument(
@@ -119,13 +117,6 @@ def main():
         type=str,
         required=True,
         help="Directory to save the HuggingFace dataset"
-    )
-
-    parser.add_argument(
-        "--split_field",
-        type=str,
-        default="split",
-        help="Name of the field containing split information (default: 'split')"
     )
 
     parser.add_argument(
@@ -139,7 +130,6 @@ def main():
     convert_json_to_hf_dataset(
         input_json=args.input_json,
         output_dir=args.output_dir,
-        split_field=args.split_field,
         verbose=not args.quiet
     )
 
