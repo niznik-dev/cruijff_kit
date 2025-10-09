@@ -105,13 +105,13 @@ for key, value in vars(args).items():
         config["output_dir"] = full_output_dir
     elif key == "use_json_format":
         if value == "true":
-            # Override to use JSON format instead of HF Dataset
+            # Override to use JSON format instead of Parquet
             config["dataset"]["source"] = "json"
-            config["dataset"]["data_files"] = config["dataset"].pop("source")
+            config["dataset"]["data_files"] = config["dataset"].pop("data_dir")
             config["dataset"]["field"] = config["dataset"].pop("split")
             if "dataset_val" in config:
                 config["dataset_val"]["source"] = "json"
-                config["dataset_val"]["data_files"] = config["dataset_val"].pop("source")
+                config["dataset_val"]["data_files"] = config["dataset_val"].pop("data_dir")
                 config["dataset_val"]["field"] = config["dataset_val"].pop("split")
     elif key == "system_prompt":
         if value:

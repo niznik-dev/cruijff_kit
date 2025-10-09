@@ -39,9 +39,9 @@ Finally, run
 sbatch finetune_filled.slurm
 ```
 
-#### Option 2: Using HuggingFace Dataset Format
+#### Option 2: Using Parquet Format
 
-First, convert the JSON file to HuggingFace Dataset format. From the base directory of the repo, run:
+First, convert the JSON file to Parquet format. From the base directory of the repo, run:
 
 ```
 python convert_json_to_hf_dataset.py \
@@ -49,7 +49,7 @@ python convert_json_to_hf_dataset.py \
   --output_dir tests/capitalization/input/words_5L_80P_1000_dataset
 ```
 
-This will create a HuggingFace Dataset in the input folder.
+This will create Parquet files (train.parquet, validation.parquet, test.parquet) in the output directory.
 
 Next, copy `total_config_dataset.yaml` from the capitalization test folder to the base directory of the repo and rename it to `total_config.yaml`. Open the file and consider the following changes:
 

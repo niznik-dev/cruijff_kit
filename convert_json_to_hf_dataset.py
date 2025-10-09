@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Convert nested JSON files to HuggingFace Dataset format.
+Convert nested JSON files to Parquet format for HuggingFace datasets.
 
 This script takes a JSON file with nested structure like:
 {
@@ -9,16 +9,16 @@ This script takes a JSON file with nested structure like:
     "test": [...]
 }
 
-and converts it to a HuggingFace DatasetDict with proper splits saved to disk.
+and converts it to Parquet files that can be loaded with load_dataset().
 
 Usage:
     python convert_json_to_hf_dataset.py \
         --input_json /path/to/data.json \
         --output_dir /path/to/output
 
-The output will be a DatasetDict saved to disk that can be loaded with:
-    from datasets import load_from_disk
-    dataset = load_from_disk('/path/to/output')
+The output will be Parquet files (one per split) that can be loaded with:
+    from datasets import load_dataset
+    dataset = load_dataset('parquet', data_dir='/path/to/output')
     # Access splits: dataset['train'], dataset['validation'], etc.
 """
 
@@ -35,11 +35,11 @@ def convert_json_to_hf_dataset(
     verbose: bool = True
 ):
     """
-    Convert nested JSON file to HuggingFace DatasetDict.
+    Convert nested JSON file to Parquet files for HuggingFace datasets.
 
     Args:
         input_json: Path to input JSON file with nested structure
-        output_dir: Directory to save the HuggingFace dataset
+        output_dir: Directory to save the Parquet files
         verbose: Whether to print progress information
     """
     # Load JSON data
@@ -59,9 +59,11 @@ def convert_json_to_hf_dataset(
     if verbose:
         print(f"Found splits: {list(data.keys())}")
 
-    # Create DatasetDict
-    dataset_dict = {}
+    # Create output directory
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
 
+    # Save each split as a separate Parquet file
     for split_name, examples in data.items():
         if not isinstance(examples, list):
             raise ValueError(
@@ -70,32 +72,26 @@ def convert_json_to_hf_dataset(
             )
 
         if verbose:
-            print(f"Creating split '{split_name}' with {len(examples)} examples")
+            print(f"Converting split '{split_name}' with {len(examples)} examples")
 
         # Convert to HF Dataset
-        dataset_dict[split_name] = Dataset.from_list(examples)
+        dataset = Dataset.from_list(examples)
 
-    # Wrap in DatasetDict
-    hf_dataset = DatasetDict(dataset_dict)
+        # Save as Parquet
+        parquet_file = output_path / f"{split_name}.parquet"
+        dataset.to_parquet(str(parquet_file))
 
-    # Save to disk
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    if verbose:
-        print(f"\nSaving dataset to: {output_dir}")
-
-    hf_dataset.save_to_disk(output_dir)
+        if verbose:
+            print(f"  Saved to: {parquet_file}")
 
     if verbose:
-        print("✓ Conversion complete!")
-        print(f"\nDataset info:")
-        print(hf_dataset)
+        print("\n✓ Conversion complete!")
         print(f"\nTo load this dataset:")
-        print(f"  from datasets import load_from_disk")
-        print(f"  dataset = load_from_disk('{output_dir}')")
+        print(f"  from datasets import load_dataset")
+        print(f"  dataset = load_dataset('parquet', data_dir='{output_dir}')")
+        print(f"  # Access splits: dataset['train'], dataset['validation'], etc.")
 
-    return hf_dataset
+    return output_dir
 
 
 def main():
