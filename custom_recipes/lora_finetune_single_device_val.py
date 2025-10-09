@@ -626,9 +626,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Clean up temp files
         for temp_file in temp_files:
             try:
-                os.unlink(temp_file)
+                os.remove(temp_file)
                 log.info(f"Cleaned up temporary filtered dataset file: {temp_file}")
-            except Exception as e:
+            except OSError as e:
                 log.warning(f"Failed to clean up temp file {temp_file}: {e}")
         # !--- end cruijff-kit patch ---!
 
