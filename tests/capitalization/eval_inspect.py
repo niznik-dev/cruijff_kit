@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json, hashlib, os, tempfile
+import json, os, tempfile
 from pathlib import Path
 
 from inspect_ai import Task, task
