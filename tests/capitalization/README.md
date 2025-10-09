@@ -26,7 +26,7 @@ First, copy `total_config.yaml` from the capitalization test folder to the base 
 Then run
 
 ```
-python generate_slurm_script.py --config total_config.yaml
+python generate_slurm_script.py
 ```
 
 Finally, run
@@ -45,7 +45,7 @@ wandb sync /path/to/output/folder/logs/wandb/latest-run
 
 ### Part 4 - Test the model
 
-Now navigate inside the tests/capitalization folder. Edit eval_inspect.slurm as appropriate. Then run
+Now navigate inside the tests/capitalization folder. Edit eval_inspect.slurm as appropriate (typically just adding your email). Then run
 
 ```
 sbatch eval_inspect.slurm
