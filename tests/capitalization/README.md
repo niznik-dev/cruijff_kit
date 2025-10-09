@@ -6,11 +6,6 @@ To run a simple fine-tuning task on a small dataset of five-letter words and the
 
 ## How to Run
 
-### Part 0 - Consider Changing...
-
-- input_dir_base: make sure this points to your copy of the repo
-- account: can be omitted unless you know you have multiple accounts (make sure to remove the final \ after the conda_env line then!)
-
 ### Part 1 - Setup
 
 (If not done already, clone this repo onto the machine you're using!)
@@ -21,25 +16,20 @@ Place words_alpha.txt inside the input folder. Next, run `python sample_words.py
 
 ### Part 2 - Finetuning
 
-Use `generate_slurm_script.py` with the following arguments:
+First, copy `total_config.yaml` from the capitalization test folder to the base directory of the repo. Next, open the new copy and consider the following changes:
 
-```bash
-python generate_slurm_script.py \
-  --my_wandb_project capitalization \
-  --my_wandb_run_name oct1-prompt-1 \
-  --input_dir_base /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff-kit/tests/capitalization/input/ \
-  --input_formatting '' \
-  --dataset_filename words_5L_80P_1000.json \
-  --system_prompt 'Capitalize the given word' \
-  --batch_size 1 \
-  --epochs 1 \
-  --log_every_n_steps 1 \
-  --run_val_every_n_steps 0 \
-  --conda_env ttenv-nightly \
-  --custom_recipe lora_finetune_single_device_val.py
+- Change the run name to something unique (datestamp? number your system prompts?)
+- Change input_dir_base to match where you cloned the repo
+- Make sure dataset_filename matches what you generated in Part 1
+- Change system_prompt if necessary
+
+Then run
+
+```
+python generate_slurm_script.py
 ```
 
-Then, run
+Finally, run
 
 ```
 sbatch finetune_filled.slurm
@@ -55,7 +45,7 @@ wandb sync /path/to/output/folder/logs/wandb/latest-run
 
 ### Part 4 - Test the model
 
-Now navigate inside the tests/capitalization folder. Edit eval_inspect.slurm as appropriate. Then run
+Now navigate inside the tests/capitalization folder. Edit eval_inspect.slurm as appropriate (typically just adding your email). Then run
 
 ```
 sbatch eval_inspect.slurm

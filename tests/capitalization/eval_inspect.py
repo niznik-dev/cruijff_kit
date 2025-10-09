@@ -7,6 +7,7 @@ from inspect_ai.dataset import json_dataset, FieldSpec
 from inspect_ai.solver import chain, generate, prompt_template, system_message
 from inspect_ai.scorer import match, includes
 from typing import Sequence
+import yaml
 
 
 def filter_to_temp_json(
@@ -39,32 +40,37 @@ def cleanup_temp_file(path: str):
         print(f"Error deleting temp file {path}: {e}")
 
 @task
-def cap_task(
-    data_path: str,
-    system_prompt: str = "",
-    split_key: str = "split",
-    split_value: str = "test",
-    input_field: str = "input",
-    target_field: str = "output",
-    ) -> Task:
+def cap_task() -> Task:
+    with open('../../total_config.yaml', 'r') as total_config_file:
+        total_config = yaml.safe_load(total_config_file)
+
+    try:
+        DATA_PATH = total_config['input_dir_base'] + total_config['dataset_filename']
+        SYSTEM_PROMPT = total_config['system_prompt']
+    except KeyError as e:
+        raise KeyError(f"Missing required key in total_config.yaml: {e}")
+
+    SPLIT_KEY = "split"
+    SPLIT_VALUE = "test"
+    INPUT_FIELD = "input"
+    TARGET_FIELD = "output"
 
     # Build a filtered, on-disk JSON array view from your JSON array
-    filtered_json = filter_to_temp_json(data_path, split_key=split_key, split_value=split_value)
-    
-    if isinstance(system_prompt, Sequence) and not isinstance(system_prompt, str):
+    filtered_json = filter_to_temp_json(DATA_PATH, split_key=SPLIT_KEY, split_value=SPLIT_VALUE)
+
+    if isinstance(SYSTEM_PROMPT, Sequence) and not isinstance(SYSTEM_PROMPT, str):
         # CLI parsing may coerce comma-containing strings into iterables; rejoin them.
-        system_prompt = ",".join(system_prompt)
-    
+        SYSTEM_PROMPT = ",".join(SYSTEM_PROMPT)
     return Task(
         dataset=json_dataset(
             filtered_json,
             sample_fields=FieldSpec(
-                input=input_field,
-                target=target_field,
+                input=INPUT_FIELD,
+                target=TARGET_FIELD,
             ),
         ),
         solver=chain(
-            system_message(system_prompt),
+            system_message(SYSTEM_PROMPT),
             prompt_template("{prompt}"),
             generate(),
         ),

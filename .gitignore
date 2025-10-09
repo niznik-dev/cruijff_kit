@@ -18,5 +18,6 @@ tests/capitalization/*.txt
 logs/
 finetune_*.slurm
 finetune_*.yaml
+total_config.yaml
 *G/
 *.eval
