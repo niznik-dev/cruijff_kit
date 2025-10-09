@@ -33,8 +33,7 @@ parser.add_argument("--my_wandb_project", type=str, default="PredictingZygosity"
 parser.add_argument("--my_wandb_run_name", type=str, help="Name for when results are synced to wandb; if not provided, a random name will be generated")
 parser.add_argument("--input_formatting", type=str, default="raw", help="Name of the folder where your input files are stored within input_dir; useful for multiple formatting styles (e.g. difference vs raw values). If same directory, set to empty string.")
 
-parser.add_argument("--dataset_filename", type=str, default="tune.json", help="Name of the dataset file (should be in input_dir)")
-parser.add_argument("--dataset_val_filename", type=str, default="val.json", help="Name of the model to use (should be in models_dir)")
+parser.add_argument("--dataset_filename", type=str, default="tune.json", help="Name of the dataset file with nested train/validation/test splits (should be in input_dir)")
 
 parser.add_argument("--output_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/", help="Full path to the output file folders (final output folder will be 'ck-out-' + my_wandb_name within this folder)")
 parser.add_argument("--input_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/zyg_in/", help="Full path to the input file folders")
@@ -93,18 +92,11 @@ username = os.environ.get("USER")
 with open("templates/finetune_template.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-# Handle dataset_split_point vs split_key/split_value
+# Handle dataset_split_point (percentage-based splitting)
+# Note: This is only used when you want to override the nested JSON splits
 if args.dataset_split_point is not None:
-    has_split_key_in_template = config.get("dataset", {}).get("split_key") is not None
-    if has_split_key_in_template:
-        print("WARNING: --dataset_split_point is set, so any 'split' field in your JSON data will be ignored.")
-        print("         The dataset will be split using the percentage you specified instead.")
-        # Remove split_key and split_value from both dataset configs
-        config["dataset"].pop("split_key", None)
-        config["dataset"].pop("split_value", None)
-        if "dataset_val" in config:
-            config["dataset_val"].pop("split_key", None)
-            config["dataset_val"].pop("split_value", None)
+    print("WARNING: --dataset_split_point is set. This will override any nested splits in your JSON file.")
+    print("         The dataset will be split using percentage slicing instead.")
 
 for key, value in vars(args).items():
     if key in SLURM_ONLY:
@@ -119,6 +111,8 @@ for key, value in vars(args).items():
         config["output_dir"] = full_output_dir
     elif key == "dataset_split_point":
         if value is not None:
+            # Override the nested JSON splits with percentage-based slicing
+            # This uses HF's slice syntax on the train split
             config["dataset"]["split"] = f"train[:{value}%]"
             config["dataset_val"]["split"] = f"train[{value}%:]"
     elif key == "system_prompt":
@@ -142,9 +136,6 @@ if config["run_val_every_n_steps"] == 0:
     # Remove all validation-related keys if not running validation
     config.pop("dataset_val", None)
     config.pop("run_val_every_n_steps", None)
-    config.pop("dataset_val_filename", None)
-    # Also remove the split from the main dataset
-    config["dataset"].pop("split", None)
 
 for key in ['input_dir', 'output_dir', 'models_dir']:
     config[key] = config[key].replace("$USER", username)
