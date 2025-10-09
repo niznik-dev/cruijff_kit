@@ -10,7 +10,6 @@ my_wandb_run_name: ""
 input_formatting: ""
 
 dataset_filename: ""
-dataset_val_filename: ""
 
 output_dir: /scratch/gpfs/MSALGANIK/$USER/zyg_out_${my_wandb_run_name}/
 input_dir: /scratch/gpfs/MSALGANIK/$USER/zyg_in/${input_formatting}/
@@ -68,19 +67,17 @@ compile: False
 
 dataset:
   _component_: torchtune.datasets.instruct_dataset
-  source: "json"
-  data_files: "${input_dir}/${dataset_filename}"
-  split_key: "split"
-  split_value: "train"
+  source: "parquet"
+  data_dir: "${input_dir}/${dataset_filename}"
+  split: "train"
   packed: True
 
 run_val_every_n_steps: 50
 dataset_val:
   _component_: torchtune.datasets.instruct_dataset
-  source: "json"
-  data_files: "${input_dir}/${dataset_val_filename}"
-  split_key: "split"
-  split_value: "validation"
+  source: "parquet"
+  data_dir: "${input_dir}/${dataset_filename}"
+  split: "validation"
 
 # Logging
 metric_logger:

@@ -8,6 +8,7 @@ input_formatting: ''
 
 # Dataset Configuration
 dataset_filename: words_5L_80P_1000.json
+use_json_format: 'true'
 
 # System Prompt
 system_prompt: 'Capitalize the given word'

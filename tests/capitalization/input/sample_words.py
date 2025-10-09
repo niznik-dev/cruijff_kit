@@ -40,18 +40,29 @@ if len(all_n_letter_words) < NUMBER_OF_WORDS:
 
 n_letter_words_sample = random.sample(all_n_letter_words, NUMBER_OF_WORDS)
 
+# Build nested structure with top-level split keys
+train_examples = []
+validation_examples = []
+test_examples = []
+
+for i in range(TRAIN_CUTOFF_INDEX):
+    word = n_letter_words_sample[i].lower()
+    train_examples.append({"input": word, "output": word.capitalize()})
+
+for i in range(TRAIN_CUTOFF_INDEX, VAL_CUTOFF_INDEX):
+    word = n_letter_words_sample[i].lower()
+    validation_examples.append({"input": word, "output": word.capitalize()})
+
+for i in range(VAL_CUTOFF_INDEX, NUMBER_OF_WORDS):
+    word = n_letter_words_sample[i].lower()
+    test_examples.append({"input": word, "output": word.capitalize()})
+
+# Write nested JSON structure
+output_data = {
+    "train": train_examples,
+    "validation": validation_examples,
+    "test": test_examples
+}
+
 with open(OUTFILE, "w") as f:
-    f.write("[\n")
-    for i in range(TRAIN_CUTOFF_INDEX):
-        word = n_letter_words_sample[i].lower()
-        json.dump({"input": word, "output": word.capitalize(), "split": "train"}, f)
-        f.write(",\n")
-    for i in range(TRAIN_CUTOFF_INDEX, VAL_CUTOFF_INDEX):
-        word = n_letter_words_sample[i].lower()
-        json.dump({"input": word, "output": word.capitalize(), "split": "validation"}, f)
-        f.write(",\n")
-    for i in range(VAL_CUTOFF_INDEX, NUMBER_OF_WORDS):
-        word = n_letter_words_sample[i].lower()
-        json.dump({"input": word, "output": word.capitalize(), "split": "test"}, f)
-        f.write(",\n" if i < NUMBER_OF_WORDS - 1 else "\n")
-    f.write("]")
+    json.dump(output_data, f, indent=2)

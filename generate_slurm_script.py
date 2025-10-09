@@ -33,8 +33,8 @@ parser.add_argument("--my_wandb_project", type=str, default="PredictingZygosity"
 parser.add_argument("--my_wandb_run_name", type=str, help="Name for when results are synced to wandb; if not provided, a random name will be generated")
 parser.add_argument("--input_formatting", type=str, default="raw", help="Name of the folder where your input files are stored within input_dir; useful for multiple formatting styles (e.g. difference vs raw values). If same directory, set to empty string.")
 
-parser.add_argument("--dataset_filename", type=str, default="tune.json", help="Name of the dataset file (should be in input_dir)")
-parser.add_argument("--dataset_val_filename", type=str, default="val.json", help="Name of the model to use (should be in models_dir)")
+parser.add_argument("--dataset_filename", type=str, default="tune_dataset", help="Name of the HF dataset folder or JSON file (should be in input_dir)")
+parser.add_argument("--use_json_format", type=str, default="false", help="Whether to use JSON format instead of HF Dataset (true/false)")
 
 parser.add_argument("--output_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/", help="Full path to the output file folders (final output folder will be 'ck-out-' + my_wandb_name within this folder)")
 parser.add_argument("--input_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/zyg_in/", help="Full path to the input file folders")
@@ -50,7 +50,6 @@ parser.add_argument("--epochs_to_save", type=parse_epochs, default="all", help="
 parser.add_argument("--max_steps_per_epoch", type=int, help="Maximum steps per epoch (useful for debugging)")
 parser.add_argument("--log_every_n_steps", type=int, default=5, help="How often to log (in steps)")
 parser.add_argument("--run_val_every_n_steps", type=int, default=0, help="How often to run validation (in steps)")
-parser.add_argument("--dataset_split_point", type=int, default=None, help="Percentage of the dataset to use for finetuning")
 parser.add_argument("--system_prompt", type=str, default="", help="System prompt to use (if any)")
 parser.add_argument("--train_on_input", type=str, default="false", help="Whether to train on the input data (true/false)")
 
@@ -93,19 +92,6 @@ username = os.environ.get("USER")
 with open("templates/finetune_template.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-# Handle dataset_split_point vs split_key/split_value
-if args.dataset_split_point is not None:
-    has_split_key_in_template = config.get("dataset", {}).get("split_key") is not None
-    if has_split_key_in_template:
-        print("WARNING: --dataset_split_point is set, so any 'split' field in your JSON data will be ignored.")
-        print("         The dataset will be split using the percentage you specified instead.")
-        # Remove split_key and split_value from both dataset configs
-        config["dataset"].pop("split_key", None)
-        config["dataset"].pop("split_value", None)
-        if "dataset_val" in config:
-            config["dataset_val"].pop("split_key", None)
-            config["dataset_val"].pop("split_value", None)
-
 for key, value in vars(args).items():
     if key in SLURM_ONLY:
         continue
@@ -117,10 +103,16 @@ for key, value in vars(args).items():
     elif key == "output_dir_base":
         full_output_dir = value + "ck-out-" + model_run_name + "/"
         config["output_dir"] = full_output_dir
-    elif key == "dataset_split_point":
-        if value is not None:
-            config["dataset"]["split"] = f"train[:{value}%]"
-            config["dataset_val"]["split"] = f"train[{value}%:]"
+    elif key == "use_json_format":
+        if value == "true":
+            # Override to use JSON format instead of Parquet
+            config["dataset"]["source"] = "json"
+            config["dataset"]["data_files"] = config["dataset"].pop("data_dir")
+            config["dataset"]["field"] = config["dataset"].pop("split")
+            if "dataset_val" in config:
+                config["dataset_val"]["source"] = "json"
+                config["dataset_val"]["data_files"] = config["dataset_val"].pop("data_dir")
+                config["dataset_val"]["field"] = config["dataset_val"].pop("split")
     elif key == "system_prompt":
         if value:
             config["dataset"]["new_system_prompt"] = value
@@ -142,9 +134,6 @@ if config["run_val_every_n_steps"] == 0:
     # Remove all validation-related keys if not running validation
     config.pop("dataset_val", None)
     config.pop("run_val_every_n_steps", None)
-    config.pop("dataset_val_filename", None)
-    # Also remove the split from the main dataset
-    config["dataset"].pop("split", None)
 
 for key in ['input_dir', 'output_dir', 'models_dir']:
     config[key] = config[key].replace("$USER", username)
