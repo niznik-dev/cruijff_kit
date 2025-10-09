@@ -586,10 +586,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         it is loaded into the dataloader.
         """
         if isinstance(cfg_dataset, ListConfig):
-            datasets = []
-            for single_cfg_dataset in cfg_dataset:
-                dataset = config.instantiate(single_cfg_dataset, self._tokenizer)
-                datasets.append(dataset)
+            datasets = [
+                config.instantiate(single_cfg_dataset, self._tokenizer)
+                for single_cfg_dataset in cfg_dataset
+            ]
             ds = ConcatDataset(datasets=datasets)
             packed = getattr(ds, "packed", False)
         else:
