@@ -17,7 +17,7 @@ To run a simple fine-tuning task on a small dataset of five-letter words and the
 
 First, obtain words_alpha.txt from the following repo: https://github.com/dwyl/english-words (and star it!)
 
-Place words_alpha.txt inside the input folder. Next, run `python sample_words.py --word-len 5 --num-words 10000` (you can choose your own params for this part) - this will generate a file like `finetune_words_5L_80P_10000.json` which we will use in finetuning.
+Place words_alpha.txt inside the input folder. Next, run `python sample_words.py --word-len 5 --num-words 1000` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` which we will use in finetuning.
 
 ### Part 2 - Finetuning
 
@@ -27,9 +27,9 @@ Use `generate_slurm_script.py` with the following arguments:
 python generate_slurm_script.py \
   --my_wandb_project capitalization \
   --my_wandb_run_name oct1-prompt-1 \
-  --input_dir_base /home/niznik/scratch/GitHub/cruijff-kit/tests/capitalization/input/ \
+  --input_dir_base /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff-kit/tests/capitalization/input/ \
   --input_formatting '' \
-  --dataset_filename finetune_words_5L_80P_10000.json \
+  --dataset_filename words_5L_80P_1000.json \
   --system_prompt 'Capitalize the given word' \
   --batch_size 1 \
   --epochs 1 \
@@ -44,8 +44,6 @@ Then, run
 ```
 sbatch finetune_filled.slurm
 ```
-
-(Currently, we need to extract all of the validation related things from the yaml file - will be addressed in [#49](https://github.com/niznik-dev/predicting-zygosity/issues/49))
 
 ### Part 3 - Upload to Weights & Biases
 

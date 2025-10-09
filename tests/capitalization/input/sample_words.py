@@ -21,10 +21,10 @@ NUMBER_OF_WORDS = args.num_words
 TRAIN_FRACTION = args.train_fraction
 TRAIN_PERCENT = int(TRAIN_FRACTION * 100)
 TRAIN_CUTOFF_INDEX = int(NUMBER_OF_WORDS * TRAIN_FRACTION)
+VAL_CUTOFF_INDEX = int(NUMBER_OF_WORDS * (TRAIN_FRACTION + (1 - TRAIN_FRACTION) / 2))
 
 INFILE = "words_alpha.txt"
-OUTFILE_TRAIN = f"finetune_words_{WORD_LEN}L_{TRAIN_PERCENT}P_{NUMBER_OF_WORDS}.json"
-OUTFILE_VAL = f"val_words_{WORD_LEN}L_{TRAIN_PERCENT}P_{NUMBER_OF_WORDS}.json"
+OUTFILE = f"words_{WORD_LEN}L_{TRAIN_PERCENT}P_{NUMBER_OF_WORDS}.json"
 
 with open(INFILE, "r") as f:
     words = [line.strip() for line in f if line.strip()]
@@ -40,18 +40,18 @@ if len(all_n_letter_words) < NUMBER_OF_WORDS:
 
 n_letter_words_sample = random.sample(all_n_letter_words, NUMBER_OF_WORDS)
 
-with open(OUTFILE_TRAIN, "w") as f:
+with open(OUTFILE, "w") as f:
     f.write("[\n")
     for i in range(TRAIN_CUTOFF_INDEX):
         word = n_letter_words_sample[i].lower()
-        json.dump({"input": word, "output": word.capitalize()}, f)
-        f.write(",\n" if i < TRAIN_CUTOFF_INDEX - 1 else "\n")
-    f.write("]")
-
-with open(OUTFILE_VAL, "w") as f:
-    f.write("[\n")
-    for i in range(TRAIN_CUTOFF_INDEX, NUMBER_OF_WORDS):
+        json.dump({"input": word, "output": word.capitalize(), "split": "train"}, f)
+        f.write(",\n")
+    for i in range(TRAIN_CUTOFF_INDEX, VAL_CUTOFF_INDEX):
         word = n_letter_words_sample[i].lower()
-        json.dump({"input": word, "output": word.capitalize()}, f)
+        json.dump({"input": word, "output": word.capitalize(), "split": "validation"}, f)
+        f.write(",\n")
+    for i in range(VAL_CUTOFF_INDEX, NUMBER_OF_WORDS):
+        word = n_letter_words_sample[i].lower()
+        json.dump({"input": word, "output": word.capitalize(), "split": "test"}, f)
         f.write(",\n" if i < NUMBER_OF_WORDS - 1 else "\n")
     f.write("]")
