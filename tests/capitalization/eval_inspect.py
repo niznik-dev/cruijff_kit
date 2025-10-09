@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json, hashlib
+import json, hashlib, os, tempfile
 from pathlib import Path
 
 from inspect_ai import Task, task
@@ -9,52 +9,47 @@ from inspect_ai.scorer import match, includes
 from typing import Sequence
 
 
-def _filter_json_array_to_temp_json(src_path: str, split_value: str) -> str:
-    """
-    Read a JSON ARRAY file like:
-      [ {"input": "...", "output": "...", "split": "train"}, ... ]
-    Keep only rows where row['split'] == split_value.
-    Write a cached .json next to the source and return that path.
-    """
-    src = Path(src_path)
+def filter_to_temp_json(
+    data_path: str | os.PathLike,
+    *,
+    split_key: str = "split",
+    split_value: str = "test",
+) -> str:
+    """Load JSON array, keep rows where row[split_key]==split_value, write to a temp JSON, return its path."""
+    src = Path(data_path)
     if not src.exists():
         raise FileNotFoundError(f"Dataset not found: {src}")
 
-    cache_dir = src.parent / ".inspect_cache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    with src.open("r") as f:
+        data = json.load(f)
 
-    h = hashlib.md5(f"{src.resolve()}::{split_value}".encode()).hexdigest()[:10]
-    dst = cache_dir / f"{src.stem}.split-{split_value}.{h}.json"
+    filtered = [row for row in data if isinstance(row, dict) and row.get(split_key) == split_value]
 
-    if dst.exists():
-        return str(dst)
-
-    with src.open("r", encoding="utf-8") as f:
-        rows = json.load(f)
-        if not isinstance(rows, list):
-            raise ValueError(f"{src} must be a JSON array (list of objects)")
-
-    filtered = [r for r in rows if isinstance(r, dict) and r.get("split") == split_value]
-    if not filtered:
-        raise ValueError(f"No rows matched split=='{split_value}' in {src}")
-
-    with dst.open("w", encoding="utf-8") as out:
+    temp_fd, tmp_path = tempfile.mkstemp(suffix=".json", prefix=f"filtered_{split_value}_")
+    with os.fdopen(temp_fd, "w") as out:
         json.dump(filtered, out, ensure_ascii=False)
 
-    return str(dst)
+    return tmp_path
 
+def cleanup_temp_file(path: str):
+    """Delete the temporary file at the given path."""
+    try:
+        os.remove(path)
+    except OSError as e:
+        print(f"Error deleting temp file {path}: {e}")
 
 @task
 def cap_task(
     data_path: str,
     system_prompt: str = "",
+    split_key: str = "split",
     split_value: str = "test",
     input_field: str = "input",
     target_field: str = "output",
     ) -> Task:
 
     # Build a filtered, on-disk JSON array view from your JSON array
-    filtered_json = _filter_json_array_to_temp_json(data_path, split_value)
+    filtered_json = filter_to_temp_json(data_path, split_key=split_key, split_value=split_value)
     
     if isinstance(system_prompt, Sequence) and not isinstance(system_prompt, str):
         # CLI parsing may coerce comma-containing strings into iterables; rejoin them.
@@ -76,5 +71,6 @@ def cap_task(
         scorer=[
             match("exact", ignore_case=False),
             includes(ignore_case=False)
-        ]
+        ],
+        cleanup=cleanup_temp_file(filtered_json),
     )
