@@ -67,17 +67,15 @@ compile: False
 
 dataset:
   _component_: torchtune.datasets.instruct_dataset
-  source: "json"
-  data_files: "${input_dir}/${dataset_filename}"
-  field: "train"
+  source: "${input_dir}/${dataset_filename}"
+  split: "train"
   packed: True
 
 run_val_every_n_steps: 50
 dataset_val:
   _component_: torchtune.datasets.instruct_dataset
-  source: "json"
-  data_files: "${input_dir}/${dataset_filename}"
-  field: "validation"
+  source: "${input_dir}/${dataset_filename}"
+  split: "validation"
 
 # Logging
 metric_logger:
