@@ -6,9 +6,6 @@
 
 import sys
 import time
-import json
-import tempfile
-import os
 
 from functools import partial
 from typing import Any, Dict, Optional, Union
@@ -17,6 +14,11 @@ from warnings import warn
 import torch
 import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
+
+# !--- cruijff-kit patch ---!
+from custom_recipes.custom_recipe_utils import filter_dataset_by_split
+import os
+# !--- end cruijff-kit patch ---!
 
 from torch import nn
 from torch.optim import Optimizer
@@ -532,44 +534,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
-    # !--- cruijff-kit patch ---!
-    def _filter_dataset_by_split(self, cfg: DictConfig) -> Optional[str]:
-        """
-        Filter JSON dataset by split field if split_key and split_value are provided.
-        Returns path to temp file if filtering occurred, None otherwise.
-        Only works for JSON files - skips filtering for other sources.
-        """
-        split_key = cfg.get("split_key")
-        split_value = cfg.get("split_value")
-        data_files = cfg.get("data_files")
-        source = cfg.get("source")
-
-        # Only filter if we have the required params and it's a JSON source
-        if split_key is None or split_value is None or data_files is None:
-            return None
-
-        if source != "json":
-            log.info(f"Skipping split filtering for non-JSON source: {source}")
-            return None
-
-        # Load the JSON file
-        with open(data_files, 'r') as f:
-            data = json.load(f)
-
-        # Filter by split field
-        original_len = len(data)
-        filtered_data = [item for item in data if item.get(split_key) == split_value]
-        filtered_len = len(filtered_data)
-
-        log.info(f"Filtered dataset by '{split_key}' field: {original_len} -> {filtered_len} examples ({split_value})")
-
-        # Write to temp file
-        temp_fd, temp_path = tempfile.mkstemp(suffix='.json', prefix=f'filtered_{split_value}_')
-        with os.fdopen(temp_fd, 'w') as f:
-            json.dump(filtered_data, f)
-
-        return temp_path
-    # !--- end cruijff-kit patch ---!
 
     def _setup_data(
         self,
@@ -593,7 +557,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             datasets = []
             for single_cfg_dataset in cfg_dataset:
                 # !--- cruijff-kit patch ---!
-                temp_path = self._filter_dataset_by_split(single_cfg_dataset)
+                temp_path = filter_dataset_by_split(single_cfg_dataset, log)
                 if temp_path:
                     temp_files.append(temp_path)
                     single_cfg_dataset = single_cfg_dataset.copy()
@@ -609,7 +573,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             packed = getattr(ds, "packed", False)
         else:
             # !--- cruijff-kit patch ---!
-            temp_path = self._filter_dataset_by_split(cfg_dataset)
+            temp_path = filter_dataset_by_split(cfg_dataset, log)
             if temp_path:
                 temp_files.append(temp_path)
                 cfg_dataset = cfg_dataset.copy()
