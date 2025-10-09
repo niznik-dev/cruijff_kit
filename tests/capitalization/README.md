@@ -16,11 +16,46 @@ Place words_alpha.txt inside the input folder. Next, run `python sample_words.py
 
 ### Part 2 - Finetuning
 
-First, copy `total_config.yaml` from the capitalization test folder to the base directory of the repo. Next, open the new copy and consider the following changes:
+You can run finetuning using either JSON format or HuggingFace Dataset format. Choose one of the options below:
+
+#### Option 1: Using JSON Format (Current Method)
+
+First, copy `total_config_json.yaml` from the capitalization test folder to the base directory of the repo and rename it to `total_config.yaml`. Next, open the file and consider the following changes:
 
 - Change the run name to something unique (datestamp? number your system prompts?)
 - Change input_dir_base to match where you cloned the repo
 - Make sure dataset_filename matches what you generated in Part 1
+- Change system_prompt if necessary
+
+Then run
+
+```
+python generate_slurm_script.py
+```
+
+Finally, run
+
+```
+sbatch finetune_filled.slurm
+```
+
+#### Option 2: Using HuggingFace Dataset Format
+
+First, convert the JSON file to HuggingFace Dataset format. From the base directory of the repo, run:
+
+```
+python convert_json_to_hf_dataset.py \
+  --input_json tests/capitalization/input/words_5L_80P_1000.json \
+  --output_dir tests/capitalization/input/words_5L_80P_1000_dataset
+```
+
+This will create a HuggingFace Dataset in the input folder.
+
+Next, copy `total_config_dataset.yaml` from the capitalization test folder to the base directory of the repo and rename it to `total_config.yaml`. Open the file and consider the following changes:
+
+- Change the run name to something unique (datestamp? number your system prompts?)
+- Change input_dir_base to match where you cloned the repo
+- Make sure dataset_filename matches the dataset folder you just created
 - Change system_prompt if necessary
 
 Then run
