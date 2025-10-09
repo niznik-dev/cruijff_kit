@@ -571,7 +571,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
-
     def _setup_data(
         self,
         cfg_dataset: DictConfig,
