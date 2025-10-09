@@ -659,6 +659,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     temp_files.append(temp_path)
                     single_cfg_dataset = single_cfg_dataset.copy()
                     single_cfg_dataset.data_files = temp_path
+                # Remove split_key and split_value before passing to instruct_dataset
+                single_cfg_dataset = single_cfg_dataset.copy()
+                single_cfg_dataset.pop("split_key", None)
+                single_cfg_dataset.pop("split_value", None)
                 # !--- end cruijff-kit patch ---!
                 dataset = config.instantiate(single_cfg_dataset, self._tokenizer)
                 datasets.append(dataset)
@@ -671,6 +675,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 temp_files.append(temp_path)
                 cfg_dataset = cfg_dataset.copy()
                 cfg_dataset.data_files = temp_path
+            # Remove split_key and split_value before passing to instruct_dataset
+            cfg_dataset = cfg_dataset.copy()
+            cfg_dataset.pop("split_key", None)
+            cfg_dataset.pop("split_value", None)
             # !--- end cruijff-kit patch ---!
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
