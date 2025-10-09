@@ -569,13 +569,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
+    # !--- cruijff-kit patch ---!
     def _filter_dataset_by_split(self, cfg: DictConfig) -> Optional[str]:
         """
         Filter JSON dataset by split field if split_key and split_value are provided.
         Returns path to temp file if filtering occurred, None otherwise.
         Only works for JSON files - skips filtering for other sources.
-
-        !--- cruijff-kit patch ---!
         """
         split_key = cfg.get("split_key")
         split_value = cfg.get("split_value")
@@ -607,6 +606,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             json.dump(filtered_data, f)
 
         return temp_path
+    # !--- end cruijff-kit patch ---!
 
     def _setup_data(
         self,
