@@ -49,7 +49,6 @@ parser.add_argument("--epochs_to_save", type=parse_epochs, default="all", help="
 parser.add_argument("--max_steps_per_epoch", type=int, help="Maximum steps per epoch (useful for debugging)")
 parser.add_argument("--log_every_n_steps", type=int, default=5, help="How often to log (in steps)")
 parser.add_argument("--run_val_every_n_steps", type=int, default=0, help="How often to run validation (in steps)")
-parser.add_argument("--dataset_split_point", type=int, default=None, help="Percentage of the dataset to use for finetuning")
 parser.add_argument("--system_prompt", type=str, default="", help="System prompt to use (if any)")
 parser.add_argument("--train_on_input", type=str, default="false", help="Whether to train on the input data (true/false)")
 
@@ -92,12 +91,6 @@ username = os.environ.get("USER")
 with open("templates/finetune_template.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-# Handle dataset_split_point (percentage-based splitting)
-# Note: This is only used when you want to override the nested JSON splits
-if args.dataset_split_point is not None:
-    print("WARNING: --dataset_split_point is set. This will override any nested splits in your JSON file.")
-    print("         The dataset will be split using percentage slicing instead.")
-
 for key, value in vars(args).items():
     if key in SLURM_ONLY:
         continue
@@ -109,12 +102,6 @@ for key, value in vars(args).items():
     elif key == "output_dir_base":
         full_output_dir = value + "ck-out-" + model_run_name + "/"
         config["output_dir"] = full_output_dir
-    elif key == "dataset_split_point":
-        if value is not None:
-            # Override the nested JSON splits with percentage-based slicing
-            # This uses HF's slice syntax on the train split
-            config["dataset"]["split"] = f"train[:{value}%]"
-            config["dataset_val"]["split"] = f"train[{value}%:]"
     elif key == "system_prompt":
         if value:
             config["dataset"]["new_system_prompt"] = value

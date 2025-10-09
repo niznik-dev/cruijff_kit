@@ -16,7 +16,7 @@ import torch
 from omegaconf import DictConfig, ListConfig
 
 # !--- cruijff-kit patch ---!
-from custom_recipes.custom_recipe_utils import filter_dataset_by_split, stash_adapter_files
+from custom_recipes.custom_recipe_utils import stash_adapter_files
 # !--- end cruijff-kit patch ---!
 
 from torch import nn
@@ -609,53 +609,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         map-style datasets. If a state_dict is provided (meaning we are resuming a training run),
         it is loaded into the dataloader.
         """
-        # !--- cruijff-kit patch ---!
-        # Track temp files for cleanup
-        temp_files = []
-        # !--- end cruijff-kit patch ---!
-
         if isinstance(cfg_dataset, ListConfig):
             datasets = []
             for single_cfg_dataset in cfg_dataset:
-                # !--- cruijff-kit patch ---!
-                temp_path = filter_dataset_by_split(single_cfg_dataset, utils.log_rank_zero)
-                if temp_path:
-                    temp_files.append(temp_path)
-                    single_cfg_dataset = single_cfg_dataset.copy()
-                    single_cfg_dataset.data_files = temp_path
-                # Remove split_key and split_value before passing to instruct_dataset
-                single_cfg_dataset = single_cfg_dataset.copy()
-                single_cfg_dataset.pop("split_key", None)
-                single_cfg_dataset.pop("split_value", None)
-                # !--- end cruijff-kit patch ---!
                 dataset = config.instantiate(single_cfg_dataset, self._tokenizer)
                 datasets.append(dataset)
             ds = ConcatDataset(datasets=datasets)
             packed = getattr(ds, "packed", False)
         else:
-            # !--- cruijff-kit patch ---!
-            temp_path = filter_dataset_by_split(cfg_dataset, utils.log_rank_zero)
-            if temp_path:
-                temp_files.append(temp_path)
-                cfg_dataset = cfg_dataset.copy()
-                cfg_dataset.data_files = temp_path
-            # Remove split_key and split_value before passing to instruct_dataset
-            cfg_dataset = cfg_dataset.copy()
-            cfg_dataset.pop("split_key", None)
-            cfg_dataset.pop("split_value", None)
-            # !--- end cruijff-kit patch ---!
             ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
-
-        # !--- cruijff-kit patch ---!
-        # Clean up temp files
-        for temp_file in temp_files:
-            try:
-                os.remove(temp_file)
-                utils.log_rank_zero(log, f"Cleaned up temporary filtered dataset file: {temp_file}")
-            except OSError as e:
-                utils.log_rank_zero(log, f"Failed to clean up temp file {temp_file}: {e}", level=logging.WARNING)
-        # !--- end cruijff-kit patch ---!
 
         # Instantiate collate_fn
         if "left_pad_sequence" in collate_fn:
