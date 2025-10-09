@@ -8,12 +8,6 @@ input_formatting: ''
 
 # Dataset Configuration
 dataset_filename: words_5L_80P_1000.json
-split_key: split
-split_value_finetune: train
-split_value_val: validation
-split_value_inspect: test
-input_field: input
-output_field: output
 
 # System Prompt
 system_prompt: 'Capitalize the given word'

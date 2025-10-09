@@ -26,7 +26,7 @@ def parse_epochs(value):
 parser = argparse.ArgumentParser()
 
 # ----- Config File -----
-parser.add_argument("--config", type=str, default="generate_slurm_script.yaml", help="Path to YAML configuration file. Values from this file will be used as defaults, and can be overridden by CLI arguments.")
+parser.add_argument("--generate_config", type=str, default="total_config.yaml", help="Path to YAML configuration file. Values from this file will be used as defaults, and can be overridden by CLI arguments.")
 
 # ----- Required YAML Args Reused in Templating -----
 parser.add_argument("--my_wandb_project", type=str, default="PredictingZygosity", help="Project for when results are synced to wandb")
@@ -70,8 +70,8 @@ args = parser.parse_args()
 
 # Load config file if it exists and merge with CLI arguments
 config_data = {}
-if args.config and os.path.exists(args.config):
-    with open(args.config, "r") as f:
+if args.generate_config and os.path.exists(args.generate_config):
+    with open(args.generate_config, "r") as f:
         config_data = yaml.safe_load(f) or {}
 
     # For each argument, use CLI value if provided, otherwise use config file value

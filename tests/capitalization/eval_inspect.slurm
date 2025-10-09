@@ -17,4 +17,7 @@ module purge
 module load anaconda3/2024.10
 conda activate ttenv
 
-inspect eval eval_inspect.py --model hf/local -M model_path=<PATH_TO_MODEL>
+# NB - this will only work if finetune_filled.yaml still has the same output_dir and epochs fields from the run you want to inspect *and* will default to the final epoch; otherwise, edit these manually!
+output_epoch=$(($(grep '^epochs:' ../../finetune_filled.yaml | awk '{print $2}') - 1))
+output_dir=$(grep '^output_dir:' ../../finetune_filled.yaml | awk '{print $2}')epoch_${output_epoch}/
+inspect eval eval_inspect.py --model hf/local -M model_path=${output_dir}
