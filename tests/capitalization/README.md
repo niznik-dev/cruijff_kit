@@ -16,7 +16,7 @@ Place words_alpha.txt inside the input folder. Next, run `python sample_words.py
 
 ### Part 2 - Finetuning
 
-You can run finetuning using either JSON format or HuggingFace Dataset format. Choose one of the options below:
+You can run finetuning using either JSON format or parquet format. Choose one of the options below:
 
 #### Option 1: Using JSON Format (Current Method)
 
@@ -44,14 +44,14 @@ sbatch finetune_filled.slurm
 First, convert the JSON file to Parquet format. From the base directory of the repo, run:
 
 ```
-python convert_json_to_hf_dataset.py \
+python convert_json_to_parquet.py \
   --input_json tests/capitalization/input/words_5L_80P_1000.json \
-  --output_dir tests/capitalization/input/words_5L_80P_1000_dataset
+  --output_dir tests/capitalization/input/words_5L_80P_1000_parquet
 ```
 
 This will create Parquet files (train.parquet, validation.parquet, test.parquet) in the output directory.
 
-Next, copy `total_config_dataset.yaml` from the capitalization test folder to the base directory of the repo and rename it to `total_config.yaml`. Open the file and consider the following changes:
+Next, copy `total_config_parquet.yaml` from the capitalization test folder to the base directory of the repo and rename it to `total_config.yaml`. Open the file and consider the following changes:
 
 - Change the run name to something unique (datestamp? number your system prompts?)
 - Change input_dir_base to match where you cloned the repo

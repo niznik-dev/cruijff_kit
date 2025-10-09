@@ -7,7 +7,7 @@ input_dir_base: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff-kit/tests/capitali
 input_formatting: ''
 
 # Dataset Configuration
-dataset_filename: words_5L_80P_1000_dataset
+dataset_filename: words_5L_80P_1000_parquet
 
 # System Prompt
 system_prompt: 'Capitalize the given word'
