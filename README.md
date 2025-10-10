@@ -1,5 +1,13 @@
 # cruijff-kit
-A torchtune-based toolkit for fine-tuning and evaluating large language models using twin data and beyond, featuring automated SLURM script generation and preprocessing pipelines.
+
+cruijff-kit is a toolkit for doing research with social data and LLMs. We are building workflows for:
+
+- fine-tuning LLMs
+- evaluating LLMs
+
+We also have helper utilities for things like automated SLURM script generation and preprocessing pipelines.
+
+cruijff-kit is named after Dutch footballer and philospher [Johan Cruijff](https://en.wikipedia.org/wiki/Johan_Cruyff). Many of these ideas were developed while we were doing research in Amsterdam, the city of his birth.
 
 # ⚠️ Pre-Alpha Warning ⚠️
 
@@ -31,34 +39,32 @@ This project is in early development and things may break without notice; you ma
 Specific to della:
 ```
 ssh user@della-gpu.princeton.edu
-module load anaconda3/2024.10
+module load anaconda3/2025.6 
 ```
 
-All machines with conda and GPU visibility (including della):
+All machines with conda and GPU visibility (including della).  
+
+You'll need to pick a name for your environment.  We recommend `ttenv`, but you can adjust as you wish.
+
 ```
 conda create -n ttenv python=3.12
 conda activate ttenv
 pip3 install torch --index-url https://download.pytorch.org/whl/cu126
-pip3 install torchao torchtune wandb h5py inspect-ai datasets peft
+pip3 install torchao wandb h5py inspect-ai datasets peft
 pip3 install transformers scikit-learn matplotlib # These are only used for eval.py
 ```
 
-Once built, make sure to activate the environment when working on any tune command (and load the anaconda module if you're on della)
+Now you need to decide if you want the last stable release of torchtune or the torchtune nightly build. We recommend the nightly build so that you can evaluate while fine-tuning. [Working with val_loss (validation loss) which is not yet in a regular release.]
 
-## If you ever need torchtune's nightly build...
-
-Sometimes you may want to work with a feature that's merged into torchtune but not part of an official release yet. In that case, you can create an environment like above but split the final pip install into these parts instead:
+If you want the torchtune nightly build (recommended)
 ```
-pip3 install torchao
-pip3 install --pre torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu --no-cache-dir
-pip3 install wandb h5py
+pip3 install --pre torchtune --extra-index-url https://download.pytorch.org/whl/
 ```
 
-A new environment for this is recommended - `ttenv-nightly` is one possible name.
-
-### Current use cases
-
-* Working with val_loss (validation loss) which is not yet in a regular release
+If you want the last stable torchtune (v0.6.1)
+```
+pip3 install torchtune
+```
 
 # Downloading a model
 
