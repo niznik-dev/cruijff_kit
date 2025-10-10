@@ -10,7 +10,11 @@ To run a simple fine-tuning task on a small dataset of five-letter words and the
 
 (If not done already, clone this repo onto the machine you're using!)
 
-First, obtain words_alpha.txt from the following repo: https://github.com/dwyl/english-words (and star it!)
+First, obtain words_alpha.txt from the following repo: https://github.com/dwyl/english-words (and star it!). You'll probably want to put it in `tests/capitalization/input/`.  You can download this file from the command line as follows:
+
+```bash
+wget https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/words_alpha.txt
+```
 
 Place words_alpha.txt inside the input folder. Next, run `python sample_words.py --word-len 5 --num-words 1000` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` which we will use in finetuning.
 
