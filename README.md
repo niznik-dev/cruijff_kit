@@ -51,7 +51,7 @@ Sometimes you may want to work with a feature that's merged into torchtune but n
 ```
 pip3 install torchao
 pip3 install --pre torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu --no-cache-dir
-pip3 install wandb
+pip3 install wandb h5py
 ```
 
 A new environment for this is recommended - `ttenv-nightly` is one possible name.
