@@ -1,0 +1,29 @@
+# Wandb Configuration
+my_wandb_project: capitalization
+my_wandb_run_name: oct1-prompt-1
+
+# Directory Configuration
+input_dir_base: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff-kit/tests/capitalization/input/
+input_formatting: ''
+
+# Dataset Configuration
+dataset_filename: words_5L_80P_1000.json
+use_json_format: 'true'
+
+# System Prompt
+system_prompt: 'Capitalize the given word'
+
+# Training Parameters
+batch_size: 1
+epochs: 1
+log_every_n_steps: 1
+run_val_every_n_steps: 0
+
+# Checkpoint Options
+stash_adapter_weights: 'true'
+
+# Environment Configuration
+conda_env: ttenv
+
+# Custom Recipe
+custom_recipe: lora_finetune_single_device_v1.py

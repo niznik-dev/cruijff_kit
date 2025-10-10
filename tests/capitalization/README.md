@@ -6,46 +6,73 @@ To run a simple fine-tuning task on a small dataset of five-letter words and the
 
 ## How to Run
 
-### Part 0 - Consider Changing...
-
-- input_dir_base: make sure this points to your copy of the repo
-- account: can be omitted unless you know you have multiple accounts (make sure to remove the final \ after the conda_env line then!)
-
 ### Part 1 - Setup
 
-First, obtain words.txt from the following repo: https://github.com/dwyl/english-words (and star it!)
+(If not done already, clone this repo onto the machine you're using!)
 
-Place words.txt inside the input folder. Next, run `sample_words.py --word-len 5 --num-words 4000` (you can choose your own params for this part) - this will generate a file like `finetune_words_5L_4000.json` which we will use in finetuning.
+First, obtain words_alpha.txt from the following repo: https://github.com/dwyl/english-words (and star it!). You'll probably want to put it in `tests/capitalization/input/`.  You can download this file from the command line as follows:
+
+```bash
+wget https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/words_alpha.txt
+```
+
+Place words_alpha.txt inside the input folder. Next, run `python sample_words.py --word-len 5 --num-words 1000` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` which we will use in finetuning.
 
 ### Part 2 - Finetuning
 
-Use `generate_slurm_script.py` with the following arguments:
+You can run finetuning using either JSON format or parquet format. Choose one of the options below:
 
-```bash
-python generate_slurm_script.py \
-  --my_wandb_project capitalization \
-  --my_wandb_run_name oct1-prompt-1 \
-  --input_dir_base /home/niznik/scratch/GitHub/cruijff-kit/tests/capitalization/input/ \
-  --input_formatting '' \
-  --dataset_filename finetune_words_5L_4000.json \
-  --system_prompt 'Capitalize the given word...' \
-  --batch_size 1 \
-  --epochs 1 \
-  --log_every_n_steps 1 \
-  --run_val_every_n_steps 0 \
-  --save_adapter_weights_only true \
-  --conda_env ttenv-nightly \
-  --custom_recipe lora_finetune_single_device_val.py \
-  --account msalganik
+#### Option 1: Using JSON Format (Current Method)
+
+First, copy `total_config_json.yaml` from the capitalization test folder to the base directory of the repo and rename it to `total_config.yaml`. Next, open the file and consider the following changes:
+
+- Change the run name to something unique (datestamp? number your system prompts?)
+- Change input_dir_base to match where you cloned the repo
+- Make sure dataset_filename matches what you generated in Part 1
+- Change system_prompt if necessary
+
+Then run
+
+```
+python generate_slurm_script.py
 ```
 
-Then, run
+Finally, run
 
 ```
 sbatch finetune_filled.slurm
 ```
 
-(Currently, we need to extract all of the validation related things from the yaml file - will be addressed in [#49](https://github.com/niznik-dev/predicting-zygosity/issues/49))
+#### Option 2: Using Parquet Format
+
+First, convert the JSON file to Parquet format. From the base directory of the repo, run:
+
+```
+python convert_json_to_parquet.py \
+  --input_json tests/capitalization/input/words_5L_80P_1000.json \
+  --output_dir tests/capitalization/input/words_5L_80P_1000_parquet
+```
+
+This will create Parquet files (train.parquet, validation.parquet, test.parquet) in the output directory.
+
+Next, copy `total_config_parquet.yaml` from the capitalization test folder to the base directory of the repo and rename it to `total_config.yaml`. Open the file and consider the following changes:
+
+- Change the run name to something unique (datestamp? number your system prompts?)
+- Change input_dir_base to match where you cloned the repo
+- Make sure dataset_filename matches the dataset folder you just created
+- Change system_prompt if necessary
+
+Then run
+
+```
+python generate_slurm_script.py
+```
+
+Finally, run
+
+```
+sbatch finetune_filled.slurm
+```
 
 ### Part 3 - Upload to Weights & Biases
 
@@ -57,10 +84,18 @@ wandb sync /path/to/output/folder/logs/wandb/latest-run
 
 ### Part 4 - Test the model
 
-Now navigate inside the tests/capitalization folder. Edit the eval.yaml and eval.slurm files as appropriate. Then run
+Now navigate inside the tests/capitalization folder. Edit eval_inspect.slurm as appropriate (typically just adding your email). Then run
 
 ```
-sbatch eval.slurm
+sbatch eval_inspect.slurm
 ```
 
-and examine the slurm log file for the output.
+and examine the slurm log file for the output; you can also run
+
+```
+inspect view
+```
+
+which will supply a link to a website to view the results of the evaluation with inspect-ai.
+
+Did your finetuning and/or choice of prompt help?

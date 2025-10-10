@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import yaml
 
@@ -24,13 +25,15 @@ def parse_epochs(value):
 
 parser = argparse.ArgumentParser()
 
+# ----- Config File -----
+parser.add_argument("--generate_config", type=str, default="total_config.yaml", help="Path to YAML configuration file. Values from this file will be used as defaults, and can be overridden by CLI arguments.")
+
 # ----- Required YAML Args Reused in Templating -----
 parser.add_argument("--my_wandb_project", type=str, default="PredictingZygosity", help="Project for when results are synced to wandb")
 parser.add_argument("--my_wandb_run_name", type=str, help="Name for when results are synced to wandb; if not provided, a random name will be generated")
 parser.add_argument("--input_formatting", type=str, default="raw", help="Name of the folder where your input files are stored within input_dir; useful for multiple formatting styles (e.g. difference vs raw values). If same directory, set to empty string.")
 
-parser.add_argument("--dataset_filename", type=str, default="tune.json", help="Name of the dataset file (should be in input_dir)")
-parser.add_argument("--dataset_val_filename", type=str, default="val.json", help="Name of the model to use (should be in models_dir)")
+parser.add_argument("--dataset_filename", type=str, default="tune_dataset", help="Name of the HF dataset folder or JSON file (should be in input_dir)")
 
 parser.add_argument("--output_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/", help="Full path to the output file folders (final output folder will be 'ck-out-' + my_wandb_name within this folder)")
 parser.add_argument("--input_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/zyg_in/", help="Full path to the input file folders")
@@ -41,11 +44,11 @@ parser.add_argument("--batch_size", type=int, default=4, help="Batch size for tr
 parser.add_argument("--epochs", type=int, default=1, help="Number of epochs to train for")
 parser.add_argument("--save_adapter_weights_only", type=str, default="false", help="Whether to save only the adapter weights (true/false)")
 parser.add_argument("--save_last_epoch_only", type=str, default="false", help="Whether to save only the last epoch (true/false)")
+parser.add_argument("--stash_adapter_weights", type=str, default="false", help="Whether to stash adapter files in subdirectory to avoid confusing inspect-ai (true/false)")
 parser.add_argument("--epochs_to_save", type=parse_epochs, default="all", help="Comma delimited epochs to save checkpoints at; can also be 'all' or 'none'.")
 parser.add_argument("--max_steps_per_epoch", type=int, help="Maximum steps per epoch (useful for debugging)")
 parser.add_argument("--log_every_n_steps", type=int, default=5, help="How often to log (in steps)")
 parser.add_argument("--run_val_every_n_steps", type=int, default=0, help="How often to run validation (in steps)")
-parser.add_argument("--dataset_split_point", type=int, default=80, help="Percentage of the dataset to use for finetuning")
 parser.add_argument("--system_prompt", type=str, default="", help="System prompt to use (if any)")
 parser.add_argument("--train_on_input", type=str, default="false", help="Whether to train on the input data (true/false)")
 
@@ -63,6 +66,23 @@ parser.add_argument("--constraint", type=str, help="Slurm constraint to use")
 parser.add_argument("--custom_recipe", type=str, help="Full name of a custom recipe file in the repo's custom_recipes folder to use for fine-tuning")
 
 args = parser.parse_args()
+
+# Load config file if it exists and merge with CLI arguments
+config_data = {}
+if args.generate_config and os.path.exists(args.generate_config):
+    with open(args.generate_config, "r") as f:
+        config_data = yaml.safe_load(f) or {}
+
+    # For each argument, use CLI value if provided, otherwise use config file value
+    for key, value in config_data.items():
+        # Only use config value if the argument wasn't explicitly provided on CLI
+        # We check if it's still at its default value
+        if hasattr(args, key):
+            default_value = parser.get_default(key)
+            current_value = getattr(args, key)
+            # If current value equals default, use config file value
+            if current_value == default_value:
+                setattr(args, key, value)
 
 model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
 username = os.environ.get("USER")
@@ -82,9 +102,16 @@ for key, value in vars(args).items():
     elif key == "output_dir_base":
         full_output_dir = value + "ck-out-" + model_run_name + "/"
         config["output_dir"] = full_output_dir
-    elif key == "dataset_split_point":
-        config["dataset"]["split"] = f"train[:{value}%]"
-        config["dataset_val"]["split"] = f"train[{value}%:]"
+    elif key == "dataset_filename":
+        config["dataset_filename"] = value
+        if value.endswith('.json'):
+            # Override to use JSON format instead of Parquet
+            config["dataset"]["source"] = "json"
+            config["dataset"]["data_files"] = config["dataset"].pop("data_dir")
+            config["dataset"]["field"] = config["dataset"].pop("split")
+            config["dataset_val"]["source"] = "json"
+            config["dataset_val"]["data_files"] = config["dataset_val"].pop("data_dir")
+            config["dataset_val"]["field"] = config["dataset_val"].pop("split")
     elif key == "system_prompt":
         if value:
             config["dataset"]["new_system_prompt"] = value
@@ -94,6 +121,8 @@ for key, value in vars(args).items():
         config["save_adapter_weights_only"] = (value == "true")
     elif key == "save_last_epoch_only":
         config["save_last_epoch_only"] = (value == "true")
+    elif key == "stash_adapter_weights":
+        config["stash_adapter_weights"] = (value == "true")
     elif key == "train_on_input":
         config["dataset"]["train_on_input"] = (value == "true")
     # The rest are straightforward
@@ -104,9 +133,6 @@ if config["run_val_every_n_steps"] == 0:
     # Remove all validation-related keys if not running validation
     config.pop("dataset_val", None)
     config.pop("run_val_every_n_steps", None)
-    config.pop("dataset_val_filename", None)
-    # Also remove the split from the main dataset
-    config["dataset"].pop("split", None)
 
 for key in ['input_dir', 'output_dir', 'models_dir']:
     config[key] = config[key].replace("$USER", username)

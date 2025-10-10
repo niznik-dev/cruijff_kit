@@ -15,6 +15,10 @@ import torch
 import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
 
+# !--- cruijff-kit patch ---!
+from custom_recipes.custom_recipe_utils import stash_adapter_files
+# !--- end cruijff-kit patch ---!
+
 from torch import nn
 from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
@@ -164,6 +168,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._epochs_to_save = [self.total_epochs - 1] if self._save_last_epoch_only else cfg.get("epochs_to_save", 'all')
         if self._epochs_to_save == 'all':
             self._epochs_to_save = list(range(self.total_epochs))
+        self._stash_adapter_weights = cfg.get("stash_adapter_weights", False)
         # !--- end cruijff-kit patch ---!
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
@@ -796,6 +801,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                             time.perf_counter() - start_save_checkpoint
                         )
                     )
+
+                    # Stash adapter files if configured (to avoid confusing inspect-ai)
+                    if self._stash_adapter_weights and not self._save_adapter_weights_only:
+                        log.info("Stashing adapter files from merged model checkpoint...")
+                        stash_adapter_files(self._output_dir, curr_epoch, log)
                 else:
                     log.info(f"Skipping checkpoint save for epoch {curr_epoch}...")
                 # !--- end cruijff-kit patch ---!

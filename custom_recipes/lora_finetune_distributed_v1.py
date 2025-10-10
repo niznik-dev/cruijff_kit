@@ -6,6 +6,7 @@
 
 import sys
 import time
+import os
 
 from functools import partial
 from typing import Any, Dict, List, Optional, Union
@@ -13,6 +14,10 @@ from warnings import warn
 
 import torch
 from omegaconf import DictConfig, ListConfig
+
+# !--- cruijff-kit patch ---!
+from custom_recipes.custom_recipe_utils import stash_adapter_files
+# !--- end cruijff-kit patch ---!
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
@@ -173,6 +178,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._epochs_to_save = [self.total_epochs - 1] if self._save_last_epoch_only else cfg.get("epochs_to_save", 'all')
         if self._epochs_to_save == 'all':
             self._epochs_to_save = list(range(self.total_epochs))
+        self._stash_adapter_weights = cfg.get("stash_adapter_weights", False)
         # !--- end cruijff-kit patch ---!
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -906,6 +912,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             if curr_epoch in self._epochs_to_save:
                 log.info(f"Starting checkpoint save for epoch {curr_epoch}...")
                 self.save_checkpoint(epoch=curr_epoch)
+
+                # Stash adapter files if configured (to avoid confusing inspect-ai)
+                # Only run on rank 0
+                if self._is_rank_zero and self._stash_adapter_weights and not self._save_adapter_weights_only:
+                    utils.log_rank_zero(log, "Stashing adapter files from merged model checkpoint...")
+                    stash_adapter_files(self._output_dir, curr_epoch, log)
             else:
                 log.info(f"Skipping checkpoint save for epoch {curr_epoch}...")
             # !--- end cruijff-kit patch ---!
