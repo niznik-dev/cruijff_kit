@@ -89,7 +89,7 @@ tune download meta-llama/<model_name> --output-dir <model_dir> --hf-token <hf-to
 * Llama-3.2-1B-Instruct (most common)
 * Llama-3.3-70B-Instruct
 
-**model_dir**: A suggestion is `/scratch/gpfs/$USER/torchtune_models/<model_name>` - you'll need this in finetune.yaml later
+**model_dir**: A suggestion is `/scratch/gpfs/<your_sponsor>/$USER/torchtune_models/<model_name>` - you'll need this in finetune.yaml later
 
 **hf-token**: You can get this from your HuggingFace account; **NEVER** commit this to a repo!
 
@@ -97,7 +97,7 @@ tune download meta-llama/<model_name> --output-dir <model_dir> --hf-token <hf-to
 
 ## With capitalization dataset (tests/input_training)
 
-The file already exists for you - you'll just need to reference it when running the generator in the next step!
+For full instructions, see the README.md in tests/capitalization
 
 ## With twin dataset
 
@@ -117,7 +117,7 @@ When complete, multiple JSON files will be created in the same input folder you 
 
 ## With capitalization dataset
 
-For full instructions, see the README.md in tests/input_training (NB - if you haven't already, you'll need to the **ttenv-nightly** environment for this test!)
+For full instructions, see the README.md in tests/capitalization
 
 ## With twin dataset
 
