@@ -72,17 +72,6 @@ parser.add_argument("--custom_recipe", type=str, help="Full name of a custom rec
 
 args = parser.parse_args()
 
-# Validate lr_scheduler
-VALID_LR_SCHEDULERS = [
-    'get_cosine_schedule_with_warmup',
-    'get_linear_schedule_with_warmup',
-    'get_constant_schedule_with_warmup',
-    'get_exponential_schedule_with_warmup'
-]
-
-if args.lr_scheduler not in VALID_LR_SCHEDULERS:
-    raise ValueError(f"Invalid lr_scheduler: '{args.lr_scheduler}'. Must be one of: {', '.join(VALID_LR_SCHEDULERS)}")
-
 # Load config file if it exists and merge with CLI arguments
 config_data = {}
 if args.generate_config and os.path.exists(args.generate_config):
@@ -99,6 +88,17 @@ if args.generate_config and os.path.exists(args.generate_config):
             # If current value equals default, use config file value
             if current_value == default_value:
                 setattr(args, key, value)
+
+# Validate lr_scheduler (after config file has been loaded and merged)
+VALID_LR_SCHEDULERS = [
+    'get_cosine_schedule_with_warmup',
+    'get_linear_schedule_with_warmup',
+    'get_constant_schedule_with_warmup',
+    'get_exponential_schedule_with_warmup'
+]
+
+if args.lr_scheduler not in VALID_LR_SCHEDULERS:
+    raise ValueError(f"Invalid lr_scheduler: '{args.lr_scheduler}'. Must be one of: {', '.join(VALID_LR_SCHEDULERS)}")
 
 model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
 username = os.environ.get("USER")
