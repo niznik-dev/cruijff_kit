@@ -52,6 +52,11 @@ parser.add_argument("--run_val_every_n_steps", type=int, default=0, help="How of
 parser.add_argument("--system_prompt", type=str, default="", help="System prompt to use (if any)")
 parser.add_argument("--train_on_input", type=str, default="false", help="Whether to train on the input data (true/false)")
 
+# ------ Model/Training Args -----
+parser.add_argument("--lora_rank", type=int, default=64, help="LoRA rank (alpha will be auto-calculated as 2*rank)")
+parser.add_argument("--num_warmup_steps", type=int, default=100, help="Number of warmup steps for learning rate scheduler")
+parser.add_argument("--lr_scheduler", type=str, default="get_cosine_schedule_with_warmup", help="Learning rate scheduler function name (without 'torchtune.training.lr_schedulers.' prefix)")
+
 # ------ Slurm Args -----
 parser.add_argument("--time", type=str, default="00:15:00", help="Time to run the job (HH:MM:SS)")
 parser.add_argument("--gpus", type=int, default=1, help="Number of GPUs to use")
@@ -66,6 +71,17 @@ parser.add_argument("--constraint", type=str, help="Slurm constraint to use")
 parser.add_argument("--custom_recipe", type=str, help="Full name of a custom recipe file in the repo's custom_recipes folder to use for fine-tuning")
 
 args = parser.parse_args()
+
+# Validate lr_scheduler
+VALID_LR_SCHEDULERS = [
+    'get_cosine_schedule_with_warmup',
+    'get_linear_schedule_with_warmup',
+    'get_constant_schedule_with_warmup',
+    'get_exponential_schedule_with_warmup'
+]
+
+if args.lr_scheduler not in VALID_LR_SCHEDULERS:
+    raise ValueError(f"Invalid lr_scheduler: '{args.lr_scheduler}'. Must be one of: {', '.join(VALID_LR_SCHEDULERS)}")
 
 # Load config file if it exists and merge with CLI arguments
 config_data = {}
@@ -125,6 +141,15 @@ for key, value in vars(args).items():
         config["stash_adapter_weights"] = (value == "true")
     elif key == "train_on_input":
         config["dataset"]["train_on_input"] = (value == "true")
+    elif key == "lora_rank":
+        # Set both rank and alpha (alpha = 2 * rank)
+        config["model"]["lora_rank"] = value
+        config["model"]["lora_alpha"] = value * 2
+    elif key == "num_warmup_steps":
+        config["lr_scheduler"]["num_warmup_steps"] = value
+    elif key == "lr_scheduler":
+        # Construct full component path
+        config["lr_scheduler"]["_component_"] = f"torchtune.training.lr_schedulers.{value}"
     # The rest are straightforward
     else:
         config[key] = value
