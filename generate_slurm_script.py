@@ -56,6 +56,7 @@ parser.add_argument("--train_on_input", type=str, default="false", help="Whether
 parser.add_argument("--lora_rank", type=int, default=64, help="LoRA rank (alpha will be auto-calculated as 2*rank)")
 parser.add_argument("--num_warmup_steps", type=int, default=100, help="Number of warmup steps for learning rate scheduler")
 parser.add_argument("--lr_scheduler", type=str, default="get_cosine_schedule_with_warmup", help="Learning rate scheduler function name (without 'torchtune.training.lr_schedulers.' prefix)")
+parser.add_argument("--dataset_type", type=str, default="instruct_dataset", help="Dataset type function name (without 'torchtune.datasets.' prefix)")
 
 # ------ Slurm Args -----
 parser.add_argument("--time", type=str, default="00:15:00", help="Time to run the job (HH:MM:SS)")
@@ -99,6 +100,16 @@ VALID_LR_SCHEDULERS = [
 
 if args.lr_scheduler not in VALID_LR_SCHEDULERS:
     raise ValueError(f"Invalid lr_scheduler: '{args.lr_scheduler}'. Must be one of: {', '.join(VALID_LR_SCHEDULERS)}")
+
+# Validate dataset_type (after config file has been loaded and merged)
+VALID_DATASET_TYPES = [
+    'instruct_dataset',
+    'chat_dataset',
+    'text_completion_dataset'
+]
+
+if args.dataset_type not in VALID_DATASET_TYPES:
+    raise ValueError(f"Invalid dataset_type: '{args.dataset_type}'. Must be one of: {', '.join(VALID_DATASET_TYPES)}")
 
 model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
 username = os.environ.get("USER")
@@ -150,6 +161,11 @@ for key, value in vars(args).items():
     elif key == "lr_scheduler":
         # Construct full component path
         config["lr_scheduler"]["_component_"] = f"torchtune.training.lr_schedulers.{value}"
+    elif key == "dataset_type":
+        # Construct full component path for dataset
+        config["dataset"]["_component_"] = f"torchtune.datasets.{value}"
+        if "dataset_val" in config:
+            config["dataset_val"]["_component_"] = f"torchtune.datasets.{value}"
     # The rest are straightforward
     else:
         config[key] = value
