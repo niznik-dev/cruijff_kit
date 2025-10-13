@@ -74,7 +74,9 @@ Finally, run
 sbatch finetune_filled.slurm
 ```
 
-### Part 3 - Upload to Weights & Biases
+### (Optional) Part 3 - Upload to Weights & Biases
+
+(If you do not already have an account with Weights & Biases, go to [their website](https://wandb.ai) and create one. In the splash page that follows, an API key will be presented to you which you can copy and supply when prompted later)
 
 Run the following to upload your run:
 
