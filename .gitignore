@@ -10,6 +10,7 @@ tests/bit_sequences/*.txt
 tests/capitalization/*.json
 tests/capitalization/eval_output/
 tests/capitalization/legacy_eval/eval_output/
+tests/capitalization/input/words*_c/
 tests/capitalization/input/words*parquet/
 tests/capitalization/input/words*.json
 tests/capitalization/input/words*.txt
