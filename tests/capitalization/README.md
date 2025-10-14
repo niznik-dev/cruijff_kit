@@ -34,7 +34,7 @@ First, copy `total_config_json.yaml` from the capitalization test folder to the 
 Then run
 
 ```
-python generate_slurm_script.py
+python setup_finetune.py
 ```
 
 Finally, run
@@ -65,7 +65,7 @@ Next, copy `total_config_parquet.yaml` from the capitalization test folder to th
 Then run
 
 ```
-python generate_slurm_script.py
+python setup_finetune.py
 ```
 
 Finally, run

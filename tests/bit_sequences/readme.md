@@ -47,10 +47,10 @@ Each `.json` file contains a list of examples in this format:
 
 ## How to integrate it with the codebase
 
-Generate train.json and test.json into your current working directory and then use `generate_slurm_script.py` with the following arguments:
+Generate train.json and test.json into your current working directory and then use `setup_finetune.py` with the following arguments:
 
 ```
-python generate_slurm_script.py \
+python setup_finetune.py \
   --my_wandb_project predictable_or_not \
   --my_wandb_run_name binary_sequence_test \
   --input_dir_base /home/niznik/scratch/GitHub/cruijff-kit/tests/bit_sequences/ \
