@@ -2,26 +2,36 @@ from __future__ import annotations
 from typing import Sequence
 
 from inspect_ai import Task, task
-from inspect_ai.dataset import json_dataset, hf_dataset, FieldSpec
+from inspect_ai.dataset import json_dataset, hf_dataset, FieldSpec, Sample
 from inspect_ai.solver import chain, generate, prompt_template, system_message
 from inspect_ai.scorer import match, includes
 import yaml
+import argparse
 
 @task
 def cap_task() -> Task:
-    with open('../../total_config.yaml', 'r') as total_config_file:
+    # Parse the path for total_config.yaml using argparse
+
+    parser = argparse.ArgumentParser(description="Specify the directory containing total_config.yaml")
+    parser.add_argument(
+        "--config_dir",
+        type=str,
+        default="../../",
+        help="Directory where total_config.yaml is located (default: '../../')"
+    )
+    args = parser.parse_args()
+    config_path = f"{args.config_dir}/total_config.yaml"
+
+    with open(config_path, 'r') as total_config_file:
         total_config = yaml.safe_load(total_config_file)
 
     try:
-        DATA_PATH = total_config['input_dir_base'] + total_config['dataset_filename']
-        SYSTEM_PROMPT = total_config['system_prompt']
-        USE_JSON_FORMAT = DATA_PATH.endswith('.json')
+        USE_CHAT_TEMPLATE = total_config.get('dataset_type', '') == 'chat_dataset'
+        USE_JSON_FORMAT = total_config['dataset_ext'] == '.json'
+        DATA_PATH = total_config['input_dir_base'] + total_config['dataset_label'] + ('.json' if (total_config['dataset_ext'] == '.json' and not USE_CHAT_TEMPLATE) else '/test.json')
+        SYSTEM_PROMPT = total_config.get('system_prompt', '')
     except KeyError as e:
         raise KeyError(f"Missing required key in total_config.yaml: {e}")
-
-    SPLIT_VALUE = "test"
-    INPUT_FIELD = "input"
-    TARGET_FIELD = "output"
 
     if isinstance(SYSTEM_PROMPT, Sequence) and not isinstance(SYSTEM_PROMPT, str):
         # CLI parsing may coerce comma-containing strings into iterables; rejoin them.
@@ -30,25 +40,40 @@ def cap_task() -> Task:
     # Determine dataset format and load accordingly
     if USE_JSON_FORMAT:
         # JSON format with nested structure (field parameter to access test split)
-        dataset = hf_dataset(
-            path="json",
-            data_files=DATA_PATH,
-            field=SPLIT_VALUE,
-            split="train", # 'train' here refers to the top-level split in JSON - don't get confused!
-            sample_fields=FieldSpec(
-                input=INPUT_FIELD,
-                target=TARGET_FIELD,
-            ),
-        )
+        if USE_CHAT_TEMPLATE:
+            def record_to_sample(record):
+                return Sample(
+                    input=record["messages"][0]["content"],
+                    target=record["messages"][1]["content"]
+                )
+
+            dataset = json_dataset(
+                DATA_PATH,
+                record_to_sample
+            )
+        else:
+            def record_to_sample(record):
+                return Sample(
+                    input=record["input"],
+                    target=record["output"]
+                )
+            
+            dataset = hf_dataset(
+                path="json",
+                data_files=DATA_PATH,
+                field="test",
+                split="train", # 'train' here refers to the top-level split in JSON - don't get confused!
+                sample_fields=record_to_sample
+            )
     else:
         # Parquet format
         dataset = hf_dataset(
             path="parquet",
             data_dir=DATA_PATH,
-            split=SPLIT_VALUE,
+            split="test",
             sample_fields=FieldSpec(
-                input=INPUT_FIELD,
-                target=TARGET_FIELD,
+                input="input",
+                target="output",
             ),
         )
 
