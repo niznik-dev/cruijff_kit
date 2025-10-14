@@ -161,7 +161,7 @@ for key, value in vars(args).items():
                     config["dataset_val"]["data_files"] += '/validation.json'
                     config["dataset_val"].pop("split")
     elif key == "dataset_ext":
-        pass  # Handled in dataset_filename
+        pass  # Handled in dataset_label
     elif key == "system_prompt":
         if value:
             config["dataset"]["new_system_prompt"] = value
