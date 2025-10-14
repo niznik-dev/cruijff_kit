@@ -18,4 +18,4 @@ module load anaconda3/2024.10
 conda activate ttenv
 
 output_dir="/scratch/gpfs/<sponsor>/<netid>/path/to/experiment/epoch_N/"
-inspect eval eval_inspect.py --model hf/local -M model_path=${output_dir} -T config_dir=${output_dir}
+inspect eval inspect.py --model hf/local -M model_path=${output_dir} -T config_dir=${output_dir}

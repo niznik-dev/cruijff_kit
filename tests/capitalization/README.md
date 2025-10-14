@@ -86,10 +86,10 @@ wandb sync /path/to/output/folder/logs/wandb/latest-run
 
 ### Part 4 - Test the model
 
-Now navigate inside the tests/capitalization folder. Edit eval_inspect.slurm as appropriate (typically just adding your email). Then run
+Now navigate inside the tests/capitalization folder. Edit inspect.slurm as appropriate (typically just adding your email). Then run
 
 ```
-sbatch eval_inspect.slurm
+sbatch inspect.slurm
 ```
 
 and examine the slurm log file for the output; you can also run
