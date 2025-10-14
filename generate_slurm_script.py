@@ -189,7 +189,6 @@ for key, value in vars(args).items():
         if value == 'chat_dataset':
             config["dataset"]["conversation_column"] = "messages"
             config["dataset"]["conversation_style"] = "openai"
-            # TODO - change to split='train'
         if "dataset_val" in config:
             config["dataset_val"]["_component_"] = f"torchtune.datasets.{value}"
             if value == 'chat_dataset':
