@@ -48,7 +48,7 @@ python setup_finetune.py \
   --account msalganik \
   --constraint gpu80
 
-sbatch finetune_filled.slurm
+sbatch finetune.slurm
 ```
 
 ### Part 2 - Finetune on Input AND Output
@@ -75,7 +75,7 @@ python setup_finetune.py \
   --account msalganik \
   --constraint gpu80
 
-sbatch finetune_filled.slurm
+sbatch finetune.slurm
 ```
 
 ### Part 3 - Upload to Weights & Biases

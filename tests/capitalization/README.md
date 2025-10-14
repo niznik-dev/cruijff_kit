@@ -40,7 +40,7 @@ python setup_finetune.py
 Finally, run
 
 ```
-sbatch finetune_filled.slurm
+sbatch finetune.slurm
 ```
 
 #### Option 2: Using Parquet Format
@@ -71,7 +71,7 @@ python setup_finetune.py
 Finally, run
 
 ```
-sbatch finetune_filled.slurm
+sbatch finetune.slurm
 ```
 
 ### (Optional) Part 3 - Upload to Weights & Biases

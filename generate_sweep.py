@@ -45,10 +45,10 @@ def main():
             raise ValueError(f"Variable '{var}' not found in YAML sections.")
         mult_value_lists.append(value)
 
-    with open('finetune_filled.yaml', 'r') as f:
+    with open('finetune.yaml', 'r') as f:
         FINETUNE_PARAMS_BASE = yaml.safe_load(f)
 
-    with open('finetune_filled.slurm', 'r') as f:
+    with open('finetune.slurm', 'r') as f:
         FINETUNE_SLURM_BASE = f.read()
     
     match_job_name = re.search(r'--job-name=(\S+)', FINETUNE_SLURM_BASE)
@@ -116,7 +116,7 @@ def main():
         slurm_out = slurm_out.replace("<ARRAY_MAX>", str(combo_index - 1))
         slurm_out = slurm_out.replace("##SBATCH --array", "#SBATCH --array")
         slurm_out = slurm_out.replace(f"{SWEEP_NAME}/", f"{SWEEP_NAME}_{slurm_mem}G_$SLURM_ARRAY_TASK_ID/")
-        slurm_out = slurm_out.replace("finetune_filled.yaml", "$SLURM_ARRAY_TASK_ID.yaml")
+        slurm_out = slurm_out.replace("finetune.yaml", "$SLURM_ARRAY_TASK_ID.yaml")
 
         with open(os.path.join(output_dir, f'{output_dir}.slurm'), 'w') as f:
             f.write(slurm_out)

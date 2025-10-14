@@ -206,7 +206,7 @@ if config["run_val_every_n_steps"] == 0:
 for key in ['input_dir', 'output_dir', 'models_dir']:
     config[key] = config[key].replace("$USER", username)
 
-with open("finetune_filled.yaml", "w") as f:
+with open("finetune.yaml", "w") as f:
     yaml.dump(config, f, sort_keys=False)
 
 # Now create the slurm script
@@ -250,5 +250,5 @@ if args.modules:
 slurm_script = slurm_script.replace("<OUTPUT_DIR>", full_output_dir)
 slurm_script = slurm_script.replace("$USER", username)
 
-with open("finetune_filled.slurm", "w") as f:
+with open("finetune.slurm", "w") as f:
     f.write(slurm_script)

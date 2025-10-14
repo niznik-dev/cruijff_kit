@@ -131,6 +131,6 @@ Now that we have a yaml/slurm generator, we can leverage that to make the files 
 python setup_finetune.py --my_wandb_project my_first_tests --my_wandb_run_name my_first_test --input_dir_base /scratch/gpfs/$USER/zyg_in/ --input_formatting '' --conda_env ttenv
 ```
 
-Then run `sbatch finetune_filled.slurm` and watch the magic happen!
+Then run `sbatch finetune.slurm` and watch the magic happen!
 
 
