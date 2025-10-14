@@ -33,7 +33,8 @@ parser.add_argument("--my_wandb_project", type=str, default="PredictingZygosity"
 parser.add_argument("--my_wandb_run_name", type=str, help="Name for when results are synced to wandb; if not provided, a random name will be generated")
 parser.add_argument("--input_formatting", type=str, default="raw", help="Name of the folder where your input files are stored within input_dir; useful for multiple formatting styles (e.g. difference vs raw values). If same directory, set to empty string.")
 
-parser.add_argument("--dataset_filename", type=str, default="tune_dataset", help="Name of the HF dataset folder or JSON file (should be in input_dir)")
+parser.add_argument("--dataset_label", type=str, default="tune_dataset", help="Name of the dataset file (without extension) or folder (either should be in input_dir)")
+parser.add_argument("--dataset_ext", type=str, default="", help="Extension of the dataset file (e.g. .json or .parquet)")
 
 parser.add_argument("--output_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/", help="Full path to the output file folders (final output folder will be 'ck-out-' + my_wandb_name within this folder)")
 parser.add_argument("--input_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/zyg_in/", help="Full path to the input file folders")
@@ -129,16 +130,38 @@ for key, value in vars(args).items():
     elif key == "output_dir_base":
         full_output_dir = value + "ck-out-" + model_run_name + "/"
         config["output_dir"] = full_output_dir
-    elif key == "dataset_filename":
-        config["dataset_filename"] = value
-        if value.endswith('.json'):
-            # Override to use JSON format instead of Parquet
+    elif key == "dataset_label":
+        config["dataset_label"] = value
+        if args.dataset_ext == '.parquet':
+            # For parquet, we just need to add the filenames inside the folder (dataset_label is the folder name here)
+            config["dataset"]["data_dir"] += '/train.parquet'
+            if "dataset_val" in config:
+                config["dataset_val"]["data_dir"] += '/validation.parquet'
+        elif args.dataset_ext == '.json':
+            # For json, we need to change source and rename data_dir to data_files
             config["dataset"]["source"] = "json"
             config["dataset"]["data_files"] = config["dataset"].pop("data_dir")
-            config["dataset"]["field"] = config["dataset"].pop("split")
-            config["dataset_val"]["source"] = "json"
-            config["dataset_val"]["data_files"] = config["dataset_val"].pop("data_dir")
-            config["dataset_val"]["field"] = config["dataset_val"].pop("split")
+            if "dataset_val" in config:
+                config["dataset_val"]["source"] = "json"
+                config["dataset_val"]["data_files"] = config["dataset_val"].pop("data_dir")
+
+            if args.dataset_type == 'instruct_dataset':
+                # For instruct, we need to add .json to data_files because we use a single file instead of a folder
+                # and change split to field
+                config["dataset"]["data_files"] += '.json'
+                config["dataset"]["field"] = config["dataset"].pop("split")
+                if "dataset_val" in config:
+                    config["dataset_val"]["data_files"] += '.json'
+                    config["dataset_val"]["field"] = config["dataset_val"].pop("split")
+            else:
+                # For chat, we need to remove split and add the filenames inside the folder (dataset_label is the folder name here)
+                config["dataset"]["data_files"] += '/train.json'
+                config["dataset"].pop("split")
+                if "dataset_val" in config:
+                    config["dataset_val"]["data_files"] += '/validation.json'
+                    config["dataset_val"].pop("split")
+    elif key == "dataset_ext":
+        pass  # Handled in dataset_label
     elif key == "system_prompt":
         if value:
             config["dataset"]["new_system_prompt"] = value
@@ -162,10 +185,15 @@ for key, value in vars(args).items():
         # Construct full component path
         config["lr_scheduler"]["_component_"] = f"torchtune.training.lr_schedulers.{value}"
     elif key == "dataset_type":
-        # Construct full component path for dataset
         config["dataset"]["_component_"] = f"torchtune.datasets.{value}"
+        if value == 'chat_dataset':
+            config["dataset"]["conversation_column"] = "messages"
+            config["dataset"]["conversation_style"] = "openai"
         if "dataset_val" in config:
             config["dataset_val"]["_component_"] = f"torchtune.datasets.{value}"
+            if value == 'chat_dataset':
+                config["dataset_val"]["conversation_column"] = "messages"
+                config["dataset_val"]["conversation_style"] = "openai"
     # The rest are straightforward
     else:
         config[key] = value
