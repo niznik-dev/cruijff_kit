@@ -131,6 +131,7 @@ for key, value in vars(args).items():
         full_output_dir = value + "ck-out-" + model_run_name + "/"
         config["output_dir"] = full_output_dir
     elif key == "dataset_label":
+        config["dataset_label"] = value
         if args.dataset_ext == '.parquet':
             # For parquet, we just need to add the filenames inside the folder (dataset_label is the folder name here)
             config["dataset"]["data_dir"] += '/train.parquet'
@@ -154,10 +155,10 @@ for key, value in vars(args).items():
                     config["dataset_val"]["field"] = config["dataset_val"].pop("split")
             else:
                 # For chat, we need to remove split and add the filenames inside the folder (dataset_label is the folder name here)
-                config["dataset"]["data_files"] = value + '/train.json'
+                config["dataset"]["data_files"] += '/train.json'
                 config["dataset"].pop("split")
                 if "dataset_val" in config:
-                    config["dataset_val"]["data_files"] = value + '/validation.json'
+                    config["dataset_val"]["data_files"] += '/validation.json'
                     config["dataset_val"].pop("split")
     elif key == "dataset_ext":
         pass  # Handled in dataset_filename

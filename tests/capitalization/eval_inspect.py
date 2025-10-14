@@ -6,21 +6,10 @@ from inspect_ai.dataset import json_dataset, hf_dataset, FieldSpec, Sample
 from inspect_ai.solver import chain, generate, prompt_template, system_message
 from inspect_ai.scorer import match, includes
 import yaml
-import argparse
 
 @task
-def cap_task() -> Task:
-    # Parse the path for total_config.yaml using argparse
-
-    parser = argparse.ArgumentParser(description="Specify the directory containing total_config.yaml")
-    parser.add_argument(
-        "--config_dir",
-        type=str,
-        default="../../",
-        help="Directory where total_config.yaml is located (default: '../../')"
-    )
-    args = parser.parse_args()
-    config_path = f"{args.config_dir}/total_config.yaml"
+def cap_task(config_dir: str = "../../") -> Task:
+    config_path = f"{config_dir}/../total_config.yaml"  # Will always be one level up from the epoch directory
 
     with open(config_path, 'r') as total_config_file:
         total_config = yaml.safe_load(total_config_file)
