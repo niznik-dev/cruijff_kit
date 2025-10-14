@@ -26,7 +26,7 @@ def parse_epochs(value):
 parser = argparse.ArgumentParser()
 
 # ----- Config File -----
-parser.add_argument("--generate_config", type=str, default="total_config.yaml", help="Path to YAML configuration file. Values from this file will be used as defaults, and can be overridden by CLI arguments.")
+parser.add_argument("--generate_config", type=str, default="setup_finetune.yaml", help="Path to YAML configuration file. Values from this file will be used as defaults, and can be overridden by CLI arguments.")
 
 # ----- Required YAML Args Reused in Templating -----
 parser.add_argument("--my_wandb_project", type=str, default="PredictingZygosity", help="Project for when results are synced to wandb")

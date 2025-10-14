@@ -9,18 +9,18 @@ import yaml
 
 @task
 def cap_task(config_dir: str = "../../") -> Task:
-    config_path = f"{config_dir}/../total_config.yaml"  # Will always be one level up from the epoch directory
+    config_path = f"{config_dir}/../setup_finetune.yaml"  # Will always be one level up from the epoch directory
 
-    with open(config_path, 'r') as total_config_file:
-        total_config = yaml.safe_load(total_config_file)
+    with open(config_path, 'r') as setup_finetune_file:
+        setup_finetune = yaml.safe_load(setup_finetune_file)
 
     try:
-        USE_CHAT_TEMPLATE = total_config.get('dataset_type', '') == 'chat_dataset'
-        USE_JSON_FORMAT = total_config['dataset_ext'] == '.json'
-        DATA_PATH = total_config['input_dir_base'] + total_config['dataset_label'] + ('.json' if (total_config['dataset_ext'] == '.json' and not USE_CHAT_TEMPLATE) else '/test.json')
-        SYSTEM_PROMPT = total_config.get('system_prompt', '')
+        USE_CHAT_TEMPLATE = setup_finetune.get('dataset_type', '') == 'chat_dataset'
+        USE_JSON_FORMAT = setup_finetune['dataset_ext'] == '.json'
+        DATA_PATH = setup_finetune['input_dir_base'] + setup_finetune['dataset_label'] + ('.json' if (setup_finetune['dataset_ext'] == '.json' and not USE_CHAT_TEMPLATE) else '/test.json')
+        SYSTEM_PROMPT = setup_finetune.get('system_prompt', '')
     except KeyError as e:
-        raise KeyError(f"Missing required key in total_config.yaml: {e}")
+        raise KeyError(f"Missing required key in setup_finetune.yaml: {e}")
 
     if isinstance(SYSTEM_PROMPT, Sequence) and not isinstance(SYSTEM_PROMPT, str):
         # CLI parsing may coerce comma-containing strings into iterables; rejoin them.

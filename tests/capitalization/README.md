@@ -24,7 +24,7 @@ You can run finetuning using either JSON format or parquet format. Choose one of
 
 #### Option 1: Using JSON Format (Current Method)
 
-First, copy `total_config_json.yaml` from the capitalization test folder to the base directory of the repo and rename it to `total_config.yaml`. Next, open the file and consider the following changes:
+First, copy `setup_finetune_json.yaml` from the capitalization test folder to the base directory of the repo and rename it to `setup_finetune.yaml`. Next, open the file and consider the following changes:
 
 - Change the run name to something unique (datestamp? number your system prompts?)
 - Change input_dir_base to match where you cloned the repo
@@ -55,7 +55,7 @@ python convert_json_to_parquet.py \
 
 This will create Parquet files (train.parquet, validation.parquet, test.parquet) in the output directory.
 
-Next, copy `total_config_parquet.yaml` from the capitalization test folder to the base directory of the repo and rename it to `total_config.yaml`. Open the file and consider the following changes:
+Next, copy `setup_finetune_parquet.yaml` from the capitalization test folder to the base directory of the repo and rename it to `setup_finetune.yaml`. Open the file and consider the following changes:
 
 - Change the run name to something unique (datestamp? number your system prompts?)
 - Change input_dir_base to match where you cloned the repo
