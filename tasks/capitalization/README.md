@@ -52,7 +52,7 @@ sbatch finetune.slurm
 First, convert the JSON file to Parquet format:
 
 ```
-python ../../convert_json_to_parquet.py \
+python ../../utils/convert_json_to_parquet.py \
   --input_json input/words_5L_80P_1000.json \
   --output_dir input/words_5L_80P_1000_parquet
 ```
