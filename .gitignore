@@ -16,8 +16,8 @@ tasks/capitalization/input/*.png
 tests/predictable_or_not/*.json
 tests/capitalization/*.txt
 logs/
-finetune*.slurm
-finetune*.yaml
+finetune.slurm
+finetune.yaml
 setup_finetune.yaml
 *G/
 *.eval
