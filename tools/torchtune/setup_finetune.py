@@ -1,16 +1,13 @@
 import argparse
 import json
 import os
-import sys
 import yaml
 from pathlib import Path
 
+from cruijff_kit.utils import run_names
+
 # Calculate paths relative to this script
 script_dir = Path(__file__).parent
-repo_root = script_dir.parent.parent
-sys.path.insert(0, str(repo_root))
-
-from utils import run_names
 
 RANDOM_MODEL_RUN_NAME = run_names.generate_model_run_name()[0]
 
