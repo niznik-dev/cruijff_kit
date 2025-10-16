@@ -3,11 +3,12 @@ my_wandb_project: capitalization
 my_wandb_run_name: oct1-prompt-1
 
 # Directory Configuration
-input_dir_base: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff-kit/tests/capitalization/input/
+input_dir_base: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tests/capitalization/input/
 input_formatting: ''
 
 # Dataset Configuration
-dataset_filename: words_5L_80P_1000_parquet
+dataset_label: words_5L_80P_1000_parquet
+dataset_ext: '.parquet'
 
 # System Prompt
 system_prompt: 'Capitalize the given word'
@@ -25,4 +26,4 @@ stash_adapter_weights: 'true'
 conda_env: ttenv
 
 # Custom Recipe
-custom_recipe: lora_finetune_single_device_v1.py
+custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_v1
