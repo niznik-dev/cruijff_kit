@@ -7,7 +7,7 @@ This utility script checks whether a fine-tuned language model using PEFT adapte
 # How to run it?
 
 ```
-python is_this_a_finetuned_model.py \
+python check_if_model_is_finetuned.py \
   --base_model_path /path/to/base_model \
   --adapter_path /path/to/adapter_checkpoint \
   --prompt "Add prompt here" \
@@ -18,7 +18,7 @@ python is_this_a_finetuned_model.py \
 # Example
 
 ```
-python is_this_a_finetuned_model.py   --base_model_path /home/ar0241/scratch/torchtune_models/Llama-3.2-1B-Instruct   --adapter_path /home/ar0241/scratch/twins/output_p0/epoch_9 --prompt "The output of 0001011 is 1" --ppl_threshold 0.01  --mse_threshold 0.0001
+python check_if_model_is_finetuned.py   --base_model_path /home/ar0241/scratch/torchtune_models/Llama-3.2-1B-Instruct   --adapter_path /home/ar0241/scratch/twins/output_p0/epoch_9 --prompt "The output of 0001011 is 1" --ppl_threshold 0.01  --mse_threshold 0.0001
 ```
 
 # Example output 
