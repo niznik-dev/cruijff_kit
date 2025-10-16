@@ -1,7 +1,14 @@
 import argparse
 import json
 import os
+import sys
 import yaml
+from pathlib import Path
+
+# Calculate paths relative to this script
+script_dir = Path(__file__).parent
+repo_root = script_dir.parent.parent
+sys.path.insert(0, str(repo_root))
 
 from utils import run_names
 
@@ -26,7 +33,7 @@ def parse_epochs(value):
 parser = argparse.ArgumentParser()
 
 # ----- Config File -----
-parser.add_argument("--generate_config", type=str, default="setup_finetune.yaml", help="Path to YAML configuration file. Values from this file will be used as defaults, and can be overridden by CLI arguments.")
+parser.add_argument("--config_file", type=str, default="setup_finetune.yaml", help="Path to YAML configuration file. Values from this file will be used as defaults, and can be overridden by CLI arguments.")
 
 # ----- Required YAML Args Reused in Templating -----
 parser.add_argument("--my_wandb_project", type=str, default="PredictingZygosity", help="Project for when results are synced to wandb")
@@ -76,8 +83,8 @@ args = parser.parse_args()
 
 # Load config file if it exists and merge with CLI arguments
 config_data = {}
-if args.generate_config and os.path.exists(args.generate_config):
-    with open(args.generate_config, "r") as f:
+if args.config_file and os.path.exists(args.config_file):
+    with open(args.config_file, "r") as f:
         config_data = yaml.safe_load(f) or {}
 
     # For each argument, use CLI value if provided, otherwise use config file value
@@ -116,7 +123,7 @@ model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MO
 username = os.environ.get("USER")
 
 # First edit the yaml template
-with open("templates/finetune_template.yaml", "r") as f:
+with open(f"{script_dir}/templates/finetune_template.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 for key, value in vars(args).items():
@@ -210,7 +217,7 @@ with open("finetune.yaml", "w") as f:
     yaml.dump(config, f, sort_keys=False)
 
 # Now create the slurm script
-with open("templates/finetune_template.slurm", "r") as f:
+with open(f"{script_dir}/templates/finetune_template.slurm", "r") as f:
     slurm_script = f.read()
 
 slurm_script = slurm_script.replace("<JOBNAME>", model_run_name)
@@ -230,9 +237,9 @@ if args.constraint:
     slurm_script = slurm_script.replace("##SBATCH --constraint=<CONST>", "#SBATCH --constraint=" + args.constraint)
 if args.custom_recipe:
     if args.gpus == 1:
-        slurm_script = slurm_script.replace("lora_finetune_single_device", 'custom_recipes/' + args.custom_recipe)
+        slurm_script = slurm_script.replace("lora_finetune_single_device", args.custom_recipe + '.__main__')
     else:
-        slurm_script = slurm_script.replace("lora_finetune_distributed", 'custom_recipes/' + args.custom_recipe)
+        slurm_script = slurm_script.replace("lora_finetune_distributed", args.custom_recipe + '.__main__')
 
 slurm_script = slurm_script.replace("<CONDA_ENV>", args.conda_env)
 if args.venv:
