@@ -25,15 +25,15 @@ There are four scenarios:
 
 ### Part 1 - Finetune on Output Only
 
-Use `generate_slurm_script.py` with the following arguments:
+Use `setup_finetune.py` with the following arguments:
 
 (Note: you'll have to run this four times with different combinations of predictable and unpredictable: pp, pu, up, and uu)
 
 ```bash
-python generate_slurm_script.py \
+python setup_finetune.py \
   --my_wandb_project predictable_or_not \
   --my_wandb_run_name pp-false-test \
-  --input_dir_base /home/niznik/scratch/GitHub/cruijff-kit/tests/predictable_or_not/ \
+  --input_dir_base /home/niznik/scratch/GitHub/cruijff_kit/tests/predictable_or_not/ \
   --input_formatting '' \
   --dataset_filename pp.json \
   --dataset_val_filename pp.json \
@@ -48,7 +48,7 @@ python generate_slurm_script.py \
   --account msalganik \
   --constraint gpu80
 
-sbatch finetune_filled.slurm
+sbatch finetune.slurm
 ```
 
 ### Part 2 - Finetune on Input AND Output
@@ -56,10 +56,10 @@ sbatch finetune_filled.slurm
 (Note: you'll have to run this four times with different combinations of predictable and unpredictable: pp, pu, up, and uu)
 
 ```bash
-python generate_slurm_script.py \
+python setup_finetune.py \
   --my_wandb_project predictable_or_not \
   --my_wandb_run_name pp-true-test \
-  --input_dir_base /home/niznik/scratch/GitHub/cruijff-kit/tests/predictable_or_not/ \
+  --input_dir_base /home/niznik/scratch/GitHub/cruijff_kit/tests/predictable_or_not/ \
   --input_formatting '' \
   --dataset_filename pp.json \
   --dataset_val_filename pp.json \
@@ -75,7 +75,7 @@ python generate_slurm_script.py \
   --account msalganik \
   --constraint gpu80
 
-sbatch finetune_filled.slurm
+sbatch finetune.slurm
 ```
 
 ### Part 3 - Upload to Weights & Biases

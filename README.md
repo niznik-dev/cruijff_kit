@@ -1,13 +1,13 @@
-# cruijff-kit
+# cruijff_kit
 
-cruijff-kit is a toolkit for doing research with social data and LLMs. We are building workflows for:
+cruijff_kit is a toolkit for doing research with social data and LLMs. We are building workflows for:
 
 - fine-tuning LLMs
 - evaluating LLMs
 
 We also have helper utilities for things like automated SLURM script generation and preprocessing pipelines.
 
-cruijff-kit is named after Dutch footballer and philosopher [Johan Cruijff](https://en.wikipedia.org/wiki/Johan_Cruyff). Many of these ideas were developed while we were doing research in Amsterdam, the city of his birth.
+cruijff_kit is named after Dutch footballer and philosopher [Johan Cruijff](https://en.wikipedia.org/wiki/Johan_Cruyff). Many of these ideas were developed while we were doing research in Amsterdam, the city of his birth.
 
 # ⚠️ Pre-Alpha Warning ⚠️
 
@@ -47,7 +47,7 @@ All machines with conda and GPU visibility (including della).
 You'll need to pick a name for your environment.  We recommend `ttenv`, but you can adjust as you wish.
 
 ```
-conda create -n ttenv python=3.12
+conda create -n ttenv python=3.13
 conda activate ttenv
 pip3 install torch --index-url https://download.pytorch.org/whl/cu126
 pip3 install torchao wandb h5py inspect-ai datasets peft
@@ -72,7 +72,7 @@ Next you'll need a model to finetune and evaluate with. Here's how to get one *t
 
 ## Step 1 - Request Access on HuggingFace Website (if necessary)
 
-For Meta models in particular, you'll need to navigate to the model on the HuggingFace website, log in, and agree to their Community License Agreement. Once you have an email confirming that you have been granted access, you can continue to the next step.
+For Meta models in particular, you'll need to navigate to the model on the HuggingFace website, log in, and agree to their Community License Agreement. (If you don't already have an account, we've found filling out your profile after you create a HuggingFace account to avoid appearing like a bot could be important!) Once you have an email confirming that you have been granted access, you can continue to the next step.
 
 For Meta, you can typically follow a URL like this: https://huggingface.co/meta-llama/<model_name> (see options below)
 
@@ -128,9 +128,9 @@ Now that we have a yaml/slurm generator, we can leverage that to make the files 
 * Make sure `conda_env` is the same one you created previously
 
 ```
-python generate_slurm_script.py --my_wandb_project my_first_tests --my_wandb_run_name my_first_test --input_dir_base /scratch/gpfs/$USER/zyg_in/ --input_formatting '' --conda_env ttenv
+python setup_finetune.py --my_wandb_project my_first_tests --my_wandb_run_name my_first_test --input_dir_base /scratch/gpfs/$USER/zyg_in/ --input_formatting '' --conda_env ttenv
 ```
 
-Then run `sbatch finetune_filled.slurm` and watch the magic happen!
+Then run `sbatch finetune.slurm` and watch the magic happen!
 
 

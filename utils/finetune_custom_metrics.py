@@ -1,5 +1,7 @@
 """
 Custom metrics for model evaluation during fine-tuning
+
+Currently a stub - add your own metrics here!
 """
 
 import torch

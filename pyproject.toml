@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cruijff_kit"
+version = "0.1.0"
+
+[tool.setuptools.package-dir]
+cruijff_kit = "."
+
+[tool.setuptools]
+packages = [
+  "cruijff_kit.utils",
+  "cruijff_kit.tools.torchtune.custom_recipes",
+]
