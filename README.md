@@ -1,13 +1,13 @@
-# cruijff-kit
+# cruijff_kit
 
-cruijff-kit is a toolkit for doing research with social data and LLMs. We are building workflows for:
+cruijff_kit is a toolkit for doing research with social data and LLMs. We are building workflows for:
 
 - fine-tuning LLMs
 - evaluating LLMs
 
 We also have helper utilities for things like automated SLURM script generation and preprocessing pipelines.
 
-cruijff-kit is named after Dutch footballer and philosopher [Johan Cruijff](https://en.wikipedia.org/wiki/Johan_Cruyff). Many of these ideas were developed while we were doing research in Amsterdam, the city of his birth.
+cruijff_kit is named after Dutch footballer and philosopher [Johan Cruijff](https://en.wikipedia.org/wiki/Johan_Cruyff). Many of these ideas were developed while we were doing research in Amsterdam, the city of his birth.
 
 # ⚠️ Pre-Alpha Warning ⚠️
 

@@ -7,7 +7,7 @@
 """
 Utility functions for custom recipes.
 
-!--- cruijff-kit patch ---!
+!--- cruijff_kit patch ---!
 """
 
 import os

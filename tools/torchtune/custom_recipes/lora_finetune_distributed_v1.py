@@ -15,9 +15,9 @@ from warnings import warn
 import torch
 from omegaconf import DictConfig, ListConfig
 
-# !--- cruijff-kit patch ---!
+# !--- cruijff_kit patch ---!
 from custom_recipes.custom_recipe_utils import stash_adapter_files
-# !--- end cruijff-kit patch ---!
+# !--- end cruijff_kit patch ---!
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
@@ -168,7 +168,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
-        # !--- cruijff-kit patch ---!
+        # !--- cruijff_kit patch ---!
         if cfg.save_last_epoch_only and cfg.epochs_to_save:
             utils.log_rank_zero(
                 log,
@@ -179,7 +179,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if self._epochs_to_save == 'all':
             self._epochs_to_save = list(range(self.total_epochs))
         self._stash_adapter_weights = cfg.get("stash_adapter_weights", False)
-        # !--- end cruijff-kit patch ---!
+        # !--- end cruijff_kit patch ---!
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
@@ -908,7 +908,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     break
 
             self.epochs_run += 1
-            # !--- cruijff-kit patch ---!
+            # !--- cruijff_kit patch ---!
             if curr_epoch in self._epochs_to_save:
                 log.info(f"Starting checkpoint save for epoch {curr_epoch}...")
                 self.save_checkpoint(epoch=curr_epoch)
@@ -920,7 +920,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     stash_adapter_files(self._output_dir, curr_epoch, log)
             else:
                 log.info(f"Skipping checkpoint save for epoch {curr_epoch}...")
-            # !--- end cruijff-kit patch ---!
+            # !--- end cruijff_kit patch ---!
 
 
         self._profiler.stop()

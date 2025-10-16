@@ -15,9 +15,9 @@ import torch
 import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
 
-# !--- cruijff-kit patch ---!
+# !--- cruijff_kit patch ---!
 from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import stash_adapter_files
-# !--- end cruijff-kit patch ---!
+# !--- end cruijff_kit patch ---!
 
 from torch import nn
 from torch.optim import Optimizer
@@ -158,7 +158,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.global_step = 0
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
-        # !--- cruijff-kit patch ---!
+        # !--- cruijff_kit patch ---!
         if cfg.save_last_epoch_only and cfg.epochs_to_save:
             utils.log_rank_zero(
                 log,
@@ -169,7 +169,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if self._epochs_to_save == 'all':
             self._epochs_to_save = list(range(self.total_epochs))
         self._stash_adapter_weights = cfg.get("stash_adapter_weights", False)
-        # !--- end cruijff-kit patch ---!
+        # !--- end cruijff_kit patch ---!
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
@@ -791,7 +791,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         break
 
                 self.epochs_run += 1
-                # !--- cruijff-kit patch ---!
+                # !--- cruijff_kit patch ---!
                 if curr_epoch in self._epochs_to_save:
                     start_save_checkpoint = time.perf_counter()
                     log.info(f"Starting checkpoint save for epoch {curr_epoch}...")
@@ -808,7 +808,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         stash_adapter_files(self._output_dir, curr_epoch, log)
                 else:
                     log.info(f"Skipping checkpoint save for epoch {curr_epoch}...")
-                # !--- end cruijff-kit patch ---!
+                # !--- end cruijff_kit patch ---!
 
     def cleanup(self) -> None:
         self._metric_logger.close()
