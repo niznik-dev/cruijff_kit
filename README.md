@@ -66,6 +66,12 @@ If you want the last stable torchtune (v0.6.1)
 pip3 install torchtune
 ```
 
+Finally, install cruijff_kit as a package so you can use cruijff_kit's utilities and workflows directly in your Python environment; assuming you've cloned cruijff_kit, navigate inside that folder and run:
+
+```
+pip install -e .
+```
+
 # Downloading a model
 
 Next you'll need a model to finetune and evaluate with. Here's how to get one *the torchtune way*:
@@ -95,9 +101,9 @@ tune download meta-llama/<model_name> --output-dir <model_dir> --hf-token <hf-to
 
 # Formatting Input Files to JSON
 
-## With capitalization dataset (tests/input_training)
+## With capitalization dataset (tasks/input_training)
 
-For full instructions, see the README.md in tests/capitalization
+For full instructions, see the README.md in tasks/capitalization
 
 ## With twin dataset
 
@@ -117,7 +123,7 @@ When complete, multiple JSON files will be created in the same input folder you 
 
 ## With capitalization dataset
 
-For full instructions, see the README.md in tests/capitalization
+For full instructions, see the README.md in tasks/capitalization
 
 ## With twin dataset
 
