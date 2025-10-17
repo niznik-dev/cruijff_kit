@@ -15,11 +15,11 @@
 ##SBATCH --constraint=<CONST>
 
 module purge
-module load anaconda3/2024.10
+module load anaconda3/2025.6
 conda activate <CONDA_ENV>
 
 mkdir -p <OUTPUT_DIR>logs/wandb  # wandb is picky about existing dirs
-cp setup_finetune.yaml <OUTPUT_DIR>/  # Copy config to output dir for reference
+cp finetune.slurm setup_finetune.yaml <OUTPUT_DIR>/  # Copy config to output dir for reference
 tune run lora_finetune_single_device \
     --config finetune.yaml
 [ $? == 0 ] && mv slurm-${SLURM_JOB_ID}.out <OUTPUT_DIR>/  # Move SLURM log to output dir if successful to avoid clutter

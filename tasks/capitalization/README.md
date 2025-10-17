@@ -38,7 +38,7 @@ First, copy `setup_finetune_json.yaml` from the capitalization task templates/fi
 Then run
 
 ```
-python ../../tools/torchtune/setup_finetune.py --config setup_finetune.yaml
+python ../../tools/torchtune/setup_finetune.py
 ```
 
 Finally, run
@@ -70,7 +70,7 @@ Next, copy `setup_finetune_parquet.yaml` from the capitalization task templates/
 Then run
 
 ```
-python ../../tools/torchtune/setup_finetune.py --config setup_finetune.yaml
+python ../../tools/torchtune/setup_finetune.py
 ```
 
 Finally, run
@@ -91,7 +91,13 @@ wandb sync /path/to/output/folder/logs/wandb/latest-run
 
 ### Part 4 - Test the model
 
-Edit inspect.slurm as appropriate (typically just adding your email). Then run
+Generate inspect.slurm by running the following command:
+
+```
+python ../../tools/inspect/setup_inspect.py --finetune_epoch_dir /path/to/finetuned/model/epoch_0/
+```
+
+Then as the output says you can run:
 
 ```
 sbatch inspect.slurm
@@ -108,3 +114,16 @@ inspect view
 which will supply a link to a website to view the results of the evaluation with inspect-ai.
 
 Did your finetuning and/or choice of prompt help?
+
+### Part 5 - Test the base model
+
+If you've already generated one finetuned version of the base model, you can evaluate on the base model by running `setup_inspect.py` in a slightly different way:
+
+```
+Generate inspect.slurm by running the following command:
+
+```
+python ../../tools/inspect/setup_inspect.py --base_model_dir /path/to/base/model/ --finetune_epoch_dir /path/to/finetuned/model/epoch_0/
+```
+
+In this case, the base model will get used but `inspect.slurm` will reference the finetuned model's slurm scripts to get the proper parameters for GPUs, memory, etc.
