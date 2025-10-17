@@ -19,5 +19,6 @@ logs/
 finetune.slurm
 finetune.yaml
 setup_finetune.yaml
+inspect.slurm
 *G/
 *.eval
