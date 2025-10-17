@@ -15,7 +15,7 @@
 ##SBATCH --constraint=<CONST>
 
 module purge
-module load anaconda3/2024.10
+module load anaconda3/2025.6
 conda activate <CONDA_ENV>
 
 mkdir -p <OUTPUT_DIR>logs/wandb  # wandb is picky about existing dirs
