@@ -100,6 +100,28 @@ Calculate and display:
 - Estimated time until all pending jobs complete
 - Total GPU hours used today
 
+**IMPORTANT - Accurate Time Estimates:**
+
+To calculate remaining time for running jobs, you MUST:
+1. Parse the actual training progress from the job output (e.g., "step 1030/1500" or "67%")
+2. Get elapsed time from `squeue` or `sacct`
+3. Calculate: `estimated_total = elapsed_time / progress_fraction`
+4. Calculate: `time_remaining = estimated_total - elapsed_time`
+
+**Example calculation:**
+```
+Job shows: "3|1030|Loss: 0.002..." and progress bar "67%|██████▋ | 1030/1500"
+Elapsed time: 264 seconds (from squeue)
+Progress: 1030/1500 = 0.687 (68.7%)
+Estimated total: 264 / 0.687 = 384 seconds
+Time remaining: 384 - 264 = 120 seconds (~2 minutes)
+```
+
+**DO NOT estimate based on:**
+- Job time limits (those are maximums, not estimates)
+- README estimates (those are rough guesses)
+- Simple percentage of time limit
+
 Example:
 ```
 Summary for Today (2025-10-18):

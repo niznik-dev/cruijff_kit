@@ -43,6 +43,35 @@ Create a `README.md` in the main experiment folder that explains:
 - Date created and who created it
 - Any other relevant context
 
+## Directory Structure Best Practices
+
+### Evaluation Storage (IMPORTANT)
+
+**Store evaluations in each run's subdirectory**, not in a centralized folder.
+
+**Recommended structure:**
+```
+[experiment-1]/
+├── setup_finetune.yaml
+├── finetune.yaml
+├── finetune.slurm
+├── epoch_0/
+├── epoch_1/
+└── evaluations/
+    ├── task_1/
+    ├── task_2/
+    └── task_3/
+```
+
+**Why this approach?**
+- Self-contained runs: Everything about a run lives in one place
+- Easy archiving: Tar one directory to backup/share a complete run
+- Simple cleanup: Delete a run directory, everything goes with it
+- Matches tooling: `setup_inspect.py` naturally works in run directories
+- inspect view can still compare across runs even when stored separately
+
+**Note in runs_plan.md:** Include the full expected directory structure with the `evaluations/` subdirectory to set clear expectations.
+
 ## Example
 
 For an experiment varying model size and LoRA rank:
@@ -50,12 +79,24 @@ For an experiment varying model size and LoRA rank:
 ```
 /scratch/gpfs/MSALGANIK/mjs3/llama-lora-comparison_2025-10-18/
 ├── llama3_1B_rank8/
+│   └── evaluations/  (evaluations will go here)
 ├── llama3_1B_rank16/
+│   └── evaluations/
 ├── llama3_3B_rank8/
+│   └── evaluations/
 ├── llama3_3B_rank16/
+│   └── evaluations/
 └── README.md
 ```
 
 ## Next Steps
 
-After creating directories, suggest using the `create-torchtune-config` skill to generate config files for each experiment.
+After creating directories and writing the README, hand off to the next skill:
+
+**Suggest to the user:** "I've created the directory structure. Would you like me to generate the torchtune configuration files for each run using the `create-torchtune-config` skill?"
+
+The `create-torchtune-config` skill will:
+- Read `runs_plan.md` to understand all run configurations
+- Generate `setup_finetune.yaml` for each run directory
+- Use `tools/torchtune/setup_finetune.py` to generate `finetune.yaml` and `finetune.slurm` for each run
+- Create configs that match the exact specifications in the run plan (model paths, datasets, LoRA ranks, batch sizes, etc.)
