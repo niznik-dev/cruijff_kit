@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**IMPORTANT**: If a `claude.local.md` file exists in the repository root, read it first. It contains personal environment-specific settings (HPC usernames, scratch directories, SLURM defaults, etc.) that override or supplement the general guidance in this file.
+
 ## Project Overview
 
 cruijff_kit is a toolkit for research with social data and LLMs. The two core workflows are:
@@ -11,21 +13,6 @@ cruijff_kit is a toolkit for research with social data and LLMs. The two core wo
 The project emphasizes automation through YAML configuration files and SLURM script generation for HPC cluster environments.
 
 ## Development Environment
-
-**Python Environment Setup:**
-```bash
-conda create -n ttenv python=3.13
-conda activate ttenv
-pip3 install torch --index-url https://download.pytorch.org/whl/cu126
-pip3 install torchao wandb h5py inspect-ai datasets peft
-pip3 install transformers scikit-learn matplotlib
-
-# Install torchtune nightly (recommended for validation during fine-tuning)
-pip3 install --pre torchtune --extra-index-url https://download.pytorch.org/whl/
-
-# Install cruijff_kit as editable package
-pip install -e .
-```
 
 **Testing:**
 - Test files are in `tests/` directory (bit_sequences, predictable_or_not)
@@ -107,16 +94,37 @@ Uses inspect-ai for model evaluation:
    - `--finetune_epoch_dir`: Path to checkpoint epoch (also provides SLURM params)
    - `--base_model_dir`: Optional, evaluate base model using fine-tune's SLURM config
 
-2. **Task Definition**: Each task has an `inspect.py` file that:
-   - Defines Task using inspect-ai primitives
-   - Reads configuration from `setup_finetune.yaml` to match training setup
-   - Loads test split from dataset
-   - Defines solver chain (system message → prompt template → generate)
-   - Defines scorers (match, includes)
+   **What `setup_inspect.py` does:**
+   - Creates `inspect.slurm` from the fine-tuning SLURM parameters
+   - **Automatically fixes `adapter_config.json`** if missing `base_model_name_or_path`
+     - Reads `finetune.yaml` to find base model path
+     - Resolves variables like `${models_dir}`
+     - Updates adapter config for compatibility with HuggingFace/inspect-ai
+   - **Detects eval script**: Uses `eval.py` if present, otherwise falls back to `inspect.py`
+   - Configures inspect command with model path and config directory
+
+2. **Task Definition**: Each task should have an evaluation script (`eval.py` or `inspect.py`):
+   - **Standalone approach** (recommended): `eval.py` with hard-coded parameters
+     - No dependencies on config files
+     - Easy to share and reproduce
+     - Created by `create-evaluation` skill
+   - **Config-based approach**: `inspect.py` that reads from `setup_finetune.yaml`
+     - Ensures eval matches training configuration
+     - Used in `tasks/capitalization/inspect.py`
+
+   Both define:
+   - Dataset loading (test split)
+   - Solver chain (system message → prompt template → generate)
+   - Scorers (match, includes, etc.)
 
 3. **Execution**:
    - Submit: `sbatch inspect.slurm`
    - View results: `inspect view --port=$(get_free_port)` (on della)
+
+**Important:** The `setup_inspect.py` script automatically fixes common issues:
+- Missing `base_model_name_or_path` in adapter configs
+- Variable resolution in paths (e.g., `${models_dir}`)
+- Path normalization (removes double slashes, trailing slashes)
 
 #### 3. Data Format Handling
 

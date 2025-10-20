@@ -22,3 +22,4 @@ setup_finetune.yaml
 inspect.slurm
 *G/
 *.eval
+claude.local.md
