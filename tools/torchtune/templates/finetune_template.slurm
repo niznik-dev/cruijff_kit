@@ -22,4 +22,5 @@ mkdir -p <OUTPUT_DIR>logs/wandb  # wandb is picky about existing dirs
 cp finetune.slurm setup_finetune.yaml <OUTPUT_DIR>/  # Copy config to output dir for reference
 tune run lora_finetune_single_device \
     --config finetune.yaml
-[ $? == 0 ] && mv slurm-${SLURM_JOB_ID}.out <OUTPUT_DIR>/  # Move SLURM log to output dir if successful to avoid clutter
+# Move SLURM log to output dir if successful (only if not already there)
+[ $? == 0 ] && [ ! -f <OUTPUT_DIR>/slurm-${SLURM_JOB_ID}.out ] && mv slurm-${SLURM_JOB_ID}.out <OUTPUT_DIR>/
