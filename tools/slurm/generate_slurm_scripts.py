@@ -22,7 +22,7 @@ def parse_local_config(cruijff_root: Path) -> Dict[str, str]:
     config = {
         'email': 'user@princeton.edu',
         'account': 'myaccount',
-        'partition': 'gpu',
+        'partition': '',  # Empty by default - della cluster doesn't allow "gpu" partition
         'constraint': 'gpu80',
         'conda_env': 'ttenv',
     }
@@ -243,6 +243,7 @@ def detect_recipe(config: Dict[str, Any], run_dir: Path) -> str:
     """Detect which torchtune recipe to use.
 
     Checks for custom recipes or falls back to standard recipes.
+    Returns the recipe path with .__main__ suffix for custom recipes.
     """
     # Check if setup_finetune.yaml exists and specifies a custom recipe
     setup_file = run_dir / "setup_finetune.yaml"
@@ -250,10 +251,14 @@ def detect_recipe(config: Dict[str, Any], run_dir: Path) -> str:
         with open(setup_file) as f:
             setup_config = yaml.safe_load(f)
             if setup_config and 'custom_recipe' in setup_config:
-                return setup_config['custom_recipe']
+                recipe = setup_config['custom_recipe']
+                # Add .__main__ if not already present for custom recipes
+                if not recipe.endswith('.__main__'):
+                    recipe += '.__main__'
+                return recipe
 
-    # Default to custom recipe with validation
-    return "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_val"
+    # Default to custom recipe with validation (needs .__main__ to run as module)
+    return "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_val.__main__"
 
 
 def generate_slurm_script(
@@ -295,6 +300,11 @@ def generate_slurm_script(
     recipe = detect_recipe(config, run_dir)
 
     # Generate the SLURM script content
+    # Build partition line conditionally (skip if "gpu" or empty - della cluster doesn't allow it)
+    partition_line = ""
+    if user_config['partition'] and user_config['partition'].lower() != 'gpu':
+        partition_line = f"#SBATCH --partition={user_config['partition']}\n"
+
     slurm_content = f"""#!/bin/bash
 #SBATCH --job-name={job_name}
 #SBATCH --nodes=1
@@ -307,8 +317,7 @@ def generate_slurm_script(
 #SBATCH --mail-user={user_config['email']}
 #SBATCH --gres=gpu:{resources['gpus']}
 #SBATCH --account={user_config['account']}
-#SBATCH --partition={user_config['partition']}
-#SBATCH --constraint={user_config['constraint']}
+{partition_line}#SBATCH --constraint={user_config['constraint']}
 
 module purge
 module load anaconda3/2025.6
@@ -318,12 +327,36 @@ OUTPUT_DIR={run_dir.absolute()}/
 
 mkdir -p ${{OUTPUT_DIR}}logs/wandb  # wandb is picky about existing dirs
 
+cd ${{OUTPUT_DIR}}
+
+# Use per-job cache directory to prevent cache collisions
+# This ensures each job has its own isolated HuggingFace dataset cache
+export HF_DATASETS_CACHE="/scratch/gpfs/$USER/.cache/hf-datasets-${{SLURM_JOB_ID}}"
+mkdir -p "${{HF_DATASETS_CACHE}}"
+
+echo "Using job-specific cache: ${{HF_DATASETS_CACHE}}"
+
 # Run the fine-tuning with custom recipe
 tune run {recipe} \\
     --config finetune.yaml
 
-# Move SLURM log to output dir if successful (only if not already there)
-[ $? == 0 ] && [ ! -f ${{OUTPUT_DIR}}/slurm-${{SLURM_JOB_ID}}.out ] && mv slurm-${{SLURM_JOB_ID}}.out ${{OUTPUT_DIR}}/
+# Capture exit code
+TRAIN_EXIT_CODE=$?
+
+# Cleanup: Remove the per-job cache directory after training completes
+# This frees up scratch space (typically ~10-100MB per job)
+if [ -d "${{HF_DATASETS_CACHE}}" ]; then
+    echo "Cleaning up job-specific cache: ${{HF_DATASETS_CACHE}}"
+    rm -rf "${{HF_DATASETS_CACHE}}"
+fi
+
+# Move SLURM log if training succeeded
+if [ $TRAIN_EXIT_CODE -eq 0 ]; then
+    {{ [ ! -f ${{OUTPUT_DIR}}/slurm-${{SLURM_JOB_ID}}.out ] && mv slurm-${{SLURM_JOB_ID}}.out ${{OUTPUT_DIR}}/ || true; }}
+    exit 0
+else
+    exit $TRAIN_EXIT_CODE
+fi
 """
 
     # Print what we're doing

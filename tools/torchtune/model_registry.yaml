@@ -1,0 +1,106 @@
+# Model Registry
+#
+# This file contains metadata for pretrained models used in cruijff_kit.
+# It helps automate config generation and prevents errors from incorrect
+# checkpoint file specifications.
+#
+# Usage:
+#   - Automatically populate checkpoint_files when generating configs
+#   - Validate that model directories have expected structure
+#   - Document model-specific settings and quirks
+#
+# Note: Batch sizes and max_seq_len are NOT included here as they depend
+# on the specific dataset and task, not the model itself.
+
+models:
+  # ===== Llama 3.2 Models =====
+
+  Llama-3.2-1B-Instruct:
+    checkpoint_structure: single
+    checkpoint_files:
+      - model.safetensors
+    tokenizer_path: original/tokenizer.model
+    model_type: LLAMA3_2
+    torchtune_component: torchtune.models.llama3_2.lora_llama3_2_1b
+    notes: "Single checkpoint file. Smallest Llama 3.2 model."
+
+  Llama-3.2-3B-Instruct:
+    checkpoint_structure: sharded
+    checkpoint_files:
+      - model-00001-of-00002.safetensors
+      - model-00002-of-00002.safetensors
+    tokenizer_path: original/tokenizer.model
+    model_type: LLAMA3_2
+    torchtune_component: torchtune.models.llama3_2.lora_llama3_2_3b
+    notes: "Sharded checkpoint (2 files). Medium-sized Llama 3.2 model."
+
+  # ===== Llama 3.1 Models =====
+
+  Llama-3.1-8B-Instruct:
+    checkpoint_structure: sharded
+    checkpoint_files:
+      - model-00001-of-00004.safetensors
+      - model-00002-of-00004.safetensors
+      - model-00003-of-00004.safetensors
+      - model-00004-of-00004.safetensors
+    tokenizer_path: original/tokenizer.model
+    model_type: LLAMA3_1
+    torchtune_component: torchtune.models.llama3_1.lora_llama3_1_8b
+    notes: "Sharded checkpoint (4 files). Larger model, requires more memory."
+
+  Llama-3.3-70B-Instruct:
+    checkpoint_structure: sharded
+    checkpoint_files:
+      - model-00001-of-00030.safetensors
+      - model-00002-of-00030.safetensors
+      - model-00003-of-00030.safetensors
+      - model-00004-of-00030.safetensors
+      - model-00005-of-00030.safetensors
+      - model-00006-of-00030.safetensors
+      - model-00007-of-00030.safetensors
+      - model-00008-of-00030.safetensors
+      - model-00009-of-00030.safetensors
+      - model-00010-of-00030.safetensors
+      - model-00011-of-00030.safetensors
+      - model-00012-of-00030.safetensors
+      - model-00013-of-00030.safetensors
+      - model-00014-of-00030.safetensors
+      - model-00015-of-00030.safetensors
+      - model-00016-of-00030.safetensors
+      - model-00017-of-00030.safetensors
+      - model-00018-of-00030.safetensors
+      - model-00019-of-00030.safetensors
+      - model-00020-of-00030.safetensors
+      - model-00021-of-00030.safetensors
+      - model-00022-of-00030.safetensors
+      - model-00023-of-00030.safetensors
+      - model-00024-of-00030.safetensors
+      - model-00025-of-00030.safetensors
+      - model-00026-of-00030.safetensors
+      - model-00027-of-00030.safetensors
+      - model-00028-of-00030.safetensors
+      - model-00029-of-00030.safetensors
+      - model-00030-of-00030.safetensors
+    tokenizer_path: original/tokenizer.model
+    model_type: LLAMA3_3
+    torchtune_component: torchtune.models.llama3_3.lora_llama3_3_70b
+    notes: "Heavily sharded checkpoint (30 files). Very large model."
+
+  # ===== Llama 2 Models =====
+
+  Llama-2-7b-hf:
+    checkpoint_structure: sharded
+    checkpoint_files:
+      - model-00001-of-00002.safetensors
+      - model-00002-of-00002.safetensors
+    tokenizer_path: tokenizer.model
+    model_type: LLAMA2
+    torchtune_component: torchtune.models.llama2.lora_llama2_7b
+    notes: "Legacy Llama 2 model. Tokenizer path differs (no 'original/' prefix)."
+
+# ===== Auto-Detection Fallback =====
+# If a model is not in the registry, the system should:
+# 1. Check for model.safetensors (single file)
+# 2. Check for model-*-of-*.safetensors pattern (sharded)
+# 3. Raise error if neither found
+# 4. Warn user to add model to registry for future use

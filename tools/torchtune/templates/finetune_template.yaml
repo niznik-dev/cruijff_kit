@@ -15,6 +15,11 @@ output_dir: /scratch/gpfs/MSALGANIK/$USER/zyg_out_${my_wandb_run_name}/
 input_dir: /scratch/gpfs/MSALGANIK/$USER/zyg_in/${input_formatting}/
 models_dir: /scratch/gpfs/MSALGANIK/$USER/pretrained-llms/
 
+# Batch size: Number of sequences per batch
+# IMPORTANT: Adjust based on model size AND packing setting (see dataset.packed below)
+# If packed=True: Use smaller values (4-8 for 1B, 2-4 for 3B, 1-2 for 7B+)
+# If packed=False: Can use larger values (16+ for 1B, 8+ for 3B, 4+ for 7B+)
+# See CLAUDE.md for memory estimation with packing
 batch_size: 4
 
 # ----- END COMMON CONFIGS ----- #
@@ -70,6 +75,10 @@ dataset:
   source: "parquet"
   data_dir: "${input_dir}/${dataset_label}"
   split: "train"
+  # Packing: Concatenates multiple examples into sequences up to max_seq_len
+  # Increases efficiency (no padding waste) but requires smaller batch_size
+  # Rule of thumb: If packed=True, use batch_size ≤ 8 for 1B, ≤ 4 for 3B, ≤ 2 for 7B+
+  # If packed=False, can use larger batch_size (16+ for 1B, 8+ for 3B, 4+ for 7B+)
   packed: True
 
 run_val_every_n_steps: 50
