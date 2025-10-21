@@ -1,67 +1,206 @@
 # Setup Experiment Directories
 
-You are helping the user create a well-organized directory structure for their fine-tuning experiments.
+You are helping the user create a well-organized directory structure for their experiments.
+
+**SCOPE**: This skill creates ONLY the directory structure (framework-agnostic). It does NOT generate configuration files.
+
+**WORKFLOW POSITION**: Run this skill AFTER `plan-runs` and BEFORE framework-specific config generation (e.g., `create-torchtune-config`).
 
 ## Your Task
 
-Based on the experiment plan, create a directory structure with clear naming conventions.
+Read `runs_plan.md` and create a complete directory structure with README files and evaluation subdirectories.
 
 ## Steps
 
-### 1. Develop a Naming Convention
+### 1. Read runs_plan.md
 
-Come up with a helpful naming convention based on what the user wants to vary:
-- If varying model sizes: include model size in the name (e.g., `1B`, `3B`, `8B`)
-- If varying LoRA rank: include rank in the name (e.g., `rank8`, `rank16`)
-- If varying datasets: include dataset identifier in the name
-- For combinations: use clear separators (e.g., `3B_rank16_dataset1`)
+**IMPORTANT**: This skill assumes `runs_plan.md` already exists in the experiment directory.
 
-**Suggest:**
-- An overall folder name that describes the experiment set
-- A naming convention for each experiment subfolder
+If it doesn't exist:
+- Ask user to run the `plan-runs` skill first
+- Do NOT proceed without a plan
 
-**Get user feedback and approval before proceeding.**
+**Extract from runs_plan.md:**
+- Run group name (experiment directory name)
+- List of all run names (from "All Runs" table)
+- Evaluation tasks (from "Evaluations" section)
+- Whether base model runs exist (from "Control Runs" table)
 
-### 2. Create Directory Structure
+### 2. Verify Experiment Directory
 
-Once approved, create the directories in `/scratch/gpfs/MSALGANIK/mjs3/`:
+Check if the experiment directory exists:
+
+```bash
+# From runs_plan.md, get run_group name (e.g., cap_cross_eval_5_9_13L_2025-10-20)
+experiment_dir="/scratch/gpfs/MSALGANIK/mjs3/{run_group_name}"
+
+# Check if already exists
+if [ -d "$experiment_dir" ]; then
+  echo "✓ Experiment directory exists: $experiment_dir"
+  cd "$experiment_dir"
+else
+  echo "❌ ERROR: Experiment directory not found"
+  echo "Expected: $experiment_dir"
+  exit 1
+fi
+```
+
+**If directory doesn't exist:**
+- This is unexpected (plan-runs should have created it)
+- Create it now: `mkdir -p $experiment_dir`
+- Move runs_plan.md and runs_status.yaml into it if they're elsewhere
+
+### 3. Create Run Subdirectories
+
+For each run in the plan (both fine-tuned and base models):
+
+```bash
+# Create run directory
+mkdir -p "{run_name}"
+
+# Create evaluations subdirectory
+mkdir -p "{run_name}/evaluations"
+```
+
+**Example for current experiment:**
+```bash
+cd /scratch/gpfs/MSALGANIK/mjs3/cap_cross_eval_5_9_13L_2025-10-20
+
+# Fine-tuned runs (12 total)
+mkdir -p Llama-3.2-1B-Instruct_5L_rank4/evaluations
+mkdir -p Llama-3.2-1B-Instruct_5L_rank64/evaluations
+mkdir -p Llama-3.2-1B-Instruct_9L_rank4/evaluations
+mkdir -p Llama-3.2-1B-Instruct_9L_rank64/evaluations
+mkdir -p Llama-3.2-1B-Instruct_13L_rank4/evaluations
+mkdir -p Llama-3.2-1B-Instruct_13L_rank64/evaluations
+mkdir -p Llama-3.2-3B-Instruct_5L_rank4/evaluations
+mkdir -p Llama-3.2-3B-Instruct_5L_rank64/evaluations
+mkdir -p Llama-3.2-3B-Instruct_9L_rank4/evaluations
+mkdir -p Llama-3.2-3B-Instruct_9L_rank64/evaluations
+mkdir -p Llama-3.2-3B-Instruct_13L_rank4/evaluations
+mkdir -p Llama-3.2-3B-Instruct_13L_rank64/evaluations
+
+# Base model controls (2 total)
+mkdir -p Llama-3.2-1B-Instruct_base/evaluations
+mkdir -p Llama-3.2-3B-Instruct_base/evaluations
+```
+
+### 4. Write README.md (Experiment Level)
+
+Create a top-level README in the experiment directory that summarizes the experiment:
+
+```markdown
+# {run_group_name}
+
+**Created**: {date}
+**Type**: {experiment_type from runs_plan.md}
+**Total Runs**: {count}
+
+## Overview
+
+{Brief description from runs_plan.md}
+
+## Variables
+
+{Copy from runs_plan.md}
+
+## Directory Structure
 
 ```
-/scratch/gpfs/MSALGANIK/mjs3/[experiment-set-name]/
-├── [experiment-1]/
-├── [experiment-2]/
-├── [experiment-3]/
+{run_group_name}/
+  Llama-3.2-1B-Instruct_5L_rank4/
+    evaluations/
+      cap_5L_epoch_0/
+      cap_5L_epoch_1/
+      cap_9L_epoch_0/
+      ...
+  Llama-3.2-1B-Instruct_5L_rank64/
+    evaluations/
+      ...
+  ...
+  runs_plan.md
+  runs_status.yaml
+  README.md (this file)
+```
+
+## Quick Start
+
+```bash
+# View plan
+cat runs_plan.md
+
+# Check status
+cat runs_status.yaml
+
+# Generate configs (if using torchtune)
+# [instructions from runs_plan.md]
+
+# Submit jobs
+# [instructions from runs_plan.md]
+```
+
+## Files
+
+- `runs_plan.md`: Complete experiment plan with resource estimates
+- `runs_status.yaml`: Job status tracking (updated by launch-runs skill)
+- `README.md`: This file
+
+## Notes
+
+{Any additional context from runs_plan.md}
+```
+
+**Write this file:**
+```bash
+cat > README.md << 'EOF'
+[content above]
+EOF
+```
+
+### 5. Verify Directory Creation
+
+After creating all directories, verify the structure:
+
+```bash
+# Count run directories (should match runs_plan.md)
+run_count=$(find . -maxdepth 1 -type d -name "Llama*" | wc -l)
+echo "Created $run_count run directories"
+
+# Count evaluation subdirectories (should equal run_count)
+eval_count=$(find . -maxdepth 2 -type d -name "evaluations" | wc -l)
+echo "Created $eval_count evaluation subdirectories"
+
+# List all directories
+tree -L 2 -d
+# Or if tree not available:
+ls -R
+```
+
+**Expected output for current experiment:**
+```
+Created 14 run directories
+Created 14 evaluation subdirectories
+
+cap_cross_eval_5_9_13L_2025-10-20/
+├── Llama-3.2-1B-Instruct_5L_rank4/
+│   └── evaluations/
+├── Llama-3.2-1B-Instruct_5L_rank64/
+│   └── evaluations/
+...
+├── Llama-3.2-1B-Instruct_base/
+│   └── evaluations/
+├── Llama-3.2-3B-Instruct_base/
+│   └── evaluations/
+├── runs_plan.md
+├── runs_status.yaml
 └── README.md
 ```
 
-### 3. Write README.md
-
-Create a `README.md` in the main experiment folder that explains:
-- The purpose of this set of experiments
-- What parameters are being varied
-- The naming convention used for subfolders
-- Date created and who created it
-- Any other relevant context
-
 ## Directory Structure Best Practices
 
-### Evaluation Storage (IMPORTANT)
+### Evaluation Storage
 
 **Store evaluations in each run's subdirectory**, not in a centralized folder.
-
-**Recommended structure:**
-```
-[experiment-1]/
-├── setup_finetune.yaml
-├── finetune.yaml
-├── finetune.slurm
-├── epoch_0/
-├── epoch_1/
-└── evaluations/
-    ├── task_1/
-    ├── task_2/
-    └── task_3/
-```
 
 **Why this approach?**
 - Self-contained runs: Everything about a run lives in one place
@@ -70,33 +209,62 @@ Create a `README.md` in the main experiment folder that explains:
 - Matches tooling: `setup_inspect.py` naturally works in run directories
 - inspect view can still compare across runs even when stored separately
 
-**Note in runs_plan.md:** Include the full expected directory structure with the `evaluations/` subdirectory to set clear expectations.
+**After training completes, evaluation results will be stored like:**
+```
+[run_name]/
+├── finetune.yaml          # (created by create-torchtune-config)
+├── finetune.slurm         # (created by generate-slurm-script)
+├── epoch_0/               # (created by training job)
+├── epoch_1/               # (created by training job)
+└── evaluations/           # (created by this skill)
+    ├── cap_5L_epoch_0/    # (created by evaluation jobs)
+    ├── cap_5L_epoch_1/
+    ├── cap_9L_epoch_0/
+    └── cap_9L_epoch_1/
+```
 
-## Example
+## Summary Report
 
-For an experiment varying model size and LoRA rank:
+After completing all steps, show a summary:
 
 ```
-/scratch/gpfs/MSALGANIK/mjs3/llama-lora-comparison_2025-10-18/
-├── llama3_1B_rank8/
-│   └── evaluations/  (evaluations will go here)
-├── llama3_1B_rank16/
-│   └── evaluations/
-├── llama3_3B_rank8/
-│   └── evaluations/
-├── llama3_3B_rank16/
-│   └── evaluations/
-└── README.md
+=== Directory Setup Complete ===
+
+Experiment: cap_cross_eval_5_9_13L_2025-10-20
+Location: /scratch/gpfs/MSALGANIK/mjs3/cap_cross_eval_5_9_13L_2025-10-20
+
+Created:
+  ✓ 12 fine-tuned run directories
+  ✓ 2 base model directories
+  ✓ 14 evaluation subdirectories
+  ✓ README.md
+
+Status: Ready for configuration generation
+
+Next steps:
+  1. Generate torchtune configs: Use create-torchtune-config skill
+  2. Generate SLURM scripts: Use generate-slurm-script skill (or included in step 1)
+  3. Submit jobs: Use launch-runs skill
+
+Files ready:
+  - runs_plan.md ✓
+  - runs_status.yaml ✓
+  - README.md ✓
 ```
 
 ## Next Steps
 
-After creating directories and writing the README, hand off to the next skill:
+**Suggest to the user:**
 
-**Suggest to the user:** "I've created the directory structure. Would you like me to generate the torchtune configuration files for each run using the `create-torchtune-config` skill?"
+"I've created the directory structure with 14 run directories and evaluation subdirectories.
 
-The `create-torchtune-config` skill will:
-- Read `runs_plan.md` to understand all run configurations
-- Generate `setup_finetune.yaml` for each run directory
-- Use `tools/torchtune/setup_finetune.py` to generate `finetune.yaml` and `finetune.slurm` for each run
-- Create configs that match the exact specifications in the run plan (model paths, datasets, LoRA ranks, batch sizes, etc.)
+**If using torchtune for fine-tuning:**
+Would you like me to generate the torchtune configuration files using the `create-torchtune-config` skill?
+
+**If using a different framework:**
+You can now manually create your configuration files in each run directory, or use framework-specific tooling.
+
+**Current structure:**
+- All run directories created ✓
+- Evaluation subdirectories ready ✓
+- Next: Generate framework-specific configs"

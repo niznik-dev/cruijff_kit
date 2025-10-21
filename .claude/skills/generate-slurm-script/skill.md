@@ -1,6 +1,19 @@
 # Generate SLURM Scripts
 
-You are helping the user create SLURM job scripts for running fine-tuning experiments on the della cluster at Princeton.
+You are helping the user create SLURM batch scripts for running fine-tuning experiments on an HPC cluster.
+
+**SCOPE**: This skill generates ONLY SLURM batch scripts (`finetune.slurm`). It does NOT create directories or configuration files.
+
+**WORKFLOW POSITION**: Run this skill AFTER `create-torchtune-config` and BEFORE `launch-runs`.
+
+**PREREQUISITES**:
+- ✓ `runs_plan.md` exists (for resource estimates)
+- ✓ `claude.local.md` exists (for SLURM account/partition settings)
+- ✓ Run directories exist (created by `setup-experiment-dirs`)
+- ✓ `finetune.yaml` exists in each run directory (created by `create-torchtune-config`)
+
+**GENERATES**:
+- `finetune.slurm` in each run directory (SLURM batch script)
 
 ## Automated Script Available
 

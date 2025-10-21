@@ -4,6 +4,8 @@ You are helping the user submit fine-tuning jobs for a planned experiment.
 
 **CURRENT SCOPE**: This skill focuses on **fine-tuning job submission only**.
 
+**AUTOMATION AVAILABLE**: See [Automated Submission Tools](#automated-submission-tools) section for utilities that simplify batch submission and status updates.
+
 **TODO - Future Enhancement**: Improve evaluation job handling with:
 - Automated eval script mapping (task name → script path)
 - Cross-evaluation support (models evaluated on multiple datasets)
@@ -272,9 +274,11 @@ Longest running job: 5 minutes (Llama-3.2-3B-Instruct_5L_rank4)
 - Capture job ID from sbatch output using regex: `Submitted batch job (\d+)`
 - Verify submission succeeded before updating status
 - Continue with remaining jobs if one fails
+- **For cache collision prevention**: Use sequential submission with delays for jobs sharing datasets
 
 **Status tracking:**
-- Update `runs_status.yaml` after all submissions (not after each one)
+- **RECOMMENDED**: Use `tools/run_management/update_run_status.py` for status updates (single atomic operation)
+- **Alternative**: Multiple Edit tool calls (works but more verbose)
 - Use ISO 8601 timestamp format: `YYYY-MM-DD HH:MM:SS`
 - Read → modify → write entire YAML atomically
 - Preserve existing data for other runs
@@ -284,6 +288,99 @@ Longest running job: 5 minutes (Llama-3.2-3B-Instruct_5L_rank4)
 - Report job IDs immediately after submission
 - Provide monitoring commands (squeue, tail, etc.)
 - Report any failures clearly with error messages
+
+## Automated Submission Tools
+
+**Location**: `tools/run_management/`
+
+These utilities simplify batch submission and status updates:
+
+### submit_pending_runs.sh
+
+Automates the entire submission workflow - finds pending runs, verifies configs, submits jobs, and updates status file.
+
+**Usage:**
+```bash
+# Parallel submission (fast but risks cache collisions)
+./tools/run_management/submit_pending_runs.sh /path/to/experiment
+
+# Sequential submission (safe for shared datasets)
+./tools/run_management/submit_pending_runs.sh --sequential /path/to/experiment
+
+# Dry run (preview without submitting)
+./tools/run_management/submit_pending_runs.sh --dry-run /path/to/experiment
+
+# Submit specific runs only
+./tools/run_management/submit_pending_runs.sh \
+    --only Llama-3.2-1B-Instruct_5L_rank4 \
+    --only Llama-3.2-1B-Instruct_5L_rank64 \
+    /path/to/experiment
+```
+
+**Benefits:**
+- Single command replaces entire workflow
+- Automatic status file updates
+- Built-in pre-flight verification
+- Progress indicators
+- Error handling with clear reports
+- Sequential mode prevents cache collisions
+
+### update_run_status.py
+
+Atomically update runs_status.yaml with job IDs and timestamps.
+
+**Usage:**
+```bash
+# Single update
+python tools/run_management/update_run_status.py \
+    --status-file /path/to/runs_status.yaml \
+    --run-name Llama-3.2-1B-Instruct_5L_rank4 \
+    --job-id 1234567 \
+    --status submitted
+
+# Batch update
+python tools/run_management/update_run_status.py \
+    --status-file /path/to/runs_status.yaml \
+    --batch job_updates.json
+```
+
+**Benefits:**
+- Replaces multiple Edit tool calls with single command
+- Atomic YAML updates
+- Automatic timestamp generation
+- Auto-generates output paths
+- Validates status values
+
+**When to use:**
+- **Automated script**: Use when available - faster and more reliable
+- **Manual Edit calls**: Fallback when script unavailable or for single updates
+
+See: [tools/run_management/README.md](/home/mjs3/cruijff_kit/tools/run_management/README.md) for complete documentation.
+
+## Cache Collision Prevention
+
+**Problem**: Multiple jobs loading the same HuggingFace dataset simultaneously can corrupt the cache, causing `FileNotFoundError`.
+
+**Solution**: Use sequential submission with delays:
+
+```bash
+./tools/run_management/submit_pending_runs.sh --sequential --delay 10 /path/to/experiment
+```
+
+**Why this works:**
+- First job populates the cache
+- Subsequent jobs (after delay) reuse the cached data safely
+- 10-second delay is usually sufficient
+
+**When to use:**
+- Jobs trained on the same dataset (e.g., all `words_5L` runs)
+- Multiple models of different sizes using same data
+- Resubmitting failed jobs
+
+**When NOT needed:**
+- Jobs using completely different datasets
+- Datasets already cached from previous runs
+- Single job submission
 
 ## Example Session
 

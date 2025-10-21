@@ -130,7 +130,11 @@ This is the complete plan document that describes all runs. It should contain:
 - **Recipe**: `{recipe_name}`
 - **GPUs per job**: {gpu_count}
 - **Epochs**: {epochs}
-- **Batch sizes**: {batch_size_details}
+- **Dataset packing**: {True/False} - {explanation}
+  - Packing density: {avg_examples_per_sequence} (from prior runs / estimated)
+  - Impact on memory: ~{estimated_multiplier}x compared to unpacked
+- **Batch sizes**: {batch_size_details} (adjusted for packing)
+- **Gradient accumulation**: {steps} (effective batch size: {effective_batch})
 - **LoRA alpha**: {alpha_value} (auto-set to 2 × rank)
 - **Validation during training**: {yes/no}
 - **System prompt**: "{system_prompt}" (used during both training and evaluation)
@@ -430,6 +434,17 @@ Guide the user through these questions in a natural conversation flow. Ask quest
 - Default: No (simpler, faster)
 - If yes: Requires `_val` recipe variant (e.g., `lora_finetune_single_device_val`)
 - Validation requires dataset with validation split
+
+**Should dataset packing be enabled?**
+- Default: Yes (packed=True) for efficiency
+- Packing concatenates multiple examples into sequences up to max_seq_len
+- More efficient (no padding waste) but requires smaller batch sizes
+- If unsure: Start with packed=True and batch_size=4 (conservative)
+- If have prior runs with packing disabled: Need to recalculate batch sizes (see Batch Size Estimation section)
+- Consider packed=False if:
+  - Examples are already near max_seq_len (little benefit from packing)
+  - Debugging training issues (simpler to reason about)
+  - Have well-tuned batch sizes from unpacked runs
 
 **How many epochs?**
 - Default suggestion: 1-3 epochs (depends on task complexity)
@@ -791,6 +806,116 @@ Always provide:
 4. **Total GPU hours** (cost metric)
 5. **Breakdown by model size** (1B vs 3B vs 7B, etc.)
 
+## Dataset Packing Considerations
+
+**Packing** is a memory optimization that concatenates multiple training examples into single sequences up to `max_seq_len`. It's more efficient but requires careful batch size tuning.
+
+### When to Use Packing
+
+**Use packing (`packed: True`) when**:
+- Dataset has short examples (< 50% of max_seq_len on average)
+- Training on instruction-following tasks with varied response lengths
+- Want to maximize GPU utilization and training speed
+
+**Avoid packing (`packed: False`) when**:
+- Examples are already near max_seq_len (little to pack)
+- Unsure about memory constraints (safer to start without)
+- Debugging training issues (simpler to reason about batch sizes)
+
+### Packing Density Analysis
+
+Before choosing batch size, analyze packing density from prior runs.
+
+#### How to Extract Packing Density from Logs
+
+**Step 1: Locate the training log**
+```bash
+# Find SLURM output file in your run directory
+ls /path/to/run_dir/slurm-*.out
+
+# Example: /scratch/gpfs/username/experiments/run1/slurm-12345678.out
+```
+
+**Step 2: Search for packing information**
+```bash
+# Search for dataset packing messages
+grep -i "packing dataset" /path/to/slurm-*.out
+
+# Or look at the start of training
+head -100 /path/to/slurm-*.out | grep -A10 "dataset"
+```
+
+**Step 3: Interpret the output**
+
+Torchtune may show packing info in several ways:
+
+**Example A: Explicit packing stats** (if recipe logs them)
+```
+Packing dataset: 100%|██████████| 8000/8000 [00:01<00:00]
+INFO: Packed 8000 examples into 2857 sequences
+INFO: Average packing density: 2.80 examples/sequence
+INFO: Packing efficiency: 87% non-padding tokens
+```
+→ **Packing density = 2.8** (explicitly stated)
+
+**Example B: Calculate from dataset info**
+```
+Loading dataset from /path/to/data/train.parquet...
+Loaded 8000 examples
+Packing dataset with max_seq_len=2048...
+Dataset packed: 2857 total sequences
+```
+→ **Packing density = 8000 ÷ 2857 = 2.80**
+
+**Example C: No explicit output** (older torchtune versions)
+```
+Dataset loaded: 8000 examples
+Training started...
+```
+→ **Estimate based on task:**
+  - Short prompts/responses (< 30% max_seq_len): density ≈ 3-4
+  - Medium prompts/responses (30-60% max_seq_len): density ≈ 2-3
+  - Long prompts/responses (> 60% max_seq_len): density ≈ 1.5-2
+
+**Step 4: Document for future reference**
+
+Add to your experiment notes or runs_plan.md:
+```markdown
+## Packing Analysis (from run: bright_horizon)
+- Dataset: capitalization_5letter
+- Examples: 8000
+- Packed sequences: 2857
+- **Packing density: 2.8 examples/sequence**
+- Implication: batch_size with packing ≈ batch_size_unpacked ÷ 2.8
+```
+
+**Key metrics**:
+- **Packing density**: Average examples per packed sequence (most important for memory estimation)
+- **Packing efficiency**: % of tokens that are actual data vs padding (for throughput estimation)
+
+**Typical values by task type**:
+- 5-letter words (capitalization): ~3-4 examples/sequence (high density)
+- 13-letter words (capitalization): ~2-3 examples/sequence (medium density)
+- Long-form generation: ~1-2 examples/sequence (low density)
+- Chat conversations: ~1.5-2.5 examples/sequence (variable density)
+
+### Memory Impact of Packing
+
+**Formula for packed memory estimation**:
+```
+Memory_packed ≈ Memory_unpacked × packing_density × 0.9
+```
+
+Where:
+- `packing_density` = avg examples per sequence (e.g., 2.8)
+- 0.9 = efficiency factor (packed sequences process more efficiently)
+
+**Example**:
+- Unpacked: batch_size=16, 1 example/seq → 16 examples, 2.4 GB
+- Packed: batch_size=16, 2.8 examples/seq → 44.8 examples, ~6.0 GB
+
+**This is why batch_size=16 with packed=True caused OOM!**
+
 ## Batch Size Estimation
 
 **IMPORTANT**: Estimate maximum batch size from prior runs and GPU memory!
@@ -841,20 +966,69 @@ Always provide:
 - Conservative max (70% utilization): 13 × 0.7 ≈ 9
 - **Recommended for 3B**: batch_size = 8
 
+### Accounting for Packing
+
+If using `packed: True`, adjust batch size calculation:
+
+1. **Find packing density from prior runs:**
+   ```bash
+   # Check logs for packing info
+   tail -200 {prior_run_log} | grep -i "packing\|average"
+
+   # If no prior data, estimate based on task:
+   # - Short examples (< 512 tokens): density ≈ 3-4
+   # - Medium examples (512-1024 tokens): density ≈ 2-3
+   # - Long examples (> 1024 tokens): density ≈ 1.5-2
+   ```
+
+2. **Adjust batch size for packing:**
+   ```
+   max_batch_size_packed = max_batch_size_unpacked ÷ packing_density
+   ```
+
+3. **Apply safety factor:**
+   ```
+   recommended_batch_size = max_batch_size_packed × 0.6
+   ```
+
+**Example Calculation**:
+- Prior run: batch_size=16, packed=False, memory=2.4 GB, GPU=80 GB
+- Unpacked headroom: 80 ÷ 2.4 = 33x
+- Conservative max unpacked: 33 × 0.7 = 23
+- **If enabling packing** with density=2.8:
+  - Max packed: 23 ÷ 2.8 ≈ 8
+  - Recommended: 8 × 0.6 ≈ 5
+  - **Use batch_size=4 or batch_size=8 (test 8 first)**
+
+**If no packing data available**:
+- Start with batch_size=4 (1B), batch_size=2 (3B) when using packed=True
+- Monitor first run and scale up if memory allows
+- Document actual packing density for future reference
+
 ### Important Notes:
 
 - **LoRA rank has minimal impact** on memory (LoRA adds very little compared to base model)
 - **Sequence length matters**: Longer sequences use more memory
+- **Packing has MAJOR impact**: Reduces batch size by 2-4x compared to unpacked
 - **Always test**: Start conservative, monitor actual usage, adjust if needed
 - **Different batch sizes per model**: It's fine to use different batch sizes for different model sizes (e.g., 16 for 1B, 8 for 3B)
 
 **If no GPU memory data available:**
 - Ask user about their GPU type (A100 80GB, V100 32GB, H100, etc.)
-- Use conservative defaults based on GPU memory:
+- Use conservative defaults based on GPU memory AND packing setting:
+
+**With packed=True (default)**:
+  - **80GB GPUs**: 1B → batch_size=4-8, 3B → batch_size=2-4, 7B+ → batch_size=2
+  - **40GB GPUs**: 1B → batch_size=2-4, 3B → batch_size=2, 7B+ → batch_size=1
+  - **32GB GPUs or less**: Start with batch_size=1 for all models
+
+**With packed=False (if using unpacked)**:
   - **80GB GPUs**: 1B → batch_size=16, 3B → batch_size=8, 7B+ → batch_size=4
   - **40GB GPUs**: 1B → batch_size=8, 3B → batch_size=4, 7B+ → batch_size=2
-  - **32GB GPUs or less**: Start with batch_size=1 for all models
+  - **32GB GPUs or less**: Start with batch_size=2 for 1B, batch_size=1 for 3B+
+
 - Document in the plan that batch sizes are conservative estimates
+- Document whether packing is enabled and estimated density
 - Recommend monitoring first run to optimize batch size
 - Better to start small and scale up than OOM (out of memory) errors
 
