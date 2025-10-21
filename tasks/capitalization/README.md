@@ -117,7 +117,7 @@ Did your finetuning and/or choice of prompt help?
 
 ### Part 5 - Test the base model
 
-If you've already generated one finetuned version of the base model, you can evaluate on the base model by running `setup_inspect.py` in a slightly different way:
+If you've already generated one finetuned version of the base model, you can evaluate on the base model by running [setup_inspect.py](../../tools/inspect/setup_inspect.py) in a slightly different way:
 
 ```
 Generate inspect.slurm by running the following command:
