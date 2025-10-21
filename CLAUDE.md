@@ -33,6 +33,79 @@ For complete workflows, use the skills in [.claude/skills/](.claude/skills/):
 - **[update-run-status](.claude/skills/update-run-status/skill.md)**: Update experiment status tracking
 - **[create-local-config](.claude/skills/create-local-config/skill.md)**: Create environment-specific configuration
 
+## Skill Workflow
+
+### Standard Experiment Workflow (Torchtune)
+
+For torchtune fine-tuning experiments, follow this sequence:
+
+```
+1. plan-runs
+   ↓
+   Creates: runs_plan.md, runs_status.yaml
+   Output: Complete experiment specification with resource estimates
+
+2. setup-experiment-dirs
+   ↓
+   Creates: All run directories with evaluations/ subdirectories
+   Output: Empty directory structure, README.md
+   Scope: Framework-agnostic (no config files)
+
+3. create-torchtune-config
+   ↓
+   Creates: finetune.yaml in each run directory
+   Output: Validated torchtune configuration files
+   Scope: Torchtune-specific only
+
+4. generate-slurm-script
+   ↓
+   Creates: finetune.slurm in each run directory
+   Output: SLURM batch scripts with resource allocations
+   Uses: claude.local.md for account/partition settings
+
+5. launch-runs
+   ↓
+   Submits: Fine-tuning jobs to SLURM
+   Updates: runs_status.yaml with job IDs
+   Scope: Currently fine-tuning only (evaluation support coming)
+
+6. monitor-jobs
+   ↓
+   Checks: Job status via squeue/sacct
+   Updates: runs_status.yaml with completion status
+
+7. [FUTURE] launch-runs (evaluation mode)
+   ↓
+   Submits: Evaluation jobs after training completes
+
+8. summarize-experiments
+   ↓
+   Analyzes: Results across all runs
+   Output: Summary tables, plots, comparisons
+```
+
+### Key Separation of Concerns
+
+**setup-experiment-dirs**:
+- Creates ONLY directories (no config files)
+- Framework-agnostic
+- Always required regardless of fine-tuning framework
+
+**create-torchtune-config**:
+- Creates ONLY finetune.yaml files
+- Torchtune-specific
+- Only needed if using torchtune for fine-tuning
+
+**generate-slurm-script**:
+- Creates ONLY finetune.slurm files
+- Can be used with any framework
+- Reads finetune.yaml to determine resources
+
+**Why this separation?**
+- Modularity: Use only what you need
+- Framework flexibility: Can swap torchtune for other tools
+- Clear dependencies: Each skill has one job
+
 ## Architecture Overview
 
 ### Core Components
