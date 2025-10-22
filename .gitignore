@@ -3,6 +3,9 @@
 *_m.slurm
 *.pyc
 __pycache__/
+
+# Environment-specific configuration (users should customize from template)
+claude.local.md
 tests/bit_sequences/*.json
 tests/bit_sequences/*.png
 tests/bit_sequences/*.txt

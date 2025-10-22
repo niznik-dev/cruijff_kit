@@ -1,0 +1,219 @@
+# claude.local.md.template
+
+Copy this file to `claude.local.md` in the repository root and customize it with your environment-specific settings.
+
+**IMPORTANT**: `claude.local.md` is in `.gitignore` and should never be committed to version control as it may contain personal paths and preferences.
+
+---
+
+## HPC Environment
+
+- **Cluster**: `<cluster_name>` (e.g., Della, Traverse)
+- **Documentation**: `<cluster_docs_url>`
+- **Username**: `<your_username>`
+- **Group**: `<your_group>` (e.g., MSALGANIK, CSES)
+- **Home directory**: `/home/<your_username>`
+- **Scratch directory**: `/scratch/gpfs/<group>/<your_username>`
+- **Working directory**: `<path_to_cruijff_kit_repo>`
+
+### Shared Resources
+
+- **Models directory**: `/scratch/gpfs/<group>/pretrained-llms`
+- **Shared datasets**: `/scratch/gpfs/<group>/shared_data` (if applicable)
+
+## SLURM Defaults
+
+- **Account**: `<your_slurm_account>`
+- **Partition**: `<partition>` (leave empty if cluster doesn't use partitions)
+- **Constraint**: `<gpu_constraint>` (e.g., `gpu80` for 80GB VRAM GPUs)
+- **Default time**: `0:59:00` (under 1 hour to use test queue)
+- **Default GPUs**: `1`
+- **Default conda environment**: `<env_name>` (e.g., `ck`, `ttenv`)
+
+## Module System
+
+If your cluster uses environment modules:
+
+```bash
+module load anaconda3/2025.6
+# Add other required modules here
+```
+
+If not using modules, remove this section.
+
+## Conda Environment Setup
+
+**Environment name**: `<your_env_name>`
+
+**Activation**:
+```bash
+module load anaconda3/2025.6  # If using modules
+conda activate <your_env_name>
+```
+
+**Installation** (if creating new environment):
+```bash
+conda create -n <your_env_name> python=3.13
+conda activate <your_env_name>
+pip3 install torch --index-url https://download.pytorch.org/whl/cu126
+pip3 install torchao wandb h5py inspect-ai datasets peft
+pip3 install transformers scikit-learn matplotlib
+pip3 install --pre torchtune --extra-index-url https://download.pytorch.org/whl/  # for nightly
+cd <path_to_cruijff_kit>
+pip install -e .
+```
+
+## GitHub Configuration
+
+- **Username**: `<your_github_username>`
+- **cruijff_kit project number**: `<project_number>` (e.g., 3)
+
+**Adding issues to project**:
+```bash
+gh project item-add <project_number> --owner <your_username> --url https://github.com/<your_username>/cruijff_kit/issues/<issue_number>
+```
+
+## Weights & Biases
+
+- **Entity**: `<your_wandb_entity>` (username or team name)
+- **Default project**: `<default_wandb_project>`
+
+## Common Paths
+
+### Experiments & Outputs
+- **Output base directory**: `/scratch/gpfs/<group>/<username>/ck-outputs/`
+
+### Pretrained Models
+- **Location**: `/scratch/gpfs/<group>/pretrained-llms/`
+- **Available models**:
+  - `Llama-3.2-1B-Instruct`
+  - `Llama-3.2-3B-Instruct`
+  - (add others as you download them)
+
+### Data
+- **Input data**: `/scratch/gpfs/<group>/<username>/data/`
+- **Task-specific data**: `<path_to_task_data>`
+
+## Quick Commands
+
+### Environment Setup
+```bash
+# Activate conda environment
+conda activate <your_env_name>
+
+# Navigate to cruijff_kit
+cd <path_to_cruijff_kit>
+
+# Check git status
+git status
+
+# Pull latest changes
+git pull
+```
+
+### Fine-tuning
+```bash
+# Navigate to task directory
+cd tasks/capitalization/
+
+# Generate configs and SLURM script
+python ../../tools/torchtune/setup_finetune.py
+
+# Submit job
+sbatch finetune.slurm
+
+# Check job status
+squeue -u <your_username>
+
+# Monitor specific job
+scontrol show job <job_id>
+```
+
+### Evaluation
+```bash
+# Setup inspect for a checkpoint
+python ../../tools/inspect/setup_inspect.py --finetune_epoch_dir /path/to/epoch_N/
+
+# Submit evaluation job
+sbatch inspect.slurm
+
+# View results interactively (on login node)
+inspect view --port=$(get_free_port)
+```
+
+### Job Management
+```bash
+# View all your jobs
+squeue -u <your_username>
+
+# View recent job history
+sacct -u <your_username> -S today --format=JobID,JobName,State,ExitCode,Elapsed,MaxRSS,End -X
+
+# Cancel a job
+scancel <job_id>
+
+# Cancel all your jobs
+scancel -u <your_username>
+```
+
+## Personal Workflow Notes
+
+### Current Work
+- (Add notes about your current experiments)
+- (e.g., "Working on capitalization tasks with Llama 3.2 models")
+- (e.g., "Comparing LoRA ranks (4 vs 64) on 1B and 3B models")
+
+### Common Tasks
+- Primary task directory: `tasks/<your_task>/`
+- (Add shortcuts or frequent operations)
+
+### Preferences
+- (Add your personal preferences, shortcuts, and notes here)
+- (e.g., preferred hyperparameters, useful aliases, common issues)
+
+## Example Configuration: Della (Princeton HPC)
+
+Here's a complete example for Princeton's Della cluster:
+
+```markdown
+## HPC Environment
+- **Cluster**: Della (Princeton Research Computing)
+- **Documentation**: https://researchcomputing.princeton.edu/systems/della
+- **Username**: `niznik`
+- **Group**: `MSALGANIK`
+- **Home directory**: `/home/niznik`
+- **Scratch directory**: `/scratch/gpfs/MSALGANIK/niznik`
+- **Working directory**: `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit`
+
+### Shared Resources
+- **Models directory**: `/scratch/gpfs/MSALGANIK/pretrained-llms`
+
+## SLURM Defaults
+- **Account**: `cses`
+- **Partition**: (leave empty)
+- **Constraint**: `gpu80`
+- **Default time**: `0:59:00`
+- **Default GPUs**: `1`
+- **Default conda environment**: `ck`
+
+## Module System
+```bash
+module load anaconda3/2025.6
+```
+
+## GitHub Configuration
+- **Username**: `niznik-dev`
+- **Project number**: `3`
+
+## Weights & Biases
+- **Entity**: `niznik-dev`
+- **Default project**: `cruijff_kit`
+```
+
+## Notes
+
+- This file is ignored by git and should remain local
+- Update paths and settings as your workflow evolves
+- Add experiment notes, common issues, or helpful reminders below
+- This file contains environment-specific details only
+- Personal communication preferences belong in `~/.claude/CLAUDE.md`
