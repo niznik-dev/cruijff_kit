@@ -28,9 +28,11 @@ When you are working in this project, the following values should guide your dec
 
 2) **Modular** This project will evolve over time, and it should be designed so that individual components can be added or changed over time with minimal impact on other components.  
 
-3) **Practical** Work in this directory is designed to do science not win a programming contest. Please don't over-engineer or do pre-mature optimization.  We don't need hundreds of lines of code to save 5 seconds.
- 
-4) **Self improving** Always look for way that we can learn from earlier experiments to design new experiments and improve skills. The more work we do, the easier things should be because we will have more data to learn from.
+3) **Practical** Work in this directory is designed to do science not win a programming contest. Please don't over-engineer or do pre-mature optimization. We don't need hundreds of lines of code to save 5 seconds.
+
+4) **Privacy respecting** Lots of the data in this project is about people. All of that data should be treated with care, and some of it should never leave the users' computer system. Tasks should be designed with clear data governance. 
+
+5) **Self improving** Always look for way that we can learn from earlier experiments to design new experiments, improve skills, and improve analysis. The more work we do, the easier things should be because we will have more designs, results, and logs from which to learn.
 
 ## Terminology
 
