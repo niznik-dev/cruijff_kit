@@ -208,6 +208,38 @@ output_dir/
     └── wandb/
 ```
 
+## Key Conventions
+
+### Configuration Defaults
+
+- **LoRA alpha**: Automatically set to 2 × rank by `setup_finetune.py`
+- **Run names**: Auto-generated positive adjective-noun pairs (e.g., "happy-narwhal") via `utils/run_names.py`
+- **Output structure**: `{output_dir_base}/ck-out-{run_name}/epoch_N/`
+
+### Checkpoint Management
+
+- **epochs_to_save**: Controls which epochs to save
+  - `'all'` - Save every epoch (default)
+  - `'none'` - Don't save any checkpoints
+  - `"0,2,4"` - Comma-delimited list of specific epochs
+
+- **save_last_epoch_only**: `'true'`/`'false'` - Only save the final epoch
+
+- **stash_adapter_weights**: `'true'`/`'false'` - Moves adapter files to subdirectory after merging to avoid confusing inspect-ai
+
+### Custom Recipe Usage
+
+cruijff_kit uses modified torchtune recipes for added features. To use a custom recipe:
+
+```bash
+python setup_finetune.py --custom_recipe cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_val
+```
+
+Available custom recipes:
+- `lora_finetune_single_device_v1.py` - Single GPU with selective epoch saving
+- `lora_finetune_distributed_v1.py` - Multi-GPU distributed training
+- `lora_finetune_single_device_val.py` - With validation loss tracking (requires torchtune nightly)
+
 ## Key Abstractions
 
 ### 1. Two-Stage Configuration
@@ -321,14 +353,30 @@ Common utilities in `utils/`:
 - **wandb** - Experiment tracking
 - **PyTorch** - Underlying ML framework
 
-## Design Philosophy
+## Principles
+
+These core principles guide all architectural and implementation decisions in cruijff_kit:
+
+1. **Scientific** - All work emphasizes correctness, computational reproducibility, and detailed logging. Each experiment should be logged such that it can be audited by a researcher or LLM assistant.
+
+2. **Modular** - The project will evolve over time and should be designed so that individual components can be added or changed with minimal impact on other components.
+
+3. **Practical** - This project is designed to do science, not win a programming contest. Don't over-engineer or do premature optimization. We don't need hundreds of lines of code to save 5 seconds.
+
+4. **Privacy respecting** - Much of the data in this project is about people. All data should be treated with care, and some should never leave the user's computer system. Tasks should be designed with clear data governance.
+
+5. **Self improving** - Always look for ways to learn from earlier experiments to design new experiments, improve workflows, and improve analysis. The more work we do, the easier things should be because we have more designs, results, and logs from which to learn.
+
+## Practices
+
+These technical practices support the principles above:
 
 1. **Configuration over code** - Use YAML to define experiments
-2. **Relative imports** - Package utilities for reusability
-3. **Single source of truth** - One config generates both torchtune and SLURM files
-4. **HPC-first** - Designed for SLURM clusters, not laptops
-5. **Research flexibility** - Easy to add tasks, tests, and custom behaviors
-6. **Explicit over implicit** - Users see generated files before running
+2. **Single source of truth** - One config generates both torchtune and SLURM files
+3. **HPC-first** - Designed for SLURM clusters, not laptops
+4. **Modular architecture** - Easy to add tasks, tests, and custom behaviors
+5. **Explicit over implicit** - Users see generated files before running
+6. **Relative imports** - Package utilities for reusability
 
 ## Historical Context
 
