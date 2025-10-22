@@ -13,12 +13,12 @@ Guide the user through designing their experiment by asking questions, verifying
 3. **Establish naming** - Help choose a clear, descriptive name for the experiment
 4. **Estimate resources** - Calculate time and disk space from prior runs (log all calculations)
 5. **Create summary** - Write `experiment_summary.md` with complete plan and status tracking
-6. **Create log** - Write `design_experiment.log` with all verification steps and decisions
+6. **Create log** - Write `design-experiment.log` with all verification steps and decisions
 7. **Get approval** - Review with user, adjust if needed
 
 ## Logging
 
-**IMPORTANT:** Create a detailed log file at `{experiment_name}/design_experiment.log` that records all verification steps, calculations, and decisions made during planning.
+**IMPORTANT:** Create a detailed log file at `{experiment_name}/design-experiment.log` that records all verification steps, calculations, and decisions made during planning.
 
 ### Log Format
 
