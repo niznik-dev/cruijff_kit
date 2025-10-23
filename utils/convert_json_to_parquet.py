@@ -90,11 +90,13 @@ def convert_json_to_hf_dataset(
             logger.info(f"  Saved to: {parquet_file}")
 
     if verbose:
-        logger.info("\n✓ Conversion complete!")
-        logger.info(f"\nTo load this dataset:")
-        logger.info(f"  from datasets import load_dataset")
-        logger.info(f"  dataset = load_dataset('parquet', data_dir='{output_dir}')")
-        logger.info(f"  # Access splits: dataset['train'], dataset['validation'], etc.")
+        logger.info(
+            f"\n✓ Conversion complete!\n\n"
+            f"To load this dataset:\n"
+            f"  from datasets import load_dataset\n"
+            f"  dataset = load_dataset('parquet', data_dir='{output_dir}')\n"
+            f"  # Access splits: dataset['train'], dataset['validation'], etc."
+        )
 
     return output_dir
 

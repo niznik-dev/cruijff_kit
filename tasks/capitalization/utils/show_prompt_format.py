@@ -16,13 +16,15 @@ tokenizer_path = "/scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct/
 tok = llama3_tokenizer(path=tokenizer_path)
 tok_ids, mask = tok.tokenize_messages(msgs)
 
-logger.info("Full tokenized output:")
-logger.info(tok.decode(tok_ids))
-logger.info("\nToken IDs:")
-logger.info(tok_ids)
-logger.info("\nMask (shows which tokens are trained on):")
-logger.info(mask)
-logger.info("\nJust the word 'apple':")
-logger.info(tok.encode("apple", add_bos=False, add_eos=False))
-logger.info("\nJust the word 'Apple':")
-logger.info(tok.encode("Apple", add_bos=False, add_eos=False))
+logger.info(
+    f"Full tokenized output:\n"
+    f"{tok.decode(tok_ids)}\n\n"
+    f"Token IDs:\n"
+    f"{tok_ids}\n\n"
+    f"Mask (shows which tokens are trained on):\n"
+    f"{mask}\n\n"
+    f"Just the word 'apple':\n"
+    f"{tok.encode('apple', add_bos=False, add_eos=False)}\n\n"
+    f"Just the word 'Apple':\n"
+    f"{tok.encode('Apple', add_bos=False, add_eos=False)}"
+)
