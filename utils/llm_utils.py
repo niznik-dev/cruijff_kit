@@ -14,6 +14,11 @@ from peft import PeftModel
 
 from functools import partial
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
+
 
 
 '''
@@ -531,7 +536,7 @@ def save_tensor_with_ids(filename, tensor, ids,
         if attention_mask is not None:
             f.create_dataset("attention_mask", data=attention_mask)
 
-    print(f"Saved tensor of shape {tensor.shape}{', attention_mask' if attention_mask is not None else ''} and ids to {filename}")
+    logger.info(f"Saved tensor of shape {tensor.shape}{', attention_mask' if attention_mask is not None else ''} and ids to {filename}")
 
 
 def load_tensor_with_ids(filename,
@@ -569,7 +574,7 @@ def load_tensor_with_ids(filename,
         attention_mask = torch.tensor(attention_mask)
 
 
-    print(f"Loaded tensor of shape {tensor.shape}{', attention_mask' if attention_mask is not None else ''} and ids from {filename}")
+    logger.info(f"Loaded tensor of shape {tensor.shape}{', attention_mask' if attention_mask is not None else ''} and ids from {filename}")
 
     return tensor, ids, attention_mask
 

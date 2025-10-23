@@ -5,6 +5,11 @@ import random
 import string
 import sys
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
+
 parser = argparse.ArgumentParser(description="Generate a JSON file of sampled words with capitalization.")
 parser.add_argument("--word-len", type=int, required=True, help="Desired word length (e.g., 5). Must be a positive integer.")
 parser.add_argument("--num-words", type=int, required=True, help="Number of words to sample. Must be a positive integer.")
@@ -37,7 +42,7 @@ all_n_letter_words = [
     word for word in words
     if len(word) == WORD_LEN and all(c.isalpha() for c in word)
 ]
-print(len(all_n_letter_words), f"{WORD_LEN}-letter words found.")
+logger.info(f"{len(all_n_letter_words)} {WORD_LEN}-letter words found.")
 
 if len(all_n_letter_words) < NUMBER_OF_WORDS:
     raise ValueError(f"Not enough unique {WORD_LEN}-letter words found.")

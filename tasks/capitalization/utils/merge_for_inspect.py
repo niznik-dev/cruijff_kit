@@ -2,6 +2,11 @@ import argparse, torch, os
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
 from peft import PeftModel
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
+
 def main():
     p = argparse.ArgumentParser(description="Merge a PEFT/LoRA adapter into a base HF model.")
     p.add_argument("--base_model", required=True, help="HF model id or local path to base")
@@ -23,24 +28,24 @@ def main():
 
     device_map = "auto" if (args.device == "auto" and torch.cuda.is_available()) else None
 
-    print(f"[1/4] Loading base model: {args.base_model}")
+    logger.info(f"[1/4] Loading base model: {args.base_model}")
     base_model = AutoModelForCausalLM.from_pretrained(
         args.base_model,
         torch_dtype=dtype,
         device_map=device_map,
     )
 
-    print(f"[2/4] Applying adapter: {args.adapter_path}")
+    logger.info(f"[2/4] Applying adapter: {args.adapter_path}")
     peft_model = PeftModel.from_pretrained(
         base_model,
         args.adapter_path,
         torch_dtype=dtype,
     )
 
-    print("[3/4] Merging adapter into base...")
+    logger.info("[3/4] Merging adapter into base...")
     merged = peft_model.merge_and_unload()  # returns a standard HF model (no PEFT wrapper)
 
-    print("[4/4] Saving merged model and tokenizer...")
+    logger.info("[4/4] Saving merged model and tokenizer...")
     # Save model
     merged.save_pretrained(OUTPUT_DIR)
 
@@ -59,7 +64,7 @@ def main():
     except Exception:
         pass
 
-    print(f"Done. Merged model at: {OUTPUT_DIR}")
+    logger.info(f"Done. Merged model at: {OUTPUT_DIR}")
 
 
 if __name__ == "__main__":

@@ -4,8 +4,13 @@ import shutil
 import sys
 from pathlib import Path
 
+from cruijff_kit.utils.logger import setup_logger
+
 # Calculate paths relative to this script
 script_dir = Path(__file__).parent
+
+# Set up logging
+logger = setup_logger(__name__)
 
 parser = argparse.ArgumentParser(description="Set up the run_inspect.py file for the current project.")
 parser.add_argument("--base_model_dir", type=str, default="", help="Path to a base model directory")
@@ -27,4 +32,4 @@ slurm_script += f"inspect eval run_inspect.py --model hf/local -M model_path={MO
 with open("inspect.slurm", "w") as f:
     f.write(slurm_script)
 
-print("Ready to inspect with `sbatch inspect.slurm` !")
+logger.info("Ready to inspect with `sbatch inspect.slurm` !")

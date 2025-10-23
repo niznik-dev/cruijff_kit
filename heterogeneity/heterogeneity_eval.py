@@ -8,6 +8,8 @@ from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
 from inspect_ai.scorer import Scorer, scorer, Score, metric
 
+from cruijff_kit.utils.logger import setup_logger
+
 from heterogeneity_report import (
     calculate_group_metrics,
     find_heterogeneity,
@@ -15,6 +17,9 @@ from heterogeneity_report import (
     visualize_data,
     generate_report
 )
+
+# Set up logging
+logger = setup_logger(__name__)
 
 class _MetricState:
     def __init__(self):
@@ -47,23 +52,23 @@ GROUP_COLUMN = args.group_column
 def load_samples_for_inspect(csv_path, group_column='GROUP'):
     """Convert CSV to Inspect AI Samples - works with ANY group column"""
 
-    print(f"Loading data from {csv_path}...")
+    logger.info(f"Loading data from {csv_path}...")
     df = pd.read_csv(csv_path)
-    
+
     _state.expected_samples = len(df)
 
-    print(f"Loaded {len(df)} rows.")
-    print(f"Using group column: {group_column}")
-    
+    logger.info(f"Loaded {len(df)} rows.")
+    logger.info(f"Using group column: {group_column}")
+
     n_unique_groups = df[group_column].unique()
     n_groups = len(n_unique_groups)
-    
-    print(f"Found {n_groups} unique groups")
+
+    logger.info(f"Found {n_groups} unique groups")
     if n_groups <= 10:
-        print(f"Groups: {sorted(n_unique_groups)}")
+        logger.info(f"Groups: {sorted(n_unique_groups)}")
     else:
-        print(f"Groups: {sorted(n_unique_groups)[:5]}... and {n_groups-5} more")
-    
+        logger.info(f"Groups: {sorted(n_unique_groups)[:5]}... and {n_groups-5} more")
+
     samples = []
     for index, row in df.iterrows():
         sample = Sample(
@@ -76,11 +81,11 @@ def load_samples_for_inspect(csv_path, group_column='GROUP'):
             }
         )
         samples.append(sample)
-        
+
         if (index + 1) % 1000 == 0:
-            print(f"Converted {index + 1} samples...")
-    
-    print(f"Converted {len(samples)} samples.")
+            logger.info(f"Converted {index + 1} samples...")
+
+    logger.info(f"Converted {len(samples)} samples.")
     return samples
 
 @metric
@@ -93,13 +98,13 @@ def heterogeneity_metric():
             _state.accumulated_data.append(score.metadata)
         
         total_samples = len(_state.accumulated_data)
-        
+
         if total_samples % 1000 == 0 or total_samples == _state.expected_samples:
-            print(f"Accumulated {total_samples}/{_state.expected_samples} samples...")
-        
+            logger.info(f"Accumulated {total_samples}/{_state.expected_samples} samples...")
+
         if total_samples >= _state.expected_samples:
-            print("\n=== RUNNING HETEROGENEITY ANALYSIS ===")
-            
+            logger.info("\n=== RUNNING HETEROGENEITY ANALYSIS ===")
+
             data_for_df = []
             for item in _state.accumulated_data:
                 data_for_df.append({
@@ -108,11 +113,11 @@ def heterogeneity_metric():
                     'P(TRUE LABEL)': item['P(TRUE LABEL)'],
                     'GROUP': str(item['group'])
                 })
-            
+
             df = pd.DataFrame(data_for_df)
-            
+
             n_groups = len(df['GROUP'].unique())
-            print(f"Analyzing {n_groups} groups...")
+            logger.info(f"Analyzing {n_groups} groups...")
             
             group_metrics = calculate_group_metrics(df)
             heterogeneity_results = find_heterogeneity(df, group_metrics)
@@ -166,11 +171,11 @@ def heterogeneity_scorer():
 @task
 def heterogeneity_task():
     _state.reset()
-    
-    print(f"Running heterogeneity task with:")
-    print(f"  Input file: {INPUT_FILE}")
-    print(f"  Group column: {GROUP_COLUMN}")
-    
+
+    logger.info(f"Running heterogeneity task with:")
+    logger.info(f"  Input file: {INPUT_FILE}")
+    logger.info(f"  Group column: {GROUP_COLUMN}")
+
     return Task(
         dataset=load_samples_for_inspect(INPUT_FILE, GROUP_COLUMN),
         solver=[],

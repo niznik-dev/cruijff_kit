@@ -18,6 +18,11 @@ from typing import List, Dict
 
 import numpy as np
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
+
 
 # -----------------------------------------------------------------------------#
 # Helpers
@@ -149,7 +154,7 @@ if __name__ == "__main__":
     (args.outdir / "train.json").write_text(json.dumps(train_data, indent=2))
     (args.outdir / "test.json").write_text(json.dumps(test_data, indent=2))
 
-    print(
+    logger.info(
         f"✅  Generated {len(train_data)} train and {len(test_data)} test examples "
         f"(bit_parity={args.bit_parity}, p={args.p})"
     )

@@ -9,6 +9,11 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, roc_auc_score
 from scipy.stats import f_oneway
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
+
 def load_data(file_path, group_column='GROUP'):
     """Load CSV data for analysis"""
     df = pd.read_csv(file_path)
@@ -19,8 +24,8 @@ def load_data(file_path, group_column='GROUP'):
         df['GROUP'] = df[group_column]
     elif 'GROUP' not in df.columns:
         raise ValueError("Default 'GROUP' column not found and no alternative group column specified.")
-    
-    print(f"Loaded {len(df)} samples from {len(df['GROUP'].unique())} groups")
+
+    logger.info(f"Loaded {len(df)} samples from {len(df['GROUP'].unique())} groups")
     return df
 
 def calculate_group_metrics(df):
@@ -199,8 +204,8 @@ def visualize_data(group_metrics, output_dir='results'):
     plt.tight_layout()
     plt.savefig(f'{output_dir}/group_performance.png', dpi=150, bbox_inches='tight')
     plt.close()
-    
-    print(f"Visualization saved to {output_dir}/group_performance.png")
+
+    logger.info(f"Visualization saved to {output_dir}/group_performance.png")
 
 def generate_report(df, group_metrics, heterogeneity_results, identified_groups, output_dir='results'):
     """Generate a heterogeneity report"""
@@ -223,11 +228,11 @@ def generate_report(df, group_metrics, heterogeneity_results, identified_groups,
     
     with open(f'{output_dir}/heterogeneity_report.json', 'w') as f:
         json.dump(report, f, indent=2, default=str, sort_keys=False)
-    
-    print(f"\nHeterogeneity found: {report['summary']['heterogeneity_found']}")
+
+    logger.info(f"\nHeterogeneity found: {report['summary']['heterogeneity_found']}")
     if identified_groups['outlying_in_both']:
-        print(f"Groups outlying in both: {identified_groups['outlying_in_both']}")
-    
+        logger.info(f"Groups outlying in both: {identified_groups['outlying_in_both']}")
+
     return report
 
 def run_analysis(input_file, group_column='GROUP', output_dir='results'):
@@ -240,8 +245,8 @@ def run_analysis(input_file, group_column='GROUP', output_dir='results'):
     
     visualize_data(group_metrics, output_dir)
     report = generate_report(df, group_metrics, heterogeneity_results, identified_groups, output_dir)
-    
-    print(f"\nAnalysis complete. Results saved to {output_dir}/")
+
+    logger.info(f"\nAnalysis complete. Results saved to {output_dir}/")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyze model predictions for heterogeneity")

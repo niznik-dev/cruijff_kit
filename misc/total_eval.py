@@ -15,6 +15,10 @@ import torch
 
 from utils import llm_utils
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
 '''
 from tqdm import tqdm
 
@@ -85,7 +89,7 @@ def main(cfg_file):
 
     ## LOOP: OVER ADAPTER NAMES
     for ADAPTER_NAME in ADAPTER_NAMES:
-        print(f"  Using Adapter: {ADAPTER_NAME}")
+        logger.info(f"  Using Adapter: {ADAPTER_NAME}")
 
         # Configure full adapter paths and output filenames
         if ADAPTER_NAME is not None:
@@ -132,12 +136,12 @@ def main(cfg_file):
 
         # Check if any in CANDIDATE TOKENS are more than one token long
         if any([length > 1 for length in cand_token_lengths.values()]):
-            print("  Warning: One or more candidate tokens are more than one token long.")
+            logger.info("  Warning: One or more candidate tokens are more than one token long.")
             # Print items in cand_token_lengths that are more than one token long
             for cand, length in cand_token_lengths.items():
                 if length > 1:
-                    print(f"   {cand}: {length} tokens")
-                    print(f"     First Token in Target: {tokenizer.decode(cand_token_ids[cand])}")
+                    logger.info(f"   {cand}: {length} tokens")
+                    logger.info(f"     First Token in Target: {tokenizer.decode(cand_token_ids[cand])}")
 
 
         cand_raw_probs = {
@@ -173,7 +177,7 @@ def main(cfg_file):
 
         # Save to csv
         df_out.to_csv(f"{OUTPUT_PATH}/{OUTPUT_NAME}.csv")
-        print(f"  Saved results to {OUTPUT_PATH}/{OUTPUT_NAME}.csv")
+        logger.info(f"  Saved results to {OUTPUT_PATH}/{OUTPUT_NAME}.csv")
 
 
 if __name__ == "__main__":
