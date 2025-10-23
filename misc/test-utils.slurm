@@ -16,6 +16,6 @@
 
 module purge
 module load anaconda3/2024.10
-conda activate ttenv
+conda activate cruijff
 
 python3 test-utils.py

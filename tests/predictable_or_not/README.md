@@ -43,7 +43,7 @@ python setup_finetune.py \
   --save_adapter_weights_only true \
   --log_every_n_steps 1 \
   --run_val_every_n_steps 4 \
-  --conda_env ttenv-nightly \
+  --conda_env cruijff \
   --custom_recipe lora_finetune_single_device_val.py \
   --account msalganik \
   --constraint gpu80
@@ -70,7 +70,7 @@ python setup_finetune.py \
   --save_adapter_weights_only true \
   --log_every_n_steps 1 \
   --run_val_every_n_steps 4 \
-  --conda_env ttenv-nightly \
+  --conda_env cruijff \
   --custom_recipe lora_finetune_single_device_val.py \
   --account msalganik \
   --constraint gpu80

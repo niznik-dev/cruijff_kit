@@ -28,7 +28,7 @@ Copy this file to `claude.local.md` in the repository root and customize it with
 - **Constraint**: `<gpu_constraint>` (e.g., `gpu80` for 80GB VRAM GPUs)
 - **Default time**: `0:59:00` (under 1 hour to use test queue)
 - **Default GPUs**: `1`
-- **Default conda environment**: `<env_name>` (e.g., `ck`, `ttenv`)
+- **Default conda environment**: `cruijff` (recommended)
 
 ## Module System
 
@@ -43,18 +43,18 @@ If not using modules, remove this section.
 
 ## Conda Environment Setup
 
-**Environment name**: `<your_env_name>`
+**Environment name**: `cruijff` (recommended)
 
 **Activation**:
 ```bash
 module load anaconda3/2025.6  # If using modules
-conda activate <your_env_name>
+conda activate cruijff
 ```
 
 **Installation** (if creating new environment):
 ```bash
-conda create -n <your_env_name> python=3.13
-conda activate <your_env_name>
+conda create -n cruijff python=3.13
+conda activate cruijff
 pip3 install torch --index-url https://download.pytorch.org/whl/cu126
 pip3 install torchao wandb h5py inspect-ai datasets peft
 pip3 install transformers scikit-learn matplotlib
@@ -99,7 +99,7 @@ gh project item-add <project_number> --owner <your_username> --url https://githu
 ### Environment Setup
 ```bash
 # Activate conda environment
-conda activate <your_env_name>
+conda activate cruijff
 
 # Navigate to cruijff_kit
 cd <path_to_cruijff_kit>
@@ -194,7 +194,7 @@ Here's a complete example for Princeton's Della cluster:
 - **Constraint**: `gpu80`
 - **Default time**: `0:59:00`
 - **Default GPUs**: `1`
-- **Default conda environment**: `ck`
+- **Default conda environment**: `cruijff`
 
 ## Module System
 ```bash
