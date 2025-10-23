@@ -29,10 +29,6 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
-from cruijff_kit.utils.logger import setup_logger
-
-# Set up logging
-logger = setup_logger(__name__)
     get_adapter_params,
     get_adapter_state_dict,
     get_lora_module_names,
@@ -44,6 +40,11 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
+
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
 
 # Conditional import of custom metrics
 try:
