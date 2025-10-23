@@ -81,6 +81,12 @@ For each run to submit:
    - Update Status to PENDING
    - Add submission timestamp to Started column
 
+5. **Stagger submissions:**
+   - Wait 5 seconds before submitting the next job
+   - This prevents race conditions in HuggingFace datasets cache initialization
+   - The delay is small enough to not significantly impact total experiment time
+   - Skip the delay after the last job submission
+
 ## Monitoring Jobs
 
 ### Polling Strategy
@@ -178,9 +184,10 @@ Result: 8 runs ready to submit (0 already running, 0 completed)
 Command: cd rank8_lr1e-5 && sbatch finetune.slurm
 Result: Job ID 12345678 submitted at 2025-10-23 00:05:10
 
-[2025-10-23 00:05:11] SUBMIT_JOB: rank8_lr5e-5
+[2025-10-23 00:05:15] SUBMIT_JOB: rank8_lr5e-5
 Command: cd rank8_lr5e-5 && sbatch finetune.slurm
-Result: Job ID 12345679 submitted at 2025-10-23 00:05:11
+Result: Job ID 12345679 submitted at 2025-10-23 00:05:15
+Note: 5 second stagger delay to prevent cache collision
 
 [2025-10-23 00:05:20] ALL_SUBMITTED: Job submission complete
 Summary: 8 jobs submitted successfully (0 failures)
