@@ -64,5 +64,5 @@ outputs_adapted = adapted_model.generate(**input_dict, max_new_tokens=20,
 generated_text_base = tokenizer.decode(outputs_base[0], skip_special_tokens=True)
 generated_text_adapted = tokenizer.decode(outputs_adapted[0], skip_special_tokens=True)
 
-logger.info("Base model:", generated_text_base)
-logger.info("Generated model:", generated_text_adapted)
+logger.info(f"Base model: {generated_text_base}")
+logger.info(f"Generated model: {generated_text_adapted}")
