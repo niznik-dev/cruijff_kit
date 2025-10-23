@@ -72,6 +72,12 @@ Finally, install cruijff_kit as a package so you can use cruijff_kit's utilities
 pip install -e .
 ```
 
+If you plan to contribute to cruijff_kit, you'll also need the GitHub CLI for managing issues and pull requests:
+
+```
+conda install -c conda-forge gh
+```
+
 # Downloading a model
 
 Next you'll need a model to finetune and evaluate with. Here's how to get one *the torchtune way*:
