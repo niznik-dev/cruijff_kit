@@ -1,11 +1,7 @@
-from cruijff_kit.utils.logger import setup_logger
-
-# Set up logging
-logger = setup_logger(__name__)
 '''
 -------------------------------------------------------------
 Description: Extracts Embeddings based on a configuration file.
-    - "save_all_hiddens.yaml", passed as a --config argument in the command line. 
+    - "save_all_hiddens.yaml", passed as a --config argument in the command line.
         See documentation in the .yaml file for details
   Automatically copies the configuration file into the output directory of the embeddings.
 
@@ -23,6 +19,10 @@ import argparse
 import datetime
 
 from utils.llm_utils import *
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
 
 
 def main(config_filename):
