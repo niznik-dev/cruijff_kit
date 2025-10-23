@@ -102,6 +102,7 @@ Extract environment-specific settings:
 - `output_dir_base` - Where to write model checkpoints
 - `my_wandb_project` - WandB project name
 - `scratch_dir` - User's scratch directory
+- `account` - SLURM account to use (under "SLURM Defaults" section) - **OPTIONAL**: only needed if user has multiple accounts and cluster requires explicit specification. If not found in claude.local.md, skip this field.
 
 ## Generating setup_finetune.yaml
 
@@ -153,14 +154,14 @@ stash_adapter_weights: 'true'  # From template default
 output_dir_base: {from claude.local.md}
 conda_env: {from claude.local.md}
 
+# SLURM configuration (optional - only if specified in claude.local.md)
+account: {from claude.local.md SLURM Defaults, if present}
+
 # System prompt (if specified)
 system_prompt: {from experiment_summary.md Configuration, often empty string ""}
 
 # Custom Recipe
 custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_v1}
-
-# SLURM settings (use defaults from template, can be adjusted)
-# Time, partition, account, etc. - keep template defaults
 ```
 
 4. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
