@@ -5,10 +5,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
 #%%
 
-from cruijff_kit.utils.logger import setup_logger
-
-# Set up logging
-logger = setup_logger(__name__)
 if not torch.cuda.is_available():
     raise RuntimeError("CUDA is not available. Please ensure you have a compatible GPU and the necessary drivers installed.")
 
@@ -64,5 +60,5 @@ outputs_adapted = adapted_model.generate(**input_dict, max_new_tokens=20,
 generated_text_base = tokenizer.decode(outputs_base[0], skip_special_tokens=True)
 generated_text_adapted = tokenizer.decode(outputs_adapted[0], skip_special_tokens=True)
 
-logger.info(f"Base model: {generated_text_base}")
-logger.info(f"Generated model: {generated_text_adapted}")
+print("Base model:", generated_text_base)
+print("Generated model:", generated_text_adapted)
