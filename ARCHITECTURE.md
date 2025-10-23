@@ -18,8 +18,7 @@ cruijff_kit is a research toolkit for fine-tuning and evaluating LLMs on social 
 cruijff_kit/
 ├── tools/              # Core workflow orchestration scripts
 │   ├── torchtune/      # Fine-tuning setup and custom recipes
-│   ├── inspect/        # Evaluation setup
-│   └── huygensweeper/  # Parameter sweep utilities (being retired)
+│   └── inspect/        # Evaluation setup
 │
 ├── tasks/              # Real-world research tasks
 │   ├── capitalization/ # Generalization test with word capitalization
@@ -108,12 +107,6 @@ Finetuned model checkpoint → setup_inspect.py → inspect.slurm
 - Task-specific `run_inspect.py` files (e.g., `tasks/capitalization/run_inspect.py`)
   - Define evaluation prompts and scoring
   - Use inspect-ai framework
-
-### 3. Parameter Sweep Workflow (Being Retired)
-
-**Location:** `tools/huygensweeper/`
-
-**Status:** Being deprecated in favor of LLM-assisted parameter selection (see issue #133)
 
 ## Tasks vs Tests
 
