@@ -11,6 +11,9 @@ from typing import Dict, List
 from cruijff_kit.utils.logger import setup_logger
 
 # Set up logging
+# To see debug messages (e.g., token ID lookups), change level to logging.DEBUG:
+#   import logging
+#   logger = setup_logger(__name__, level=logging.DEBUG)
 logger = setup_logger(__name__)
 
 
