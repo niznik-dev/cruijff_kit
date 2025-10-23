@@ -70,9 +70,16 @@ def setup_logger(
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
-    # Console handler
+    # Console handler with auto-flush
     if console:
-        console_handler = logging.StreamHandler(sys.stdout)
+        # Create a custom handler that flushes after each message
+        # This is important for real-time output in SLURM logs and training loops
+        class FlushingStreamHandler(logging.StreamHandler):
+            def emit(self, record):
+                super().emit(record)
+                self.flush()
+
+        console_handler = FlushingStreamHandler(sys.stdout)
         console_handler.setLevel(level)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
