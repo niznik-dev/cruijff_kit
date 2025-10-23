@@ -4,14 +4,14 @@ import torch
 import numpy as np
 
 from utils.llm_utils import *
-
-# ! ----------------------------- Magic Numbers -----------------------------
-
-# Directories
 from cruijff_kit.utils.logger import setup_logger
 
 # Set up logging
 logger = setup_logger(__name__)
+
+# ! ----------------------------- Magic Numbers -----------------------------
+
+# Directories
 RUN_NAME="100k-20epoch" # name of folder with checkpoints
 
 BASE_DIR="/home/drigobon/scratch/"
