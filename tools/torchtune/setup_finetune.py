@@ -59,6 +59,7 @@ parser.add_argument("--train_on_input", type=str, default="false", help="Whether
 
 # ------ Model/Training Args -----
 parser.add_argument("--lora_rank", type=int, default=64, help="LoRA rank (alpha will be auto-calculated as 2*rank)")
+parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate for optimizer")
 parser.add_argument("--num_warmup_steps", type=int, default=100, help="Number of warmup steps for learning rate scheduler")
 parser.add_argument("--lr_scheduler", type=str, default="get_cosine_schedule_with_warmup", help="Learning rate scheduler function name (without 'torchtune.training.lr_schedulers.' prefix)")
 parser.add_argument("--dataset_type", type=str, default="instruct_dataset", help="Dataset type function name (without 'torchtune.datasets.' prefix)")
@@ -183,6 +184,8 @@ for key, value in vars(args).items():
         # Set both rank and alpha (alpha = 2 * rank)
         config["model"]["lora_rank"] = value
         config["model"]["lora_alpha"] = value * 2
+    elif key == "lr":
+        config["optimizer"]["lr"] = value
     elif key == "num_warmup_steps":
         config["lr_scheduler"]["num_warmup_steps"] = value
     elif key == "lr_scheduler":
