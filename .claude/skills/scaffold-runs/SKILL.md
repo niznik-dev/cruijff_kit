@@ -112,25 +112,42 @@ For each run, create a `setup_finetune.yaml` file by:
    - If `.json` → use `tasks/capitalization/templates/finetuning/setup_finetune_json.yaml`
    - If `.parquet` → use `tasks/capitalization/templates/finetuning/setup_finetune_parquet.yaml`
 
-2. **Populate template with run-specific values:**
+2. **Extract dataset information from experiment_summary.md:**
+   - Dataset path from Resources → Dataset → Path
+   - Extract `dataset_label` from filename (e.g., `words_4L_80P_300.json` → `words_4L_80P_300`)
+   - Extract `dataset_ext` from filename (e.g., `.json` or `.parquet`)
+   - Dataset location: use `input_dir_base` from template, set `input_formatting: ''` (empty string)
+
+3. **Populate template with run-specific values:**
 
 ```yaml
 # Run identification
-my_wandb_project: {from claude.local.md}
-my_wandb_run_name: {directory_name or sanitized run name}
+my_wandb_project: {from claude.local.md, or use experiment-level project name}
+my_wandb_run_name: {directory_name, e.g., "rank8_lr1e-5"}
 
-# Model and data paths
-model_checkpoint: {from experiment_summary.md Resources section}
-dataset: {from experiment_summary.md Resources section}
+# Directory Configuration (for dataset path construction)
+input_dir_base: {parent directory of dataset from experiment_summary}
+input_formatting: ''  # Usually empty string
+
+# Dataset Configuration
+dataset_label: {extracted from dataset filename, e.g., "words_4L_80P_300"}
+dataset_ext: {extracted from dataset filename, e.g., ".json"}
+
+# Model Configuration
+model_checkpoint: {from experiment_summary.md Resources → Models}
 
 # Hyperparameters (run-specific)
 lora_rank: {from run table}
-learning_rate: {from run table, default to 5e-5 if not in table}
+learning_rate: {from run table, format as 1e-5 or 5e-5}
 batch_size: {from run table or common config}
 
 # Training configuration (common across runs)
 epochs: {from experiment_summary.md Configuration}
-num_gpus: {from experiment_summary.md Configuration}
+log_every_n_steps: {use template default, typically 1}
+run_val_every_n_steps: {use template default, typically 0}
+
+# Checkpoint Options
+stash_adapter_weights: 'true'  # From template default
 
 # Output configuration
 output_dir_base: {from claude.local.md}
@@ -139,46 +156,71 @@ conda_env: {from claude.local.md}
 # System prompt (if specified)
 system_prompt: {from experiment_summary.md Configuration, often empty string ""}
 
-# Validation (if specified)
-enable_validation: {from experiment_summary.md Configuration, usually false}
+# Custom Recipe
+custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_v1}
 
 # SLURM settings (use defaults from template, can be adjusted)
 # Time, partition, account, etc. - keep template defaults
 ```
 
-3. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
+4. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
+
+**Important notes:**
+- Use absolute paths for robustness (e.g., `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/...`) rather than relative paths
+- WandB project: Prefer using `my_wandb_project` from `claude.local.md` for consistency
+- Learning rate format: Keep scientific notation format from experiment summary (1e-5, 5e-5, etc.)
 
 ## Running setup_finetune.py
 
 For each run directory:
 
-1. **Navigate to run directory:**
+1. **Activate conda environment (CRITICAL):**
+   ```bash
+   module load anaconda3/2025.6
+   conda activate cruijff
+   ```
+   **Important:** The script will fail with `ModuleNotFoundError: No module named 'cruijff_kit'` if the conda environment is not activated first.
+
+2. **Navigate to run directory:**
    ```bash
    cd {experiment_dir}/{run_directory_name}
    ```
 
-2. **Execute setup script:**
+3. **Execute setup script:**
    ```bash
-   python ../../tools/torchtune/setup_finetune.py
+   python /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tools/torchtune/setup_finetune.py
    ```
-   (Adjust path based on where cruijff_kit is located relative to experiment)
+   **Note:** Use absolute path to setup_finetune.py for robustness. Adjust based on actual cruijff_kit location.
 
-3. **Verify outputs exist:**
+4. **Verify outputs exist:**
    - `finetune.yaml` should be created
    - `finetune.slurm` should be created
 
-4. **Capture any errors** and report them
+5. **Capture any errors** and report them
+
+**Example batch execution for all runs:**
+```bash
+module load anaconda3/2025.6
+conda activate cruijff
+cd {experiment_dir}
+for dir in rank*/; do
+  echo "Processing $dir..."
+  (cd "$dir" && python /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tools/torchtune/setup_finetune.py)
+  echo "✓ $dir complete"
+done
+```
 
 ## Path Resolution
 
 **Finding cruijff_kit from experiment directory:**
 - Experiment is typically in `{scratch_dir}/{experiment_name}/`
 - cruijff_kit is typically in `{scratch_dir}/GitHub/cruijff_kit/`
-- Relative path from experiment to cruijff_kit: `../GitHub/cruijff_kit/`
+- **Recommended:** Use absolute path `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/` for robustness
+- Relative path alternative: `../GitHub/cruijff_kit/` (less reliable)
 
 **If path doesn't work:**
 - Ask user where cruijff_kit is located
-- Use absolute paths if needed
+- Always prefer absolute paths over relative paths
 
 ## Error Handling
 
