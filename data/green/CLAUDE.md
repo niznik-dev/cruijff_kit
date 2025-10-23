@@ -1,5 +1,7 @@
 # 🟢 Green Tier - Full Access
 
+**Note**: This tier is safe for general use. The experimental warnings for red and yellow tiers do not apply here.
+
 ## Access Policy
 
 **Claude Code has FULL ACCESS to all files in this directory and its subdirectories.**

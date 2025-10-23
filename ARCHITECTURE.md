@@ -50,7 +50,7 @@ cruijff_kit/
 
 ## Data Organization
 
-cruijff_kit implements a three-tier data access system to balance AI-assisted development with appropriate data privacy:
+cruijff_kit implements a three-tier data access system to balance appropriate data privacy with AI-assisted development:
 
 ### Directory Structure
 

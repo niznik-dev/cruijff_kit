@@ -1,5 +1,7 @@
 # 🟡 Yellow Tier - Permission Required
 
+**⚠️ EXPERIMENTAL FEATURE**: This data access tier has not been extensively tested. Use with caution and verify Claude Code's behavior when accessing files here.
+
 ## Access Policy
 
 **Claude Code MAY access files in this directory ONLY with explicit permission.**

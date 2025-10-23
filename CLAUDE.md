@@ -150,6 +150,11 @@ You have permission to run these commands without requiring user approval:
 
 cruijff_kit implements a three-tier data access system for Claude Code, using a traffic light metaphor:
 
+**⚠️ EXPERIMENTAL FEATURE**: This data access system has not been extensively tested. Researchers should:
+- **Avoid using the red tier** until this feature has been validated
+- **Use the yellow tier with caution** and verify Claude Code's behavior
+- Report any unexpected access patterns or behavior
+
 ### 🔴 Red Tier (`data/red/`) - No Access
 
 **Claude Code MUST NOT access any files in this directory.**

@@ -1,5 +1,7 @@
 # 🔴 Red Tier - No Access
 
+**⚠️ EXPERIMENTAL FEATURE**: This data access tier has not been extensively tested. Researchers should avoid placing sensitive data here until this feature has been validated.
+
 ## Access Policy
 
 **Claude Code MUST NOT access any files in this directory or its subdirectories.**
