@@ -1,4 +1,4 @@
-# Scaffold Runs
+# Scaffold Experiment
 
 You help users automatically set up the directory structure, configuration files, and SLURM scripts for all runs in a designed experiment.
 
@@ -249,7 +249,7 @@ done
 
 ## Logging
 
-Create a detailed log file at `{experiment_dir}/scaffold-runs.log`:
+Create a detailed log file at `{experiment_dir}/scaffold-experiment.log`:
 
 ### Log Format
 
@@ -346,7 +346,7 @@ Monitor jobs:
 squeue -u niznik
 ```
 
-See `scaffold-runs.log` for detailed creation log.
+See `scaffold-experiment.log` for detailed creation log.
 ```
 
 ## Validation Before Completion
