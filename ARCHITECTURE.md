@@ -311,7 +311,28 @@ User-provided paths are resolved relative to current working directory (the task
 
 ## Common Patterns
 
-### Running a Task
+### Running Experiments
+
+cruijff_kit supports two workflows:
+
+#### Skills-Based Workflow (with Claude Code)
+
+**Recommended when using Claude Code:**
+
+1. **Design:** Use `design-experiment` skill to create experiment plan (`experiment_summary.md`)
+2. **Scaffold:** Use `scaffold-experiment` skill to generate all run directories and configs
+3. **Execute:** Use `run-experiment` skill to submit jobs and monitor progress
+4. **Evaluate:** (Planned) Use `evaluate-experiment` skill for evaluation
+
+**Benefits:**
+- Automated setup for multi-run experiments
+- Consistent naming and organization
+- Progress tracking and status updates
+- Built-in safety (stagger delays prevent cache collisions)
+
+#### Manual Workflow (without Claude Code)
+
+**For single runs:**
 
 1. Navigate to task directory: `cd tasks/capitalization/`
 2. Copy and edit config: `cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml`
@@ -319,6 +340,15 @@ User-provided paths are resolved relative to current working directory (the task
 4. Submit job: `sbatch finetune.slurm`
 5. Evaluate: `python ../../tools/inspect/setup_inspect.py --finetune_epoch_dir /path/to/epoch_0/`
 6. Run evaluation: `sbatch inspect.slurm`
+
+**For multi-run experiments:**
+
+1. Create experiment directory and subdirectories for each run
+2. Copy and customize `setup_finetune.yaml` for each run
+3. Generate configs: `for dir in run_*/; do (cd "$dir" && python ../../tools/torchtune/setup_finetune.py); done`
+4. Submit with stagger: `for dir in run_*/; do (cd "$dir" && sbatch finetune.slurm); sleep 5; done`
+
+**Note:** The 5-second sleep prevents HuggingFace datasets cache race conditions when multiple jobs initialize simultaneously.
 
 ### Adding a New Task
 

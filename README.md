@@ -125,24 +125,107 @@ python preproc.py /path/to/csv/files
 
 When complete, multiple JSON files will be created in the same input folder you specify above; these can then be moved to a folder such as `/scratch/gpfs/$USER/zyg_in` - you'll need this in finetune.yaml as well
 
-# A Test Run
+# Running Experiments
 
-## With capitalization dataset
+cruijff_kit supports two workflows for running experiments:
+1. **Skills-based workflow** (recommended when using Claude Code)
+2. **Manual workflow** (for users without Claude Code access)
 
-For full instructions, see the README.md in tasks/capitalization
+## Skills-Based Workflow (with Claude Code)
 
-## With twin dataset
+If you have access to Claude Code, you can use skills to automate the entire experiment workflow:
 
-Now that we have a yaml/slurm generator, we can leverage that to make the files for our run. Before running, please check:
+### Step 1: Design the Experiment
+Use the `design-experiment` skill to plan your experiment. This creates an `experiment_summary.md` file documenting all runs, parameters, and resources.
 
-* Make sure `input_dir_base` is set correctly to your choice in the previous section
-* If you have subfolders in `input_dir_base`, make sure to change `input_formatting` to the name of the subfolder you want instead of an empty string (uncommon)
-* Make sure `conda_env` is the same one you created previously
+### Step 2: Scaffold the Experiment
+Use the `scaffold-experiment` skill to automatically:
+- Create directory structures for each run
+- Generate `setup_finetune.yaml` configs
+- Generate `finetune.yaml` and `finetune.slurm` files
 
+### Step 3: Run the Experiment
+Use the `run-experiment` skill to:
+- Submit all jobs to SLURM
+- Monitor their progress
+- Update the experiment status automatically
+
+### Step 4: Evaluate Results
+(Planned) Use the `evaluate-experiment` skill to generate and run evaluations.
+
+See `.claude/skills/*/SKILL.md` files for detailed documentation.
+
+## Manual Workflow
+
+### Single Run Example (Capitalization Task)
+
+For a complete example with detailed instructions, see `tasks/capitalization/README.md`
+
+### Single Run Example (Twin Dataset)
+
+1. **Prepare your configuration file**
+
+Create a `setup_finetune.yaml` file in your task directory. You can copy from a template:
+
+```bash
+cd tasks/your_task/
+cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml
 ```
-python setup_finetune.py --my_wandb_project my_first_tests --my_wandb_run_name my_first_test --input_dir_base /scratch/gpfs/$USER/zyg_in/ --input_formatting '' --conda_env cruijff
+
+2. **Edit the configuration**
+
+Key settings to verify:
+* `input_dir_base` - Path to your input data directory
+* `input_formatting` - Subfolder name (usually empty string `''`)
+* `dataset_label` - Dataset filename without extension
+* `conda_env` - Your conda environment name (e.g., `cruijff`)
+* `model_checkpoint` - Path to pretrained model
+* `output_dir_base` - Where to save model checkpoints
+* `lora_rank` - LoRA adapter rank (e.g., 8, 16, 32, 64)
+* `learning_rate` - Learning rate (e.g., 1e-5, 5e-5)
+
+3. **Generate SLURM scripts**
+
+```bash
+python ../../tools/torchtune/setup_finetune.py
 ```
 
-Then run `sbatch finetune.slurm` and watch the magic happen!
+This creates:
+- `finetune.yaml` (torchtune configuration)
+- `finetune.slurm` (SLURM batch script)
+
+4. **Submit the job**
+
+```bash
+sbatch finetune.slurm
+```
+
+5. **Monitor the job**
+
+```bash
+squeue -u $USER
+tail -f slurm-*.out
+```
+
+### Multi-Run Experiments (Manual)
+
+For experiments with multiple runs (e.g., parameter sweeps):
+
+1. Create experiment directory structure manually
+2. For each run, create a subdirectory with a descriptive name
+3. Copy and customize `setup_finetune.yaml` for each run
+4. Generate configs for all runs:
+   ```bash
+   for dir in run_*/; do
+     (cd "$dir" && python ../../tools/torchtune/setup_finetune.py)
+   done
+   ```
+5. Submit all jobs with a stagger delay to prevent cache collisions:
+   ```bash
+   for dir in run_*/; do
+     (cd "$dir" && sbatch finetune.slurm)
+     sleep 5  # Prevent HuggingFace cache race conditions
+   done
+   ```
 
 

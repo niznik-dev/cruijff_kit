@@ -57,26 +57,26 @@ For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 - **Modular tools**: Separate scripts for finetune setup and evaluation setup
 - **HPC-first design**: Built for SLURM clusters with automated script generation
 
-## Skills (Planned)
+## Skills
 
-The following skills are planned for future implementation to streamline common workflows:
+cruijff_kit includes Claude Code skills to streamline common workflows. These skills are optional - all workflows can also be performed manually.
 
-### Primary Workflows (Planned)
-- **create-experiment**: Plan a series of runs that collectively make up an experiment
-- **generate-dirs**: Create organized directory structures for runs
-- **generate-slurm-scripts**: Generate SLURM batch scripts for runs
-- **submit-jobs**: Submit jobs prepared by earlier skills to SLURM
-- **generate-experiment-results**: Analyze and compare experimental results
+### Primary Workflows
+- **design-experiment** ✅ - Plan a series of runs that collectively make up an experiment
+- **scaffold-experiment** ✅ - Create organized directory structures, configs, and SLURM scripts for all runs
+- **run-experiment** ✅ - Submit jobs to SLURM and monitor their progress until completion
+
+### Planned Workflows
+- **evaluate-experiment**: Generate and submit evaluation jobs for completed runs
+- **analyze-experiment**: Analyze and compare experimental results
 
 ### Supporting Workflows (Planned)
-- **generate-torchtune-config**: Generate torchtune configuration files
-- **generate-inspect-script**: Generate standalone inspect-ai evaluation scripts
 - **create-claude-local-md**: Create environment-specific configuration
 - **create-conda-env**: Create conda environment for this project
 - **download-model-from-hf**: Download models from HuggingFace
 - **download-dataset-from-hf**: Download datasets from HuggingFace
 
-**Note**: These skills do not yet exist but represent the planned workflow automation for cruijff_kit.
+**Note**: All skills are optional convenience tools. Users can perform the same operations manually by running the underlying Python scripts and shell commands directly.
 
 ## Git Workflow
 
