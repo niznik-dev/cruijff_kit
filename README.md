@@ -44,11 +44,11 @@ module load anaconda3/2025.6
 
 All machines with conda and GPU visibility (including della).  
 
-You'll need to pick a name for your environment.  We recommend `ttenv`, but you can adjust as you wish.
+You'll need to pick a name for your environment.  We recommend `cruijff`, but you can adjust as you wish.
 
 ```
-conda create -n ttenv python=3.13
-conda activate ttenv
+conda create -n cruijff python=3.13
+conda activate cruijff
 pip3 install torch --index-url https://download.pytorch.org/whl/cu126
 pip3 install torchao wandb h5py inspect-ai datasets peft
 pip3 install transformers scikit-learn matplotlib # These are only used for eval.py
@@ -134,7 +134,7 @@ Now that we have a yaml/slurm generator, we can leverage that to make the files 
 * Make sure `conda_env` is the same one you created previously
 
 ```
-python setup_finetune.py --my_wandb_project my_first_tests --my_wandb_run_name my_first_test --input_dir_base /scratch/gpfs/$USER/zyg_in/ --input_formatting '' --conda_env ttenv
+python setup_finetune.py --my_wandb_project my_first_tests --my_wandb_run_name my_first_test --input_dir_base /scratch/gpfs/$USER/zyg_in/ --input_formatting '' --conda_env cruijff
 ```
 
 Then run `sbatch finetune.slurm` and watch the magic happen!

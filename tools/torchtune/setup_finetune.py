@@ -66,7 +66,7 @@ parser.add_argument("--dataset_type", type=str, default="instruct_dataset", help
 # ------ Slurm Args -----
 parser.add_argument("--time", type=str, default="00:15:00", help="Time to run the job (HH:MM:SS)")
 parser.add_argument("--gpus", type=int, default=1, help="Number of GPUs to use")
-parser.add_argument("--conda_env", type=str, default="ttenv", help="Name of the conda environment to use")
+parser.add_argument("--conda_env", type=str, default="cruijff", help="Name of the conda environment to use")
 parser.add_argument("--venv", type=str, default="", help="Path to the virtual environment to use (if not using conda)")
 parser.add_argument("--modules", type=str, default="", help="Modules to load before running the script, separated by commas (e.g. '2024,Python/3.12.3')")
 
