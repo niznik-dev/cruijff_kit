@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-from cruijff_kit.utils.logger import setup_logger
-
-# Set up logging
-logger = setup_logger(__name__)
 """
 Generate binary-sequence datasets with parity-based or probabilistic labelling.
 
@@ -21,6 +17,11 @@ from pathlib import Path
 from typing import List, Dict
 
 import numpy as np
+
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
 
 
 # -----------------------------------------------------------------------------#
