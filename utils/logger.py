@@ -9,6 +9,8 @@ Example usage:
 
     logger = setup_logger(__name__)
     logger.info("Starting processing")
+    # Output: [2025-10-23 12:34:56] [cruijff_kit] INFO: Starting processing
+
     logger.warning("Potential issue detected")
     logger.error("Operation failed")
 
@@ -47,7 +49,7 @@ def setup_logger(
     Example:
         >>> logger = setup_logger(__name__)
         >>> logger.info("Processing started")
-        [2025-10-23 12:34:56] INFO: Processing started
+        [2025-10-23 12:34:56] [cruijff_kit] INFO: Processing started
 
         >>> logger = setup_logger(__name__, log_file="run.log")
         >>> logger.info("Writing to both console and file")
@@ -61,9 +63,10 @@ def setup_logger(
 
     logger.setLevel(level)
 
-    # Default format: [timestamp] LEVEL: message
+    # Default format: [timestamp] [cruijff_kit] LEVEL: message
+    # The [cruijff_kit] prefix helps identify cruijff_kit logs vs other packages
     if format_string is None:
-        format_string = '[%(asctime)s] %(levelname)s: %(message)s'
+        format_string = '[%(asctime)s] [cruijff_kit] %(levelname)s: %(message)s'
 
     formatter = logging.Formatter(
         format_string,
