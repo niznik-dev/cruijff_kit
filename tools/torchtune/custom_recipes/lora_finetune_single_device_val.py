@@ -762,8 +762,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # ! NOT WORKING! Needs to be fixed for packed sequences...
         mask = batch.get("mask").materialize().float()  # shape: (batch_size, 1, seq_len, seq_len)
-        logger.info(mask.shape)
-        logger.info(mask)
+        logger.info(f"Attention mask shape: {mask.shape}")
+        logger.info(f"Attention mask values:\n{mask}")
 
         # Define hook to capture the last hidden state
         hidden_states = {'last_hidden': None}
@@ -779,8 +779,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Access hidden state
         last_hidden = hidden_states['last_hidden']  # shape: (batch_size, seq_len, hidden_size)
-        logger.info(last_hidden.shape)
-        logger.info(last_hidden)
+        logger.info(f"Last hidden state shape: {last_hidden.shape}")
+        logger.info(f"Last hidden state values:\n{last_hidden}")
         
         handle.remove() # Remove the hook
 
@@ -788,8 +788,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # ! NOTE: This will ONLY make sense if no packing is used in the dataloader...
         embeddings = (last_hidden * mask.unsqueeze(-1)).sum(1) / mask.sum(1) # shape: (batch_size, hidden_size)
 
-        logger.info(embeddings.shape)
-        logger.info(embeddings)
+        logger.info(f"Pooled embeddings shape: {embeddings.shape}")
+        logger.info(f"Pooled embeddings values:\n{embeddings}")
         
         return embeddings
 
