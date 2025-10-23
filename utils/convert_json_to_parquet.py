@@ -28,6 +28,11 @@ from pathlib import Path
 
 from datasets import Dataset, DatasetDict
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
+
 
 def convert_json_to_hf_dataset(
     input_json: str,
@@ -44,7 +49,7 @@ def convert_json_to_hf_dataset(
     """
     # Load JSON data
     if verbose:
-        print(f"Loading JSON from: {input_json}")
+        logger.info(f"Loading JSON from: {input_json}")
 
     with open(input_json, 'r') as f:
         data = json.load(f)
@@ -57,7 +62,7 @@ def convert_json_to_hf_dataset(
         )
 
     if verbose:
-        print(f"Found splits: {list(data.keys())}")
+        logger.info(f"Found splits: {list(data.keys())}")
 
     # Create output directory
     output_path = Path(output_dir)
@@ -72,7 +77,7 @@ def convert_json_to_hf_dataset(
             )
 
         if verbose:
-            print(f"Converting split '{split_name}' with {len(examples)} examples")
+            logger.info(f"Converting split '{split_name}' with {len(examples)} examples")
 
         # Convert to HF Dataset
         dataset = Dataset.from_list(examples)
@@ -82,14 +87,14 @@ def convert_json_to_hf_dataset(
         dataset.to_parquet(str(parquet_file))
 
         if verbose:
-            print(f"  Saved to: {parquet_file}")
+            logger.info(f"  Saved to: {parquet_file}")
 
     if verbose:
-        print("\n✓ Conversion complete!")
-        print(f"\nTo load this dataset:")
-        print(f"  from datasets import load_dataset")
-        print(f"  dataset = load_dataset('parquet', data_dir='{output_dir}')")
-        print(f"  # Access splits: dataset['train'], dataset['validation'], etc.")
+        logger.info("\n✓ Conversion complete!")
+        logger.info(f"\nTo load this dataset:")
+        logger.info(f"  from datasets import load_dataset")
+        logger.info(f"  dataset = load_dataset('parquet', data_dir='{output_dir}')")
+        logger.info(f"  # Access splits: dataset['train'], dataset['validation'], etc.")
 
     return output_dir
 

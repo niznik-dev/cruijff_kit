@@ -8,6 +8,10 @@ from utils.llm_utils import *
 # ! ----------------------------- Magic Numbers -----------------------------
 
 # Directories
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
 RUN_NAME="100k-20epoch" # name of folder with checkpoints
 
 BASE_DIR="/home/drigobon/scratch/"
@@ -76,7 +80,7 @@ model.to(device)
 # ----------------------------- Token Generation -----------------------------
 
 # Test Token Generation
-print("\n\nTesting token generation...")
+logger.info("\n\nTesting token generation...")
 generated_tokens = get_next_tokens(model, tokenizer, prompts, 
                                     batch_size=BATCH_SIZE,
                                     use_chat_template=USE_CHAT_TEMPLATE,
@@ -88,25 +92,25 @@ generated_tokens = generated_tokens.detach().cpu()
 # Print Generated Tokens
 for i in range(generated_tokens.shape[0]):
     if len(generated_tokens.shape) > 2: # if num_return_sequences>1 and do_sample=True
-        print(f"\n\nPrompt: \"{prompts[i]}\":")
-        print("Generated Tokens:")            
+        logger.info(f"\n\nPrompt: \"{prompts[i]}\":")
+        logger.info("Generated Tokens:")            
         for j in range(generated_tokens.shape[1]):
-            print(f"    #{j}: {tokenizer.decode(generated_tokens[i,j,:], skip_special_tokens=True)}")
+            logger.info(f"    #{j}: {tokenizer.decode(generated_tokens[i,j,:], skip_special_tokens=True)}")
     else:
-        print(f"\n\nPrompt \"{prompts[i]}\": {tokenizer.decode(generated_tokens[i], skip_special_tokens=True)}")
+        logger.info(f"\n\nPrompt \"{prompts[i]}\": {tokenizer.decode(generated_tokens[i], skip_special_tokens=True)}")
 
 
 # ----------------------------- Logits -----------------------------
 
 # Test Logit Extraction
-print("\n\nTesting logit extraction...")
+logger.info("\n\nTesting logit extraction...")
 
 logits = get_logits(model, tokenizer, prompts, 
                     preprompt = '',
                     use_chat_template=USE_CHAT_TEMPLATE,
                     batch_size=BATCH_SIZE,
                     dtype = DTYPE)
-print(f"Logits shape: {logits.shape}")
+logger.info(f"Logits shape: {logits.shape}")
 
 # Move to CPU
 logits = logits.detach().cpu() 
@@ -120,7 +124,7 @@ logits_loaded, ids_loaded, _ = load_tensor_with_ids(logit_save_path, dataset_nam
 # Verify loaded logits match original
 assert np.array_equal(logits, logits_loaded), "Loaded logits do not match original logits"
 
-print("Logits saved and loaded successfully")
+logger.info("Logits saved and loaded successfully")
 
 
 
@@ -128,14 +132,14 @@ print("Logits saved and loaded successfully")
 # ----------------------------- Embeddings -----------------------------
 
 # Test Embedding Extraction (without pooling)
-print("\n\nTesting embedding extraction...")
+logger.info("\n\nTesting embedding extraction...")
 
 embed, mask = get_embeddings(model, tokenizer, prompts, pool = None,
                             preprompt = '',
                             use_chat_template=USE_CHAT_TEMPLATE,
                             batch_size=BATCH_SIZE, return_mask=True,
                             dtype = DTYPE)
-print(f"Embeddings shape: {embed.shape}")
+logger.info(f"Embeddings shape: {embed.shape}")
 
 # Move to CPU
 embed = embed.detach().cpu() 
@@ -152,7 +156,7 @@ assert np.array_equal(embed, embed_loaded), "Loaded embeddings do not match orig
 # Verify loaded mask matches original
 assert np.array_equal(mask, mask_loaded), "Loaded attention mask does not match original attention mask"
 
-print("Embeddings saved and loaded successfully")
+logger.info("Embeddings saved and loaded successfully")
 
 
 # ----------------------------- Pooling -----------------------------
@@ -160,11 +164,11 @@ print("Embeddings saved and loaded successfully")
 pool_types = ["mean", "mean_non_padding", "median", "first", "last", "last_non_padding"]
 
 for pool in pool_types:
-    print(f"\n\nTesting pooling method: {pool}")
+    logger.info(f"\n\nTesting pooling method: {pool}")
     
     # Pool embeddings
     pooled_embed = pool_hidden_states(embed, pool=pool, attention_mask=mask)
-    print(f"Pooled embeddings shape: {pooled_embed.shape}")
+    logger.info(f"Pooled embeddings shape: {pooled_embed.shape}")
 
     # Move to CPU
     pooled_embed = logits.detach().cpu() 
@@ -179,8 +183,8 @@ for pool in pool_types:
     # Verify loaded pooled embeddings match original
     assert np.array_equal(pooled_embed, pooled_loaded), f"Loaded pooled embeddings for {pool} do not match original"
 
-    print(f"Embeddings of type {pool} saved and loaded successfully")
+    logger.info(f"Embeddings of type {pool} saved and loaded successfully")
 
 
 
-print('\n\nComplete!')
+logger.info('\n\nComplete!')

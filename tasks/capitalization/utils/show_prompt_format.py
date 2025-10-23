@@ -1,6 +1,11 @@
 from torchtune.data import Message
 from torchtune.models.llama3 import llama3_tokenizer
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
+
 msgs = [
     Message(role="system", content="Capitalize the first letter of the given word"),
     Message(role="user",   content="apple"),
@@ -11,13 +16,13 @@ tokenizer_path = "/scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct/
 tok = llama3_tokenizer(path=tokenizer_path)
 tok_ids, mask = tok.tokenize_messages(msgs)
 
-print("Full tokenized output:")
-print(tok.decode(tok_ids))
-print("\nToken IDs:")
-print(tok_ids)
-print("\nMask (shows which tokens are trained on):")
-print(mask)
-print("\nJust the word 'apple':")
-print(tok.encode("apple", add_bos=False, add_eos=False))
-print("\nJust the word 'Apple':")
-print(tok.encode("Apple", add_bos=False, add_eos=False))
+logger.info("Full tokenized output:")
+logger.info(tok.decode(tok_ids))
+logger.info("\nToken IDs:")
+logger.info(tok_ids)
+logger.info("\nMask (shows which tokens are trained on):")
+logger.info(mask)
+logger.info("\nJust the word 'apple':")
+logger.info(tok.encode("apple", add_bos=False, add_eos=False))
+logger.info("\nJust the word 'Apple':")
+logger.info(tok.encode("Apple", add_bos=False, add_eos=False))

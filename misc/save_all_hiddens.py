@@ -1,3 +1,7 @@
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
 '''
 -------------------------------------------------------------
 Description: Extracts Embeddings based on a configuration file.
@@ -115,20 +119,20 @@ def main(config_filename):
 
 
     # Print Parameters
-    print("------------ Configuration Parameters ------------")
+    logger.info("------------ Configuration Parameters ------------")
     for key in config.keys():
-        print(f"{key}: {config[key]}")
+        logger.info(f"{key}: {config[key]}")
 
 
 
     # Print Adapter Paths and Save Paths
-    print("------------ Models and Checkpoints to be Used ------------")
+    logger.info("------------ Models and Checkpoints to be Used ------------")
     for i in range(len(ADAPTER_PATHS)):
-        print(f"Adapter Path: {ADAPTER_PATHS[i]} \n     will be saved to: {SAVE_PATHS[i]}")
+        logger.info(f"Adapter Path: {ADAPTER_PATHS[i]} \n     will be saved to: {SAVE_PATHS[i]}")
 
 
 
-    print("------------ Starting: Extract Hidden States ------------")
+    logger.info("------------ Starting: Extract Hidden States ------------")
     full_start_time = time.time()
 
     # Load prompts and targets
@@ -141,7 +145,7 @@ def main(config_filename):
 
     # Set up device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
+    logger.info(f"Using device: {device}")
 
     # Loop over candidate model checkpoints (each corresponding to a different adapter)
     # We do this first to avoid loading the model multiple times, which is expensive.
@@ -150,8 +154,8 @@ def main(config_filename):
         SAVE_PATH = SAVE_PATHS[i]
         ADAPTER_PATH = ADAPTER_PATHS[i]
 
-        print(f"\n------------\nUsing model with adapter {ADAPTER_PATH}")
-        #print(f"Saving to {SAVE_PATH}")
+        logger.info(f"\n------------\nUsing model with adapter {ADAPTER_PATH}")
+        #logger.info(f"Saving to {SAVE_PATH}")
 
         # Directories
         if not os.path.exists(SAVE_PATH):
@@ -162,7 +166,7 @@ def main(config_filename):
 
         # Loop over pooling types specified in POOL_TYPES
         for POOL_TYPE in POOL_TYPES:
-            print(f"\n    Pooling type: {POOL_TYPE}")
+            logger.info(f"\n    Pooling type: {POOL_TYPE}")
             start_time = time.time()
 
             # Get embeddings
@@ -184,11 +188,11 @@ def main(config_filename):
             #torch.save(embeds, pooled_save_path+'.pt') # without h5py
             save_tensor_with_ids(pooled_save_path+'.h5', embeds, prompt_ids) # with h5py
 
-            print(f"    Saved pooled embeddings of shape {embeds.shape} to {pooled_save_path}")
-            print(f"    Execution time: {round((time.time() - start_time)/60, 2)} mins.")
+            logger.info(f"    Saved pooled embeddings of shape {embeds.shape} to {pooled_save_path}")
+            logger.info(f"    Execution time: {round((time.time() - start_time)/60, 2)} mins.")
 
-    print("------------ Extracting Hidden States Complete! ------------")
-    print(f"Total Execution time: {round((time.time() - full_start_time)/60, 2)} mins.")
+    logger.info("------------ Extracting Hidden States Complete! ------------")
+    logger.info(f"Total Execution time: {round((time.time() - full_start_time)/60, 2)} mins.")
 
 
     # Copy Slurm output file to output directory of embedding extraction run

@@ -20,6 +20,11 @@ from pathlib import Path
 
 from datasets import load_from_disk
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
+
 
 def convert_arrow_to_parquet(
     input_dir: str,
@@ -36,12 +41,12 @@ def convert_arrow_to_parquet(
     """
     # Load Arrow dataset
     if verbose:
-        print(f"Loading Arrow dataset from: {input_dir}")
+        logger.info(f"Loading Arrow dataset from: {input_dir}")
 
     dataset = load_from_disk(input_dir)
 
     if verbose:
-        print(f"Found splits: {list(dataset.keys())}")
+        logger.info(f"Found splits: {list(dataset.keys())}")
 
     # Create output directory
     output_path = Path(output_dir)
@@ -50,21 +55,21 @@ def convert_arrow_to_parquet(
     # Save each split as a separate Parquet file
     for split_name, split_data in dataset.items():
         if verbose:
-            print(f"Converting split '{split_name}' with {len(split_data)} examples")
+            logger.info(f"Converting split '{split_name}' with {len(split_data)} examples")
 
         # Save as Parquet
         parquet_file = output_path / f"{split_name}.parquet"
         split_data.to_parquet(str(parquet_file))
 
         if verbose:
-            print(f"  Saved to: {parquet_file}")
+            logger.info(f"  Saved to: {parquet_file}")
 
     if verbose:
-        print("\n✓ Conversion complete!")
-        print(f"\nTo load this dataset:")
-        print(f"  from datasets import load_dataset")
-        print(f"  dataset = load_dataset('parquet', data_dir='{output_dir}')")
-        print(f"  # Access splits: dataset['train'], dataset['validation'], etc.")
+        logger.info("\n✓ Conversion complete!")
+        logger.info(f"\nTo load this dataset:")
+        logger.info(f"  from datasets import load_dataset")
+        logger.info(f"  dataset = load_dataset('parquet', data_dir='{output_dir}')")
+        logger.info(f"  # Access splits: dataset['train'], dataset['validation'], etc.")
 
     return output_dir
 

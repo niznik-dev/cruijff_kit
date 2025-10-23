@@ -29,6 +29,10 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import padded_collate_packed
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import (
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
     get_adapter_params,
     get_adapter_state_dict,
     get_lora_module_names,
@@ -757,8 +761,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # ! NOT WORKING! Needs to be fixed for packed sequences...
         mask = batch.get("mask").materialize().float()  # shape: (batch_size, 1, seq_len, seq_len)
-        print(mask.shape, flush = True)
-        print(mask, flush = True)
+        logger.info(mask.shape, flush = True)
+        logger.info(mask, flush = True)
 
         # Define hook to capture the last hidden state
         hidden_states = {'last_hidden': None}
@@ -774,8 +778,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Access hidden state
         last_hidden = hidden_states['last_hidden']  # shape: (batch_size, seq_len, hidden_size)
-        print(last_hidden.shape, flush = True)
-        print(last_hidden, flush = True)
+        logger.info(last_hidden.shape, flush = True)
+        logger.info(last_hidden, flush = True)
         
         handle.remove() # Remove the hook
 
@@ -783,8 +787,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # ! NOTE: This will ONLY make sense if no packing is used in the dataloader...
         embeddings = (last_hidden * mask.unsqueeze(-1)).sum(1) / mask.sum(1) # shape: (batch_size, hidden_size)
 
-        print(embeddings.shape, flush = True)
-        print(embeddings, flush = True)
+        logger.info(embeddings.shape, flush = True)
+        logger.info(embeddings, flush = True)
         
         return embeddings
 

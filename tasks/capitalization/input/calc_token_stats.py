@@ -4,6 +4,10 @@ import argparse
 
 import matplotlib.pyplot as plt
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
 parser = argparse.ArgumentParser(description="Process a JSON file to calculate token statistics.")
 parser.add_argument('--json_filename', type=str, help='Name of the input file (should be in the same directory as this script).')
 args = parser.parse_args()
@@ -32,11 +36,11 @@ for entry in data:
     token_dist.setdefault(key, []).append(entry)
 
     if key == "1-1":
-        print(f"Input: {input}, Tokens: {tokenizer.convert_ids_to_tokens(input_tokens_clean['input_ids'][0])}")
-        print(f"Output: {output}, Tokens: {tokenizer.convert_ids_to_tokens(output_tokens_clean['input_ids'][0])}")
+        logger.info(f"Input: {input}, Tokens: {tokenizer.convert_ids_to_tokens(input_tokens_clean['input_ids'][0])}")
+        logger.info(f"Output: {output}, Tokens: {tokenizer.convert_ids_to_tokens(output_tokens_clean['input_ids'][0])}")
 
 for key in token_dist:
-    print(f"{key}: {len(token_dist[key])} samples")
+    logger.info(f"{key}: {len(token_dist[key])} samples")
 
 # Let's plot the frequency of token counts by keys
 keys = list(token_dist.keys())
@@ -58,4 +62,4 @@ plt.savefig('token_distribution.png')
 total_samples = sum(frequencies)
 different_length_count = sum(freq for key, freq in zip(keys, frequencies) if key.split('-')[0] != key.split('-')[1])
 percentage_different_length = (different_length_count / total_samples) * 100
-print(f"{percentage_different_length:.2f}% of words have different token lengths between input and output.")
+logger.info(f"{percentage_different_length:.2f}% of words have different token lengths between input and output.")

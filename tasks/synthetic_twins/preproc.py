@@ -1,4 +1,8 @@
 # Option flags
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
 add_truth = False           # When True, add the truth ("The answer is X") into the input text.
 absolute_difference = False  # When True, use absolute difference; when False, use the raw twin values.
 
@@ -75,5 +79,5 @@ with open(f"{folder}ptwindat_val.json", "w") as f:
 with open(f"{folder}ptwindat_eval.json", "w") as f:
     json.dump(eval_data, f, indent=4)
 
-print("Saved train (80%), validation (10%), and evaluation (10%) datasets.")
+logger.info("Saved train (80%), validation (10%), and evaluation (10%) datasets.")
 

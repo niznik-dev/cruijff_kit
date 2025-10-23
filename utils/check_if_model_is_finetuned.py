@@ -6,6 +6,11 @@ from peft import PeftModel
 import argparse
 import torch.nn.functional as F
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
+
 def compute_perplexity(logits, input_ids):
     shift_logits = logits[..., :-1, :].contiguous()
     shift_labels = input_ids[..., 1:].contiguous()
@@ -48,16 +53,16 @@ def compare_models(base_model_path, adapter_path, prompt):
     adapter_ppl = compute_perplexity(adapter_logits, input_ids)
     mse_diff = F.mse_loss(base_logits, adapter_logits).item()
 
-    print("\n=== Model Comparison ===")
-    print(f"Input: {prompt}")
-    print(f"Base Model Perplexity:    {base_ppl:.3f}")
-    print(f"Adapter Model Perplexity: {adapter_ppl:.3f}")
-    print(f"Logit MSE Difference:     {mse_diff:.6f}")
+    logger.info("\n=== Model Comparison ===")
+    logger.info(f"Input: {prompt}")
+    logger.info(f"Base Model Perplexity:    {base_ppl:.3f}")
+    logger.info(f"Adapter Model Perplexity: {adapter_ppl:.3f}")
+    logger.info(f"Logit MSE Difference:     {mse_diff:.6f}")
 
     if abs(base_ppl - adapter_ppl) < ppl_threshold and mse_diff < mse_threshold:
-        print("⚠️  Adapter model appears very similar to base model — fine-tuning might not have taken effect.")
+        logger.warning("⚠️  Adapter model appears very similar to base model — fine-tuning might not have taken effect.")
     else:
-        print("✅ Adapter model is different — likely fine-tuned.")
+        logger.info("✅ Adapter model is different — likely fine-tuned.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare base vs adapter model using perplexity and logits.")

@@ -1,5 +1,10 @@
 from together import Together
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
+
 client = Together()
 response = client.chat.completions.create(
     model="deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
@@ -15,5 +20,5 @@ response = client.chat.completions.create(
     ]
 )
 
-print('Assistant:')
-print(response.choices[0].message.content)
+logger.info('Assistant:')
+logger.info(response.choices[0].message.content)

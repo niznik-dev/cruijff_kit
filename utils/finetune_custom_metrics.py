@@ -8,6 +8,11 @@ import torch
 import torch.nn.functional as F
 from typing import Dict, List
 
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
+
 
 def get_token_id(token: str, tokenizer=None) -> int:
     """
@@ -28,7 +33,7 @@ def get_token_id(token: str, tokenizer=None) -> int:
     
     try:
         token_ids = tokenizer.encode(token)
-        print(f'Token IDs for "{token}": {token_ids}')
+        logger.debug(f'Token IDs for "{token}": {token_ids}')
         if not token_ids:
             raise ValueError(f"Token '{token}' not found in tokenizer vocabulary")
         # TODO - this is cludgy but I can't figure out how to disable BOS/EOS tokens!
