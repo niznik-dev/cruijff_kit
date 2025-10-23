@@ -148,15 +148,58 @@ You have permission to run these commands without requiring user approval:
 
 ## Data Access Policies
 
-*To be defined in issue #136*
+cruijff_kit implements a three-tier data access system for Claude Code, using a traffic light metaphor:
 
-cruijff_kit will implement a tiered data access system:
+**⚠️ EXPERIMENTAL FEATURE**: This data access system has not been extensively tested. Researchers should:
+- **Avoid using the red tier** until this feature has been validated
+- **Use the yellow tier with caution** and verify Claude Code's behavior
+- Report any unexpected access patterns or behavior
 
-- **🟢 Green (Public)**: Synthetic and public data - full access
-- **🟡 Yellow (Restricted)**: Research data - permission required per dataset
-- **🔴 Red (Private)**: Sensitive/confidential data - no access
+### 🔴 Red Tier (`data/red/`) - No Access
 
-Until this system is implemented, always ask before accessing data files that might contain human subjects data.
+**Claude Code MUST NOT access any files in this directory.**
+
+This tier contains highly sensitive data:
+- Raw data with personally identifiable information (PII)
+- Data under strict IRB protocols or ethical restrictions
+- Proprietary datasets with legal restrictions
+- Confidential information
+
+**Behavior**: If asked to access files in `data/red/`, refuse the request and explain that these files are marked as highly sensitive.
+
+### 🟡 Yellow Tier (`data/yellow/`) - Permission Required
+
+**Claude Code MAY access files ONLY with explicit user permission.**
+
+This tier contains research data with moderate privacy considerations:
+- De-identified social science data
+- Datasets with usage agreements or restrictions
+- Research collaborator datasets
+- Data requiring case-by-case access decisions
+
+**Behavior**: Before accessing any file in `data/yellow/`, ask the user for explicit permission, explain what you need to do with the data, and wait for confirmation.
+
+**Per-dataset permissions**: Datasets may include a `README.md` or `PERMISSIONS.md` file documenting standing permissions.
+
+### 🟢 Green Tier (`data/green/`) - Full Access
+
+**Claude Code has FULL ACCESS to all files in this directory.**
+
+This tier contains data safe for AI assistance:
+- Synthetic data generated for testing
+- Publicly available datasets
+- Test fixtures and example data
+- Educational datasets
+- Generated word lists and bit sequences
+
+**Behavior**: You may freely read, analyze, process, and work with files in `data/green/` without asking for permission.
+
+### Implementation
+
+Each tier directory contains a `CLAUDE.md` file with detailed access rules. See:
+- `data/red/CLAUDE.md`
+- `data/yellow/CLAUDE.md`
+- `data/green/CLAUDE.md`
 
 ## Project Status
 

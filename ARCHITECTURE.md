@@ -40,8 +40,46 @@ cruijff_kit/
 │   └── heterogeneity_report.py  # Generate analysis reports
 │
 ├── misc/               # Experimental/legacy code
-└── logs/               # Experiment outputs and logs
+├── logs/               # Experiment outputs and logs
+│
+└── data/               # Tiered data access system
+    ├── red/            # 🔴 Sensitive data - no Claude Code access
+    ├── yellow/         # 🟡 Research data - permission required
+    └── green/          # 🟢 Public/synthetic data - full access
 ```
+
+## Data Organization
+
+cruijff_kit implements a three-tier data access system to balance appropriate data privacy with AI-assisted development:
+
+### Directory Structure
+
+- **`data/red/`** - Highly sensitive data (PII, IRB-protected, confidential)
+  - Claude Code **cannot access** these files
+  - For raw data with identifiers or legal/ethical restrictions
+
+- **`data/yellow/`** - Research data with moderate privacy considerations
+  - Claude Code **requires explicit permission** before accessing
+  - For de-identified data, datasets with usage agreements
+  - May include per-dataset `README.md` or `PERMISSIONS.md` files documenting standing permissions
+
+- **`data/green/`** - Public and synthetic data
+  - Claude Code has **full access** without asking
+  - For synthetic test data, public datasets, test fixtures
+  - Default location for generated experimental data
+
+### Access Control
+
+Each tier contains a `CLAUDE.md` file documenting the access rules for that tier. These files inform Claude Code's behavior when working with data in the repository.
+
+### Git Ignore Rules
+
+The `.gitignore` is configured to:
+- Exclude all data files in `data/red/*` and `data/yellow/*`
+- Exclude all data files in `data/green/*`
+- Preserve only the `CLAUDE.md` documentation files in each tier
+
+This prevents accidental commits of sensitive or large data files while maintaining the directory structure and access documentation.
 
 ## Core Workflows
 
