@@ -34,49 +34,134 @@ This project is in early development and things may break without notice; you ma
 
 # Installation
 
-## Current recommended instructions
+## Quick Start (Recommended)
 
-Specific to della:
-```
-ssh user@della-gpu.princeton.edu
-module load anaconda3/2025.6 
-```
+For most users, this single code block will set up everything you need:
 
-All machines with conda and GPU visibility (including della).  
-
-You'll need to pick a name for your environment.  We recommend `cruijff`, but you can adjust as you wish.
-
-```
-conda create -n cruijff python=3.13
+```bash
+# Create and activate environment
+conda create -n cruijff python=3.13 -y
 conda activate cruijff
+
+# Install PyTorch with CUDA support
 pip3 install torch --index-url https://download.pytorch.org/whl/cu126
-pip3 install torchao wandb h5py inspect-ai datasets peft
-pip3 install transformers scikit-learn matplotlib # These are only used for eval.py
-```
 
-Now you need to decide if you want the last stable release of torchtune or the torchtune nightly build. We recommend the nightly build so that you can evaluate while fine-tuning. [Working with val_loss (validation loss) which is not yet in a regular release.]
+# Install core packages
+pip3 install torchao wandb h5py inspect-ai datasets peft transformers scikit-learn matplotlib
 
-If you want the torchtune nightly build (recommended)
-```
-pip3 install --pre torchtune --extra-index-url https://download.pytorch.org/whl/
-```
+# Install torchtune nightly (recommended for validation loss support)
+pip3 install --pre torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 
-If you want the last stable torchtune (v0.6.1)
-```
-pip3 install torchtune
-```
-
-Finally, install cruijff_kit as a package so you can use cruijff_kit's utilities and workflows directly in your Python environment; assuming you've cloned cruijff_kit, navigate inside that folder and run:
-
-```
+# Install cruijff_kit (from repository root)
 pip install -e .
 ```
 
-If you plan to contribute to cruijff_kit, you'll also need the GitHub CLI for managing issues and pull requests:
+**Installation time**: Approximately 5-10 minutes depending on network speed.
 
+## Step-by-Step Instructions
+
+### 1. HPC-Specific Setup (Optional)
+
+If you're on Princeton's della cluster:
+```bash
+ssh user@della-gpu.princeton.edu
+module load anaconda3/2025.6
 ```
-conda install -c conda-forge gh
+
+### 2. Create Conda Environment
+
+You can name your environment anything, but we recommend `cruijff`:
+
+```bash
+conda create -n cruijff python=3.13 -y
+conda activate cruijff
 ```
+
+### 3. Install PyTorch
+
+Install PyTorch with CUDA 12.6 support:
+
+```bash
+pip3 install torch --index-url https://download.pytorch.org/whl/cu126
+```
+
+### 4. Install Core Dependencies
+
+These packages are required for fine-tuning and evaluation:
+
+```bash
+# Core fine-tuning packages
+pip3 install torchao wandb h5py inspect-ai datasets peft
+
+# Evaluation packages
+pip3 install transformers scikit-learn matplotlib
+```
+
+### 5. Install Torchtune
+
+**Choose one option:**
+
+**Option A: Nightly build (recommended)**
+Includes validation loss tracking during fine-tuning:
+```bash
+pip3 install --pre torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+```
+
+**Option B: Stable release (v0.6.1)**
+For production environments:
+```bash
+pip3 install torchtune
+```
+
+**Why nightly?** The nightly build includes `val_loss` (validation loss) tracking, which is essential for monitoring overfitting during fine-tuning. This feature is not yet available in stable releases.
+
+### 6. Install cruijff_kit
+
+Navigate to the repository root and install as an editable package:
+
+```bash
+cd /path/to/cruijff_kit
+pip install -e .
+```
+
+This allows you to use cruijff_kit utilities and import custom recipes in your Python code.
+
+### 7. Install GitHub CLI (For Contributors Only)
+
+If you plan to contribute to cruijff_kit, install the GitHub CLI for managing issues and pull requests:
+
+```bash
+conda install -c conda-forge gh -y
+```
+
+## Verify Installation
+
+Check that everything installed correctly:
+
+```bash
+# Verify Python version
+python --version  # Should show Python 3.13.x
+
+# Verify PyTorch and CUDA
+python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA available: {torch.cuda.is_available()}')"
+
+# Verify torchtune version
+pip show torchtune | grep Version
+
+# Verify cruijff_kit
+python -c "import cruijff_kit; print('cruijff_kit installed successfully')"
+```
+
+## Troubleshooting
+
+**Issue**: `pip3 install --pre torchtune` installs stable version instead of nightly
+**Solution**: Ensure you include the full URL: `--extra-index-url https://download.pytorch.org/whl/nightly/cpu`
+
+**Issue**: CUDA not available after PyTorch installation
+**Solution**: Verify you're using the CUDA index: `--index-url https://download.pytorch.org/whl/cu126`
+
+**Issue**: Import errors for cruijff_kit
+**Solution**: Ensure you ran `pip install -e .` from the repository root directory
 
 # Downloading a model
 
