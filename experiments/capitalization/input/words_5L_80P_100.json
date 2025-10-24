@@ -1,0 +1,408 @@
+{
+  "train": [
+    {
+      "input": "redig",
+      "output": "Redig"
+    },
+    {
+      "input": "shoor",
+      "output": "Shoor"
+    },
+    {
+      "input": "cindy",
+      "output": "Cindy"
+    },
+    {
+      "input": "adunc",
+      "output": "Adunc"
+    },
+    {
+      "input": "abaka",
+      "output": "Abaka"
+    },
+    {
+      "input": "urial",
+      "output": "Urial"
+    },
+    {
+      "input": "afley",
+      "output": "Afley"
+    },
+    {
+      "input": "aiery",
+      "output": "Aiery"
+    },
+    {
+      "input": "stale",
+      "output": "Stale"
+    },
+    {
+      "input": "fight",
+      "output": "Fight"
+    },
+    {
+      "input": "onset",
+      "output": "Onset"
+    },
+    {
+      "input": "alcid",
+      "output": "Alcid"
+    },
+    {
+      "input": "wyson",
+      "output": "Wyson"
+    },
+    {
+      "input": "befur",
+      "output": "Befur"
+    },
+    {
+      "input": "raphe",
+      "output": "Raphe"
+    },
+    {
+      "input": "botel",
+      "output": "Botel"
+    },
+    {
+      "input": "carri",
+      "output": "Carri"
+    },
+    {
+      "input": "loopy",
+      "output": "Loopy"
+    },
+    {
+      "input": "eched",
+      "output": "Eched"
+    },
+    {
+      "input": "flawy",
+      "output": "Flawy"
+    },
+    {
+      "input": "bebat",
+      "output": "Bebat"
+    },
+    {
+      "input": "kande",
+      "output": "Kande"
+    },
+    {
+      "input": "rinka",
+      "output": "Rinka"
+    },
+    {
+      "input": "cumic",
+      "output": "Cumic"
+    },
+    {
+      "input": "logan",
+      "output": "Logan"
+    },
+    {
+      "input": "wared",
+      "output": "Wared"
+    },
+    {
+      "input": "losel",
+      "output": "Losel"
+    },
+    {
+      "input": "flisk",
+      "output": "Flisk"
+    },
+    {
+      "input": "agena",
+      "output": "Agena"
+    },
+    {
+      "input": "soave",
+      "output": "Soave"
+    },
+    {
+      "input": "bimbo",
+      "output": "Bimbo"
+    },
+    {
+      "input": "sarna",
+      "output": "Sarna"
+    },
+    {
+      "input": "molls",
+      "output": "Molls"
+    },
+    {
+      "input": "arcae",
+      "output": "Arcae"
+    },
+    {
+      "input": "scape",
+      "output": "Scape"
+    },
+    {
+      "input": "munia",
+      "output": "Munia"
+    },
+    {
+      "input": "pisum",
+      "output": "Pisum"
+    },
+    {
+      "input": "bahoo",
+      "output": "Bahoo"
+    },
+    {
+      "input": "argle",
+      "output": "Argle"
+    },
+    {
+      "input": "pomps",
+      "output": "Pomps"
+    },
+    {
+      "input": "wanky",
+      "output": "Wanky"
+    },
+    {
+      "input": "farad",
+      "output": "Farad"
+    },
+    {
+      "input": "navvy",
+      "output": "Navvy"
+    },
+    {
+      "input": "drupe",
+      "output": "Drupe"
+    },
+    {
+      "input": "wende",
+      "output": "Wende"
+    },
+    {
+      "input": "emirs",
+      "output": "Emirs"
+    },
+    {
+      "input": "lawny",
+      "output": "Lawny"
+    },
+    {
+      "input": "bedye",
+      "output": "Bedye"
+    },
+    {
+      "input": "nigel",
+      "output": "Nigel"
+    },
+    {
+      "input": "gaucy",
+      "output": "Gaucy"
+    },
+    {
+      "input": "flunk",
+      "output": "Flunk"
+    },
+    {
+      "input": "updry",
+      "output": "Updry"
+    },
+    {
+      "input": "parti",
+      "output": "Parti"
+    },
+    {
+      "input": "tibia",
+      "output": "Tibia"
+    },
+    {
+      "input": "rusky",
+      "output": "Rusky"
+    },
+    {
+      "input": "pomes",
+      "output": "Pomes"
+    },
+    {
+      "input": "gussy",
+      "output": "Gussy"
+    },
+    {
+      "input": "siusi",
+      "output": "Siusi"
+    },
+    {
+      "input": "daddy",
+      "output": "Daddy"
+    },
+    {
+      "input": "hobby",
+      "output": "Hobby"
+    },
+    {
+      "input": "anole",
+      "output": "Anole"
+    },
+    {
+      "input": "witen",
+      "output": "Witen"
+    },
+    {
+      "input": "louis",
+      "output": "Louis"
+    },
+    {
+      "input": "sodom",
+      "output": "Sodom"
+    },
+    {
+      "input": "wreak",
+      "output": "Wreak"
+    },
+    {
+      "input": "altos",
+      "output": "Altos"
+    },
+    {
+      "input": "mayda",
+      "output": "Mayda"
+    },
+    {
+      "input": "ample",
+      "output": "Ample"
+    },
+    {
+      "input": "revel",
+      "output": "Revel"
+    },
+    {
+      "input": "fumer",
+      "output": "Fumer"
+    },
+    {
+      "input": "vicus",
+      "output": "Vicus"
+    },
+    {
+      "input": "simas",
+      "output": "Simas"
+    },
+    {
+      "input": "cardo",
+      "output": "Cardo"
+    },
+    {
+      "input": "stent",
+      "output": "Stent"
+    },
+    {
+      "input": "almon",
+      "output": "Almon"
+    },
+    {
+      "input": "goldy",
+      "output": "Goldy"
+    },
+    {
+      "input": "filii",
+      "output": "Filii"
+    },
+    {
+      "input": "luteo",
+      "output": "Luteo"
+    },
+    {
+      "input": "cafiz",
+      "output": "Cafiz"
+    },
+    {
+      "input": "worry",
+      "output": "Worry"
+    }
+  ],
+  "validation": [
+    {
+      "input": "thana",
+      "output": "Thana"
+    },
+    {
+      "input": "tangy",
+      "output": "Tangy"
+    },
+    {
+      "input": "volta",
+      "output": "Volta"
+    },
+    {
+      "input": "spilt",
+      "output": "Spilt"
+    },
+    {
+      "input": "babai",
+      "output": "Babai"
+    },
+    {
+      "input": "fleam",
+      "output": "Fleam"
+    },
+    {
+      "input": "sauba",
+      "output": "Sauba"
+    },
+    {
+      "input": "blowy",
+      "output": "Blowy"
+    },
+    {
+      "input": "gaddi",
+      "output": "Gaddi"
+    },
+    {
+      "input": "crunk",
+      "output": "Crunk"
+    }
+  ],
+  "test": [
+    {
+      "input": "nomos",
+      "output": "Nomos"
+    },
+    {
+      "input": "inarm",
+      "output": "Inarm"
+    },
+    {
+      "input": "nanga",
+      "output": "Nanga"
+    },
+    {
+      "input": "donis",
+      "output": "Donis"
+    },
+    {
+      "input": "nunks",
+      "output": "Nunks"
+    },
+    {
+      "input": "defix",
+      "output": "Defix"
+    },
+    {
+      "input": "zeism",
+      "output": "Zeism"
+    },
+    {
+      "input": "liter",
+      "output": "Liter"
+    },
+    {
+      "input": "patin",
+      "output": "Patin"
+    },
+    {
+      "input": "cavia",
+      "output": "Cavia"
+    }
+  ]
+}

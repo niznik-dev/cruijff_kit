@@ -1,0 +1,1208 @@
+{
+  "train": [
+    {
+      "input": "duro",
+      "output": "Duro"
+    },
+    {
+      "input": "unze",
+      "output": "Unze"
+    },
+    {
+      "input": "clow",
+      "output": "Clow"
+    },
+    {
+      "input": "hart",
+      "output": "Hart"
+    },
+    {
+      "input": "crim",
+      "output": "Crim"
+    },
+    {
+      "input": "lean",
+      "output": "Lean"
+    },
+    {
+      "input": "maul",
+      "output": "Maul"
+    },
+    {
+      "input": "pega",
+      "output": "Pega"
+    },
+    {
+      "input": "shai",
+      "output": "Shai"
+    },
+    {
+      "input": "opec",
+      "output": "Opec"
+    },
+    {
+      "input": "tone",
+      "output": "Tone"
+    },
+    {
+      "input": "weak",
+      "output": "Weak"
+    },
+    {
+      "input": "topo",
+      "output": "Topo"
+    },
+    {
+      "input": "sone",
+      "output": "Sone"
+    },
+    {
+      "input": "yens",
+      "output": "Yens"
+    },
+    {
+      "input": "jann",
+      "output": "Jann"
+    },
+    {
+      "input": "stod",
+      "output": "Stod"
+    },
+    {
+      "input": "dika",
+      "output": "Dika"
+    },
+    {
+      "input": "gins",
+      "output": "Gins"
+    },
+    {
+      "input": "cray",
+      "output": "Cray"
+    },
+    {
+      "input": "chud",
+      "output": "Chud"
+    },
+    {
+      "input": "nuns",
+      "output": "Nuns"
+    },
+    {
+      "input": "mike",
+      "output": "Mike"
+    },
+    {
+      "input": "sepd",
+      "output": "Sepd"
+    },
+    {
+      "input": "jger",
+      "output": "Jger"
+    },
+    {
+      "input": "ofer",
+      "output": "Ofer"
+    },
+    {
+      "input": "furl",
+      "output": "Furl"
+    },
+    {
+      "input": "sell",
+      "output": "Sell"
+    },
+    {
+      "input": "ohoy",
+      "output": "Ohoy"
+    },
+    {
+      "input": "shoo",
+      "output": "Shoo"
+    },
+    {
+      "input": "auld",
+      "output": "Auld"
+    },
+    {
+      "input": "expo",
+      "output": "Expo"
+    },
+    {
+      "input": "xxii",
+      "output": "Xxii"
+    },
+    {
+      "input": "faro",
+      "output": "Faro"
+    },
+    {
+      "input": "whim",
+      "output": "Whim"
+    },
+    {
+      "input": "fusk",
+      "output": "Fusk"
+    },
+    {
+      "input": "hugo",
+      "output": "Hugo"
+    },
+    {
+      "input": "loke",
+      "output": "Loke"
+    },
+    {
+      "input": "java",
+      "output": "Java"
+    },
+    {
+      "input": "seri",
+      "output": "Seri"
+    },
+    {
+      "input": "sicc",
+      "output": "Sicc"
+    },
+    {
+      "input": "muss",
+      "output": "Muss"
+    },
+    {
+      "input": "nump",
+      "output": "Nump"
+    },
+    {
+      "input": "lips",
+      "output": "Lips"
+    },
+    {
+      "input": "sope",
+      "output": "Sope"
+    },
+    {
+      "input": "lino",
+      "output": "Lino"
+    },
+    {
+      "input": "koel",
+      "output": "Koel"
+    },
+    {
+      "input": "buts",
+      "output": "Buts"
+    },
+    {
+      "input": "itza",
+      "output": "Itza"
+    },
+    {
+      "input": "bell",
+      "output": "Bell"
+    },
+    {
+      "input": "rasa",
+      "output": "Rasa"
+    },
+    {
+      "input": "cash",
+      "output": "Cash"
+    },
+    {
+      "input": "vara",
+      "output": "Vara"
+    },
+    {
+      "input": "gigs",
+      "output": "Gigs"
+    },
+    {
+      "input": "pole",
+      "output": "Pole"
+    },
+    {
+      "input": "yite",
+      "output": "Yite"
+    },
+    {
+      "input": "maid",
+      "output": "Maid"
+    },
+    {
+      "input": "gasp",
+      "output": "Gasp"
+    },
+    {
+      "input": "allo",
+      "output": "Allo"
+    },
+    {
+      "input": "juza",
+      "output": "Juza"
+    },
+    {
+      "input": "gulf",
+      "output": "Gulf"
+    },
+    {
+      "input": "poil",
+      "output": "Poil"
+    },
+    {
+      "input": "uroo",
+      "output": "Uroo"
+    },
+    {
+      "input": "agag",
+      "output": "Agag"
+    },
+    {
+      "input": "with",
+      "output": "With"
+    },
+    {
+      "input": "cell",
+      "output": "Cell"
+    },
+    {
+      "input": "digs",
+      "output": "Digs"
+    },
+    {
+      "input": "frey",
+      "output": "Frey"
+    },
+    {
+      "input": "bija",
+      "output": "Bija"
+    },
+    {
+      "input": "pope",
+      "output": "Pope"
+    },
+    {
+      "input": "misc",
+      "output": "Misc"
+    },
+    {
+      "input": "giro",
+      "output": "Giro"
+    },
+    {
+      "input": "olpe",
+      "output": "Olpe"
+    },
+    {
+      "input": "dink",
+      "output": "Dink"
+    },
+    {
+      "input": "lola",
+      "output": "Lola"
+    },
+    {
+      "input": "iamb",
+      "output": "Iamb"
+    },
+    {
+      "input": "yeel",
+      "output": "Yeel"
+    },
+    {
+      "input": "odin",
+      "output": "Odin"
+    },
+    {
+      "input": "gods",
+      "output": "Gods"
+    },
+    {
+      "input": "skip",
+      "output": "Skip"
+    },
+    {
+      "input": "carl",
+      "output": "Carl"
+    },
+    {
+      "input": "oxea",
+      "output": "Oxea"
+    },
+    {
+      "input": "wega",
+      "output": "Wega"
+    },
+    {
+      "input": "roky",
+      "output": "Roky"
+    },
+    {
+      "input": "stre",
+      "output": "Stre"
+    },
+    {
+      "input": "coit",
+      "output": "Coit"
+    },
+    {
+      "input": "cist",
+      "output": "Cist"
+    },
+    {
+      "input": "doke",
+      "output": "Doke"
+    },
+    {
+      "input": "sump",
+      "output": "Sump"
+    },
+    {
+      "input": "boro",
+      "output": "Boro"
+    },
+    {
+      "input": "fegs",
+      "output": "Fegs"
+    },
+    {
+      "input": "seck",
+      "output": "Seck"
+    },
+    {
+      "input": "gate",
+      "output": "Gate"
+    },
+    {
+      "input": "fell",
+      "output": "Fell"
+    },
+    {
+      "input": "dint",
+      "output": "Dint"
+    },
+    {
+      "input": "poss",
+      "output": "Poss"
+    },
+    {
+      "input": "duci",
+      "output": "Duci"
+    },
+    {
+      "input": "pron",
+      "output": "Pron"
+    },
+    {
+      "input": "dear",
+      "output": "Dear"
+    },
+    {
+      "input": "goer",
+      "output": "Goer"
+    },
+    {
+      "input": "taft",
+      "output": "Taft"
+    },
+    {
+      "input": "dolf",
+      "output": "Dolf"
+    },
+    {
+      "input": "tael",
+      "output": "Tael"
+    },
+    {
+      "input": "toop",
+      "output": "Toop"
+    },
+    {
+      "input": "john",
+      "output": "John"
+    },
+    {
+      "input": "rein",
+      "output": "Rein"
+    },
+    {
+      "input": "slon",
+      "output": "Slon"
+    },
+    {
+      "input": "sill",
+      "output": "Sill"
+    },
+    {
+      "input": "toma",
+      "output": "Toma"
+    },
+    {
+      "input": "tean",
+      "output": "Tean"
+    },
+    {
+      "input": "neet",
+      "output": "Neet"
+    },
+    {
+      "input": "kobi",
+      "output": "Kobi"
+    },
+    {
+      "input": "pulv",
+      "output": "Pulv"
+    },
+    {
+      "input": "tide",
+      "output": "Tide"
+    },
+    {
+      "input": "rort",
+      "output": "Rort"
+    },
+    {
+      "input": "limu",
+      "output": "Limu"
+    },
+    {
+      "input": "eboe",
+      "output": "Eboe"
+    },
+    {
+      "input": "taky",
+      "output": "Taky"
+    },
+    {
+      "input": "weki",
+      "output": "Weki"
+    },
+    {
+      "input": "deny",
+      "output": "Deny"
+    },
+    {
+      "input": "bail",
+      "output": "Bail"
+    },
+    {
+      "input": "laet",
+      "output": "Laet"
+    },
+    {
+      "input": "hone",
+      "output": "Hone"
+    },
+    {
+      "input": "drip",
+      "output": "Drip"
+    },
+    {
+      "input": "ango",
+      "output": "Ango"
+    },
+    {
+      "input": "marc",
+      "output": "Marc"
+    },
+    {
+      "input": "epop",
+      "output": "Epop"
+    },
+    {
+      "input": "hoer",
+      "output": "Hoer"
+    },
+    {
+      "input": "mian",
+      "output": "Mian"
+    },
+    {
+      "input": "merv",
+      "output": "Merv"
+    },
+    {
+      "input": "bang",
+      "output": "Bang"
+    },
+    {
+      "input": "faut",
+      "output": "Faut"
+    },
+    {
+      "input": "lode",
+      "output": "Lode"
+    },
+    {
+      "input": "clio",
+      "output": "Clio"
+    },
+    {
+      "input": "sild",
+      "output": "Sild"
+    },
+    {
+      "input": "yowe",
+      "output": "Yowe"
+    },
+    {
+      "input": "blew",
+      "output": "Blew"
+    },
+    {
+      "input": "rach",
+      "output": "Rach"
+    },
+    {
+      "input": "chaa",
+      "output": "Chaa"
+    },
+    {
+      "input": "moid",
+      "output": "Moid"
+    },
+    {
+      "input": "raws",
+      "output": "Raws"
+    },
+    {
+      "input": "biol",
+      "output": "Biol"
+    },
+    {
+      "input": "khar",
+      "output": "Khar"
+    },
+    {
+      "input": "atta",
+      "output": "Atta"
+    },
+    {
+      "input": "waur",
+      "output": "Waur"
+    },
+    {
+      "input": "wadi",
+      "output": "Wadi"
+    },
+    {
+      "input": "guib",
+      "output": "Guib"
+    },
+    {
+      "input": "iode",
+      "output": "Iode"
+    },
+    {
+      "input": "time",
+      "output": "Time"
+    },
+    {
+      "input": "actu",
+      "output": "Actu"
+    },
+    {
+      "input": "wafd",
+      "output": "Wafd"
+    },
+    {
+      "input": "spic",
+      "output": "Spic"
+    },
+    {
+      "input": "bide",
+      "output": "Bide"
+    },
+    {
+      "input": "rink",
+      "output": "Rink"
+    },
+    {
+      "input": "fund",
+      "output": "Fund"
+    },
+    {
+      "input": "flix",
+      "output": "Flix"
+    },
+    {
+      "input": "yeti",
+      "output": "Yeti"
+    },
+    {
+      "input": "goop",
+      "output": "Goop"
+    },
+    {
+      "input": "cawk",
+      "output": "Cawk"
+    },
+    {
+      "input": "muns",
+      "output": "Muns"
+    },
+    {
+      "input": "slag",
+      "output": "Slag"
+    },
+    {
+      "input": "ryme",
+      "output": "Ryme"
+    },
+    {
+      "input": "cony",
+      "output": "Cony"
+    },
+    {
+      "input": "zemi",
+      "output": "Zemi"
+    },
+    {
+      "input": "esox",
+      "output": "Esox"
+    },
+    {
+      "input": "avow",
+      "output": "Avow"
+    },
+    {
+      "input": "maba",
+      "output": "Maba"
+    },
+    {
+      "input": "iban",
+      "output": "Iban"
+    },
+    {
+      "input": "siak",
+      "output": "Siak"
+    },
+    {
+      "input": "smew",
+      "output": "Smew"
+    },
+    {
+      "input": "luff",
+      "output": "Luff"
+    },
+    {
+      "input": "hour",
+      "output": "Hour"
+    },
+    {
+      "input": "fady",
+      "output": "Fady"
+    },
+    {
+      "input": "kirk",
+      "output": "Kirk"
+    },
+    {
+      "input": "dool",
+      "output": "Dool"
+    },
+    {
+      "input": "rake",
+      "output": "Rake"
+    },
+    {
+      "input": "ploy",
+      "output": "Ploy"
+    },
+    {
+      "input": "cure",
+      "output": "Cure"
+    },
+    {
+      "input": "ainu",
+      "output": "Ainu"
+    },
+    {
+      "input": "fake",
+      "output": "Fake"
+    },
+    {
+      "input": "teil",
+      "output": "Teil"
+    },
+    {
+      "input": "didn",
+      "output": "Didn"
+    },
+    {
+      "input": "spec",
+      "output": "Spec"
+    },
+    {
+      "input": "alae",
+      "output": "Alae"
+    },
+    {
+      "input": "fibs",
+      "output": "Fibs"
+    },
+    {
+      "input": "wage",
+      "output": "Wage"
+    },
+    {
+      "input": "hoju",
+      "output": "Hoju"
+    },
+    {
+      "input": "bars",
+      "output": "Bars"
+    },
+    {
+      "input": "cane",
+      "output": "Cane"
+    },
+    {
+      "input": "kadi",
+      "output": "Kadi"
+    },
+    {
+      "input": "yodh",
+      "output": "Yodh"
+    },
+    {
+      "input": "abbr",
+      "output": "Abbr"
+    },
+    {
+      "input": "bent",
+      "output": "Bent"
+    },
+    {
+      "input": "just",
+      "output": "Just"
+    },
+    {
+      "input": "bens",
+      "output": "Bens"
+    },
+    {
+      "input": "rory",
+      "output": "Rory"
+    },
+    {
+      "input": "eral",
+      "output": "Eral"
+    },
+    {
+      "input": "kyle",
+      "output": "Kyle"
+    },
+    {
+      "input": "clew",
+      "output": "Clew"
+    },
+    {
+      "input": "dixy",
+      "output": "Dixy"
+    },
+    {
+      "input": "hate",
+      "output": "Hate"
+    },
+    {
+      "input": "mody",
+      "output": "Mody"
+    },
+    {
+      "input": "omen",
+      "output": "Omen"
+    },
+    {
+      "input": "arum",
+      "output": "Arum"
+    },
+    {
+      "input": "tart",
+      "output": "Tart"
+    },
+    {
+      "input": "nyet",
+      "output": "Nyet"
+    },
+    {
+      "input": "repl",
+      "output": "Repl"
+    },
+    {
+      "input": "honk",
+      "output": "Honk"
+    },
+    {
+      "input": "atop",
+      "output": "Atop"
+    },
+    {
+      "input": "bras",
+      "output": "Bras"
+    },
+    {
+      "input": "type",
+      "output": "Type"
+    },
+    {
+      "input": "sacs",
+      "output": "Sacs"
+    },
+    {
+      "input": "page",
+      "output": "Page"
+    },
+    {
+      "input": "ebbs",
+      "output": "Ebbs"
+    },
+    {
+      "input": "burs",
+      "output": "Burs"
+    },
+    {
+      "input": "pasi",
+      "output": "Pasi"
+    },
+    {
+      "input": "gaea",
+      "output": "Gaea"
+    },
+    {
+      "input": "carn",
+      "output": "Carn"
+    },
+    {
+      "input": "patt",
+      "output": "Patt"
+    },
+    {
+      "input": "jinx",
+      "output": "Jinx"
+    },
+    {
+      "input": "ferk",
+      "output": "Ferk"
+    },
+    {
+      "input": "ayen",
+      "output": "Ayen"
+    },
+    {
+      "input": "poof",
+      "output": "Poof"
+    },
+    {
+      "input": "pomp",
+      "output": "Pomp"
+    },
+    {
+      "input": "slid",
+      "output": "Slid"
+    },
+    {
+      "input": "nant",
+      "output": "Nant"
+    },
+    {
+      "input": "apii",
+      "output": "Apii"
+    },
+    {
+      "input": "clee",
+      "output": "Clee"
+    },
+    {
+      "input": "eras",
+      "output": "Eras"
+    },
+    {
+      "input": "yeta",
+      "output": "Yeta"
+    },
+    {
+      "input": "woos",
+      "output": "Woos"
+    },
+    {
+      "input": "joey",
+      "output": "Joey"
+    },
+    {
+      "input": "moyl",
+      "output": "Moyl"
+    },
+    {
+      "input": "wyde",
+      "output": "Wyde"
+    },
+    {
+      "input": "tilt",
+      "output": "Tilt"
+    },
+    {
+      "input": "arse",
+      "output": "Arse"
+    },
+    {
+      "input": "eval",
+      "output": "Eval"
+    },
+    {
+      "input": "twal",
+      "output": "Twal"
+    },
+    {
+      "input": "dill",
+      "output": "Dill"
+    },
+    {
+      "input": "volt",
+      "output": "Volt"
+    }
+  ],
+  "validation": [
+    {
+      "input": "saws",
+      "output": "Saws"
+    },
+    {
+      "input": "rick",
+      "output": "Rick"
+    },
+    {
+      "input": "held",
+      "output": "Held"
+    },
+    {
+      "input": "devs",
+      "output": "Devs"
+    },
+    {
+      "input": "cook",
+      "output": "Cook"
+    },
+    {
+      "input": "beth",
+      "output": "Beth"
+    },
+    {
+      "input": "hume",
+      "output": "Hume"
+    },
+    {
+      "input": "toot",
+      "output": "Toot"
+    },
+    {
+      "input": "spas",
+      "output": "Spas"
+    },
+    {
+      "input": "duds",
+      "output": "Duds"
+    },
+    {
+      "input": "unto",
+      "output": "Unto"
+    },
+    {
+      "input": "frib",
+      "output": "Frib"
+    },
+    {
+      "input": "behn",
+      "output": "Behn"
+    },
+    {
+      "input": "pare",
+      "output": "Pare"
+    },
+    {
+      "input": "kegs",
+      "output": "Kegs"
+    },
+    {
+      "input": "pmsg",
+      "output": "Pmsg"
+    },
+    {
+      "input": "teca",
+      "output": "Teca"
+    },
+    {
+      "input": "scfm",
+      "output": "Scfm"
+    },
+    {
+      "input": "guys",
+      "output": "Guys"
+    },
+    {
+      "input": "thin",
+      "output": "Thin"
+    },
+    {
+      "input": "cion",
+      "output": "Cion"
+    },
+    {
+      "input": "whom",
+      "output": "Whom"
+    },
+    {
+      "input": "rals",
+      "output": "Rals"
+    },
+    {
+      "input": "mowe",
+      "output": "Mowe"
+    },
+    {
+      "input": "apes",
+      "output": "Apes"
+    },
+    {
+      "input": "moun",
+      "output": "Moun"
+    },
+    {
+      "input": "hams",
+      "output": "Hams"
+    },
+    {
+      "input": "lask",
+      "output": "Lask"
+    },
+    {
+      "input": "jump",
+      "output": "Jump"
+    },
+    {
+      "input": "gale",
+      "output": "Gale"
+    }
+  ],
+  "test": [
+    {
+      "input": "five",
+      "output": "Five"
+    },
+    {
+      "input": "upon",
+      "output": "Upon"
+    },
+    {
+      "input": "dcor",
+      "output": "Dcor"
+    },
+    {
+      "input": "blad",
+      "output": "Blad"
+    },
+    {
+      "input": "seqq",
+      "output": "Seqq"
+    },
+    {
+      "input": "slur",
+      "output": "Slur"
+    },
+    {
+      "input": "puri",
+      "output": "Puri"
+    },
+    {
+      "input": "wudu",
+      "output": "Wudu"
+    },
+    {
+      "input": "prim",
+      "output": "Prim"
+    },
+    {
+      "input": "whuz",
+      "output": "Whuz"
+    },
+    {
+      "input": "seta",
+      "output": "Seta"
+    },
+    {
+      "input": "song",
+      "output": "Song"
+    },
+    {
+      "input": "hots",
+      "output": "Hots"
+    },
+    {
+      "input": "dard",
+      "output": "Dard"
+    },
+    {
+      "input": "nori",
+      "output": "Nori"
+    },
+    {
+      "input": "mixt",
+      "output": "Mixt"
+    },
+    {
+      "input": "yerb",
+      "output": "Yerb"
+    },
+    {
+      "input": "aker",
+      "output": "Aker"
+    },
+    {
+      "input": "reef",
+      "output": "Reef"
+    },
+    {
+      "input": "toil",
+      "output": "Toil"
+    },
+    {
+      "input": "fops",
+      "output": "Fops"
+    },
+    {
+      "input": "wire",
+      "output": "Wire"
+    },
+    {
+      "input": "twat",
+      "output": "Twat"
+    },
+    {
+      "input": "nace",
+      "output": "Nace"
+    },
+    {
+      "input": "arle",
+      "output": "Arle"
+    },
+    {
+      "input": "orna",
+      "output": "Orna"
+    },
+    {
+      "input": "puma",
+      "output": "Puma"
+    },
+    {
+      "input": "scfh",
+      "output": "Scfh"
+    },
+    {
+      "input": "claw",
+      "output": "Claw"
+    },
+    {
+      "input": "fusc",
+      "output": "Fusc"
+    }
+  ]
+}

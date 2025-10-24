@@ -302,14 +302,14 @@ Result: Successfully read experiment plan (8 runs, 1 evaluation task)
 
 [2025-10-24 17:00:05] PARSE_EVAL_TASKS: Extracting evaluation configuration
 Details: Found 1 task: capitalization (cap_task.py)
-Result: Task script path verified: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tasks/capitalization/cap_task.py
+Result: Task script path verified: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/capitalization/cap_task.py
 
 [2025-10-24 17:00:10] PARSE_EVAL_PLAN: Determining evaluation matrix
 Details: Evaluate last epoch only, all runs on all tasks
 Result: Will generate 8 evaluations (8 runs × 1 task × 1 epoch)
 
 [2025-10-24 17:00:15] VERIFY_TASK: capitalization task
-Command: ls /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tasks/capitalization/cap_task.py
+Command: ls /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/capitalization/cap_task.py
 Result: Task script exists and is accessible
 Note: Task supports config_dir parameter for experiment integration
 

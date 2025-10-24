@@ -110,8 +110,8 @@ For each run, create a `setup_finetune.yaml` file by:
 
 1. **Select appropriate template** based on dataset format:
    - Check dataset path extension in experiment_summary.md
-   - If `.json` → use `tasks/capitalization/templates/finetuning/setup_finetune_json.yaml`
-   - If `.parquet` → use `tasks/capitalization/templates/finetuning/setup_finetune_parquet.yaml`
+   - If `.json` → use `experiments/capitalization/templates/finetuning/setup_finetune_json.yaml`
+   - If `.parquet` → use `experiments/capitalization/templates/finetuning/setup_finetune_parquet.yaml`
 
 2. **Extract dataset information from experiment_summary.md:**
    - Dataset path from Resources → Dataset → Path
@@ -289,7 +289,7 @@ Details: mkdir /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/ra
 Result: Directory created successfully
 
 [2025-10-24 16:30:12] GENERATE_YAML: rank8_lr1e-5/setup_finetune.yaml
-Details: Template: tasks/capitalization/templates/finetuning/setup_finetune_json.yaml
+Details: Template: experiments/capitalization/templates/finetuning/setup_finetune_json.yaml
 Parameters: rank=8, lr=1e-5, batch_size=4, epochs=1
 Result: File created (237 bytes)
 

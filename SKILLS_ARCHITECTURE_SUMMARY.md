@@ -307,6 +307,39 @@ Before deploying to production:
 5. Test error handling (what happens if fine-tuning fails?)
 6. Verify experiment_summary.md updates correctly
 
+## Terminology Clarification: Experiments vs Tasks
+
+**Important:** This PR also includes a directory rename from `tasks/` → `experiments/` to eliminate terminology confusion.
+
+### The Problem
+The word "task" was overloaded with three different meanings:
+1. `tasks/` folder = Research domains (capitalization, twins, etc.)
+2. Inspect-ai tasks = Evaluation scripts (`.py` files)
+3. Skills refer to "tasks" in experiment_summary.md
+
+### The Solution
+Renamed `tasks/` → `experiments/` to clarify:
+- **Experiment** = Research domain/type (e.g., capitalization experiment)
+- **Task** = Inspect-ai evaluation script (e.g., `cap_task.py`)
+
+### New Structure
+```
+experiments/                             # Research experiment types
+├── capitalization/
+│   ├── cap_task.py                     # Inspect-ai evaluation task
+│   ├── input/                          # Dataset generation
+│   └── templates/                      # Fine-tuning configs
+└── synthetic_twins/
+    ├── twins_task.py                   # Inspect-ai evaluation task
+    └── ...
+```
+
+### Benefits
+- ✅ No more "task" overload - clear distinction between experiment types and evaluation tasks
+- ✅ Matches skill terminology (design-experiment, scaffold-experiment, run-experiment)
+- ✅ More accurate: These ARE experimental setups, not just "tasks"
+- ✅ Natural hierarchy: Experiments contain tasks, datasets, and configs
+
 ## Summary
 
 This refactoring creates a clean, modular architecture that:
@@ -316,6 +349,7 @@ This refactoring creates a clean, modular architecture that:
 - ✅ Maintains clear orchestration hierarchy
 - ✅ Prepares for future analyze-experiment implementation
 - ✅ Uses consistent, intuitive terminology
+- ✅ Eliminates "task" overload via experiments/ rename
 - ✅ Provides comprehensive logging at all levels
 
 All skills are documented and ready for use!

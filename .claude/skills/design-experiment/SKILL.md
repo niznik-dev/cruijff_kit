@@ -71,7 +71,7 @@ Result: Directory exists with 15 files (config.json, model.safetensors, etc.)
 Explanation: Verifying base model exists before creating experiment plan
 
 [2025-10-22 14:23:42] VERIFY_DATASET: Checking capitalization dataset
-Command: ls -lh /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tasks/capitalization/input/words_8L_80P_10000.json
+Command: ls -lh /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/capitalization/input/words_8L_80P_10000.json
 Result: File exists, 655KB
 Explanation: Verifying training dataset exists and checking size
 

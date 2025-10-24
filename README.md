@@ -186,9 +186,9 @@ tune download meta-llama/<model_name> --output-dir <model_dir> --hf-token <hf-to
 
 # Formatting Input Files to JSON
 
-## With capitalization dataset (tasks/input_training)
+## With capitalization experiment
 
-For full instructions, see the README.md in tasks/capitalization
+For full instructions, see the README.md in experiments/capitalization
 
 ## With twin dataset
 
@@ -236,18 +236,18 @@ See `.claude/skills/*/SKILL.md` files for detailed documentation.
 
 ## Manual Workflow
 
-### Single Run Example (Capitalization Task)
+### Single Run Example (Capitalization Experiment)
 
-For a complete example with detailed instructions, see `tasks/capitalization/README.md`
+For a complete example with detailed instructions, see `experiments/capitalization/README.md`
 
 ### Single Run Example (Twin Dataset)
 
 1. **Prepare your configuration file**
 
-Create a `setup_finetune.yaml` file in your task directory. You can copy from a template:
+Create a `setup_finetune.yaml` file in your experiment directory. You can copy from a template:
 
 ```bash
-cd tasks/your_task/
+cd experiments/your_experiment/
 cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml
 ```
 
