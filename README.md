@@ -154,12 +154,6 @@ python -c "import cruijff_kit; print('cruijff_kit installed successfully')"
 
 ## Troubleshooting
 
-**Issue**: `pip3 install --pre torchtune` installs stable version instead of nightly
-**Solution**: Ensure you include the full URL: `--extra-index-url https://download.pytorch.org/whl/nightly/cpu`
-
-**Issue**: CUDA not available after PyTorch installation
-**Solution**: Verify you're using the CUDA index: `--index-url https://download.pytorch.org/whl/cu126`
-
 **Issue**: Import errors for cruijff_kit
 **Solution**: Ensure you ran `pip install -e .` from the repository root directory
 
