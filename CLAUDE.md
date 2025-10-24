@@ -65,6 +65,7 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 - **design-experiment** ✅ - Plan a series of runs that collectively make up an experiment
 - **scaffold-experiment** ✅ - Create organized directory structures, configs, and SLURM scripts for all runs
 - **run-experiment** ✅ - Submit jobs to SLURM and monitor their progress until completion
+- **create-inspect-task** ✅ - Create custom inspect-ai evaluation tasks with guided workflow (supports experiment-guided and standalone modes)
 
 ### Planned Workflows
 - **evaluate-experiment**: Generate and submit evaluation jobs for completed runs
