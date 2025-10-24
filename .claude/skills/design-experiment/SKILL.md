@@ -1,20 +1,39 @@
 # Design Experiment
 
-You help users plan experiments for fine-tuning and evaluating LLMs. Create a self-documenting plan that specifies all runs, verifies resources, and estimates compute requirements.
+You help users plan experiments for fine-tuning and evaluating LLMs. Create a self-documenting plan that specifies all runs, verifies resources, estimates compute requirements, and documents the complete workflow from training through evaluation.
 
 ## Your Task
 
 Guide the user through designing their experiment by asking questions, verifying resources, and creating a comprehensive `experiment_summary.md` file that documents the plan and tracks execution status.
 
+## Workflow Tools
+
+This skill documents a complete experimental workflow that uses:
+
+1. **Fine-tuning tool: torchtune**
+   - Used by: `scaffold-torchtune` and `run-torchtune` skills
+   - Generates: `finetune.yaml`, `finetune.slurm`
+   - Produces: Model checkpoints in `output_dir_base`
+
+2. **Evaluation tool: inspect-ai**
+   - Used by: `scaffold-inspect` and `run-inspect` skills
+   - Generates: `inspect.slurm` and/or inspect task scripts
+   - Produces: Evaluation logs (`.eval` files)
+
+3. **Analysis tool: (future)**
+   - Used by: `analyze-experiment` skill (planned)
+   - Produces: Comparison tables, plots, reports
+
 ## Workflow
 
 1. **Understand the experiment** - What variables are being tested? What's the scientific question?
 2. **Verify resources** - Do models, datasets, and eval scripts exist? (log all checks)
-3. **Establish naming** - Help choose a clear, descriptive name for the experiment
-4. **Estimate resources** - Calculate time and disk space from prior runs (log all calculations)
-5. **Create summary** - Write `experiment_summary.md` with complete plan and status tracking
-6. **Create log** - Write `design-experiment.log` with all verification steps and decisions
-7. **Get approval** - Review with user, adjust if needed
+3. **Plan evaluation** - What metrics, which epochs, what eval datasets/tasks?
+4. **Establish naming** - Help choose a clear, descriptive name for the experiment
+5. **Estimate resources** - Calculate time and disk space for BOTH training and evaluation (log all calculations)
+6. **Create summary** - Write `experiment_summary.md` with complete plan including evaluation workflow
+7. **Create log** - Write `design-experiment.log` with all verification steps and decisions
+8. **Get approval** - Review with user, adjust if needed
 
 ## Logging
 
@@ -126,10 +145,11 @@ The log enables:
 - Verify it exists and has required splits (train/validation/test)
 - Check size: `ls -lh {dataset_path}`
 
-**Evaluation tasks:**
+**Evaluation tasks (inspect-ai):**
 - Which evaluation tasks/benchmarks?
-- For each: script path, dataset path (if different), description
-- Verify scripts exist: `ls {eval_script_path}`
+- For each task: name, inspect-ai task script path, dataset path (if different from training), description
+- Does the task already exist or need to be created? (use `create-inspect-task` skill if needed)
+- Verify task scripts exist: `ls {eval_script_path}`
 
 ### 3. Training Configuration
 
@@ -144,7 +164,9 @@ The log enables:
 - Dataset packing - enabled by default, affects batch size
 - For help estimating: check `{scratch_dir}/*/slurm-*.out` for similar runs
 
-### 4. Evaluation Strategy
+### 4. Evaluation Strategy (inspect-ai)
+
+**Evaluation tool:** inspect-ai will be used for model evaluation after fine-tuning.
 
 **Which epochs to evaluate?**
 - Last epoch only (default, most efficient)
@@ -157,7 +179,17 @@ The log enables:
 - Selective (e.g., only large models on expensive evals)
 - If selective, create evaluation matrix
 
+**Evaluation datasets:**
+- Same as training dataset (typical for overfitting checks)
+- Different test set (typical for generalization evaluation)
+- Multiple evaluation datasets (comprehensive assessment)
+
 **Important:** Base models evaluate once per task (no epoch suffix), fine-tuned models evaluate per epoch.
+
+**Evaluation configuration:**
+- System prompt must match training for consistency
+- Temperature typically 0.0 for deterministic evaluation
+- Scorer selection (exact match, includes, model-graded, etc.)
 
 ### 5. Experiment Naming
 
@@ -433,11 +465,11 @@ Use this outline (adapt details based on user's experiment):
 - Monitor: `tail -f {path}/slurm-*.out`
 
 **Next Steps:**
-1. Create run directories and generate configs (manual or future tool)
-2. Submit fine-tuning jobs
-3. Monitor training progress
-4. Submit evaluation jobs after training
-5. Analyze results (manual or future tool)
+1. Run `scaffold-experiment` skill to generate all configs (torchtune + inspect-ai)
+2. Run `run-experiment` skill to execute the full workflow:
+   - Submits and monitors fine-tuning jobs (via `run-torchtune`)
+   - Submits and monitors evaluation jobs (via `run-inspect`)
+3. Run `analyze-experiment` skill to interpret results (planned)
 
 ## Notes
 {Any additional notes, assumptions, or considerations}
@@ -461,23 +493,29 @@ After creating `experiment_summary.md`:
 
 1. **Ask user for approval:**
    - "I've created the experiment plan at `{path}/experiment_summary.md`. Please review it."
-   - "Would you like me to help you proceed with creating the run configurations?"
+   - "Would you like me to proceed with scaffolding? I can run `scaffold-experiment` to generate all configs."
 
-2. **What comes next (manual for now):**
-   - User needs to create directories for each run
-   - Generate `setup_finetune.yaml` configs for each run
-   - Submit fine-tuning jobs to SLURM
-   - Update status tables as jobs progress
-   - Submit evaluation jobs after training
-   - Analyze results
+2. **Automated workflow (recommended):**
+   - Run `scaffold-experiment` skill to generate:
+     - Fine-tuning configs via `scaffold-torchtune` (finetune.yaml, finetune.slurm)
+     - Evaluation configs via `scaffold-inspect` (inspect.slurm, task scripts)
+   - Run `run-experiment` skill to execute:
+     - Fine-tuning via `run-torchtune` (submit jobs, monitor progress)
+     - Evaluation via `run-inspect` (submit jobs after training completes, monitor progress)
+   - Run `analyze-experiment` skill to interpret results (planned)
 
-**Note:** Future automation tools may handle directory creation, config generation, and job submission. For now, the summary serves as a clear roadmap for manual execution.
+3. **Manual workflow (if needed):**
+   - User can manually create directories and configs
+   - Follow the experiment plan as documented in experiment_summary.md
 
 ## Important Notes
 
 - Use paths from `claude.local.md` for models, datasets, scratch directories
 - Always verify resources exist before finalizing plan
 - Be conservative with estimates if no prior run data available
-- System prompt must be consistent between training and evaluation
+- **System prompt must be consistent between training and evaluation** (critical for inspect-ai)
 - Base models evaluate once (no epoch), fine-tuned models evaluate per epoch
-- Status tables will be manually updated as experiment progresses
+- Status tables track both fine-tuning and evaluation progress
+- Document which tool is used at each stage (torchtune for training, inspect-ai for evaluation)
+- Evaluation datasets may differ from training datasets (document clearly)
+- If inspect-ai task doesn't exist, note that `create-inspect-task` skill should be run first

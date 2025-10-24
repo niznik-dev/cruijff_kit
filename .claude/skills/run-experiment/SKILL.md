@@ -1,22 +1,23 @@
 # Run Experiment
 
-You help users submit all jobs for a scaffolded experiment and monitor their progress until completion.
+You help users execute the complete experimental workflow - fine-tuning followed by evaluation - for all runs in a scaffolded experiment.
 
 ## Your Task
 
-Submit SLURM jobs for all runs in an experiment directory (created by `scaffold-experiment`) and monitor their status with efficient polling until all jobs complete.
+Orchestrate the execution process by calling two sub-skills **sequentially**:
+1. `run-torchtune` - Submit and monitor fine-tuning jobs until completion
+2. `run-inspect` - Submit and monitor evaluation jobs until completion
+
+This ensures the entire experiment executes from training through evaluation with proper dependency management.
 
 ## Workflow
 
 1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
-2. **Read experiment_summary.md** - Parse to identify all runs
-3. **Identify runs to submit** - Find directories with `finetune.slurm` files
-4. **Submit jobs** - Execute `sbatch finetune.slurm` for each run and capture job IDs
-5. **Track submissions** - Record job IDs with their corresponding runs
-6. **Monitor jobs** - Poll `squeue` every minute to check status
-7. **Update status** - Keep experiment_summary.md status tables current
-8. **Create log** - Document all submissions and status checks in `run-experiment.log`
-9. **Report completion** - Notify user when all jobs reach terminal states
+2. **Verify scaffolding complete** - Ensure both fine-tuning and evaluation configs exist
+3. **Call run-torchtune skill** - Execute all fine-tuning jobs and wait for completion
+4. **Call run-inspect skill** - Execute all evaluation jobs after fine-tuning finishes
+5. **Create orchestration log** - Document the execution process in `run-experiment.log`
+6. **Report combined summary** - Show user complete status of both execution phases
 
 ## Finding the Experiment
 
@@ -27,128 +28,105 @@ Submit SLURM jobs for all runs in an experiment directory (created by `scaffold-
 **If user provides a path:**
 - Use that path as the experiment directory
 
-## Parsing experiment_summary.md
+## Verification Before Starting
 
-Extract the following information:
+Before beginning execution, verify:
 
-### Required Information
-
-1. **Experiment name** - From the title (line 1)
-2. **All runs** - From "All Runs" table
-3. **Run directories** - Infer from scaffolding pattern (e.g., `rank8_lr1e-5/`)
-
-## Identifying Runs to Submit
-
-Scan the experiment directory for subdirectories containing `finetune.slurm`:
-
-```bash
-for dir in */; do
-  if [ -f "$dir/finetune.slurm" ]; then
-    echo "Found run: $dir"
-  fi
-done
-```
-
-**Skip runs that are:**
-- Already submitted (check if job ID exists in status tracking)
-- Already completed (check SLURM output files)
-- Control runs (no fine-tuning needed)
-
-## Submitting Jobs
-
-For each run to submit:
-
-1. **Navigate to run directory:**
+1. **experiment_summary.md exists:**
    ```bash
-   cd {experiment_dir}/{run_directory}
+   ls {experiment_dir}/experiment_summary.md
    ```
+   If missing, suggest running `design-experiment` skill first.
 
-2. **Submit job and capture ID:**
+2. **Fine-tuning configs exist:**
    ```bash
-   job_id=$(sbatch finetune.slurm | awk '{print $4}')
+   ls {experiment_dir}/*/finetune.slurm
    ```
-   The output format is: "Submitted batch job 12345678"
-   Extract the job ID (last field)
+   If missing, suggest running `scaffold-experiment` or `scaffold-torchtune` first.
 
-3. **Record submission:**
-   - Job ID
-   - Run name
-   - Submission timestamp
-   - Initial status (PENDING)
+3. **Evaluation configs exist:**
+   ```bash
+   ls {experiment_dir}/*/eval/*.slurm
+   ```
+   If missing, warn user but can proceed with fine-tuning only.
 
-4. **Update experiment_summary.md:**
-   - Fill in Job ID column in status table
-   - Update Status to PENDING
-   - Add submission timestamp to Started column
+## Orchestration Steps
 
-5. **Stagger submissions:**
-   - Wait 5 seconds before submitting the next job
-   - This prevents race conditions in HuggingFace datasets cache initialization
-   - The delay is small enough to not significantly impact total experiment time
-   - Skip the delay after the last job submission
+### Step 1: Call run-torchtune (REQUIRED)
 
-## Monitoring Jobs
+Invoke the `run-torchtune` skill to execute fine-tuning.
 
-### Polling Strategy
+**What run-torchtune does:**
+- Submits all `finetune.slurm` jobs to SLURM
+- Monitors job progress with 1-minute polling
+- Updates experiment_summary.md status table
+- Creates `run-torchtune.log` with detailed execution log
+- Waits until ALL fine-tuning jobs reach terminal states
 
-**Interval:** Poll every 60 seconds (1 minute)
+**Expected duration:**
+- Depends on model size, dataset size, and epochs
+- Typical range: 30 minutes to several hours per run
+- Multiple runs execute in parallel
 
-**Query command:**
-```bash
-squeue -u $USER -o "%.18i %.9P %.50j %.8T %.10M %.6D"
+**If run-torchtune fails:**
+- Log the error in orchestration log
+- Ask user: "Fine-tuning failed. Do you want to proceed with evaluation anyway?"
+- If no, stop and report failure
+- If yes, evaluation will skip runs with missing checkpoints
+- Report the failure in final summary
+
+**Important:** This step MUST complete before evaluation starts.
+
+### Step 2: Call run-inspect (SEQUENTIAL)
+
+Invoke the `run-inspect` skill to execute evaluations.
+
+**⚠️ CRITICAL:** Only start after run-torchtune completes. Evaluation requires fine-tuned model checkpoints.
+
+**What run-inspect does:**
+- Verifies fine-tuning completed and checkpoints exist
+- Submits all evaluation SLURM jobs
+- Monitors job progress with 1-minute polling
+- Updates experiment_summary.md evaluations status table
+- Creates `run-inspect.log` with detailed execution log
+- Waits until ALL evaluation jobs reach terminal states
+
+**Expected duration:**
+- Typically faster than fine-tuning (5-10 minutes per evaluation)
+- Multiple evaluations execute in parallel
+
+**If run-inspect fails:**
+- Log the error in orchestration log
+- Fine-tuning results are still valid
+- Some analyses can proceed without evaluation
+- Report the failure in final summary
+
+## Sequential Execution
+
+**Key principle:** run-inspect MUST wait for run-torchtune to complete.
+
+**Why?**
+- Evaluation jobs need fine-tuned model checkpoints
+- Checkpoints are created during fine-tuning
+- Submitting evaluation too early → jobs fail with "model not found"
+
+**Implementation:**
+```
+1. Start run-torchtune
+2. Monitor until ALL fine-tuning jobs complete
+3. Only then start run-inspect
+4. Monitor until ALL evaluation jobs complete
+5. Report combined results
 ```
 
-This returns:
-- JOBID
-- PARTITION
-- NAME (job name)
-- STATE (PENDING, RUNNING, COMPLETED, FAILED, etc.)
-- TIME (elapsed time)
-- NODES
-
-**For completed jobs, use sacct:**
-```bash
-sacct -j {job_id} --format=JobID,State,Start,End,Elapsed
-```
-
-### Status Updates
-
-On each poll:
-
-1. **Query all user jobs at once** (not one by one)
-2. **Match job IDs** to runs in the experiment
-3. **Update status** for each run:
-   - If state changed, update experiment_summary.md
-   - Log the state change with timestamp
-4. **Detect completion:**
-   - COMPLETED: Job finished successfully
-   - FAILED: Job failed
-   - CANCELLED: Job was canceled
-   - TIMEOUT: Job exceeded time limit
-
-### Updating experiment_summary.md
-
-Update the "Fine-tuning" status table:
-
-```markdown
-| Run Name | Status | Job ID | Started | Completed | Notes |
-|----------|--------|--------|---------|-----------|-------|
-| rank8_lr1e-5 | RUNNING | 12345678 | 2025-10-23 00:05:32 | - | - |
-```
-
-**Status values:**
-- `pending` → PENDING (queued, waiting for resources)
-- `running` → RUNNING (actively executing)
-- `completed` → COMPLETED (finished successfully)
-- `failed` → FAILED (error occurred)
-
-**Timestamps:**
-- Started: When job transitioned from PENDING to RUNNING
-- Completed: When job reached terminal state
+**If user cancels during fine-tuning:**
+- Fine-tuning jobs continue running (SLURM jobs are independent)
+- User can resume with `run-torchtune` alone to monitor
+- Or re-run `run-experiment` to resume full workflow
 
 ## Logging
 
-Create a detailed log file at `{experiment_dir}/run-experiment.log`:
+Create an orchestration log at `{experiment_dir}/run-experiment.log` that records:
 
 ### Log Format
 
@@ -161,183 +139,259 @@ Result: {outcome}
 
 ### What to Log
 
-- Experiment discovery
-- Runs identified for submission
-- Each job submission (run name, job ID, timestamp)
-- Status checks (every poll - brief)
-- State changes (detailed - when status changes)
-- Completion detection
-- Final summary
+- Experiment discovery and validation
+- Scaffolding verification
+- Invocation of run-torchtune (timestamp, result, duration)
+- Fine-tuning completion status (successes/failures)
+- Invocation of run-inspect (timestamp, result, duration)
+- Evaluation completion status (successes/failures)
+- Any errors or warnings from sub-skills
+- Final combined status summary
+- Paths to results and individual skill logs
 
 ### Example Log Entries
 
 ```
-[2025-10-23 00:05:00] DISCOVER_EXPERIMENT: Found experiment
+[2025-10-24 00:00:00] DISCOVER_EXPERIMENT: Found experiment
 Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/experiment_summary.md
-Result: Experiment has 8 fine-tuning runs
+Result: Experiment ready for execution (8 runs, 8 evaluations)
 
-[2025-10-23 00:05:05] IDENTIFY_RUNS: Scanning for runs to submit
-Details: Found 8 directories with finetune.slurm files
-Result: 8 runs ready to submit (0 already running, 0 completed)
+[2025-10-24 00:00:05] VERIFY_SCAFFOLDING: Checking configs
+Details: finetune.slurm found in 8 directories, eval/*.slurm found in 8 directories
+Result: All scaffolding complete, ready to execute
 
-[2025-10-23 00:05:10] SUBMIT_JOB: rank8_lr1e-5
-Command: cd rank8_lr1e-5 && sbatch finetune.slurm
-Result: Job ID 12345678 submitted at 2025-10-23 00:05:10
+[2025-10-24 00:00:10] INVOKE_RUN_TORCHTUNE: Starting fine-tuning execution
+Details: Calling run-torchtune skill
+Result: Started at 2025-10-24 00:00:10
 
-[2025-10-23 00:05:15] SUBMIT_JOB: rank8_lr5e-5
-Command: cd rank8_lr5e-5 && sbatch finetune.slurm
-Result: Job ID 12345679 submitted at 2025-10-23 00:05:15
-Note: 5 second stagger delay to prevent cache collision
+[2025-10-24 00:25:00] RUN_TORCHTUNE_COMPLETE: Fine-tuning finished
+Details: 8 jobs completed - 8 COMPLETED, 0 FAILED
+Duration: 25m
+Result: See run-torchtune.log for detailed execution
+Model checkpoints: /scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-*/epoch_0/
 
-[2025-10-23 00:05:20] ALL_SUBMITTED: Job submission complete
-Summary: 8 jobs submitted successfully (0 failures)
-Job IDs: 12345678-12345685
+[2025-10-24 00:25:05] INVOKE_RUN_INSPECT: Starting evaluation execution
+Details: Calling run-inspect skill (sequential - after fine-tuning complete)
+Result: Started at 2025-10-24 00:25:05
 
-[2025-10-23 00:06:20] STATUS_CHECK: Polling SLURM
-Command: squeue -u niznik
-Result: 8 jobs found - 8 PENDING, 0 RUNNING, 0 COMPLETED
+[2025-10-24 00:40:00] RUN_INSPECT_COMPLETE: Evaluation finished
+Details: 8 evaluations completed - 8 COMPLETED, 0 FAILED
+Duration: 15m
+Result: See run-inspect.log for detailed execution
+Evaluation logs: {run_dir}/eval/logs/*.eval
 
-[2025-10-23 00:07:20] STATUS_CHECK: Polling SLURM
-Result: 8 jobs found - 6 PENDING, 2 RUNNING, 0 COMPLETED
-
-[2025-10-23 00:07:20] STATE_CHANGE: rank8_lr1e-5
-Previous: PENDING
-Current: RUNNING
-Started: 2025-10-23 00:07:15
-Action: Updated experiment_summary.md
-
-[2025-10-23 00:07:20] STATE_CHANGE: rank8_lr5e-5
-Previous: PENDING
-Current: RUNNING
-Started: 2025-10-23 00:07:18
-Action: Updated experiment_summary.md
-
-[2025-10-23 00:15:20] STATE_CHANGE: rank8_lr1e-5
-Previous: RUNNING
-Current: COMPLETED
-Completed: 2025-10-23 00:15:17
-Elapsed: 8m 2s
-Action: Updated experiment_summary.md
-
-[2025-10-23 00:25:00] ALL_COMPLETE: Monitoring finished
-Summary: 8 jobs completed - 8 COMPLETED, 0 FAILED
-Total time: 20 minutes
-Next: User can proceed with evaluation
-```
-
-## Output Summary
-
-After all jobs complete, provide a final summary:
-
-```markdown
-## Run Complete
-
-All 8 fine-tuning jobs have finished.
-
-### Final Status
-
-✓ COMPLETED: 8 runs
-  - rank8_lr1e-5 (Job 12345678) - 8m 2s
-  - rank8_lr5e-5 (Job 12345679) - 8m 15s
-  - rank16_lr1e-5 (Job 12345680) - 9m 1s
-  - rank16_lr5e-5 (Job 12345681) - 9m 12s
-  - rank32_lr1e-5 (Job 12345682) - 10m 45s
-  - rank32_lr5e-5 (Job 12345683) - 10m 58s
-  - rank64_lr1e-5 (Job 12345684) - 12m 3s
-  - rank64_lr5e-5 (Job 12345685) - 12m 18s
-
-✗ FAILED: 0 runs
-
-### Outputs
-
-Model checkpoints saved to:
-- `/scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-rank8_lr1e-5/epoch_0/`
-- `/scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-rank8_lr5e-5/epoch_0/`
-... (etc)
-
-SLURM logs available in each run directory:
-- `rank8_lr1e-5/slurm-12345678.out`
-- `rank8_lr5e-5/slurm-12345679.out`
-... (etc)
-
-### Next Steps
-
-1. Check SLURM logs for any warnings or errors
-2. Verify model checkpoints were created
-3. Proceed with evaluation using evaluate-experiment skill (when available)
-4. Analyze results
-
-See `run-experiment.log` for detailed execution history.
+[2025-10-24 00:40:05] COMPLETE: Experiment execution finished
+Summary: Full workflow completed successfully
+- Fine-tuning: 8/8 runs completed
+- Evaluation: 8/8 evaluations completed
+Total time: 40 minutes
+Next: User can view results with inspect view or run analyze-experiment skill (planned)
 ```
 
 ## Error Handling
 
-**If job submission fails:**
-- Log the error
-- Continue with remaining jobs
-- Report all failures at the end
+**If experiment_summary.md not found:**
+- Report error to user
+- Suggest running `design-experiment` skill first
+- Do not proceed
 
-**If monitoring fails:**
-- Log the error
-- Retry the query after next interval
-- If repeated failures, ask user to check SLURM status manually
+**If scaffolding incomplete:**
+- Check which parts are missing
+- If fine-tuning configs missing: Must run `scaffold-torchtune` first
+- If evaluation configs missing: Can proceed with fine-tuning only, warn user
 
-**If a job fails:**
-- Record the failure in status
-- Check SLURM output for error messages
-- Continue monitoring other jobs
-- Include failed jobs in final summary
+**If run-torchtune fails:**
+- Log the failure with details
+- Ask user: "Fine-tuning failed. Evaluation cannot proceed without trained models. Check run-torchtune.log and fix issues."
+- Do NOT proceed to evaluation
+- Report failure and stop
 
-## State Management
+**If run-inspect fails:**
+- Log the failure with details
+- Note that fine-tuning succeeded
+- User can still analyze fine-tuning metrics
+- Report partial success (fine-tuning done, evaluation failed)
 
-Track job states in memory during monitoring. Optionally create a `jobs.json` file for persistence:
+**If user cancels during execution:**
+- Note that SLURM jobs continue running
+- User can resume monitoring with individual skills (run-torchtune, run-inspect)
+- Or re-run run-experiment to resume
 
-```json
-{
-  "experiment": "cap_4L_lora_lr_sweep_2025-10-22",
-  "monitoring_started": "2025-10-23 00:05:20",
-  "jobs": {
-    "rank8_lr1e-5": {
-      "job_id": "12345678",
-      "status": "COMPLETED",
-      "submitted": "2025-10-23 00:05:10",
-      "started": "2025-10-23 00:07:15",
-      "completed": "2025-10-23 00:15:17",
-      "elapsed": "8m 2s"
-    }
-  }
-}
+## Output Summary
+
+After completing orchestration, provide a comprehensive summary:
+
+```markdown
+## Run Experiment Complete
+
+Successfully executed experiment:
+`/scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/`
+
+### Fine-Tuning Results (run-torchtune)
+
+✓ 8/8 runs completed successfully
+Duration: 25 minutes
+
+**Completed runs:**
+- rank8_lr1e-5 (8m 2s)
+- rank8_lr5e-5 (8m 15s)
+- rank16_lr1e-5 (9m 1s)
+- rank16_lr5e-5 (9m 12s)
+- rank32_lr1e-5 (10m 45s)
+- rank32_lr5e-5 (10m 58s)
+- rank64_lr1e-5 (12m 3s)
+- rank64_lr5e-5 (12m 18s)
+
+**Model checkpoints:**
+- `/scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-rank*/epoch_0/`
+
+### Evaluation Results (run-inspect)
+
+✓ 8/8 evaluations completed successfully
+Duration: 15 minutes
+
+**Completed evaluations:**
+- rank8_lr1e-5/capitalization/epoch0 (4m 52s)
+- rank8_lr5e-5/capitalization/epoch0 (5m 1s)
+- rank16_lr1e-5/capitalization/epoch0 (5m 15s)
+- rank16_lr5e-5/capitalization/epoch0 (5m 22s)
+- rank32_lr1e-5/capitalization/epoch0 (5m 45s)
+- rank32_lr5e-5/capitalization/epoch0 (5m 51s)
+- rank64_lr1e-5/capitalization/epoch0 (6m 8s)
+- rank64_lr5e-5/capitalization/epoch0 (6m 15s)
+
+**Evaluation logs:**
+- `rank*/eval/logs/*.eval`
+
+### Logs Created
+
+- `run-experiment.log` - Orchestration log (this process)
+- `run-torchtune.log` - Fine-tuning execution details
+- `run-inspect.log` - Evaluation execution details
+
+### Total Time
+
+**Complete workflow:** 40 minutes
+- Fine-tuning: 25 minutes
+- Evaluation: 15 minutes
+
+### Viewing Results
+
+**Interactive viewer (recommended):**
+```bash
+cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22
+inspect view --port=$(get_free_port)
 ```
+Then open the provided URL in your browser.
 
-## Efficient Polling
+**Training metrics:**
+- Check SLURM logs: `rank*/slurm-*.out`
+- Check WandB (if configured): https://wandb.ai/
 
-**Good practices:**
-- Query all jobs with one `squeue -u $USER` call
-- Poll every 60 seconds (not more frequently)
-- Use `sacct` for completed jobs (they disappear from `squeue`)
-- Stop polling when all jobs reach terminal states
+### Next Steps
 
-**Avoid:**
-- Querying jobs one by one
-- Polling faster than 60 seconds
-- Continuing to poll after all jobs complete
+1. **Analyze results:**
+   Run `analyze-experiment` skill to generate comparison tables and plots (planned)
+
+2. **Export evaluation data:**
+   ```bash
+   for dir in rank*/eval/logs; do
+     inspect log export $dir/*.eval --format csv >> all_results.csv
+   done
+   ```
+
+3. **Share findings:**
+   - Results are in experiment directory
+   - experiment_summary.md tracks all job IDs and status
+   - Logs provide full audit trail
+
+**Congratulations!** Your experiment workflow is complete.
+```
 
 ## Validation Before Completion
 
 Before reporting success, verify:
-- ✓ All jobs were submitted successfully
-- ✓ Job IDs were captured for all runs
-- ✓ experiment_summary.md was updated with all job info
-- ✓ All jobs reached terminal states (COMPLETED, FAILED, CANCELLED, TIMEOUT)
-- ✓ Final status summary is accurate
-- ✓ Log file was created
+- ✓ experiment_summary.md was found and read
+- ✓ Scaffolding was verified before starting
+- ✓ run-torchtune was invoked (check for log file)
+- ✓ run-torchtune completed (all jobs reached terminal states)
+- ✓ run-inspect was invoked (check for log file)
+- ✓ run-inspect completed (all jobs reached terminal states)
+- ✓ Model checkpoints exist
+- ✓ Evaluation logs exist
+- ✓ Orchestration log was created
+- ✓ Both sub-skill logs exist
 
 ## Important Notes
 
-- Only submit "Fine-tuned" runs, not "Control" runs (controls don't need SLURM jobs)
-- Jobs run independently - one failing doesn't stop others
-- Users can safely stop monitoring without canceling jobs (jobs keep running)
-- Monitoring can be resumed later by re-running the skill
-- Update experiment_summary.md atomically to avoid corruption
-- Always use `squeue -u $USER` to filter to just user's jobs
-- Poll interval: 60 seconds (1 minute)
+### Orchestration Principles
+
+- This skill **orchestrates** rather than implements - it calls other skills
+- Each sub-skill maintains its own detailed log
+- The orchestration log tracks high-level flow and timing
+- **Sequential execution is critical** - evaluation requires fine-tuning to complete first
+- Sub-skills can be run independently if needed (e.g., re-run just evaluation)
+- Partial success is acceptable (e.g., fine-tuning succeeds but evaluation fails)
+
+### Execution Order
+
+1. **run-torchtune first** - Trains models and creates checkpoints
+2. **Wait for completion** - ALL fine-tuning jobs must finish
+3. **run-inspect second** - Evaluates trained models
+4. **Wait for completion** - ALL evaluation jobs must finish
+
+This order is **mandatory** - evaluation cannot proceed without trained models.
+
+### Relationship to Other Skills
+
+**Before this skill:**
+- `design-experiment` creates experiment_summary.md
+- `scaffold-experiment` generates configs (calls `scaffold-torchtune` and `scaffold-inspect`)
+
+**After this skill:**
+- `analyze-experiment` interprets results (planned)
+
+**Can be run standalone:**
+- `run-torchtune` - Just execute fine-tuning
+- `run-inspect` - Just execute evaluation (requires fine-tuning complete)
+
+### Time Management
+
+**Typical timeline:**
+- Design: 10-30 minutes (interactive with user)
+- Scaffold: 2-5 minutes (automated)
+- Execute (this skill): 30 minutes to several hours
+  - Fine-tuning: Most of the time (model and data dependent)
+  - Evaluation: Typically 5-15 minutes
+- Analysis: 5-10 minutes (planned)
+
+**Long-running experiments:**
+- If experiments take hours, user doesn't need to stay connected
+- SLURM jobs run independently
+- Can resume monitoring later
+- experiment_summary.md tracks all job IDs
+
+### Error Recovery
+
+If execution fails:
+1. Check individual skill logs (run-torchtune.log, run-inspect.log)
+2. Check SLURM logs in run directories
+3. Fix the issue (e.g., out of disk space, model path incorrect)
+4. Re-run this skill (will skip completed jobs)
+5. Or run individual sub-skills directly (run-torchtune, run-inspect)
+
+### Resumability
+
+- Re-running run-experiment is safe
+- Sub-skills check for already-completed jobs
+- Won't re-submit jobs that finished successfully
+- Useful if monitoring was interrupted
+
+## Future Enhancements
+
+Potential additions:
+- Dry-run mode (validate without submitting jobs)
+- Selective execution (only certain runs)
+- Conditional evaluation (only evaluate successful fine-tuning runs)
+- Email notifications on completion
+- Integration with analyze-experiment (auto-run analysis after completion)
