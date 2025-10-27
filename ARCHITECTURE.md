@@ -20,9 +20,14 @@ cruijff_kit/
 │   ├── torchtune/      # Fine-tuning setup and custom recipes
 │   └── inspect/        # Evaluation setup
 │
-├── tasks/              # Real-world research tasks
+├── experiments/        # Research experiment types
 │   ├── capitalization/ # Generalization test with word capitalization
-│   └── synthetic_twins/# Social science twin prediction task
+│   │   ├── cap_task.py # Inspect-ai evaluation task
+│   │   ├── input/      # Dataset generation
+│   │   └── templates/  # Fine-tuning configs
+│   └── synthetic_twins/# Social science twin prediction experiment
+│       ├── twins_task.py # Inspect-ai evaluation task
+│       └── ...
 │
 ├── tests/              # Synthetic validation tests
 │   ├── bit_sequences/  # Bit parity tests
@@ -142,25 +147,25 @@ Finetuned model checkpoint → setup_inspect.py → inspect.slurm
   - Can evaluate base model or finetuned model
   - Points to task-specific `run_inspect.py`
 
-- Task-specific `run_inspect.py` files (e.g., `tasks/capitalization/run_inspect.py`)
+- Experiment-specific inspect-ai task files (e.g., `experiments/capitalization/cap_task.py`)
   - Define evaluation prompts and scoring
   - Use inspect-ai framework
 
-## Tasks vs Tests
+## Experiments vs Tests
 
-### Tasks (`tasks/`)
-Real research projects with scientific questions:
+### Experiments (`experiments/`)
+Real research experiment types with scientific questions:
 
 - **capitalization**: Tests generalization by training on 5-letter words and evaluating on other lengths
 - **synthetic_twins**: Predicts twin characteristics from synthetic social science data
 
-Each task typically includes:
-- `README.md` - Task-specific instructions
+Each experiment typically includes:
+- `README.md` - Experiment-specific instructions
 - `setup_finetune.yaml` - Configuration template
 - `templates/` - YAML templates for different dataset formats
 - `input/` - Data generation or preprocessing scripts
-- `utils/` - Task-specific helper functions
-- `run_inspect.py` - Evaluation script
+- `utils/` - Experiment-specific helper functions
+- `{name}_task.py` - Inspect-ai evaluation task (e.g., `cap_task.py`)
 
 ### Tests (`tests/`)
 Synthetic validation tests with known ground truth:
@@ -320,9 +325,9 @@ cruijff_kit supports two workflows:
 **Recommended when using Claude Code:**
 
 1. **Design:** Use `design-experiment` skill to create experiment plan (`experiment_summary.md`)
-2. **Scaffold:** Use `scaffold-experiment` skill to generate all run directories and configs
-3. **Execute:** Use `run-experiment` skill to submit jobs and monitor progress
-4. **Evaluate:** (Planned) Use `evaluate-experiment` skill for evaluation
+2. **Scaffold:** Use `scaffold-experiment` skill to generate all run directories and configs (fine-tuning and evaluation)
+3. **Execute:** Use `run-experiment` skill to run fine-tuning and evaluation (includes both torchtune and inspect-ai)
+4. **Analyze:** (Planned) Use `analyze-experiment` skill to analyze results and generate reports
 
 **Benefits:**
 - Automated setup for multi-run experiments
@@ -330,11 +335,13 @@ cruijff_kit supports two workflows:
 - Progress tracking and status updates
 - Built-in safety (stagger delays prevent cache collisions)
 
+**Implementation Note:** The workflow skills above are orchestrators that delegate to specialized worker skills: `scaffold-experiment` calls `scaffold-torchtune` and `scaffold-inspect`, while `run-experiment` calls `run-torchtune` and `run-inspect`. Worker skills can also be invoked independently for targeted operations. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for details.
+
 #### Manual Workflow (without Claude Code)
 
 **For single runs:**
 
-1. Navigate to task directory: `cd tasks/capitalization/`
+1. Navigate to experiment directory: `cd experiments/capitalization/`
 2. Copy and edit config: `cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml`
 3. Generate scripts: `python ../../tools/torchtune/setup_finetune.py`
 4. Submit job: `sbatch finetune.slurm`
@@ -350,14 +357,14 @@ cruijff_kit supports two workflows:
 
 **Note:** The 5-second sleep prevents HuggingFace datasets cache race conditions when multiple jobs initialize simultaneously.
 
-### Adding a New Task
+### Adding a New Experiment Type
 
-1. Create directory under `tasks/`
-2. Add `README.md` with task description
+1. Create directory under `experiments/`
+2. Add `README.md` with experiment description
 3. Create `setup_finetune.yaml` from template
 4. Add data generation scripts to `input/`
-5. Create task-specific `run_inspect.py` for evaluation
-6. Document the workflow in task README
+5. Create inspect-ai evaluation task (e.g., `{name}_task.py`) using `create-inspect-task` skill
+6. Document the workflow in experiment README
 
 ### Using Utilities
 

@@ -1,20 +1,40 @@
 # Design Experiment
 
-You help users plan experiments for fine-tuning and evaluating LLMs. Create a self-documenting plan that specifies all runs, verifies resources, and estimates compute requirements.
+You help users plan experiments for fine-tuning and evaluating LLMs. Create a self-documenting plan that specifies all runs, verifies resources, estimates compute requirements, and documents the complete workflow from training through evaluation.
 
 ## Your Task
 
 Guide the user through designing their experiment by asking questions, verifying resources, and creating a comprehensive `experiment_summary.md` file that documents the plan and tracks execution status.
 
+## Workflow Tools
+
+This skill documents a complete experimental workflow that uses:
+
+1. **Model preparation: torchtune (current)**
+   - Used by: `scaffold-torchtune` and `run-torchtune` skills
+   - Generates: `finetune.yaml`, `finetune.slurm`
+   - Produces: Model checkpoints in `output_dir_base`
+
+2. **Evaluation: inspect-ai (current)**
+   - Used by: `scaffold-inspect` and `run-inspect` skills
+   - Generates: `inspect.slurm` and/or inspect task scripts
+   - Produces: Evaluation logs (`.eval` files)
+
+3. **Analysis: (future)**
+   - Used by: `analyze-experiment` skill (planned)
+   - Produces: Comparison tables, plots, reports
+
 ## Workflow
 
 1. **Understand the experiment** - What variables are being tested? What's the scientific question?
-2. **Verify resources** - Do models, datasets, and eval scripts exist? (log all checks)
-3. **Establish naming** - Help choose a clear, descriptive name for the experiment
-4. **Estimate resources** - Calculate time and disk space from prior runs (log all calculations)
-5. **Create summary** - Write `experiment_summary.md` with complete plan and status tracking
-6. **Create log** - Write `design-experiment.log` with all verification steps and decisions
-7. **Get approval** - Review with user, adjust if needed
+2. **Confirm tool choices** - Ask which preparation and evaluation tools to use (currently only torchtune and inspect-ai)
+3. **Verify resources** - Do models, datasets, and eval scripts exist? (log all checks)
+4. **Plan evaluation** - What metrics, which epochs, what eval datasets/tasks?
+5. **Establish naming** - Help choose a clear, descriptive name for the experiment
+6. **Estimate resources** - Calculate time and disk space for BOTH training and evaluation (log all calculations)
+7. **Create summary** - Write `experiment_summary.md` with complete plan including tool choices and evaluation workflow
+8. **Create log** - Write `design-experiment.log` with all verification steps and decisions
+9. **Get approval** - Review with user, adjust if needed
 
 ## Logging
 
@@ -52,7 +72,7 @@ Result: Directory exists with 15 files (config.json, model.safetensors, etc.)
 Explanation: Verifying base model exists before creating experiment plan
 
 [2025-10-22 14:23:42] VERIFY_DATASET: Checking capitalization dataset
-Command: ls -lh /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tasks/capitalization/input/words_8L_80P_10000.json
+Command: ls -lh /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/capitalization/input/words_8L_80P_10000.json
 Result: File exists, 655KB
 Explanation: Verifying training dataset exists and checking size
 
@@ -103,7 +123,21 @@ The log enables:
 
 ## Questions to Ask
 
-### 1. Experiment Design
+### 1. Tool Selection
+
+**Which tools will you use for this experiment?**
+
+**Model preparation:**
+- torchtune (currently the only option)
+- *Future:* Other fine-tuning frameworks may be supported
+
+**Evaluation:**
+- inspect-ai (currently the only option)
+- *Future:* Other evaluation frameworks may be supported
+
+**Note:** While these are currently the only options, explicitly confirming and documenting tool choices now will make it easier to support multiple tools in future iterations.
+
+### 2. Experiment Design
 
 **What do you want to test?**
 - Different model sizes? (e.g., 1B, 3B, 8B)
@@ -115,7 +149,7 @@ The log enables:
 **Should we include base model controls?**
 - Controls evaluate base models without fine-tuning to measure the effect of fine-tuning
 
-### 2. Resources (use `claude.local.md` for defaults)
+### 3. Resources (use `claude.local.md` for defaults)
 
 **Models:**
 - Which models? (check `{models_dir}` from `claude.local.md`)
@@ -126,12 +160,13 @@ The log enables:
 - Verify it exists and has required splits (train/validation/test)
 - Check size: `ls -lh {dataset_path}`
 
-**Evaluation tasks:**
+**Evaluation tasks (inspect-ai):**
 - Which evaluation tasks/benchmarks?
-- For each: script path, dataset path (if different), description
-- Verify scripts exist: `ls {eval_script_path}`
+- For each task: name, inspect-ai task script path, dataset path (if different from training), description
+- Does the task already exist or need to be created? (use `create-inspect-task` skill if needed)
+- Verify task scripts exist: `ls {eval_script_path}`
 
-### 3. Training Configuration
+### 4. Training Configuration
 
 **Basic settings:**
 - How many epochs? (default: 1-2)
@@ -144,7 +179,9 @@ The log enables:
 - Dataset packing - enabled by default, affects batch size
 - For help estimating: check `{scratch_dir}/*/slurm-*.out` for similar runs
 
-### 4. Evaluation Strategy
+### 5. Evaluation Strategy (inspect-ai)
+
+**Evaluation tool:** inspect-ai will be used for model evaluation after fine-tuning.
 
 **Which epochs to evaluate?**
 - Last epoch only (default, most efficient)
@@ -157,9 +194,19 @@ The log enables:
 - Selective (e.g., only large models on expensive evals)
 - If selective, create evaluation matrix
 
+**Evaluation datasets:**
+- Same as training dataset (typical for overfitting checks)
+- Different test set (typical for generalization evaluation)
+- Multiple evaluation datasets (comprehensive assessment)
+
 **Important:** Base models evaluate once per task (no epoch suffix), fine-tuned models evaluate per epoch.
 
-### 5. Experiment Naming
+**Evaluation configuration:**
+- System prompt must match training for consistency
+- Temperature typically 0.0 for deterministic evaluation
+- Scorer selection (exact match, includes, model-graded, etc.)
+
+### 6. Experiment Naming
 
 Help the user choose a descriptive experiment name that includes:
 - Task/dataset indicator (e.g., `cap_8L` for capitalization 8-letter)
@@ -267,14 +314,15 @@ Create a comprehensive document in `{experiment_name}/experiment_summary.md` wit
 ### Required Sections
 
 1. **Overview** - Experiment type, total runs, scientific question, created date
-2. **Variables** - Table of factors and levels being tested
-3. **All Runs** - Complete table with run names, configurations, estimated time
-4. **Resources** - Verified paths to models, datasets, eval scripts
-5. **Evaluation Plan** - Which tasks, which runs, which epochs
-6. **Configuration** - Recipe, epochs, batch sizes, hyperparameters, system prompt
-7. **Compute Estimates** - Training time, eval time, disk space, GPU hours
-8. **Naming Conventions** - How runs are named and organized
-9. **Status Tracking** - Embedded status for each run and evaluation
+2. **Tools** - Which preparation and evaluation tools are used
+3. **Variables** - Table of factors and levels being tested
+4. **All Runs** - Complete table with run names, configurations, estimated time
+5. **Resources** - Verified paths to models, datasets, eval scripts
+6. **Evaluation Plan** - Which tasks, which runs, which epochs
+7. **Configuration** - Recipe, epochs, batch sizes, hyperparameters, system prompt
+8. **Compute Estimates** - Training time, eval time, disk space, GPU hours
+9. **Naming Conventions** - How runs are named and organized
+10. **Status Tracking** - Embedded status for each run and evaluation
 
 ### Status Tracking Format
 
@@ -336,6 +384,22 @@ Use this outline (adapt details based on user's experiment):
 - **Total Runs:** {count} ({finetuned} fine-tuned + {control} controls)
 - **Scientific Question:** {research_question}
 - **Created:** {timestamp}
+
+## Tools
+
+This experiment uses the following tools:
+
+- **Model Preparation:** torchtune
+  - *Current status:* Only option available
+  - *Purpose:* Fine-tuning LLMs with LoRA
+  - *Used by:* `scaffold-torchtune` and `run-torchtune` skills
+
+- **Evaluation:** inspect-ai
+  - *Current status:* Only option available
+  - *Purpose:* Evaluating LLMs on custom tasks
+  - *Used by:* `scaffold-inspect` and `run-inspect` skills
+
+*Note:* Future iterations of cruijff_kit may support additional preparation and evaluation frameworks. Tool choices are documented here to facilitate that transition.
 
 ## Variables
 | Factor | Levels |
@@ -433,11 +497,11 @@ Use this outline (adapt details based on user's experiment):
 - Monitor: `tail -f {path}/slurm-*.out`
 
 **Next Steps:**
-1. Create run directories and generate configs (manual or future tool)
-2. Submit fine-tuning jobs
-3. Monitor training progress
-4. Submit evaluation jobs after training
-5. Analyze results (manual or future tool)
+1. Run `scaffold-experiment` skill to generate all configs (torchtune + inspect-ai)
+2. Run `run-experiment` skill to execute the full workflow:
+   - Submits and monitors fine-tuning jobs (via `run-torchtune`)
+   - Submits and monitors evaluation jobs (via `run-inspect`)
+3. Run `analyze-experiment` skill to interpret results (planned)
 
 ## Notes
 {Any additional notes, assumptions, or considerations}
@@ -461,23 +525,29 @@ After creating `experiment_summary.md`:
 
 1. **Ask user for approval:**
    - "I've created the experiment plan at `{path}/experiment_summary.md`. Please review it."
-   - "Would you like me to help you proceed with creating the run configurations?"
+   - "Would you like me to proceed with scaffolding? I can run `scaffold-experiment` to generate all configs."
 
-2. **What comes next (manual for now):**
-   - User needs to create directories for each run
-   - Generate `setup_finetune.yaml` configs for each run
-   - Submit fine-tuning jobs to SLURM
-   - Update status tables as jobs progress
-   - Submit evaluation jobs after training
-   - Analyze results
+2. **Automated workflow (recommended):**
+   - Run `scaffold-experiment` skill to generate:
+     - Fine-tuning configs via `scaffold-torchtune` (finetune.yaml, finetune.slurm)
+     - Evaluation configs via `scaffold-inspect` (inspect.slurm, task scripts)
+   - Run `run-experiment` skill to execute:
+     - Fine-tuning via `run-torchtune` (submit jobs, monitor progress)
+     - Evaluation via `run-inspect` (submit jobs after training completes, monitor progress)
+   - Run `analyze-experiment` skill to interpret results (planned)
 
-**Note:** Future automation tools may handle directory creation, config generation, and job submission. For now, the summary serves as a clear roadmap for manual execution.
+3. **Manual workflow (if needed):**
+   - User can manually create directories and configs
+   - Follow the experiment plan as documented in experiment_summary.md
 
 ## Important Notes
 
 - Use paths from `claude.local.md` for models, datasets, scratch directories
 - Always verify resources exist before finalizing plan
 - Be conservative with estimates if no prior run data available
-- System prompt must be consistent between training and evaluation
+- **System prompt must be consistent between training and evaluation** (critical for inspect-ai)
 - Base models evaluate once (no epoch), fine-tuned models evaluate per epoch
-- Status tables will be manually updated as experiment progresses
+- Status tables track both fine-tuning and evaluation progress
+- Document which tool is used at each stage (torchtune for training, inspect-ai for evaluation)
+- Evaluation datasets may differ from training datasets (document clearly)
+- If inspect-ai task doesn't exist, note that `create-inspect-task` skill should be run first

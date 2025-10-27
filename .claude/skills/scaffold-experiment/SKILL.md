@@ -1,24 +1,33 @@
 # Scaffold Experiment
 
-You help users automatically set up the directory structure, configuration files, and SLURM scripts for all runs in a designed experiment.
+You help users automatically set up the complete experimental infrastructure - both fine-tuning and evaluation configurations - for all runs in a designed experiment.
 
 ## Your Task
 
-Read an `experiment_summary.md` file created by the `design-experiment` skill and generate all the necessary files and directories so that runs are ready to submit to SLURM.
+Orchestrate the scaffolding process by reading tool specifications from experiment_summary.md and calling the appropriate sub-skills:
+
+1. Read experiment_summary.md to identify which tools are being used
+2. Call the appropriate preparation skill (currently only `scaffold-torchtune`)
+3. Call the appropriate evaluation skill (currently only `scaffold-inspect`)
+
+This ensures the entire experiment is ready to execute from training through evaluation.
+
+**Current tool support:**
+- **Preparation:** torchtune only (via `scaffold-torchtune`)
+- **Evaluation:** inspect-ai only (via `scaffold-inspect`)
+
+**Future tool support:** This orchestrator is designed to route to different worker skills based on tool choices documented in experiment_summary.md. Future iterations may support additional frameworks.
 
 ## Workflow
 
 1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
-2. **Read experiment_summary.md** - Parse the experiment plan to extract run configurations
-3. **Read claude.local.md** - Get environment-specific settings (conda env, output dirs, etc.)
-4. **Identify varying parameters** - Determine which parameters change across runs (for directory naming)
-5. **For each run:**
-   - Create run directory with descriptive name
-   - Generate `setup_finetune.yaml` from appropriate template
-   - Execute `setup_finetune.py` to generate `finetune.yaml` and `finetune.slurm`
-   - Verify outputs and report status
-6. **Create scaffold log** - Document all actions taken
-7. **Report summary** - Show user what was created and any issues
+2. **Verify experiment_summary.md exists** - Ensure design phase is complete
+3. **Read tool specifications** - Parse experiment_summary.md to identify preparation and evaluation tools
+4. **Validate tool support** - Ensure the specified tools have corresponding worker skills
+5. **Call preparation skill** - Generate fine-tuning configurations (currently `scaffold-torchtune` for torchtune)
+6. **Call evaluation skill** - Generate evaluation configurations (currently `scaffold-inspect` for inspect-ai)
+7. **Create orchestration log** - Document the scaffolding process in `scaffold-experiment.log`
+8. **Report combined summary** - Show user complete status of both scaffolding phases
 
 ## Finding the Experiment
 
@@ -29,228 +38,139 @@ Read an `experiment_summary.md` file created by the `design-experiment` skill an
 **If user provides a path:**
 - Use that path as the experiment directory
 
-## Parsing experiment_summary.md
+## Verification Before Starting
 
-Extract the following information:
+Before beginning scaffolding, verify:
 
-### Required Information
+1. **experiment_summary.md exists:**
+   ```bash
+   ls {experiment_dir}/experiment_summary.md
+   ```
+   If missing, suggest running `design-experiment` skill first.
 
-1. **Experiment name** - From the title (line 1)
-2. **Experiment directory** - From Quick Reference → Paths → Experiment
-3. **All runs table** - Extract run names and their parameters
-4. **Model path** - From Resources → Models
-5. **Dataset path** - From Resources → Dataset
-6. **Common configuration:**
-   - Epochs (from Configuration section)
-   - GPUs (from Configuration section)
-   - Batch size (from Configuration section or run table)
-   - LoRA ranks (from run table)
-   - Learning rates (from run table if present)
-   - System prompt (from Configuration section)
-   - Validation during training (from Configuration section)
+2. **claude.local.md exists:**
+   ```bash
+   ls ~/.claude/claude.local.md
+   # or
+   ls {working_dir}/claude.local.md
+   ```
+   If missing, warn user that environment-specific settings may be missing.
 
-### Parsing the "All Runs" Table
+3. **Experiment is ready for scaffolding:**
+   - Has run configurations defined
+   - Has evaluation tasks specified
+   - Resources verified
 
-The table format looks like:
+## Reading Tool Specifications
+
+After verifying experiment_summary.md exists, read the "Tools" section to identify which frameworks are being used:
+
+**Expected format in experiment_summary.md:**
 ```markdown
-| Run Name | Model | LoRA Rank | Learning Rate | Batch Size | Type | Est. Time |
-|----------|-------|-----------|---------------|------------|------|-----------|
-| Llama-3.2-1B-Instruct_rank8_lr1e-5 | Llama-3.2-1B-Instruct | 8 | 1e-5 | 4 | Fine-tuned | ~10s |
-| Llama-3.2-1B-Instruct_base | Llama-3.2-1B-Instruct | - | - | - | Control | N/A |
+## Tools
+
+This experiment uses the following tools:
+
+- **Model Preparation:** torchtune
+  - *Current status:* Only option available
+  - *Purpose:* Fine-tuning LLMs with LoRA
+  - *Used by:* `scaffold-torchtune` and `run-torchtune` skills
+
+- **Evaluation:** inspect-ai
+  - *Current status:* Only option available
+  - *Purpose:* Evaluating LLMs on custom tasks
+  - *Used by:* `scaffold-inspect` and `run-inspect` skills
 ```
 
-**Important:**
-- Only process runs where `Type` = "Fine-tuned" (skip control runs)
-- Extract parameters from table columns
-- Parameters with `-` are not applicable (like control runs)
+**Parsing logic:**
+1. Look for "Model Preparation:" line and extract the tool name (e.g., "torchtune")
+2. Look for "Evaluation:" line and extract the tool name (e.g., "inspect-ai")
 
-## Determining Directory Names
+**Tool to skill mapping:**
+- `torchtune` → `scaffold-torchtune`
+- `inspect-ai` → `scaffold-inspect`
 
-**Goal:** Directory names should only include parameters that vary across runs.
+**Error handling:**
+- If "Tools" section is missing: Assume torchtune + inspect-ai (backward compatibility with older experiment summaries)
+- If tool name is not recognized: Report error and list supported tools
+- If experiment_summary.md format is unexpected: Report parsing error with details
 
-**Algorithm:**
-1. For each parameter in the table (LoRA Rank, Learning Rate, Batch Size, etc.), check if it has different values across runs
-2. Include only varying parameters in directory names
-3. Use a consistent naming pattern: `{param1}{value1}_{param2}{value2}`
-
-**Examples:**
-
-Experiment varying LoRA rank and learning rate:
-- `rank8_lr1e-5/`
-- `rank16_lr5e-5/`
-- `rank32_lr1e-5/`
-
-Experiment varying only LoRA rank:
-- `rank8/`
-- `rank16/`
-- `rank32/`
-
-Experiment varying model and LoRA rank:
-- `Llama-3.2-1B_rank8/`
-- `Llama-3.2-3B_rank16/`
-
-**Parameter name abbreviations:**
-- LoRA Rank → `rank`
-- Learning Rate → `lr`
-- Batch Size → `bs`
-- Model → use short model name (e.g., `Llama-3.2-1B`)
-
-## Reading claude.local.md
-
-Extract environment-specific settings:
-- `conda_env` - Which conda environment to use
-- `output_dir_base` - Where to write model checkpoints
-- `my_wandb_project` - WandB project name
-- `scratch_dir` - User's scratch directory
-- `account` - SLURM account to use (under "SLURM Defaults" section) - **OPTIONAL**: only needed if user has multiple accounts and cluster requires explicit specification. If not found in claude.local.md, skip this field.
-
-## Generating setup_finetune.yaml
-
-For each run, create a `setup_finetune.yaml` file by:
-
-1. **Select appropriate template** based on dataset format:
-   - Check dataset path extension in experiment_summary.md
-   - If `.json` → use `tasks/capitalization/templates/finetuning/setup_finetune_json.yaml`
-   - If `.parquet` → use `tasks/capitalization/templates/finetuning/setup_finetune_parquet.yaml`
-
-2. **Extract dataset information from experiment_summary.md:**
-   - Dataset path from Resources → Dataset → Path
-   - Extract `dataset_label` from filename (e.g., `words_4L_80P_300.json` → `words_4L_80P_300`)
-   - Extract `dataset_ext` from filename (e.g., `.json` or `.parquet`)
-   - Dataset location: use `input_dir_base` from template, set `input_formatting: ''` (empty string)
-
-3. **Populate template with run-specific values:**
-
-```yaml
-# Run identification
-my_wandb_project: {from claude.local.md, or use experiment-level project name}
-my_wandb_run_name: {directory_name, e.g., "rank8_lr1e-5"}
-
-# Directory Configuration (for dataset path construction)
-input_dir_base: {parent directory of dataset from experiment_summary}
-input_formatting: ''  # Usually empty string
-
-# Dataset Configuration
-dataset_label: {extracted from dataset filename, e.g., "words_4L_80P_300"}
-dataset_ext: {extracted from dataset filename, e.g., ".json"}
-
-# Model Configuration
-model_checkpoint: {from experiment_summary.md Resources → Models}
-
-# Hyperparameters (run-specific)
-lora_rank: {from run table}
-learning_rate: {from run table, format as 1e-5 or 5e-5}
-batch_size: {from run table or common config}
-
-# Training configuration (common across runs)
-epochs: {from experiment_summary.md Configuration}
-log_every_n_steps: {use template default, typically 1}
-run_val_every_n_steps: {use template default, typically 0}
-
-# Checkpoint Options
-stash_adapter_weights: 'true'  # From template default
-
-# Output configuration
-output_dir_base: {from claude.local.md}
-conda_env: {from claude.local.md}
-
-# SLURM configuration (optional - only if specified in claude.local.md)
-account: {from claude.local.md SLURM Defaults, if present}
-
-# System prompt (if specified)
-system_prompt: {from experiment_summary.md Configuration, often empty string ""}
-
-# Custom Recipe
-custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_v1}
+**Logging:**
+```
+[2025-10-27 14:30:00] READ_TOOL_SPECS: Parsing experiment_summary.md
+Details: Found Tools section
+Result: Preparation=torchtune, Evaluation=inspect-ai
+Explanation: Will call scaffold-torchtune and scaffold-inspect
 ```
 
-4. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
+## Orchestration Steps
 
-**Important notes:**
-- Use absolute paths for robustness (e.g., `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/...`) rather than relative paths
-- WandB project: Prefer using `my_wandb_project` from `claude.local.md` for consistency
-- Learning rate format: Keep scientific notation format from experiment summary (1e-5, 5e-5, etc.)
+### Step 1: Call Preparation Skill
 
-## Running setup_finetune.py
+Invoke the appropriate preparation skill based on tool specification in experiment_summary.md. Currently, this will be `scaffold-torchtune` for torchtune.
 
-For each run directory:
+**What scaffold-torchtune does:**
+- Creates run directories (e.g., `rank8_lr1e-5/`, `rank16_lr5e-5/`)
+- Generates `setup_finetune.yaml` for each run
+- Executes `setup_finetune.py` to create `finetune.yaml` and `finetune.slurm`
+- Creates `scaffold-torchtune.log` with detailed process log
 
-1. **Activate conda environment (CRITICAL):**
-   ```bash
-   module load anaconda3/2025.6
-   conda activate cruijff
-   ```
-   **Important:** The script will fail with `ModuleNotFoundError: No module named 'cruijff_kit'` if the conda environment is not activated first.
-
-2. **Navigate to run directory:**
-   ```bash
-   cd {experiment_dir}/{run_directory_name}
-   ```
-
-3. **Execute setup script:**
-   ```bash
-   python /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tools/torchtune/setup_finetune.py
-   ```
-   **Note:** Use absolute path to setup_finetune.py for robustness. Adjust based on actual cruijff_kit location.
-
-4. **Verify outputs exist:**
-   - `finetune.yaml` should be created
-   - `finetune.slurm` should be created
-
-5. **Capture any errors** and report them
-
-**Example batch execution for all runs:**
-```bash
-module load anaconda3/2025.6
-conda activate cruijff
-cd {experiment_dir}
-for dir in rank*/; do
-  echo "Processing $dir..."
-  (cd "$dir" && python /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tools/torchtune/setup_finetune.py)
-  echo "✓ $dir complete"
-done
+**Expected output structure:**
+```
+{experiment_dir}/
+├── rank8_lr1e-5/
+│   ├── setup_finetune.yaml
+│   ├── finetune.yaml
+│   ├── finetune.slurm
+├── rank16_lr5e-5/
+│   ├── setup_finetune.yaml
+│   ├── finetune.yaml
+│   ├── finetune.slurm
+└── scaffold-torchtune.log
 ```
 
-## Path Resolution
+**If scaffold-torchtune fails:**
+- Log the error in orchestration log
+- Ask user if they want to continue with evaluation scaffolding anyway
+- Report the failure in final summary
 
-**Finding cruijff_kit from experiment directory:**
-- Experiment is typically in `{scratch_dir}/{experiment_name}/`
-- cruijff_kit is typically in `{scratch_dir}/GitHub/cruijff_kit/`
-- **Recommended:** Use absolute path `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/` for robustness
-- Relative path alternative: `../GitHub/cruijff_kit/` (less reliable)
+### Step 2: Call Evaluation Skill
 
-**If path doesn't work:**
-- Ask user where cruijff_kit is located
-- Always prefer absolute paths over relative paths
+Invoke the appropriate evaluation skill based on tool specification in experiment_summary.md. Currently, this will be `scaffold-inspect` for inspect-ai.
 
-## Error Handling
+**What scaffold-inspect does:**
+- Creates `eval/` subdirectories in each run directory
+- Generates inspect.slurm scripts for each evaluation
+- Verifies inspect-ai task scripts exist
+- Creates `scaffold-inspect.log` with detailed process log
 
-**If experiment_summary.md not found:**
-- Ask user for experiment directory path
-- Verify file exists before proceeding
+**Expected output structure:**
+```
+{experiment_dir}/
+├── rank8_lr1e-5/
+│   ├── setup_finetune.yaml
+│   ├── finetune.yaml
+│   ├── finetune.slurm
+│   └── eval/
+│       ├── capitalization_epoch0.slurm
+│       └── logs/
+├── rank16_lr5e-5/
+│   └── eval/
+│       ├── capitalization_epoch0.slurm
+│       └── logs/
+├── scaffold-torchtune.log
+└── scaffold-inspect.log
+```
 
-**If required information missing from experiment_summary.md:**
-- Report specific missing fields
-- Ask user to provide missing information
-- Do not proceed with incomplete data
-
-**If template not found:**
-- Report which template was expected
-- Ask user to verify task and dataset format
-- Suggest checking template path
-
-**If setup_finetune.py fails for a run:**
-- Log the error
-- Continue with remaining runs
-- Report all failures at the end
-
-**If model or dataset paths don't exist:**
-- Warn user but proceed (paths might be correct on compute nodes)
-- Note in log which paths couldn't be verified
+**If scaffold-inspect fails:**
+- Log the error in orchestration log
+- Note which evaluations couldn't be scaffolded
+- Fine-tuning can still proceed (evaluation optional)
+- Report the failure in final summary
 
 ## Logging
 
-Create a detailed log file at `{experiment_dir}/scaffold-experiment.log`:
+Create an orchestration log at `{experiment_dir}/scaffold-experiment.log` that records:
 
 ### Log Format
 
@@ -264,159 +184,220 @@ Result: {outcome}
 ### What to Log
 
 - Experiment discovery and validation
-- Parsing experiment_summary.md
-- Parameter analysis (which parameters vary)
-- Directory creation for each run
-- setup_finetune.yaml generation for each run
-- setup_finetune.py execution and results
-- Any errors or warnings
-- Final summary of created runs
+- Invocation of scaffold-torchtune (timestamp, result)
+- Invocation of scaffold-inspect (timestamp, result)
+- Any errors or warnings from sub-skills
+- Final status summary
+- Paths to individual skill logs for details
 
 ### Example Log Entries
 
 ```
-[2025-10-22 16:30:00] DISCOVER_EXPERIMENT: Found experiment
+[2025-10-24 17:30:00] DISCOVER_EXPERIMENT: Found experiment
 Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/experiment_summary.md
-Result: Successfully read experiment plan (8 fine-tuned runs)
+Result: Experiment plan ready for scaffolding (8 fine-tuned runs, 1 evaluation task)
 
-[2025-10-22 16:30:05] ANALYZE_PARAMETERS: Identifying varying parameters
-Details: Checked LoRA Rank, Learning Rate, Batch Size, Model
-Result: Varying parameters: LoRA Rank (8,16,32,64), Learning Rate (1e-5, 5e-5)
-Directory naming pattern: rank{N}_lr{LR}
+[2025-10-24 17:30:05] VERIFY_PREREQUISITES: Checking required files
+Details: experiment_summary.md exists, claude.local.md found
+Result: All prerequisites satisfied
 
-[2025-10-22 16:30:10] CREATE_RUN_DIR: rank8_lr1e-5
-Details: mkdir /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/rank8_lr1e-5
-Result: Directory created successfully
+[2025-10-24 17:30:08] READ_TOOL_SPECS: Parsing tool specifications
+Details: Reading Tools section from experiment_summary.md
+Result: Preparation tool = torchtune, Evaluation tool = inspect-ai
+Explanation: Will invoke scaffold-torchtune and scaffold-inspect
 
-[2025-10-22 16:30:12] GENERATE_YAML: rank8_lr1e-5/setup_finetune.yaml
-Details: Template: tasks/capitalization/templates/finetuning/setup_finetune_json.yaml
-Parameters: rank=8, lr=1e-5, batch_size=4, epochs=1
-Result: File created (237 bytes)
+[2025-10-24 17:30:10] INVOKE_SCAFFOLD_TORCHTUNE: Generating fine-tuning configs
+Details: Calling scaffold-torchtune skill
+Result: Started at 2025-10-24 17:30:10
 
-[2025-10-22 16:30:15] RUN_SETUP: rank8_lr1e-5
-Command: cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/rank8_lr1e-5 && python ../../GitHub/cruijff_kit/tools/torchtune/setup_finetune.py
-Result: Success - generated finetune.yaml and finetune.slurm
+[2025-10-24 17:31:30] SCAFFOLD_TORCHTUNE_COMPLETE: Fine-tuning configs generated
+Details: 8 runs scaffolded successfully (0 failures)
+Duration: 1m 20s
+Result: See scaffold-torchtune.log for detailed process
+Outputs: rank8_lr1e-5/, rank8_lr5e-5/, rank16_lr1e-5/, rank16_lr5e-5/, rank32_lr1e-5/, rank32_lr5e-5/, rank64_lr1e-5/, rank64_lr5e-5/
 
-[2025-10-22 16:31:00] COMPLETE: All runs scaffolded
-Summary: 8 runs created successfully, 0 failures
-Next: User can cd to run directories and submit with `sbatch finetune.slurm`
+[2025-10-24 17:31:35] INVOKE_SCAFFOLD_INSPECT: Generating evaluation configs
+Details: Calling scaffold-inspect skill
+Result: Started at 2025-10-24 17:31:35
+
+[2025-10-24 17:32:15] SCAFFOLD_INSPECT_COMPLETE: Evaluation configs generated
+Details: 8 evaluation scripts created successfully (0 failures)
+Duration: 40s
+Result: See scaffold-inspect.log for detailed process
+Outputs: {run_dir}/eval/ directories with SLURM scripts
+
+[2025-10-24 17:32:20] COMPLETE: Experiment scaffolding finished
+Summary: All configs generated successfully
+- Fine-tuning: 8 runs ready
+- Evaluation: 8 evaluation scripts ready
+Next: User can proceed with run-experiment skill to execute workflow
 ```
+
+## Error Handling
+
+**If experiment_summary.md not found:**
+- Report error to user
+- Suggest running `design-experiment` skill first
+- Do not proceed
+
+**If scaffold-torchtune fails:**
+- Log the failure with details
+- Ask user: "Fine-tuning scaffolding failed. Do you want to continue with evaluation scaffolding?"
+- If yes, proceed with scaffold-inspect
+- If no, stop and report failure
+
+**If scaffold-inspect fails:**
+- Log the failure with details
+- Note that fine-tuning can still proceed independently
+- Report in summary which evaluations couldn't be configured
+- Still consider overall scaffolding partially successful
+
+**If both sub-skills fail:**
+- Report complete failure
+- Direct user to individual skill logs (scaffold-torchtune.log, scaffold-inspect.log)
+- Suggest checking experiment_summary.md for completeness
 
 ## Output Summary
 
-After completing all runs, provide a summary to the user:
+After completing orchestration, provide a comprehensive summary:
 
 ```markdown
-## Scaffold Complete
+## Scaffold Experiment Complete
 
-Successfully created 8 fine-tuning runs in:
+Successfully scaffolded experiment:
 `/scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/`
 
-### Created Runs
+### Fine-Tuning Configurations (scaffold-torchtune)
 
-✓ rank8_lr1e-5/
-✓ rank8_lr5e-5/
-✓ rank16_lr1e-5/
-✓ rank16_lr5e-5/
-✓ rank32_lr1e-5/
-✓ rank32_lr5e-5/
-✓ rank64_lr1e-5/
-✓ rank64_lr5e-5/
+✓ 8 runs configured successfully
 
-Each run contains:
+**Created runs:**
+- rank8_lr1e-5/
+- rank8_lr5e-5/
+- rank16_lr1e-5/
+- rank16_lr5e-5/
+- rank32_lr1e-5/
+- rank32_lr5e-5/
+- rank64_lr1e-5/
+- rank64_lr5e-5/
+
+**Each run contains:**
 - setup_finetune.yaml (configuration)
 - finetune.yaml (torchtune config)
 - finetune.slurm (SLURM script)
 
+### Evaluation Configurations (scaffold-inspect)
+
+✓ 8 evaluation scripts configured successfully
+
+**Created evaluations:**
+- rank8_lr1e-5/eval/capitalization_epoch0.slurm
+- rank8_lr5e-5/eval/capitalization_epoch0.slurm
+- rank16_lr1e-5/eval/capitalization_epoch0.slurm
+- rank16_lr5e-5/eval/capitalization_epoch0.slurm
+- rank32_lr1e-5/eval/capitalization_epoch0.slurm
+- rank32_lr5e-5/eval/capitalization_epoch0.slurm
+- rank64_lr1e-5/eval/capitalization_epoch0.slurm
+- rank64_lr5e-5/eval/capitalization_epoch0.slurm
+
+**Each evaluation directory contains:**
+- {task}_epoch{N}.slurm (SLURM script)
+- logs/ (for inspect-ai output)
+
+### Logs Created
+
+- `scaffold-experiment.log` - Orchestration log (this process)
+- `scaffold-torchtune.log` - Fine-tuning scaffolding details
+- `scaffold-inspect.log` - Evaluation scaffolding details
+
 ### Next Steps
 
-To submit all jobs:
+**Recommended workflow:**
+1. Review the generated configurations (optional)
+2. Run `run-experiment` skill to execute the complete workflow:
+   - Fine-tuning via `run-torchtune`
+   - Evaluation via `run-inspect`
+3. Run `analyze-experiment` skill to interpret results (planned)
+
+**Manual execution (alternative):**
 ```bash
+# Submit fine-tuning jobs
 cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22
 for dir in rank*/; do (cd "$dir" && sbatch finetune.slurm); done
+
+# After fine-tuning completes, submit evaluation jobs
+for dir in rank*/; do (cd "$dir/eval" && sbatch capitalization_epoch0.slurm); done
 ```
 
-Or submit individually:
+**Monitoring:**
 ```bash
-cd rank8_lr1e-5
-sbatch finetune.slurm
-```
+# Check job status
+squeue -u $USER
 
-Monitor jobs:
-```bash
-squeue -u niznik
+# Monitor a specific run
+tail -f rank8_lr1e-5/slurm-*.out
 ```
-
-See `scaffold-experiment.log` for detailed creation log.
 ```
 
 ## Validation Before Completion
 
 Before reporting success, verify:
-- ✓ All run directories created
-- ✓ Each directory has setup_finetune.yaml
-- ✓ Each directory has finetune.yaml (generated)
-- ✓ Each directory has finetune.slurm (generated)
-- ✓ No errors in log
-- ✓ Log file created
-- ✓ **Parameters in finetune.yaml match directory names** (see verification section below)
-
-### Critical: Verify Parameter Correctness
-
-**IMPORTANT:** After scaffolding, verify that the generated `finetune.yaml` files contain the correct parameter values matching the directory names. This catches bugs where setup_finetune.py might not properly substitute parameters.
-
-#### Parameter Field Mapping
-
-Know where to find parameters in finetune.yaml:
-- `lora_rank` → `model.lora_rank` (nested under model section)
-- `lr` (learning rate) → `optimizer.lr` (nested under optimizer section, note: two-space indent)
-- `batch_size` → `batch_size` (top level)
-- `epochs` → `epochs` (top level)
-- `my_wandb_run_name` → `my_wandb_run_name` (top level)
-- `output_dir` → `output_dir` (top level, should include run name)
-
-#### Verification Script Pattern
-
-For each run directory, extract and compare parameters:
-
-```bash
-for dir in rank*/; do
-  dir_clean=${dir%/}
-
-  # Extract expected values from directory name
-  expected_rank=$(echo $dir_clean | grep -oP 'rank\K\d+')
-  expected_lr=$(echo $dir_clean | grep -oP 'lr\K[^_]+$')
-
-  # Extract actual values from finetune.yaml (note the specific grep patterns)
-  actual_rank=$(grep "lora_rank:" "$dir_clean/finetune.yaml" | awk '{print $2}')
-  actual_lr=$(grep "^  lr:" "$dir_clean/finetune.yaml" | awk '{print $2}')  # Note: two-space indent
-
-  # Compare and report
-  if [ "$expected_rank" = "$actual_rank" ] && [ "$expected_lr" = "$actual_lr" ]; then
-    echo "✓ $dir_clean parameters match"
-  else
-    echo "✗ $dir_clean MISMATCH: expected rank=$expected_rank lr=$expected_lr, got rank=$actual_rank lr=$actual_lr"
-  fi
-done
-```
-
-**What to verify:**
-1. Parameters varying across runs (e.g., lora_rank, lr) match directory names
-2. Common parameters (e.g., batch_size, epochs) match experiment configuration
-3. WandB run names and output directories include correct run identifiers
-
-**If mismatches found:**
-- Report which runs have incorrect parameters
-- Indicate which specific parameters are wrong
-- Suggest checking if setup_finetune.py has all necessary arguments
-- Do NOT report success - these runs would train with wrong hyperparameters!
+- ✓ experiment_summary.md was found and read
+- ✓ scaffold-torchtune was invoked (check for log file)
+- ✓ scaffold-inspect was invoked (check for log file)
+- ✓ Run directories exist with expected structure
+- ✓ Evaluation directories exist with expected structure
+- ✓ Orchestration log was created
+- ✓ Both sub-skill logs exist
 
 ## Important Notes
 
-- Only scaffold "Fine-tuned" runs, not "Control" runs (controls don't need fine-tuning)
-- Directory names should be concise and descriptive (only varying parameters)
-- Use paths from `claude.local.md` for environment-specific settings
-- Preserve all configuration from experiment_summary.md
-- If a run fails, continue with others and report all failures at end
-- Always create a log file for auditing and debugging
-- Paths should work whether skill is run from experiment dir or elsewhere
+### Orchestration Principles
+
+- This skill **orchestrates** rather than implements - it calls other skills
+- Each sub-skill maintains its own detailed log
+- The orchestration log tracks high-level flow and timing
+- Sub-skills can be run independently if needed
+- Partial success is acceptable (e.g., fine-tuning configs generated but eval fails)
+
+### Execution Order
+
+1. **scaffold-torchtune first** - Creates run directories that scaffold-inspect will populate
+2. **scaffold-inspect second** - Adds eval/ subdirectories to existing run directories
+
+This order is critical - scaffold-inspect needs the run directories to exist.
+
+### Relationship to Other Skills
+
+**Before this skill:**
+- `design-experiment` creates experiment_summary.md
+
+**After this skill:**
+- `run-experiment` executes the workflow (calls `run-torchtune` and `run-inspect`)
+- `analyze-experiment` interprets results (planned)
+
+**Can be run standalone:**
+- `scaffold-torchtune` - Just generate fine-tuning configs
+- `scaffold-inspect` - Just generate evaluation configs (requires run directories exist)
+
+### Error Recovery
+
+If scaffolding fails:
+1. Check individual skill logs (scaffold-torchtune.log, scaffold-inspect.log)
+2. Fix the issue (e.g., missing inspect-ai task script)
+3. Re-run this skill (idempotent - will skip existing configs)
+4. Or run individual sub-skills directly
+
+### Idempotency
+
+- Sub-skills should handle existing files gracefully
+- Re-running scaffold-experiment should be safe (may regenerate files)
+- Use caution if run directories have been manually modified
+
+## Future Enhancements
+
+Potential additions:
+- Dry-run mode (validate without generating files)
+- Selective scaffolding (only certain runs or only fine-tuning/eval)
+- Resume capability (continue from partial scaffolding)
+- Validation of generated configs before reporting success

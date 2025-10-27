@@ -65,9 +65,9 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 - **design-experiment** ✅ - Plan a series of runs that collectively make up an experiment
 - **scaffold-experiment** ✅ - Create organized directory structures, configs, and SLURM scripts for all runs
 - **run-experiment** ✅ - Submit jobs to SLURM and monitor their progress until completion
+- **create-inspect-task** ✅ - Create custom inspect-ai evaluation tasks with guided workflow (supports experiment-guided and standalone modes)
 
 ### Planned Workflows
-- **evaluate-experiment**: Generate and submit evaluation jobs for completed runs
 - **analyze-experiment**: Analyze and compare experimental results
 
 ### Supporting Workflows (Planned)
@@ -77,6 +77,8 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 - **download-dataset-from-hf**: Download datasets from HuggingFace
 
 **Note**: All skills are optional convenience tools. Users can perform the same operations manually by running the underlying Python scripts and shell commands directly.
+
+**Architecture**: The primary workflow skills (scaffold-experiment, run-experiment) are orchestrators that delegate to specialized worker skills (scaffold-torchtune, scaffold-inspect, run-torchtune, run-inspect) which handle tool-specific operations. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for the complete skills architecture.
 
 ## Git Workflow
 
@@ -211,5 +213,5 @@ Each tier directory contains a `CLAUDE.md` file with detailed access rules. See:
 
 - **ARCHITECTURE.md**: Detailed architecture and design documentation
 - **README.md**: Project overview and installation instructions
-- **Task-specific READMEs**: Located in `tasks/*/README.md`
+- **Experiment-specific READMEs**: Located in `experiments/*/README.md`
 - **claude.local.md**: User-specific environment configuration (not version controlled)
