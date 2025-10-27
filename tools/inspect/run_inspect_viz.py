@@ -69,6 +69,7 @@ class InspectVizRunner:
         self.eval_files: List[Path] = []
         self.design_doc: Optional[Path] = None
         self.evals_data = None  # Will hold inspect_viz Data object
+        self.experiment_design: dict = {}  # Parsed experiment design info
 
     def log_action(self, action: str, details: str, result: str):
         """
@@ -304,6 +305,154 @@ class InspectVizRunner:
             self.logger.error(f"Traceback:\n{traceback.format_exc()}")
             return False
 
+    def parse_experiment_summary(self) -> bool:
+        """
+        Parse experiment_summary.md to extract experimental design information.
+
+        Extracts:
+        - Variables being tested (what varies across runs)
+        - Run configurations
+        - Evaluation tasks
+        - Overview/description
+
+        Returns:
+            True if design document found and parsed, False otherwise.
+        """
+        self.log_action(
+            "PARSE_DESIGN",
+            "Looking for experiment_summary.md",
+            "Starting design document search..."
+        )
+
+        # Look for experiment_summary.md
+        design_path = self.experiment_dir / "experiment_summary.md"
+
+        if not design_path.exists():
+            self.logger.error(f"PARSE_DESIGN: ERROR")
+            self.logger.error(f"No experiment_summary.md found at: {design_path}")
+            self.logger.error("\nThis file is REQUIRED for run-inspect-viz")
+            self.logger.error("\nPossible solutions:")
+            self.logger.error("  1. Run 'design-experiment' skill to create experiment plan")
+            self.logger.error("  2. Check you're in the correct experiment directory")
+            self.logger.error("  3. If this is a legacy experiment, create experiment_summary.md manually")
+            return False
+
+        self.design_doc = design_path
+        self.logger.info(f"✓ Found experiment design: {design_path.name}")
+
+        # Parse the markdown file
+        self.logger.info("Parsing experiment design...")
+        try:
+            with open(design_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Extract key information using simple parsing
+            self.experiment_design = {
+                'variables': [],
+                'runs': [],
+                'tasks': [],
+                'overview': '',
+                'tools': {}
+            }
+
+            # Extract overview (first paragraph after # header)
+            lines = content.split('\n')
+            in_overview = False
+            overview_lines = []
+
+            for line in lines:
+                if line.startswith('# ') and 'Overview' in line:
+                    in_overview = True
+                    continue
+                elif in_overview and line.startswith('## '):
+                    break
+                elif in_overview and line.strip():
+                    overview_lines.append(line.strip())
+
+            self.experiment_design['overview'] = ' '.join(overview_lines)
+
+            # Extract variables section
+            if '## Variables' in content:
+                # Find the variables table or list
+                var_section_start = content.find('## Variables')
+                var_section = content[var_section_start:var_section_start+1000]
+
+                # Simple extraction: look for lines with | or - (markdown tables)
+                for line in var_section.split('\n'):
+                    if '|' in line and 'Factor' not in line and '---' not in line:
+                        parts = [p.strip() for p in line.split('|') if p.strip()]
+                        if len(parts) >= 2:
+                            self.experiment_design['variables'].append({
+                                'factor': parts[0],
+                                'levels': parts[1] if len(parts) > 1 else ''
+                            })
+
+            # Extract tools section
+            if '## Tools' in content:
+                tools_section_start = content.find('## Tools')
+                tools_section = content[tools_section_start:tools_section_start+500]
+
+                if 'Preparation:' in tools_section:
+                    prep_line = [l for l in tools_section.split('\n') if 'Preparation:' in l][0]
+                    prep = prep_line.split(':')[1].strip()
+                    # Remove markdown formatting
+                    prep = prep.replace('**', '').strip()
+                    self.experiment_design['tools']['preparation'] = prep
+
+                if 'Evaluation:' in tools_section:
+                    eval_line = [l for l in tools_section.split('\n') if 'Evaluation:' in l][0]
+                    eval_tool = eval_line.split(':')[1].strip()
+                    # Remove markdown formatting
+                    eval_tool = eval_tool.replace('**', '').strip()
+                    self.experiment_design['tools']['evaluation'] = eval_tool
+
+            # Extract evaluation plan
+            if '## Evaluation Plan' in content:
+                eval_section_start = content.find('## Evaluation Plan')
+                eval_section = content[eval_section_start:eval_section_start+1000]
+
+                # Look for task names
+                for line in eval_section.split('\n'):
+                    if 'Task:' in line or 'task:' in line:
+                        task = line.split(':')[1].strip()
+                        # Remove markdown formatting
+                        task = task.replace('**', '').strip()
+                        if task and task not in self.experiment_design['tasks']:
+                            self.experiment_design['tasks'].append(task)
+
+            # Log what was extracted
+            self.logger.info("\nExtracted design information:")
+            if self.experiment_design['overview']:
+                self.logger.info(f"  Overview: {self.experiment_design['overview'][:100]}...")
+
+            if self.experiment_design['variables']:
+                self.logger.info(f"  Variables: {len(self.experiment_design['variables'])} factors")
+                for var in self.experiment_design['variables']:
+                    self.logger.info(f"    - {var['factor']}: {var['levels']}")
+            else:
+                self.logger.info("  Variables: None explicitly defined")
+
+            if self.experiment_design['tools']:
+                self.logger.info(f"  Tools: {self.experiment_design['tools']}")
+
+            if self.experiment_design['tasks']:
+                self.logger.info(f"  Evaluation tasks: {', '.join(self.experiment_design['tasks'])}")
+
+            self.log_action(
+                "PARSE_DESIGN",
+                f"Parsed experiment_summary.md ({len(content)} characters)",
+                "Success: Experimental design extracted"
+            )
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"PARSE_DESIGN: ERROR")
+            self.logger.error(f"Failed to parse experiment_summary.md: {e}")
+            import traceback
+            self.logger.error(f"Traceback:\n{traceback.format_exc()}")
+            return False
+
     def run(self) -> bool:
         """
         Execute the complete visualization workflow.
@@ -323,14 +472,19 @@ class InspectVizRunner:
         if not self.load_evaluation_data():
             return False
 
+        # Step 4: Parse experiment design
+        if not self.parse_experiment_summary():
+            return False
+
         # Success summary for this chunk
         self.logger.info("="*60)
-        self.logger.info("✓ Chunk 3 Complete: Data Loading")
+        self.logger.info("✓ Chunk 4 Complete: Experiment Design Parsing")
         self.logger.info("="*60)
         self.logger.info(f"Experiment: {self.experiment_dir}")
         self.logger.info(f"Evaluation files loaded: {len(self.eval_files)}")
-        self.logger.info("Data object: Ready for visualization")
-        self.logger.info("Next: Parse experiment design documentation")
+        self.logger.info(f"Design document: {self.design_doc.name}")
+        self.logger.info(f"Variables identified: {len(self.experiment_design.get('variables', []))}")
+        self.logger.info("Next: Generate visualizations")
         self.logger.info("="*60)
 
         return True
