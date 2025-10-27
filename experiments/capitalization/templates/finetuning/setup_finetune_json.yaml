@@ -3,7 +3,7 @@ my_wandb_project: capitalization
 my_wandb_run_name: oct1-prompt-1
 
 # Directory Configuration
-input_dir_base: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tasks/capitalization/input/
+input_dir_base: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/capitalization/input/
 input_formatting: ''
 
 # Dataset Configuration

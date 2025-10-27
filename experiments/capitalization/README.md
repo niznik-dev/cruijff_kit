@@ -10,7 +10,7 @@ To run a simple fine-tuning task on a small dataset of five-letter words and the
 
 (If not done already, clone this repo onto the machine you're using!)
 
-First, obtain words_alpha.txt from the following repo: https://github.com/dwyl/english-words (and star it!). You'll probably want to put it in `tasks/capitalization/input/`.  You can download this file from the command line as follows:
+First, obtain words_alpha.txt from the following repo: https://github.com/dwyl/english-words (and star it!). You'll probably want to put it in `experiments/capitalization/input/`.  You can download this file from the command line as follows:
 
 ```bash
 wget https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/words_alpha.txt

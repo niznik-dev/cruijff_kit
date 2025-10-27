@@ -325,9 +325,9 @@ cruijff_kit supports two workflows:
 **Recommended when using Claude Code:**
 
 1. **Design:** Use `design-experiment` skill to create experiment plan (`experiment_summary.md`)
-2. **Scaffold:** Use `scaffold-experiment` skill to generate all run directories and configs
-3. **Execute:** Use `run-experiment` skill to submit jobs and monitor progress
-4. **Evaluate:** (Planned) Use `evaluate-experiment` skill for evaluation
+2. **Scaffold:** Use `scaffold-experiment` skill to generate all run directories and configs (fine-tuning and evaluation)
+3. **Execute:** Use `run-experiment` skill to run fine-tuning and evaluation (includes both torchtune and inspect-ai)
+4. **Analyze:** (Planned) Use `analyze-experiment` skill to analyze results and generate reports
 
 **Benefits:**
 - Automated setup for multi-run experiments
@@ -335,11 +335,13 @@ cruijff_kit supports two workflows:
 - Progress tracking and status updates
 - Built-in safety (stagger delays prevent cache collisions)
 
+**Implementation Note:** The workflow skills above are orchestrators that delegate to specialized worker skills: `scaffold-experiment` calls `scaffold-torchtune` and `scaffold-inspect`, while `run-experiment` calls `run-torchtune` and `run-inspect`. Worker skills can also be invoked independently for targeted operations. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for details.
+
 #### Manual Workflow (without Claude Code)
 
 **For single runs:**
 
-1. Navigate to task directory: `cd tasks/capitalization/`
+1. Navigate to experiment directory: `cd experiments/capitalization/`
 2. Copy and edit config: `cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml`
 3. Generate scripts: `python ../../tools/torchtune/setup_finetune.py`
 4. Submit job: `sbatch finetune.slurm`
@@ -361,7 +363,7 @@ cruijff_kit supports two workflows:
 2. Add `README.md` with experiment description
 3. Create `setup_finetune.yaml` from template
 4. Add data generation scripts to `input/`
-5. Create inspect-ai evaluation task (e.g., `{name}_task.py`) using `design-inspect-task` skill
+5. Create inspect-ai evaluation task (e.g., `{name}_task.py`) using `create-inspect-task` skill
 6. Document the workflow in experiment README
 
 ### Using Utilities

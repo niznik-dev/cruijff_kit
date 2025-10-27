@@ -2,17 +2,17 @@
 General Inspect-AI Evaluation Task
 
 A flexible evaluation task that works with JSON datasets containing input/output pairs.
-Can be used for any task in tasks/ directory.
+Can be used for any experiment in experiments/ directory.
 
 Usage:
     # Evaluate fine-tuned model (reads from setup_finetune.yaml)
-    inspect eval tasks/general_evaluation_task.py --model hf/local -M model_path=/path/to/model -T config_dir=/path/to/epoch_0
+    inspect eval experiments/general_evaluation_task.py --model hf/local -M model_path=/path/to/model -T config_dir=/path/to/epoch_0
 
     # Standalone evaluation with direct dataset path
-    inspect eval tasks/general_evaluation_task.py --model hf/local -M model_path=/path/to/model -T dataset_path=/path/to/data.json
+    inspect eval experiments/general_evaluation_task.py --model hf/local -M model_path=/path/to/model -T dataset_path=/path/to/data.json
 
     # With custom parameters
-    inspect eval tasks/general_evaluation_task.py --model hf/local -M model_path=/path/to/model -T dataset_path=/path/to/data.json -T temperature=0.5 -T system_prompt="You are a helpful assistant"
+    inspect eval experiments/general_evaluation_task.py --model hf/local -M model_path=/path/to/model -T dataset_path=/path/to/data.json -T temperature=0.5 -T system_prompt="You are a helpful assistant"
 """
 
 from __future__ import annotations

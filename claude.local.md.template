@@ -113,8 +113,8 @@ git pull
 
 ### Fine-tuning
 ```bash
-# Navigate to task directory
-cd tasks/capitalization/
+# Navigate to experiment directory
+cd experiments/capitalization/
 
 # Generate configs and SLURM script
 python ../../tools/torchtune/setup_finetune.py
@@ -164,7 +164,7 @@ scancel -u <your_username>
 - (e.g., "Comparing LoRA ranks (4 vs 64) on 1B and 3B models")
 
 ### Common Tasks
-- Primary task directory: `tasks/<your_task>/`
+- Primary experiment directory: `experiments/<your_experiment>/`
 - (Add shortcuts or frequent operations)
 
 ### Preferences
