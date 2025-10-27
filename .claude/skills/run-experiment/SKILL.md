@@ -4,20 +4,31 @@ You help users execute the complete experimental workflow - fine-tuning followed
 
 ## Your Task
 
-Orchestrate the execution process by calling two sub-skills **sequentially**:
-1. `run-torchtune` - Submit and monitor fine-tuning jobs until completion
-2. `run-inspect` - Submit and monitor evaluation jobs until completion
+Orchestrate the execution process by reading tool specifications from experiment_summary.md and calling the appropriate sub-skills **sequentially**:
+
+1. Read experiment_summary.md to identify which tools are being used
+2. Call the appropriate preparation execution skill (currently only `run-torchtune`)
+3. Wait for preparation to complete (REQUIRED)
+4. Call the appropriate evaluation execution skill (currently only `run-inspect`)
 
 This ensures the entire experiment executes from training through evaluation with proper dependency management.
+
+**Current tool support:**
+- **Preparation:** torchtune only (via `run-torchtune`)
+- **Evaluation:** inspect-ai only (via `run-inspect`)
+
+**Future tool support:** This orchestrator is designed to route to different worker skills based on tool choices documented in experiment_summary.md. Future iterations may support additional frameworks.
 
 ## Workflow
 
 1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
 2. **Verify scaffolding complete** - Ensure both fine-tuning and evaluation configs exist
-3. **Call run-torchtune skill** - Execute all fine-tuning jobs and wait for completion
-4. **Call run-inspect skill** - Execute all evaluation jobs after fine-tuning finishes
-5. **Create orchestration log** - Document the execution process in `run-experiment.log`
-6. **Report combined summary** - Show user complete status of both execution phases
+3. **Read tool specifications** - Parse experiment_summary.md to identify preparation and evaluation tools
+4. **Validate tool support** - Ensure the specified tools have corresponding worker skills
+5. **Call preparation execution skill** - Execute fine-tuning jobs and wait for completion (currently `run-torchtune`)
+6. **Call evaluation execution skill** - Execute evaluation jobs after fine-tuning finishes (currently `run-inspect`)
+7. **Create orchestration log** - Document the execution process in `run-experiment.log`
+8. **Report combined summary** - Show user complete status of both execution phases
 
 ## Finding the Experiment
 
@@ -50,11 +61,53 @@ Before beginning execution, verify:
    ```
    If missing, warn user but can proceed with fine-tuning only.
 
+## Reading Tool Specifications
+
+After verifying experiment_summary.md exists, read the "Tools" section to identify which frameworks are being used:
+
+**Expected format in experiment_summary.md:**
+```markdown
+## Tools
+
+This experiment uses the following tools:
+
+- **Model Preparation:** torchtune
+  - *Current status:* Only option available
+  - *Purpose:* Fine-tuning LLMs with LoRA
+  - *Used by:* `scaffold-torchtune` and `run-torchtune` skills
+
+- **Evaluation:** inspect-ai
+  - *Current status:* Only option available
+  - *Purpose:* Evaluating LLMs on custom tasks
+  - *Used by:* `scaffold-inspect` and `run-inspect` skills
+```
+
+**Parsing logic:**
+1. Look for "Model Preparation:" line and extract the tool name (e.g., "torchtune")
+2. Look for "Evaluation:" line and extract the tool name (e.g., "inspect-ai")
+
+**Tool to skill mapping:**
+- `torchtune` → `run-torchtune`
+- `inspect-ai` → `run-inspect`
+
+**Error handling:**
+- If "Tools" section is missing: Assume torchtune + inspect-ai (backward compatibility with older experiment summaries)
+- If tool name is not recognized: Report error and list supported tools
+- If experiment_summary.md format is unexpected: Report parsing error with details
+
+**Logging:**
+```
+[2025-10-27 14:30:00] READ_TOOL_SPECS: Parsing experiment_summary.md
+Details: Found Tools section
+Result: Preparation=torchtune, Evaluation=inspect-ai
+Explanation: Will call run-torchtune and run-inspect sequentially
+```
+
 ## Orchestration Steps
 
-### Step 1: Call run-torchtune (REQUIRED)
+### Step 1: Call Preparation Execution Skill (REQUIRED)
 
-Invoke the `run-torchtune` skill to execute fine-tuning.
+Invoke the appropriate preparation execution skill based on tool specification in experiment_summary.md. Currently, this will be `run-torchtune` for torchtune.
 
 **What run-torchtune does:**
 - Submits all `finetune.slurm` jobs to SLURM
@@ -77,9 +130,9 @@ Invoke the `run-torchtune` skill to execute fine-tuning.
 
 **Important:** This step MUST complete before evaluation starts.
 
-### Step 2: Call run-inspect (SEQUENTIAL)
+### Step 2: Call Evaluation Execution Skill (SEQUENTIAL)
 
-Invoke the `run-inspect` skill to execute evaluations.
+Invoke the appropriate evaluation execution skill based on tool specification in experiment_summary.md. Currently, this will be `run-inspect` for inspect-ai.
 
 **⚠️ CRITICAL:** Only start after run-torchtune completes. Evaluation requires fine-tuned model checkpoints.
 
@@ -159,6 +212,11 @@ Result: Experiment ready for execution (8 runs, 8 evaluations)
 [2025-10-24 00:00:05] VERIFY_SCAFFOLDING: Checking configs
 Details: finetune.slurm found in 8 directories, eval/*.slurm found in 8 directories
 Result: All scaffolding complete, ready to execute
+
+[2025-10-24 00:00:08] READ_TOOL_SPECS: Parsing tool specifications
+Details: Reading Tools section from experiment_summary.md
+Result: Preparation tool = torchtune, Evaluation tool = inspect-ai
+Explanation: Will invoke run-torchtune and run-inspect sequentially
 
 [2025-10-24 00:00:10] INVOKE_RUN_TORCHTUNE: Starting fine-tuning execution
 Details: Calling run-torchtune skill

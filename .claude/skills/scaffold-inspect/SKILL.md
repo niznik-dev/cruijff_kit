@@ -324,7 +324,7 @@ Result: SLURM script created (45 lines)
 
 [2025-10-24 17:01:30] COMPLETE: All evaluation configs generated
 Summary: 8 evaluation scripts created successfully, 0 failures
-Next: User can proceed with run-inspect skill after fine-tuning completes
+Next: See experiment_summary.md for workflow next steps (evaluation requires fine-tuning to complete first)
 ```
 
 ## Output Summary
@@ -362,24 +362,23 @@ Each evaluation directory contains:
 
 ### Next Steps
 
-1. **Fine-tune models first:**
-   Run `run-torchtune` skill to train all models
+**Refer to experiment_summary.md** for the complete workflow plan, including:
+- When to execute fine-tuning (must complete before evaluation)
+- How to execute evaluation jobs
+- Full experiment timeline and dependencies
 
-2. **After fine-tuning completes:**
-   Run `run-inspect` skill to execute all evaluations
+**Typical workflow** (see experiment_summary.md for specifics):
+1. Execute model preparation jobs first (evaluations require trained models)
+2. After preparation completes, execute evaluation jobs (via orchestrator or manually)
+3. View and analyze results
 
-3. **Manual evaluation submission (alternative):**
-   ```bash
-   cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22
-   # After fine-tuning completes for a run:
-   cd rank8_lr1e-5/eval
-   sbatch capitalization_epoch0.slurm
-   ```
-
-4. **View evaluation results:**
-   ```bash
-   inspect view --port=$(get_free_port)
-   ```
+**Manual evaluation submission** (if not using orchestrator, after fine-tuning completes):
+```bash
+cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22
+# After fine-tuning completes for a run:
+cd rank8_lr1e-5/eval
+sbatch capitalization_epoch0.slurm
+```
 
 See `scaffold-inspect.log` for detailed creation log.
 ```

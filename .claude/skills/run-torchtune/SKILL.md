@@ -222,7 +222,7 @@ Action: Updated experiment_summary.md
 [2025-10-24 00:25:00] ALL_COMPLETE: Monitoring finished
 Summary: 8 jobs completed - 8 COMPLETED, 0 FAILED
 Total time: 20 minutes
-Next: User can proceed with run-inspect skill for evaluation
+Next: See experiment_summary.md for workflow next steps
 ```
 
 ## Output Summary
@@ -262,6 +262,12 @@ SLURM logs available in each run directory:
 
 ### Next Steps
 
+**Refer to experiment_summary.md** for the complete workflow plan, including:
+- Whether evaluation is part of this experiment
+- How to execute evaluation jobs
+- Analysis and result interpretation steps
+
+**Validation** (recommended before proceeding):
 1. **Check SLURM logs for any warnings or errors:**
    ```bash
    grep -i "error\|warning" rank*/slurm-*.out
@@ -272,14 +278,8 @@ SLURM logs available in each run directory:
    ls -lh /scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-*/epoch_0/
    ```
 
-3. **Proceed with evaluation:**
-   Run `run-inspect` skill to evaluate all fine-tuned models
-
-4. **Manual evaluation submission (alternative):**
-   ```bash
-   cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22
-   for dir in rank*/; do (cd "$dir/eval" && sbatch capitalization_epoch0.slurm); done
-   ```
+**Typical next step** (see experiment_summary.md for specifics):
+- If evaluation is configured: Execute evaluation jobs (via orchestrator or manually)
 
 See `run-torchtune.log` for detailed execution history.
 ```

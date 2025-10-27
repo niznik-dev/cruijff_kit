@@ -299,7 +299,7 @@ Result: Success - generated finetune.yaml and finetune.slurm
 
 [2025-10-24 16:31:00] COMPLETE: All runs scaffolded
 Summary: 8 runs created successfully, 0 failures
-Next: User can proceed with run-torchtune skill to submit jobs
+Next: See experiment_summary.md for workflow next steps
 ```
 
 ## Output Summary
@@ -330,17 +330,21 @@ Each run contains:
 
 ### Next Steps
 
-1. **If scaffolding inspect-ai evaluation configs:**
-   Run `scaffold-inspect` skill next
+**Refer to experiment_summary.md** for the complete workflow plan, including:
+- Whether evaluation scaffolding is needed next
+- How to execute fine-tuning jobs
+- Full experiment timeline and dependencies
 
-2. **If ready to execute:**
-   Run `run-torchtune` skill to submit all fine-tuning jobs
+**Typical workflow** (see experiment_summary.md for specifics):
+1. If evaluation configs needed, scaffold those next
+2. Execute fine-tuning jobs (via orchestrator or manually)
+3. After fine-tuning completes, execute evaluations
 
-3. **Manual submission (alternative):**
-   ```bash
-   cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22
-   for dir in rank*/; do (cd "$dir" && sbatch finetune.slurm); done
-   ```
+**Manual job submission** (if not using orchestrator):
+```bash
+cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22
+for dir in rank*/; do (cd "$dir" && sbatch finetune.slurm); done
+```
 
 See `scaffold-torchtune.log` for detailed creation log.
 ```

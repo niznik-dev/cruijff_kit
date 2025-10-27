@@ -267,7 +267,7 @@ Result log: rank8_lr1e-5/eval/logs/
 [2025-10-24 00:45:00] ALL_COMPLETE: Monitoring finished
 Summary: 8 evaluations completed - 8 COMPLETED, 0 FAILED
 Total time: 15 minutes
-Next: Results available in eval/logs/ directories, use inspect view to browse
+Next: See experiment_summary.md for result analysis steps
 ```
 
 ## Output Summary
@@ -325,16 +325,24 @@ done
 
 ### Next Steps
 
-1. **View results interactively:**
-   Use `inspect view` to browse evaluation logs
+**Refer to experiment_summary.md** for the complete workflow plan, including:
+- How to view and analyze results
+- Next analysis steps
+- Experiment conclusions and documentation
 
-2. **Compare performance across runs:**
-   Run `analyze-experiment` skill to generate comparison tables and plots (planned)
+**Viewing results** (inspect-ai specific commands):
+1. **Interactive viewer:**
+   ```bash
+   inspect view --port=$(get_free_port)
+   ```
 
-3. **Export results:**
+2. **Export for analysis:**
    ```bash
    inspect log export rank8_lr1e-5/eval/logs/*.eval --format csv > results.csv
    ```
+
+**Typical next step** (see experiment_summary.md for specifics):
+- Analyze and compare results across runs
 
 See `run-inspect.log` for detailed execution history.
 ```

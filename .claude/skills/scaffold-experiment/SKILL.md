@@ -4,20 +4,30 @@ You help users automatically set up the complete experimental infrastructure - b
 
 ## Your Task
 
-Orchestrate the scaffolding process by calling two sub-skills in sequence:
-1. `scaffold-torchtune` - Generate fine-tuning configs (finetune.yaml, finetune.slurm)
-2. `scaffold-inspect` - Generate evaluation configs (inspect.slurm scripts)
+Orchestrate the scaffolding process by reading tool specifications from experiment_summary.md and calling the appropriate sub-skills:
+
+1. Read experiment_summary.md to identify which tools are being used
+2. Call the appropriate preparation skill (currently only `scaffold-torchtune`)
+3. Call the appropriate evaluation skill (currently only `scaffold-inspect`)
 
 This ensures the entire experiment is ready to execute from training through evaluation.
+
+**Current tool support:**
+- **Preparation:** torchtune only (via `scaffold-torchtune`)
+- **Evaluation:** inspect-ai only (via `scaffold-inspect`)
+
+**Future tool support:** This orchestrator is designed to route to different worker skills based on tool choices documented in experiment_summary.md. Future iterations may support additional frameworks.
 
 ## Workflow
 
 1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
 2. **Verify experiment_summary.md exists** - Ensure design phase is complete
-3. **Call scaffold-torchtune skill** - Generate all fine-tuning configurations
-4. **Call scaffold-inspect skill** - Generate all evaluation configurations
-5. **Create orchestration log** - Document the scaffolding process in `scaffold-experiment.log`
-6. **Report combined summary** - Show user complete status of both scaffolding phases
+3. **Read tool specifications** - Parse experiment_summary.md to identify preparation and evaluation tools
+4. **Validate tool support** - Ensure the specified tools have corresponding worker skills
+5. **Call preparation skill** - Generate fine-tuning configurations (currently `scaffold-torchtune` for torchtune)
+6. **Call evaluation skill** - Generate evaluation configurations (currently `scaffold-inspect` for inspect-ai)
+7. **Create orchestration log** - Document the scaffolding process in `scaffold-experiment.log`
+8. **Report combined summary** - Show user complete status of both scaffolding phases
 
 ## Finding the Experiment
 
@@ -51,11 +61,53 @@ Before beginning scaffolding, verify:
    - Has evaluation tasks specified
    - Resources verified
 
+## Reading Tool Specifications
+
+After verifying experiment_summary.md exists, read the "Tools" section to identify which frameworks are being used:
+
+**Expected format in experiment_summary.md:**
+```markdown
+## Tools
+
+This experiment uses the following tools:
+
+- **Model Preparation:** torchtune
+  - *Current status:* Only option available
+  - *Purpose:* Fine-tuning LLMs with LoRA
+  - *Used by:* `scaffold-torchtune` and `run-torchtune` skills
+
+- **Evaluation:** inspect-ai
+  - *Current status:* Only option available
+  - *Purpose:* Evaluating LLMs on custom tasks
+  - *Used by:* `scaffold-inspect` and `run-inspect` skills
+```
+
+**Parsing logic:**
+1. Look for "Model Preparation:" line and extract the tool name (e.g., "torchtune")
+2. Look for "Evaluation:" line and extract the tool name (e.g., "inspect-ai")
+
+**Tool to skill mapping:**
+- `torchtune` → `scaffold-torchtune`
+- `inspect-ai` → `scaffold-inspect`
+
+**Error handling:**
+- If "Tools" section is missing: Assume torchtune + inspect-ai (backward compatibility with older experiment summaries)
+- If tool name is not recognized: Report error and list supported tools
+- If experiment_summary.md format is unexpected: Report parsing error with details
+
+**Logging:**
+```
+[2025-10-27 14:30:00] READ_TOOL_SPECS: Parsing experiment_summary.md
+Details: Found Tools section
+Result: Preparation=torchtune, Evaluation=inspect-ai
+Explanation: Will call scaffold-torchtune and scaffold-inspect
+```
+
 ## Orchestration Steps
 
-### Step 1: Call scaffold-torchtune
+### Step 1: Call Preparation Skill
 
-Invoke the `scaffold-torchtune` skill to generate fine-tuning configurations.
+Invoke the appropriate preparation skill based on tool specification in experiment_summary.md. Currently, this will be `scaffold-torchtune` for torchtune.
 
 **What scaffold-torchtune does:**
 - Creates run directories (e.g., `rank8_lr1e-5/`, `rank16_lr5e-5/`)
@@ -82,9 +134,9 @@ Invoke the `scaffold-torchtune` skill to generate fine-tuning configurations.
 - Ask user if they want to continue with evaluation scaffolding anyway
 - Report the failure in final summary
 
-### Step 2: Call scaffold-inspect
+### Step 2: Call Evaluation Skill
 
-Invoke the `scaffold-inspect` skill to generate evaluation configurations.
+Invoke the appropriate evaluation skill based on tool specification in experiment_summary.md. Currently, this will be `scaffold-inspect` for inspect-ai.
 
 **What scaffold-inspect does:**
 - Creates `eval/` subdirectories in each run directory
@@ -148,6 +200,11 @@ Result: Experiment plan ready for scaffolding (8 fine-tuned runs, 1 evaluation t
 [2025-10-24 17:30:05] VERIFY_PREREQUISITES: Checking required files
 Details: experiment_summary.md exists, claude.local.md found
 Result: All prerequisites satisfied
+
+[2025-10-24 17:30:08] READ_TOOL_SPECS: Parsing tool specifications
+Details: Reading Tools section from experiment_summary.md
+Result: Preparation tool = torchtune, Evaluation tool = inspect-ai
+Explanation: Will invoke scaffold-torchtune and scaffold-inspect
 
 [2025-10-24 17:30:10] INVOKE_SCAFFOLD_TORCHTUNE: Generating fine-tuning configs
 Details: Calling scaffold-torchtune skill
