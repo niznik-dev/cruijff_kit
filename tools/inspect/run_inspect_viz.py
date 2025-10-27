@@ -68,6 +68,7 @@ class InspectVizRunner:
         # Initialize state
         self.eval_files: List[Path] = []
         self.design_doc: Optional[Path] = None
+        self.evals_data = None  # Will hold inspect_viz Data object
 
     def log_action(self, action: str, details: str, result: str):
         """
@@ -204,6 +205,105 @@ class InspectVizRunner:
 
         return True
 
+    def load_evaluation_data(self) -> bool:
+        """
+        Load evaluation data from .eval files using Inspect AI's dataframe API.
+
+        This method:
+        1. Loads .eval files into a dataframe
+        2. Prepares the data with model and task metadata
+        3. Converts to inspect_viz Data object for visualization
+        4. Handles malformed files gracefully
+
+        Returns:
+            True if data loaded successfully, False if critical errors occurred.
+        """
+        self.log_action(
+            "LOAD_DATA",
+            f"Loading {len(self.eval_files)} .eval files",
+            "Starting data loading..."
+        )
+
+        try:
+            # Import inspect_ai and inspect_viz libraries
+            try:
+                from inspect_ai.analysis import evals_df
+                from inspect_viz import Data
+            except ImportError as e:
+                self.logger.error(f"LOAD_DATA: ERROR")
+                self.logger.error(f"Missing required library: {e}")
+                self.logger.error("\nPlease install required packages:")
+                self.logger.error("  pip install inspect-ai inspect-viz")
+                self.logger.error("or:")
+                self.logger.error("  conda install -c conda-forge inspect-ai inspect-viz")
+                return False
+
+            # Load .eval files into dataframe
+            self.logger.info("Loading .eval files into dataframe...")
+            try:
+                # evals_df expects a directory path or list of file paths (as strings)
+                evals = evals_df([str(f) for f in self.eval_files])
+                self.logger.info(f"✓ Loaded {len(evals)} evaluation records")
+            except Exception as e:
+                self.logger.error(f"LOAD_DATA: ERROR")
+                self.logger.error(f"Failed to load .eval files: {e}")
+                self.logger.error("\nPossible causes:")
+                self.logger.error("  - Malformed .eval files")
+                self.logger.error("  - Incompatible Inspect AI versions")
+                self.logger.error("  - Corrupted evaluation data")
+                self.logger.error("\nSuggestions:")
+                self.logger.error("  - Check .eval file integrity")
+                self.logger.error("  - Verify Inspect AI version compatibility")
+                self.logger.error("  - Try loading files individually to identify problematic ones")
+                return False
+
+            # Convert to inspect_viz Data object
+            self.logger.info("Converting to inspect_viz Data object...")
+            try:
+                self.evals_data = Data.from_dataframe(evals)
+                self.logger.info("✓ Data object created successfully")
+            except Exception as e:
+                self.logger.error(f"LOAD_DATA: ERROR")
+                self.logger.error(f"Failed to create Data object: {e}")
+                self.logger.error("\nThis is a critical error - cannot proceed with visualization")
+                return False
+
+            # Log summary of loaded data
+            self.logger.info("\nData Summary:")
+            self.logger.info(f"  Total evaluation records: {len(evals)}")
+
+            # Try to extract some useful summary info
+            try:
+                if 'model' in evals.columns:
+                    unique_models = evals['model'].nunique()
+                    self.logger.info(f"  Unique models: {unique_models}")
+
+                if 'task' in evals.columns:
+                    unique_tasks = evals['task'].nunique()
+                    self.logger.info(f"  Unique tasks: {unique_tasks}")
+
+                if 'score' in evals.columns:
+                    self.logger.info(f"  Score range: {evals['score'].min():.3f} to {evals['score'].max():.3f}")
+            except Exception:
+                # Summary info is nice-to-have but not critical
+                pass
+
+            self.log_action(
+                "LOAD_DATA",
+                "Evaluation data loaded and prepared",
+                "Success: Data ready for visualization"
+            )
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"LOAD_DATA: ERROR")
+            self.logger.error(f"Unexpected error during data loading: {e}")
+            self.logger.error(f"Error type: {type(e).__name__}")
+            import traceback
+            self.logger.error(f"Traceback:\n{traceback.format_exc()}")
+            return False
+
     def run(self) -> bool:
         """
         Execute the complete visualization workflow.
@@ -219,13 +319,18 @@ class InspectVizRunner:
         if not self.discover_eval_files():
             return False
 
+        # Step 3: Load evaluation data
+        if not self.load_evaluation_data():
+            return False
+
         # Success summary for this chunk
         self.logger.info("="*60)
-        self.logger.info("✓ Chunk 2 Complete: Experiment Discovery & Validation")
+        self.logger.info("✓ Chunk 3 Complete: Data Loading")
         self.logger.info("="*60)
         self.logger.info(f"Experiment: {self.experiment_dir}")
-        self.logger.info(f"Evaluation files found: {len(self.eval_files)}")
-        self.logger.info("Next: Load evaluation data and parse experimental design")
+        self.logger.info(f"Evaluation files loaded: {len(self.eval_files)}")
+        self.logger.info("Data object: Ready for visualization")
+        self.logger.info("Next: Parse experiment design documentation")
         self.logger.info("="*60)
 
         return True
