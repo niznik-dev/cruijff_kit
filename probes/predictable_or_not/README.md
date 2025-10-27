@@ -33,7 +33,7 @@ Use `setup_finetune.py` with the following arguments:
 python setup_finetune.py \
   --my_wandb_project predictable_or_not \
   --my_wandb_run_name pp-false-test \
-  --input_dir_base /home/niznik/scratch/GitHub/cruijff_kit/tests/predictable_or_not/ \
+  --input_dir_base /home/niznik/scratch/GitHub/cruijff_kit/probes/predictable_or_not/ \
   --input_formatting '' \
   --dataset_filename pp.json \
   --dataset_val_filename pp.json \
@@ -59,7 +59,7 @@ sbatch finetune.slurm
 python setup_finetune.py \
   --my_wandb_project predictable_or_not \
   --my_wandb_run_name pp-true-test \
-  --input_dir_base /home/niznik/scratch/GitHub/cruijff_kit/tests/predictable_or_not/ \
+  --input_dir_base /home/niznik/scratch/GitHub/cruijff_kit/probes/predictable_or_not/ \
   --input_formatting '' \
   --dataset_filename pp.json \
   --dataset_val_filename pp.json \

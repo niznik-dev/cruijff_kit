@@ -34,9 +34,9 @@ cruijff_kit/
 │       ├── twins_task.py # Inspect-ai evaluation task
 │       └── ...
 │
-├── tests/              # Synthetic validation tests
-│   ├── bit_sequences/  # Bit parity tests
-│   └── predictable_or_not/  # Stochastic prediction tests
+├── probes/             # Synthetic validation probes for testing workflows and learning
+│   ├── bit_sequences/  # Bit parity probes for testing memorization
+│   └── predictable_or_not/  # Stochastic prediction probes for data leakage validation
 │
 ├── utils/              # Shared utilities and helpers
 │   ├── llm_utils.py    # Model loading and inference utilities
@@ -202,11 +202,11 @@ Each experiment typically includes:
 - `utils/` - Experiment-specific helper functions
 - `{name}_task.py` - Inspect-ai evaluation task (e.g., `cap_task.py`)
 
-### Tests (`tests/`)
-Synthetic validation tests with known ground truth:
+### Probes (`probes/`)
+Synthetic validation probes for workflow testing and learning:
 
 - **bit_sequences**: Tests memorization and pattern learning with deterministic bit patterns
-- **predictable_or_not**: Stochastic tests to validate no data leakage
+- **predictable_or_not**: Validates no data leakage with stochastic prediction tasks
 
 ## Package Structure
 
