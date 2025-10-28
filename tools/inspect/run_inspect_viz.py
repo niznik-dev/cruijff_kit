@@ -745,6 +745,83 @@ class InspectVizRunner:
 
         return len(visualizations_created) > 0
 
+    def generate_final_summary(self) -> None:
+        """
+        Generate a comprehensive final summary of the visualization workflow.
+
+        Shows:
+        - All generated visualizations with file sizes
+        - Direct file paths for easy access
+        - Workflow statistics (files processed, time taken)
+        - Next steps for the user
+        """
+        self.logger.info("\n" + "="*70)
+        self.logger.info("✓ VISUALIZATION WORKFLOW COMPLETE")
+        self.logger.info("="*70)
+
+        # Experiment information
+        self.logger.info("\n📊 EXPERIMENT")
+        self.logger.info(f"  Directory: {self.experiment_dir}")
+        self.logger.info(f"  Name: {self.experiment_dir.name}")
+        if self.experiment_design.get('overview'):
+            overview = self.experiment_design['overview']
+            if len(overview) > 80:
+                overview = overview[:77] + "..."
+            self.logger.info(f"  Overview: {overview}")
+
+        # Data statistics
+        self.logger.info("\n📁 DATA PROCESSED")
+        self.logger.info(f"  Evaluation files: {len(self.eval_files)}")
+        if hasattr(self, 'evals_df') and self.evals_df is not None:
+            self.logger.info(f"  Total evaluations: {len(self.evals_df)}")
+
+        # Visualizations generated
+        self.logger.info("\n🎨 VISUALIZATIONS GENERATED")
+        viz_dir = self.experiment_dir / "visualizations"
+
+        if viz_dir.exists():
+            # Collect all visualization files with sizes
+            html_files = sorted(viz_dir.glob("*.html"))
+            png_files = sorted(viz_dir.glob("*.png"))
+
+            total_size = 0
+
+            if png_files:
+                self.logger.info("  Custom Visualizations (PNG):")
+                for png_file in png_files:
+                    size_kb = png_file.stat().st_size / 1024
+                    total_size += size_kb
+                    self.logger.info(f"    • {png_file.name} ({size_kb:.1f} KB)")
+
+            if html_files:
+                self.logger.info("  Interactive Visualizations (HTML):")
+                for html_file in html_files:
+                    size_kb = html_file.stat().st_size / 1024
+                    total_size += size_kb
+                    viz_type = "Navigation Index" if html_file.name == "index.html" else "Interactive View"
+                    self.logger.info(f"    • {html_file.name} ({size_kb:.1f} KB) - {viz_type}")
+
+            self.logger.info(f"\n  Total: {len(html_files) + len(png_files)} visualizations ({total_size:.1f} KB)")
+
+        # Access information
+        self.logger.info("\n🌐 HOW TO ACCESS")
+        index_path = viz_dir / "index.html"
+        if index_path.exists():
+            self.logger.info(f"  Primary: {index_path}")
+            self.logger.info("  Open in browser to navigate all visualizations")
+        else:
+            self.logger.info(f"  Visualizations directory: {viz_dir}")
+
+        # Next steps
+        self.logger.info("\n📝 NEXT STEPS")
+        self.logger.info("  1. Open index.html in a web browser")
+        self.logger.info("  2. Review interactive and static visualizations")
+        self.logger.info("  3. Use custom visualizations for publications/reports")
+        if self.skip_validation:
+            self.logger.info("  ⚠️  Note: Validation was skipped - verify results manually")
+
+        self.logger.info("\n" + "="*70)
+
     def create_navigation_index(self) -> bool:
         """
         Create an index.html file that provides navigation to all visualizations.
@@ -1156,54 +1233,86 @@ class InspectVizRunner:
         Returns:
             True if successful, False if any critical step fails.
         """
+        import time
+        start_time = time.time()
+
+        self.logger.info("\n" + "="*70)
+        self.logger.info("🚀 STARTING VISUALIZATION WORKFLOW")
+        self.logger.info("="*70 + "\n")
+
         # Step 1: Discover experiment
+        self.logger.info("📍 Step 1/8: Discovering experiment directory...")
         if not self.discover_experiment():
+            self.logger.error("❌ Failed at Step 1: Experiment discovery")
             return False
+        self.logger.info("✓ Step 1 complete\n")
 
         # Step 2: Discover .eval files
+        self.logger.info("🔍 Step 2/8: Searching for .eval files...")
         if not self.discover_eval_files():
+            self.logger.error("❌ Failed at Step 2: .eval file discovery")
             return False
+        self.logger.info("✓ Step 2 complete\n")
 
         # Step 3: Load evaluation data
+        self.logger.info("📊 Step 3/8: Loading evaluation data...")
         if not self.load_evaluation_data():
+            self.logger.error("❌ Failed at Step 3: Data loading")
             return False
+        self.logger.info("✓ Step 3 complete\n")
 
         # Step 4: Parse experiment design
+        self.logger.info("📋 Step 4/8: Parsing experiment design...")
         if not self.parse_experiment_summary():
+            self.logger.error("❌ Failed at Step 4: Design parsing")
             return False
+        self.logger.info("✓ Step 4 complete\n")
 
         # Step 5: Validate design matches data (unless skipped)
+        self.logger.info("✅ Step 5/8: Validating design vs data...")
         if not self.skip_validation:
             if not self.validate_design_vs_data():
+                self.logger.error("❌ Failed at Step 5: Validation")
                 return False
+            self.logger.info("✓ Step 5 complete\n")
         else:
             self.logger.info("⚠️  Validation skipped (--skip-validation flag set)")
+            self.logger.info("✓ Step 5 skipped\n")
 
         # Step 6: Generate pre-built views
+        self.logger.info("🎨 Step 6/8: Generating pre-built visualizations...")
         if not self.generate_prebuilt_views():
-            self.logger.warning("No pre-built views were generated successfully")
+            self.logger.warning("⚠️  No pre-built views were generated successfully")
             # This is a warning, not a critical failure - continue
+        self.logger.info("✓ Step 6 complete\n")
 
         # Step 7: Generate custom visualizations
+        self.logger.info("🖼️  Step 7/8: Generating custom visualizations...")
         if not self.generate_custom_visualizations():
-            self.logger.warning("No custom visualizations were generated successfully")
+            self.logger.warning("⚠️  No custom visualizations were generated successfully")
             # This is a warning, not a critical failure - continue
+        self.logger.info("✓ Step 7 complete\n")
 
         # Step 8: Create navigation index
+        self.logger.info("🗂️  Step 8/8: Creating navigation index...")
         if not self.create_navigation_index():
-            self.logger.warning("Failed to create navigation index")
+            self.logger.warning("⚠️  Failed to create navigation index")
             # This is a warning, not a critical failure - continue
+        self.logger.info("✓ Step 8 complete\n")
 
-        # Success summary
-        self.logger.info("="*60)
-        self.logger.info("✓ Chunk 8 Complete: Navigation Index Created")
-        self.logger.info("="*60)
-        self.logger.info(f"Experiment: {self.experiment_dir}")
-        self.logger.info(f"Evaluation files: {len(self.eval_files)}")
-        self.logger.info(f"Visualizations directory: visualizations/")
-        self.logger.info(f"Open index: visualizations/index.html")
-        self.logger.info("Next: Add enhanced logging and summary")
-        self.logger.info("="*60)
+        # Calculate elapsed time
+        elapsed_time = time.time() - start_time
+        minutes = int(elapsed_time // 60)
+        seconds = int(elapsed_time % 60)
+
+        # Generate final summary
+        self.generate_final_summary()
+
+        # Add timing information
+        if minutes > 0:
+            self.logger.info(f"\n⏱️  Total time: {minutes}m {seconds}s")
+        else:
+            self.logger.info(f"\n⏱️  Total time: {seconds}s")
 
         return True
 
