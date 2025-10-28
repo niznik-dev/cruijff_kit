@@ -745,6 +745,262 @@ class InspectVizRunner:
 
         return len(visualizations_created) > 0
 
+    def create_navigation_index(self) -> bool:
+        """
+        Create an index.html file that provides navigation to all visualizations.
+
+        This creates a simple HTML page with:
+        - Experiment metadata and description
+        - Links to all generated visualizations
+        - Thumbnails for PNG files
+        - Organized by visualization type
+
+        Returns:
+            True if index.html created successfully, False otherwise.
+        """
+        self.log_action(
+            "CREATE_INDEX",
+            "Creating navigation index.html",
+            "Starting index creation..."
+        )
+
+        try:
+            viz_dir = self._ensure_visualizations_dir()
+            index_path = viz_dir / "index.html"
+
+            # Collect all visualization files
+            html_files = sorted(viz_dir.glob("*.html"))
+            png_files = sorted(viz_dir.glob("*.png"))
+
+            # Remove index.html from the list if it exists
+            html_files = [f for f in html_files if f.name != "index.html"]
+
+            self.logger.info(f"Found {len(html_files)} HTML visualizations")
+            self.logger.info(f"Found {len(png_files)} PNG visualizations")
+
+            # Build HTML content
+            html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualization Index - {self.experiment_dir.name}</title>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }}
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        h1 {{
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }}
+        h2 {{
+            color: #34495e;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #ecf0f1;
+        }}
+        .metadata {{
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }}
+        .metadata-item {{
+            margin-bottom: 10px;
+        }}
+        .metadata-label {{
+            font-weight: bold;
+            color: #2c3e50;
+        }}
+        .viz-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }}
+        .viz-card {{
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background: #fff;
+            transition: box-shadow 0.3s;
+        }}
+        .viz-card:hover {{
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }}
+        .viz-card h3 {{
+            color: #3498db;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }}
+        .viz-card a {{
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+        }}
+        .viz-card a:hover {{
+            text-decoration: underline;
+        }}
+        .viz-thumbnail {{
+            width: 100%;
+            height: 200px;
+            object-fit: contain;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }}
+        .viz-type {{
+            display: inline-block;
+            padding: 3px 8px;
+            background: #3498db;
+            color: white;
+            border-radius: 3px;
+            font-size: 0.8em;
+            margin-bottom: 8px;
+        }}
+        .footer {{
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            text-align: center;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Evaluation Visualizations</h1>
+        <p style="color: #7f8c8d; margin-bottom: 20px;">Experiment: <strong>{self.experiment_dir.name}</strong></p>
+
+        <div class="metadata">
+            <h2 style="margin-top: 0; border: none;">Experiment Metadata</h2>
+"""
+
+            # Add experiment metadata
+            if self.experiment_design.get('overview'):
+                html_content += f"""            <div class="metadata-item">
+                <span class="metadata-label">Overview:</span> {self.experiment_design['overview']}
+            </div>
+"""
+
+            if self.experiment_design.get('variables'):
+                vars_text = ", ".join([f"{v['factor']} ({v['levels']})" for v in self.experiment_design['variables']])
+                html_content += f"""            <div class="metadata-item">
+                <span class="metadata-label">Variables:</span> {vars_text}
+            </div>
+"""
+
+            if self.experiment_design.get('tools'):
+                tools_text = ", ".join([f"{k}: {v}" for k, v in self.experiment_design['tools'].items()])
+                html_content += f"""            <div class="metadata-item">
+                <span class="metadata-label">Tools:</span> {tools_text}
+            </div>
+"""
+
+            html_content += f"""            <div class="metadata-item">
+                <span class="metadata-label">Evaluation Files:</span> {len(self.eval_files)}
+            </div>
+            <div class="metadata-item">
+                <span class="metadata-label">Generated:</span> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+            </div>
+        </div>
+"""
+
+            # Add custom visualizations section
+            if png_files:
+                html_content += """
+        <h2>Custom Visualizations</h2>
+        <p style="color: #7f8c8d; margin-bottom: 15px;">Static visualizations generated from experimental design and directory structure.</p>
+        <div class="viz-grid">
+"""
+                for png_file in png_files:
+                    viz_name = png_file.stem.replace('_', ' ').title()
+                    html_content += f"""            <div class="viz-card">
+                <span class="viz-type">PNG</span>
+                <h3>{viz_name}</h3>
+                <a href="{png_file.name}">
+                    <img src="{png_file.name}" alt="{viz_name}" class="viz-thumbnail">
+                </a>
+                <a href="{png_file.name}" download>Download PNG</a>
+            </div>
+"""
+                html_content += """        </div>
+"""
+
+            # Add HTML visualizations section
+            if html_files:
+                html_content += """
+        <h2>Interactive Visualizations</h2>
+        <p style="color: #7f8c8d; margin-bottom: 15px;">Interactive HTML visualizations from inspect-viz library.</p>
+        <div class="viz-grid">
+"""
+                for html_file in html_files:
+                    viz_name = html_file.stem.replace('_', ' ').title()
+                    html_content += f"""            <div class="viz-card">
+                <span class="viz-type">HTML</span>
+                <h3>{viz_name}</h3>
+                <p style="color: #666; margin-bottom: 10px;">Interactive visualization with embedded data</p>
+                <a href="{html_file.name}" target="_blank">Open in new tab →</a>
+            </div>
+"""
+                html_content += """        </div>
+"""
+
+            # Add footer
+            html_content += f"""
+        <div class="footer">
+            Generated by run-inspect-viz from cruijff_kit<br>
+            Experiment directory: {self.experiment_dir}
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+            # Write the index file
+            with open(index_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+
+            self.logger.info(f"✓ Created: {index_path.name}")
+            self.logger.info(f"  Total visualizations indexed: {len(html_files) + len(png_files)}")
+
+            self.log_action(
+                "CREATE_INDEX",
+                f"Created index.html with {len(html_files) + len(png_files)} visualizations",
+                "Index creation complete"
+            )
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"CREATE_INDEX: ERROR")
+            self.logger.error(f"Failed to create index.html: {e}")
+            import traceback
+            self.logger.error(f"Traceback:\n{traceback.format_exc()}")
+            return False
+
     def parse_experiment_summary(self) -> bool:
         """
         Parse experiment_summary.md to extract experimental design information.
@@ -933,14 +1189,20 @@ class InspectVizRunner:
             self.logger.warning("No custom visualizations were generated successfully")
             # This is a warning, not a critical failure - continue
 
+        # Step 8: Create navigation index
+        if not self.create_navigation_index():
+            self.logger.warning("Failed to create navigation index")
+            # This is a warning, not a critical failure - continue
+
         # Success summary
         self.logger.info("="*60)
-        self.logger.info("✓ Chunk 7 Complete: Custom Visualizations Generated")
+        self.logger.info("✓ Chunk 8 Complete: Navigation Index Created")
         self.logger.info("="*60)
         self.logger.info(f"Experiment: {self.experiment_dir}")
         self.logger.info(f"Evaluation files: {len(self.eval_files)}")
         self.logger.info(f"Visualizations directory: visualizations/")
-        self.logger.info("Next: Create navigation index.html")
+        self.logger.info(f"Open index: visualizations/index.html")
+        self.logger.info("Next: Add enhanced logging and summary")
         self.logger.info("="*60)
 
         return True
