@@ -48,12 +48,16 @@ def general_eval(
         max_tokens: Maximum tokens to generate (default: None, uses model default).
 
     Returns:
-        Task: Configured inspect-ai task
+        Task: Configured inspect-ai task with metadata including model_name, model_type,
+              lora_rank (if applicable), and epoch (if applicable).
 
     Raises:
         ValueError: If neither config_dir nor dataset_path is provided
         FileNotFoundError: If specified files don't exist
     """
+
+    # Initialize metadata dictionary
+    metadata = {}
 
     # Determine configuration source
     if config_dir:
@@ -81,6 +85,29 @@ def general_eval(
             # Use system prompt from config unless overridden
             if not system_prompt:
                 system_prompt = config.get('system_prompt', '')
+
+            # Extract metadata from config (addresses issue #174)
+            metadata["model_name"] = config.get('model_name', 'unknown')
+
+            # Determine if this is a base model or fine-tuned checkpoint
+            # Base models will have "base" in the config_dir path
+            # Fine-tuned will have config_dir pointing to an epoch_N directory
+            config_dir_str = str(config_dir).lower()
+            is_base_model = 'base' in config_dir_str or not any(f'epoch_{i}' in config_dir_str for i in range(100))
+
+            metadata["model_type"] = "base" if is_base_model else "fine-tuned"
+
+            # Add LoRA rank for fine-tuned models
+            if not is_base_model:
+                lora_rank = config.get('lora_rank')
+                if lora_rank is not None:
+                    metadata["lora_rank"] = lora_rank
+
+                # Extract epoch number from directory path (e.g., "epoch_0", "epoch_1")
+                for i in range(100):
+                    if f'epoch_{i}' in config_dir_str:
+                        metadata["epoch"] = i
+                        break
 
         except KeyError as e:
             raise KeyError(f"Missing required key in setup_finetune.yaml: {e}")
@@ -142,4 +169,5 @@ def general_eval(
         dataset=dataset,
         solver=solver_chain,
         scorer=scorers,
+        metadata=metadata if metadata else None,  # Include metadata from config (issue #174)
     )
