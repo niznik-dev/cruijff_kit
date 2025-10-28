@@ -316,6 +316,172 @@ class InspectVizRunner:
         viz_dir.mkdir(exist_ok=True)
         return viz_dir
 
+    def validate_design_vs_data(self) -> bool:
+        """
+        Validate that the experimental design matches the actual evaluation data.
+
+        Compares:
+        - Expected variables/factors from experiment_summary.md
+        - Actual variation in the loaded .eval data
+
+        Returns:
+            True if validation passes or user chooses to continue, False to abort.
+        """
+        self.log_action(
+            "VALIDATE_DESIGN",
+            "Comparing experimental design to actual evaluation data",
+            "Starting validation..."
+        )
+
+        # Import here to access the dataframe
+        from inspect_ai.analysis import evals_df
+
+        # Reload the dataframe for inspection
+        evals = evals_df([str(f) for f in self.eval_files])
+
+        # Extract what varies in the actual data
+        actual_variation = {}
+
+        # Check model variation
+        if 'model' in evals.columns:
+            unique_models = evals['model'].nunique()
+            model_values = evals['model'].unique().tolist()
+            actual_variation['models'] = {
+                'count': unique_models,
+                'values': model_values
+            }
+
+        # Check task variation
+        if 'task' in evals.columns:
+            unique_tasks = evals['task'].nunique()
+            task_values = evals['task'].unique().tolist()
+            actual_variation['tasks'] = {
+                'count': unique_tasks,
+                'values': task_values
+            }
+
+        # Check for any metadata fields that might indicate experimental conditions
+        metadata_fields = [col for col in evals.columns if col.startswith('metadata_')]
+        if metadata_fields:
+            actual_variation['metadata_fields'] = metadata_fields
+
+        # Compare with expected design
+        issues = []
+        warnings = []
+
+        # Check models
+        expected_model_conditions = len(self.experiment_design.get('variables', []))
+        if expected_model_conditions >= 2:
+            # We expect multiple conditions (e.g., base vs fine-tuned)
+            if actual_variation.get('models', {}).get('count', 0) == 1:
+                issues.append(
+                    f"Design specifies {expected_model_conditions} experimental factors "
+                    f"but data contains only 1 unique model: {actual_variation['models']['values']}"
+                )
+
+        # Check if design mentions specific factors but we don't see them in data
+        for var in self.experiment_design.get('variables', []):
+            factor = var.get('factor', '')
+            levels = var.get('levels', '')
+
+            # Look for this factor in model names, task names, or metadata
+            factor_found = False
+
+            # Check if factor appears in model names
+            if 'models' in actual_variation:
+                model_str = ' '.join([str(m) for m in actual_variation['models']['values']])
+                if any(level.lower() in model_str.lower() for level in levels.split(',')):
+                    factor_found = True
+
+            # Check if factor appears in task names
+            if 'tasks' in actual_variation:
+                task_str = ' '.join([str(t) for t in actual_variation['tasks']['values']])
+                if any(level.lower() in task_str.lower() for level in levels.split(',')):
+                    factor_found = True
+
+            if not factor_found:
+                warnings.append(
+                    f"Design specifies factor '{factor}' with levels [{levels}] "
+                    f"but this variation is not visible in the data"
+                )
+
+        # Report findings
+        self.logger.info("\n" + "="*60)
+        self.logger.info("Experimental Design vs Data Validation")
+        self.logger.info("="*60)
+
+        self.logger.info("\nExpected (from experiment_summary.md):")
+        if self.experiment_design.get('variables'):
+            for var in self.experiment_design['variables']:
+                self.logger.info(f"  - {var['factor']}: {var['levels']}")
+        else:
+            self.logger.info("  - No variables explicitly defined")
+
+        self.logger.info("\nActual (from .eval files):")
+        if actual_variation.get('models'):
+            self.logger.info(f"  - Models: {actual_variation['models']['count']} unique")
+            for model in actual_variation['models']['values']:
+                self.logger.info(f"    • {model}")
+
+        if actual_variation.get('tasks'):
+            self.logger.info(f"  - Tasks: {actual_variation['tasks']['count']} unique")
+            for task in actual_variation['tasks']['values']:
+                self.logger.info(f"    • {task}")
+
+        if actual_variation.get('metadata_fields'):
+            self.logger.info(f"  - Metadata fields: {', '.join(actual_variation['metadata_fields'])}")
+
+        # Report issues
+        if issues or warnings:
+            self.logger.warning("\n" + "⚠️  Validation Issues Detected".center(60))
+            self.logger.warning("="*60)
+
+            if issues:
+                self.logger.warning("\n❌ CRITICAL MISMATCHES:")
+                for issue in issues:
+                    self.logger.warning(f"  • {issue}")
+
+            if warnings:
+                self.logger.warning("\n⚠️  WARNINGS:")
+                for warning in warnings:
+                    self.logger.warning(f"  • {warning}")
+
+            self.logger.warning("\n" + "="*60)
+            self.logger.warning("Possible explanations:")
+            self.logger.warning("  1. Experiment is partially complete (some conditions not yet run)")
+            self.logger.warning("  2. experiment_summary.md describes planned work, not completed work")
+            self.logger.warning("  3. Evaluation metadata doesn't capture experimental conditions")
+            self.logger.warning("  4. Wrong experiment directory")
+            self.logger.warning("\nPossible actions:")
+            self.logger.warning("  1. Continue anyway - generate visualizations with available data")
+            self.logger.warning("  2. Exit - check experiment status and re-run when complete")
+            self.logger.warning("  3. Update experiment_summary.md to match actual data")
+            self.logger.warning("="*60)
+
+            # Ask user how to proceed
+            self.logger.error("\n❌ VALIDATION FAILED")
+            self.logger.error("Experimental design does not match evaluation data.")
+            self.logger.error("\nPlease review the issues above and decide how to proceed:")
+            self.logger.error("  • Continue generating visualizations with available data?")
+            self.logger.error("  • Or exit and investigate the mismatch?")
+
+            self.log_action(
+                "VALIDATE_DESIGN",
+                "Validation found mismatches between design and data",
+                "FAILED - User input required"
+            )
+
+            return False
+
+        else:
+            self.logger.info("\n✓ Validation passed: Design matches data")
+            self.log_action(
+                "VALIDATE_DESIGN",
+                "Experimental design matches evaluation data",
+                "SUCCESS"
+            )
+            return True
+
     def generate_prebuilt_views(self) -> bool:
         """
         Generate pre-built visualization views using inspect_viz.
@@ -335,7 +501,13 @@ class InspectVizRunner:
 
         try:
             # Import required functions
-            from inspect_viz.view.beta import scores_by_model
+            from inspect_viz.view.beta import (
+                scores_by_model,
+                scores_by_task,
+                scores_timeline,
+                scores_heatmap,
+                scores_by_factor
+            )
             from inspect_viz.plot import write_html
         except ImportError as e:
             self.logger.error(f"GENERATE_VIEWS: ERROR")
@@ -351,23 +523,36 @@ class InspectVizRunner:
         views_generated = []
         views_failed = []
 
-        # Generate: scores_by_model
-        self.logger.info("\nGenerating view: scores_by_model")
-        try:
-            # Create the view component
-            view = scores_by_model(self.evals_data)
+        # Define all pre-built views to generate
+        views_to_generate = [
+            ("scores_by_model", scores_by_model, "Compare performance across different models"),
+            ("scores_by_task", scores_by_task, "Compare performance across different tasks"),
+            ("scores_timeline", scores_timeline, "Show how scores change over time"),
+            ("scores_heatmap", scores_heatmap, "Heatmap showing model vs task performance"),
+            ("scores_by_factor", scores_by_factor, "Show scores across experimental factors"),
+        ]
 
-            # Save to HTML file
-            output_file = viz_dir / "scores_by_model.html"
-            write_html(str(output_file), view)
+        # Generate each view
+        for view_name, view_func, description in views_to_generate:
+            self.logger.info(f"\nGenerating view: {view_name}")
+            self.logger.info(f"  Description: {description}")
 
-            self.logger.info(f"✓ Generated: {output_file.name}")
-            self.logger.info(f"  View file: {output_file.relative_to(self.experiment_dir)}")
-            views_generated.append("scores_by_model")
+            try:
+                # Create the view component
+                view = view_func(self.evals_data)
 
-        except Exception as e:
-            self.logger.warning(f"✗ Failed to generate scores_by_model: {e}")
-            views_failed.append(("scores_by_model", str(e)))
+                # Save to HTML file
+                output_file = viz_dir / f"{view_name}.html"
+                write_html(str(output_file), view)
+
+                # Check file size to confirm it was created
+                file_size = output_file.stat().st_size
+                self.logger.info(f"✓ Generated: {output_file.name} ({file_size/1024:.1f} KB)")
+                views_generated.append(view_name)
+
+            except Exception as e:
+                self.logger.warning(f"✗ Failed to generate {view_name}: {e}")
+                views_failed.append((view_name, str(e)))
 
         # Summary
         self.logger.info("\n" + "="*60)
@@ -562,19 +747,23 @@ class InspectVizRunner:
         if not self.parse_experiment_summary():
             return False
 
-        # Step 5: Generate pre-built views
+        # Step 5: Validate design matches data
+        if not self.validate_design_vs_data():
+            return False
+
+        # Step 6: Generate pre-built views
         if not self.generate_prebuilt_views():
             self.logger.warning("No pre-built views were generated successfully")
             # This is a warning, not a critical failure - continue
 
         # Success summary
         self.logger.info("="*60)
-        self.logger.info("✓ Chunk 5 Complete: First Pre-built View")
+        self.logger.info("✓ Chunk 6 Complete: All Pre-built Views Generated")
         self.logger.info("="*60)
         self.logger.info(f"Experiment: {self.experiment_dir}")
         self.logger.info(f"Evaluation files: {len(self.eval_files)}")
         self.logger.info(f"Visualizations directory: visualizations/")
-        self.logger.info("Next: Generate remaining pre-built views")
+        self.logger.info("Next: Generate custom visualizations based on experimental design")
         self.logger.info("="*60)
 
         return True
