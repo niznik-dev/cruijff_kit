@@ -578,6 +578,173 @@ class InspectVizRunner:
         # Consider success if at least one view was generated
         return len(views_generated) > 0
 
+    def generate_custom_visualizations(self) -> bool:
+        """
+        Generate custom visualizations based on experimental design and directory structure.
+
+        This method creates simple, reliable visualizations when:
+        - Pre-built views don't work well
+        - Model names aren't in .eval metadata
+        - Need experiment-specific comparisons
+
+        Returns:
+            True if at least one custom visualization generated, False otherwise.
+        """
+        self.log_action(
+            "GENERATE_CUSTOM",
+            "Creating custom visualizations based on experimental design",
+            "Starting custom visualization generation..."
+        )
+
+        try:
+            import matplotlib
+            matplotlib.use('Agg')  # Non-interactive backend for server use
+            import matplotlib.pyplot as plt
+            import numpy as np
+        except ImportError as e:
+            self.logger.error(f"GENERATE_CUSTOM: ERROR")
+            self.logger.error(f"Failed to import matplotlib: {e}")
+            self.logger.error("\nPlease ensure matplotlib is installed:")
+            self.logger.error("  pip install matplotlib")
+            return False
+
+        # Import for data access
+        from inspect_ai.analysis import evals_df
+
+        # Reload the dataframe
+        evals = evals_df([str(f) for f in self.eval_files])
+
+        # Ensure visualizations directory exists
+        viz_dir = self._ensure_visualizations_dir()
+
+        visualizations_created = []
+
+        # Strategy: Extract condition information from file paths
+        # since .eval metadata may not have it
+        self.logger.info("\nExtracting experimental conditions from directory structure...")
+
+        # Build enriched data with directory-based labels
+        enriched_data = []
+        for idx, eval_file in enumerate(self.eval_files):
+            # Get the eval record
+            row = evals.iloc[idx]
+
+            # Extract directory path components
+            # Typical structure: .../experiment_dir/condition_name/epoch_N/logs/*.eval
+            rel_path = eval_file.relative_to(self.experiment_dir)
+            path_parts = rel_path.parts
+
+            # Try to identify condition from directory structure
+            # Usually the first directory is the condition/run name
+            condition_name = path_parts[0] if len(path_parts) > 0 else "unknown"
+
+            enriched_data.append({
+                'condition': condition_name,
+                'model': row.get('model', 'unknown'),
+                'task': row.get('task_name', 'unknown'),
+                'score': row.get('score_headline_value', 0.0),
+                'created': row.get('created', 'unknown')
+            })
+
+        self.logger.info(f"Identified {len(enriched_data)} evaluation conditions:")
+        for data in enriched_data:
+            self.logger.info(f"  - {data['condition']}: {data['score']:.3f}")
+
+        # Generate visualization 1: Condition Comparison Bar Chart
+        self.logger.info("\nGenerating: condition_comparison.png")
+        try:
+            fig, ax = plt.subplots(figsize=(12, 6))
+
+            conditions = [d['condition'] for d in enriched_data]
+            scores = [d['score'] for d in enriched_data]
+
+            # Create bar chart
+            bars = ax.bar(range(len(conditions)), scores, color='#3498db', alpha=0.8, edgecolor='black')
+
+            # Add score labels on bars
+            for i, (bar, score) in enumerate(zip(bars, scores)):
+                height = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2., height,
+                       f'{score:.1%}',
+                       ha='center', va='bottom', fontsize=10, fontweight='bold')
+
+            # Formatting
+            ax.set_xlabel('Experimental Condition', fontsize=12, fontweight='bold')
+            ax.set_ylabel('Accuracy Score', fontsize=12, fontweight='bold')
+            ax.set_title(f'Performance Comparison\n{self.experiment_design.get("overview", "")[:100]}',
+                        fontsize=14, fontweight='bold', pad=20)
+            ax.set_xticks(range(len(conditions)))
+            ax.set_xticklabels(conditions, rotation=45, ha='right')
+            ax.set_ylim(0, 1.05)
+            ax.grid(axis='y', alpha=0.3, linestyle='--')
+            ax.axhline(y=1.0, color='red', linestyle='--', alpha=0.5, label='Perfect Score')
+
+            # Add legend if we have threshold line
+            if len(conditions) > 0:
+                ax.legend()
+
+            plt.tight_layout()
+
+            output_file = viz_dir / "condition_comparison.png"
+            plt.savefig(output_file, dpi=150, bbox_inches='tight')
+            plt.close()
+
+            self.logger.info(f"✓ Generated: {output_file.name}")
+            visualizations_created.append("condition_comparison.png")
+
+        except Exception as e:
+            self.logger.warning(f"✗ Failed to generate condition_comparison.png: {e}")
+
+        # Generate visualization 2: Score Distribution (if multiple evals)
+        if len(enriched_data) >= 2:
+            self.logger.info("\nGenerating: score_distribution.png")
+            try:
+                fig, ax = plt.subplots(figsize=(10, 6))
+
+                scores = [d['score'] for d in enriched_data]
+
+                # Histogram
+                ax.hist(scores, bins=min(10, len(scores)), color='#2ecc71', alpha=0.7, edgecolor='black')
+
+                # Add mean line
+                mean_score = np.mean(scores)
+                ax.axvline(mean_score, color='red', linestyle='--', linewidth=2,
+                          label=f'Mean: {mean_score:.1%}')
+
+                ax.set_xlabel('Accuracy Score', fontsize=12, fontweight='bold')
+                ax.set_ylabel('Frequency', fontsize=12, fontweight='bold')
+                ax.set_title('Score Distribution Across Evaluations', fontsize=14, fontweight='bold')
+                ax.legend()
+                ax.grid(axis='y', alpha=0.3)
+
+                plt.tight_layout()
+
+                output_file = viz_dir / "score_distribution.png"
+                plt.savefig(output_file, dpi=150, bbox_inches='tight')
+                plt.close()
+
+                self.logger.info(f"✓ Generated: {output_file.name}")
+                visualizations_created.append("score_distribution.png")
+
+            except Exception as e:
+                self.logger.warning(f"✗ Failed to generate score_distribution.png: {e}")
+
+        # Summary
+        self.logger.info("\n" + "="*60)
+        self.logger.info("Custom Visualizations Summary")
+        self.logger.info("="*60)
+        self.logger.info(f"✓ Successfully generated: {len(visualizations_created)} visualization(s)")
+        for viz_name in visualizations_created:
+            self.logger.info(f"  - {viz_name}")
+
+        self.log_action(
+            "GENERATE_CUSTOM",
+            f"Generated {len(visualizations_created)} custom visualization(s)",
+            "Custom visualization generation complete"
+        )
+
+        return len(visualizations_created) > 0
+
     def parse_experiment_summary(self) -> bool:
         """
         Parse experiment_summary.md to extract experimental design information.
@@ -761,14 +928,19 @@ class InspectVizRunner:
             self.logger.warning("No pre-built views were generated successfully")
             # This is a warning, not a critical failure - continue
 
+        # Step 7: Generate custom visualizations
+        if not self.generate_custom_visualizations():
+            self.logger.warning("No custom visualizations were generated successfully")
+            # This is a warning, not a critical failure - continue
+
         # Success summary
         self.logger.info("="*60)
-        self.logger.info("✓ Chunk 6 Complete: All Pre-built Views Generated")
+        self.logger.info("✓ Chunk 7 Complete: Custom Visualizations Generated")
         self.logger.info("="*60)
         self.logger.info(f"Experiment: {self.experiment_dir}")
         self.logger.info(f"Evaluation files: {len(self.eval_files)}")
         self.logger.info(f"Visualizations directory: visualizations/")
-        self.logger.info("Next: Generate custom visualizations based on experimental design")
+        self.logger.info("Next: Create navigation index.html")
         self.logger.info("="*60)
 
         return True
