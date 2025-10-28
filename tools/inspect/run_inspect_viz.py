@@ -44,13 +44,14 @@ class InspectVizRunner:
     - Visualization generation workflow
     """
 
-    def __init__(self, experiment_dir: Optional[Path] = None, log_file: str = "run-inspect-viz.log"):
+    def __init__(self, experiment_dir: Optional[Path] = None, log_file: str = "run-inspect-viz.log", skip_validation: bool = False):
         """
         Initialize the visualization runner.
 
         Args:
             experiment_dir: Path to experiment directory. If None, uses current directory.
             log_file: Name of log file to create in experiment directory.
+            skip_validation: If True, skip validation check comparing design to data.
         """
         # Determine experiment directory
         if experiment_dir is None:
@@ -64,6 +65,7 @@ class InspectVizRunner:
             console=True
         )
         self.log_file_name = log_file
+        self.skip_validation = skip_validation
 
         # Initialize state
         self.eval_files: List[Path] = []
@@ -747,9 +749,12 @@ class InspectVizRunner:
         if not self.parse_experiment_summary():
             return False
 
-        # Step 5: Validate design matches data
-        if not self.validate_design_vs_data():
-            return False
+        # Step 5: Validate design matches data (unless skipped)
+        if not self.skip_validation:
+            if not self.validate_design_vs_data():
+                return False
+        else:
+            self.logger.info("⚠️  Validation skipped (--skip-validation flag set)")
 
         # Step 6: Generate pre-built views
         if not self.generate_prebuilt_views():
@@ -801,12 +806,19 @@ Examples:
         help="Name of log file to create (default: run-inspect-viz.log)"
     )
 
+    parser.add_argument(
+        "--skip-validation",
+        action="store_true",
+        help="Skip validation check that compares experimental design to data"
+    )
+
     args = parser.parse_args()
 
     # Create runner and execute
     runner = InspectVizRunner(
         experiment_dir=Path(args.experiment_dir) if args.experiment_dir else None,
-        log_file=args.log_file
+        log_file=args.log_file,
+        skip_validation=args.skip_validation
     )
 
     success = runner.run()
