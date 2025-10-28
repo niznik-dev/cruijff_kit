@@ -15,9 +15,9 @@ data/yellow/*
 !data/yellow/CLAUDE.md
 data/green/*
 !data/green/CLAUDE.md
-probes/bit_sequences/*.json
-probes/bit_sequences/*.png
-probes/bit_sequences/*.txt
+sanity_checks/bit_sequences/*.json
+sanity_checks/bit_sequences/*.png
+sanity_checks/bit_sequences/*.txt
 experiments/capitalization/*.json
 experiments/capitalization/eval_output/
 experiments/capitalization/input/words*_c/
@@ -25,7 +25,7 @@ experiments/capitalization/input/words*parquet/
 experiments/capitalization/input/words*.json
 experiments/capitalization/input/words*.txt
 experiments/capitalization/input/*.png
-probes/predictable_or_not/*.json
+sanity_checks/predictable_or_not/*.json
 experiments/capitalization/*.txt
 experiments/capitalization/*.csv
 experiments/capitalization/*.png

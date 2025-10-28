@@ -38,12 +38,20 @@ uu = copy.deepcopy(up)
 for line in uu:
     line['output'] = str(random.randint(0, 1000))
 
-# Save the data to JSON files
-with open('pp.json', 'w') as f:
-    json.dump(pp, f, indent=2)
-with open('pu.json', 'w') as f:
-    json.dump(pu, f, indent=2)
-with open('up.json', 'w') as f:
-    json.dump(up, f, indent=2)
-with open('uu.json', 'w') as f:
-    json.dump(uu, f, indent=2)
+# Split each scenario 90/10 for train/validation and save with splits as top-level keys
+for scenario_name, scenario_data in [('pp', pp), ('pu', pu), ('up', up), ('uu', uu)]:
+    # Split 90/10
+    split_point = int(len(scenario_data) * 0.9)
+    train_data = scenario_data[:split_point]
+    val_data = scenario_data[split_point:]
+
+    # Create single JSON file with train/validation splits as top-level keys
+    output = {
+        'train': train_data,
+        'validation': val_data
+    }
+
+    with open(f'{scenario_name}.json', 'w') as f:
+        json.dump(output, f, indent=2)
+
+    print(f'{scenario_name}.json: {len(train_data)} train, {len(val_data)} validation')

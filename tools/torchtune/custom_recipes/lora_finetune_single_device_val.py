@@ -17,7 +17,7 @@ import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
 
 # !--- cruijff_kit patch ---!
-from custom_recipes.custom_recipe_utils import stash_adapter_files
+from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import stash_adapter_files
 # !--- end cruijff_kit patch ---!
 
 from torch import nn

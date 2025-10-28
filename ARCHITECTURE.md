@@ -34,9 +34,9 @@ cruijff_kit/
 │       ├── twins_task.py # Inspect-ai evaluation task
 │       └── ...
 │
-├── probes/             # Synthetic validation probes for testing workflows and learning
-│   ├── bit_sequences/  # Bit parity probes for testing memorization
-│   └── predictable_or_not/  # Stochastic prediction probes for data leakage validation
+├── sanity_checks/      # Synthetic validation sanity checks for testing workflows and learning
+│   ├── bit_sequences/  # Bit parity sanity checks for testing memorization
+│   └── predictable_or_not/  # Stochastic prediction sanity checks for data leakage validation
 │
 ├── utils/              # Shared utilities and helpers
 │   ├── llm_utils.py    # Model loading and inference utilities
@@ -186,7 +186,7 @@ Model predictions (CSV) → heterogeneity_report.py → analysis + visualization
 - Understanding which subpopulations a model serves well/poorly
 - Post-hoc analysis of any binary classification predictions with group labels
 
-## Experiments vs Tests
+## Experiments vs Sanity Checks
 
 ### Experiments (`experiments/`)
 Real research experiment types with scientific questions:
@@ -202,8 +202,8 @@ Each experiment typically includes:
 - `utils/` - Experiment-specific helper functions
 - `{name}_task.py` - Inspect-ai evaluation task (e.g., `cap_task.py`)
 
-### Probes (`probes/`)
-Synthetic validation probes for workflow testing and learning:
+### Sanity Checks (`sanity_checks/`)
+Synthetic validation sanity checks for workflow testing and learning:
 
 - **bit_sequences**: Tests memorization and pattern learning with deterministic bit patterns
 - **predictable_or_not**: Validates no data leakage with stochastic prediction tasks
