@@ -305,6 +305,92 @@ class InspectVizRunner:
             self.logger.error(f"Traceback:\n{traceback.format_exc()}")
             return False
 
+    def _ensure_visualizations_dir(self) -> Path:
+        """
+        Create visualizations directory if it doesn't exist.
+
+        Returns:
+            Path to the visualizations directory.
+        """
+        viz_dir = self.experiment_dir / "visualizations"
+        viz_dir.mkdir(exist_ok=True)
+        return viz_dir
+
+    def generate_prebuilt_views(self) -> bool:
+        """
+        Generate pre-built visualization views using inspect_viz.
+
+        This method generates standard visualization views including:
+        - scores_by_model: Compare performance across different models
+        - (More views will be added in Chunk 6)
+
+        Returns:
+            True if at least one view generated successfully, False if all failed.
+        """
+        self.log_action(
+            "GENERATE_VIEWS",
+            "Generating pre-built visualization views",
+            "Starting view generation..."
+        )
+
+        try:
+            # Import required functions
+            from inspect_viz.view.beta import scores_by_model
+            from inspect_viz.plot import write_html
+        except ImportError as e:
+            self.logger.error(f"GENERATE_VIEWS: ERROR")
+            self.logger.error(f"Failed to import inspect_viz components: {e}")
+            self.logger.error("\nPlease ensure inspect-viz is installed:")
+            self.logger.error("  pip install inspect-viz")
+            return False
+
+        # Ensure visualizations directory exists
+        viz_dir = self._ensure_visualizations_dir()
+        self.logger.info(f"Visualizations will be saved to: {viz_dir}")
+
+        views_generated = []
+        views_failed = []
+
+        # Generate: scores_by_model
+        self.logger.info("\nGenerating view: scores_by_model")
+        try:
+            # Create the view component
+            view = scores_by_model(self.evals_data)
+
+            # Save to HTML file
+            output_file = viz_dir / "scores_by_model.html"
+            write_html(str(output_file), view)
+
+            self.logger.info(f"✓ Generated: {output_file.name}")
+            self.logger.info(f"  View file: {output_file.relative_to(self.experiment_dir)}")
+            views_generated.append("scores_by_model")
+
+        except Exception as e:
+            self.logger.warning(f"✗ Failed to generate scores_by_model: {e}")
+            views_failed.append(("scores_by_model", str(e)))
+
+        # Summary
+        self.logger.info("\n" + "="*60)
+        self.logger.info("Pre-built Views Generation Summary")
+        self.logger.info("="*60)
+        self.logger.info(f"✓ Successfully generated: {len(views_generated)} view(s)")
+        for view_name in views_generated:
+            self.logger.info(f"  - {view_name}")
+
+        if views_failed:
+            self.logger.warning(f"\n✗ Failed to generate: {len(views_failed)} view(s)")
+            for view_name, error in views_failed:
+                self.logger.warning(f"  - {view_name}: {error}")
+
+        self.log_action(
+            "GENERATE_VIEWS",
+            f"Generated {len(views_generated)} pre-built view(s)",
+            "View generation complete"
+        )
+
+        # Consider success if at least one view was generated
+        return len(views_generated) > 0
+
     def parse_experiment_summary(self) -> bool:
         """
         Parse experiment_summary.md to extract experimental design information.
@@ -476,15 +562,19 @@ class InspectVizRunner:
         if not self.parse_experiment_summary():
             return False
 
-        # Success summary for this chunk
+        # Step 5: Generate pre-built views
+        if not self.generate_prebuilt_views():
+            self.logger.warning("No pre-built views were generated successfully")
+            # This is a warning, not a critical failure - continue
+
+        # Success summary
         self.logger.info("="*60)
-        self.logger.info("✓ Chunk 4 Complete: Experiment Design Parsing")
+        self.logger.info("✓ Chunk 5 Complete: First Pre-built View")
         self.logger.info("="*60)
         self.logger.info(f"Experiment: {self.experiment_dir}")
-        self.logger.info(f"Evaluation files loaded: {len(self.eval_files)}")
-        self.logger.info(f"Design document: {self.design_doc.name}")
-        self.logger.info(f"Variables identified: {len(self.experiment_design.get('variables', []))}")
-        self.logger.info("Next: Generate visualizations")
+        self.logger.info(f"Evaluation files: {len(self.eval_files)}")
+        self.logger.info(f"Visualizations directory: visualizations/")
+        self.logger.info("Next: Generate remaining pre-built views")
         self.logger.info("="*60)
 
         return True
