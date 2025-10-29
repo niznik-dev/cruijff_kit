@@ -353,6 +353,25 @@ Include experiment-specific quick reference:
 
 The experiment_summary.md file should follow the section order listed in "Required Sections" above. Here are examples of complex sections:
 
+**All Runs Table Example** (document all fine-tuned and control runs):
+```markdown
+## All Runs
+
+| Run Name | Model | LoRA Rank | Learning Rate | Batch Size | Type | Est. Time |
+|----------|-------|-----------|---------------|------------|------|-----------|
+| Llama-3.2-1B_rank8_lr1e-5 | Llama-3.2-1B-Instruct | 8 | 1e-5 | 4 | Fine-tuned | ~10min |
+| Llama-3.2-1B_rank8_lr5e-5 | Llama-3.2-1B-Instruct | 8 | 5e-5 | 4 | Fine-tuned | ~10min |
+| Llama-3.2-1B_rank16_lr1e-5 | Llama-3.2-1B-Instruct | 16 | 1e-5 | 4 | Fine-tuned | ~10min |
+| Llama-3.2-1B_rank16_lr5e-5 | Llama-3.2-1B-Instruct | 16 | 5e-5 | 4 | Fine-tuned | ~10min |
+| Llama-3.2-1B_base | Llama-3.2-1B-Instruct | - | - | - | Control | N/A |
+
+**Notes**:
+- **Type**: "Fine-tuned" for runs requiring training, "Control" for base model evaluation only
+- **Run Name**: Should match directory structure (varying parameters only)
+- Include all parameters that vary across runs as separate columns
+- Use `-` for non-applicable parameters (like LoRA rank for control runs)
+```
+
 **Evaluation Matrix Example** (when runs have different evaluation plans):
 ```markdown
 ## Evaluation Plan
@@ -395,7 +414,37 @@ The experiment_summary.md file should follow the section order listed in "Requir
 - **Scorer:** exact_match
 - **System prompt:** "" (blank - must match training)
 
+### Output
+- **Checkpoint directory**: `/scratch/gpfs/MSALGANIK/niznik/ck-outputs`
+- **Naming pattern**: `ck-out-{run_name}/epoch_{N}`
+- **Example**: `/scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-rank8_lr1e-5/epoch_0`
+
 **IMPORTANT:** System prompt must be identical between training and evaluation for valid comparisons.
+```
+
+**Resources Section Example** (document all verified paths and files):
+```markdown
+## Resources
+
+### Models
+- **Llama-3.2-1B-Instruct**: `/scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct`
+  - Verified: ✓ (2025-10-22)
+  - Size: ~2.5 GB
+
+### Dataset
+- **Path**: `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/capitalization/input/words_8L_80P_10000.json`
+- **Format**: JSON
+- **Size**: 655KB
+- **Splits**: train (8000 samples), validation (1000 samples), test (1000 samples)
+- **Verified**: ✓ (2025-10-22)
+
+### Evaluation Tasks
+| Task Name | Script | Dataset | Description |
+|-----------|--------|---------|-------------|
+| capitalization | `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/capitalization/cap_task.py` | Same as training | Tests word capitalization accuracy |
+| generalization | `/path/to/gen_task.py` | `/path/to/test_set.json` | Tests on unseen word lengths |
+
+**Note**: All paths verified during design phase. Evaluation task scripts must exist before scaffolding.
 ```
 
 For complete examples, refer to existing experiment_summary.md files in `experiments/*/experiment_summary.md`.
