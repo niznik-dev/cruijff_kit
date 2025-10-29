@@ -41,7 +41,12 @@ This sanity check tests **8 runs total**:
 ```
 sanity_checks/predictable_or_not/
 ├── README.md              # This file
-├── generate_data.py       # Generates the 4 scenario datasets
+└── generate_data.py       # Generates the 4 scenario datasets
+```
+
+**Sanity check data** (in repository, generated):
+```
+data/green/predictable_or_not/
 ├── pp.json               # Generated data (not in git)
 ├── pu.json
 ├── up.json
@@ -85,7 +90,7 @@ cd sanity_checks/predictable_or_not
 python generate_data.py
 ```
 
-This creates four JSON files (`pp.json`, `pu.json`, `up.json`, `uu.json`), each with:
+This creates four JSON files in `data/green/predictable_or_not/` (`pp.json`, `pu.json`, `up.json`, `uu.json`), each with:
 - 1000 total examples split into `train` (900) and `validation` (100) keys
 - Format: `{"input": "...", "output": "..."}`
 - No instruction field (empty `input_formatting` in config)

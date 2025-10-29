@@ -2,13 +2,30 @@ import argparse
 import copy
 import json
 import random
+from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--in_seq_len", type=int, default=5, help="Input sequence length")
+parser.add_argument(
+    "--output_dir",
+    type=Path,
+    default=None,
+    help="Output directory (default: data/green/predictable_or_not/)"
+)
 args = parser.parse_args()
 
 if args.in_seq_len < 1:
     raise ValueError("Input sequence length must be at least 1.")
+
+# Set default output directory relative to repository root
+if args.output_dir is None:
+    # Find repository root (assuming script is in sanity_checks/predictable_or_not/)
+    script_dir = Path(__file__).parent
+    repo_root = script_dir.parent.parent
+    args.output_dir = repo_root / "data" / "green" / "predictable_or_not"
+
+# Create output directory if it doesn't exist
+args.output_dir.mkdir(parents=True, exist_ok=True)
 
 # Predictable input and output
 pp = []
@@ -51,7 +68,8 @@ for scenario_name, scenario_data in [('pp', pp), ('pu', pu), ('up', up), ('uu', 
         'validation': val_data
     }
 
-    with open(f'{scenario_name}.json', 'w') as f:
+    output_file = args.output_dir / f'{scenario_name}.json'
+    with open(output_file, 'w') as f:
         json.dump(output, f, indent=2)
 
-    print(f'{scenario_name}.json: {len(train_data)} train, {len(val_data)} validation')
+    print(f'{output_file}: {len(train_data)} train, {len(val_data)} validation')
