@@ -1,10 +1,10 @@
 # Design Experiment
 
-You help users plan experiments for fine-tuning and evaluating LLMs. Create a self-documenting plan that specifies all runs, verifies resources, estimates compute requirements, and documents the complete workflow from training through evaluation.
+You help users plan experiments for fine-tuning and evaluating LLMs. Create a plan that specifies the complete workflow from training through evaluation, verifies resources, estimates compute requirements, and documents all steps.
 
 ## Your Task
 
-Guide the user through designing their experiment by asking questions, verifying resources, and creating a comprehensive `experiment_summary.md` file that documents the plan and tracks execution status.
+Guide the user through designing their experiment by asking questions, verifying resources, and creating a comprehensive `experiment_summary.md` file that documents the complete plan.
 
 ## Workflow Tools
 
@@ -29,13 +29,13 @@ This skill documents a complete experimental workflow that uses:
 1. **Determine experiment type and location** - Auto-detect sanity_check vs experiment and set base directory
 2. **Understand the experiment** - What variables are being tested? What's the scientific question?
 3. **Confirm tool choices** - Ask which preparation and evaluation tools to use (currently only torchtune and inspect-ai)
-4. **Verify resources** - Do models, datasets, and eval scripts exist? (log all checks)
-5. **Plan evaluation** - What metrics, which epochs, what eval datasets/tasks?
-6. **Establish naming** - Help choose a clear, descriptive name for the experiment
-7. **Estimate resources** - Calculate time and disk space for BOTH training and evaluation (log all calculations)
-8. **Create summary** - Write `experiment_summary.md` with complete plan including tool choices and evaluation workflow
-9. **Create log** - Write `design-experiment.log` with all verification steps and decisions
-10. **Get approval** - Review with user, adjust if needed
+4. **Design training runs** - Which models? Which datasets? What hyperparameters? What LoRA ranks?
+5. **Design evaluation runs** - Which trained models on which tasks? Which epochs to evaluate? What metrics?
+6. **Establish naming** - Choose descriptive names for the experiment and runs
+7. **Verify resources** - Check that models, datasets, and eval scripts exist (log all checks)
+8. **Estimate resources** - Calculate time and disk space for BOTH training and evaluation (log all calculations)
+9. **Get approval** - Present the complete plan to user, adjust if needed
+10. **Create files** - After approval, write `experiment_summary.md` and `design-experiment.log`
 
 ## Determining Experiment Location
 
@@ -77,16 +77,6 @@ experiment_dir = f"{base_dir}{experiment_name}/"
 
 **IMPORTANT:** Create a detailed log file at `{experiment_name}/design-experiment.log` that records all verification steps, calculations, and decisions made during planning.
 
-### Log Format
-
-```
-[YYYY-MM-DD HH:MM:SS] ACTION: Description
-Command: {actual_command_run}
-Result: {output_or_outcome}
-Explanation: {why_this_was_done}
-
-```
-
 ### What to Log
 
 **DO log:**
@@ -104,22 +94,22 @@ Explanation: {why_this_was_done}
 
 ```
 [2025-10-22 14:23:15] VERIFY_MODEL: Checking Llama-3.2-1B-Instruct
-Command: ls /scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct
+Command: ls {models_dir}/Llama-3.2-1B-Instruct
 Result: Directory exists with 15 files (config.json, model.safetensors, etc.)
 Explanation: Verifying base model exists before creating experiment plan
 
 [2025-10-22 14:23:42] VERIFY_DATASET: Checking capitalization dataset
-Command: ls -lh /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/capitalization/input/words_8L_80P_10000.json
+Command: ls -lh {repo_dir}/experiments/capitalization/input/words_8L_80P_10000.json
 Result: File exists, 655KB
 Explanation: Verifying training dataset exists and checking size
 
 [2025-10-22 14:24:01] SEARCH_PRIOR_RUNS: Looking for similar experiments
-Command: find /scratch/gpfs/MSALGANIK/mjs3 -name "slurm-*.out" -path "*/ck-out-*" -size +100k | head -5
+Command: find {scratch_dir} -name "slurm-*.out" -path "*/ck-out-*" -size +100k | head -5
 Result: Found 3 similar runs: ck-out-happy-narwhal, ck-out-bright-horizon, ck-out-calm-dolphin
 Explanation: Searching for prior SLURM logs to extract training speed data for estimates
 
 [2025-10-22 14:24:15] EXTRACT_SPEED: Analyzing prior run for training speed
-Command: grep -E "[0-9.]+it/s" /scratch/gpfs/MSALGANIK/mjs3/ck-out-happy-narwhal/slurm-12345.out | tail -20
+Command: grep -E "[0-9.]+it/s" {scratch_dir}/ck-out-happy-narwhal/slurm-12345.out | tail -20
 Result: Average speed after warmup: 4.34 it/s
 Explanation: Extracting iteration speed from similar prior run with same model and batch size
 
@@ -130,7 +120,7 @@ Result: Estimated 16 minutes total (8 min × 2 epochs)
 Explanation: Calculated training time based on actual iteration speed from prior run
 
 [2025-10-22 14:25:00] CHECK_DISK: Verifying available disk space
-Command: df -h /scratch/gpfs/MSALGANIK/niznik
+Command: df -h {scratch_dir}
 Result: 2.1T available
 Explanation: Ensuring sufficient space for ~40 GiB of checkpoints
 
@@ -140,13 +130,13 @@ Reasoning: Capitalization task (cap), 8-letter words (8L), comparing LoRA ranks,
 Explanation: User confirmed this naming follows convention and is descriptive
 
 [2025-10-22 14:26:00] CREATE_SUMMARY: Writing experiment plan
-Command: Created /scratch/gpfs/MSALGANIK/niznik/cap_8L_lora_comparison_2025-10-22/experiment_summary.md
+Command: Created {scratch_dir}/cap_8L_lora_comparison_2025-10-22/experiment_summary.md
 Result: File created with 4 runs (2 fine-tuned × 2 ranks + 2 controls)
-Explanation: Comprehensive experiment plan with all configurations and status tracking
+Explanation: Comprehensive experiment plan with all configurations documented
 
 [2025-10-22 14:26:15] COMPLETE: Experiment design finished
-Status: Ready for user review and approval
-Next Steps: User should review experiment_summary.md, then proceed with manual setup
+Status: Plan approved by user, files written
+Next Steps: User can now run scaffold-experiment to generate configs
 Explanation: Planning phase complete, documented in summary and this log
 ```
 
@@ -158,9 +148,35 @@ The log enables:
 3. **Improvement:** Review logs to identify better approaches or missing steps
 4. **Auditing:** Verify that all resources were properly checked before committing to the experiment
 
-## Questions to Ask
+## Questions to Ask (Follow Workflow Order)
 
-### 1. Tool Selection
+These questions map directly to the workflow steps above.
+
+### 1. Determine Experiment Type and Location
+
+This step is typically automated, but you should confirm with the user:
+
+**Are you working on a sanity check or a research experiment?**
+- Auto-detect from current working directory (see "Determining Experiment Location" section)
+- If in `/sanity_checks/` directory → sanity check
+- Otherwise → research experiment
+
+**Where should this experiment be created?**
+- Sanity checks: `/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/{name}/`
+- Experiments: `/scratch/gpfs/MSALGANIK/niznik/ck-experiments/{name}/`
+- Log the detected type and path for user confirmation
+
+### 2. Understand the Experiment
+
+**What is the scientific question?**
+- What are you trying to learn?
+- What variables are you testing?
+- What are the experimental factors and levels?
+
+**Should we include base model controls?**
+- Controls evaluate base models without fine-tuning to measure the effect of fine-tuning
+
+### 3. Tool Selection
 
 **Which tools will you use for this experiment?**
 
@@ -174,41 +190,29 @@ The log enables:
 
 **Note:** While these are currently the only options, explicitly confirming and documenting tool choices now will make it easier to support multiple tools in future iterations.
 
-### 2. Experiment Design
+### 4. Design Training Runs
 
-**What do you want to test?**
-- Different model sizes? (e.g., 1B, 3B, 8B)
+**Which models?**
+- Which model(s) to fine-tune? (e.g., 1B, 3B, 8B)
+- Check `{models_dir}` from `claude.local.md`
+
+**Which dataset?**
+- Training dataset location and format
+- Required splits: train, validation (optional), test (optional)
+
+**What variables are you testing?**
+- Different model sizes?
 - Different LoRA ranks?
 - Different datasets or data sizes?
 - Different hyperparameters?
 - Combinations of the above?
 
-**Should we include base model controls?**
-- Controls evaluate base models without fine-tuning to measure the effect of fine-tuning
-
-### 3. Resources (use `claude.local.md` for defaults)
-
-**Models:**
-- Which models? (check `{models_dir}` from `claude.local.md`)
-- Verify they exist: `ls {models_dir}/{model_name}`
-
-**Dataset:**
-- Which dataset and where is it located?
-- Verify it exists and has required splits (train/validation/test)
-- Check size: `ls -lh {dataset_path}`
-
-**Evaluation tasks (inspect-ai):**
-- Which evaluation tasks/benchmarks?
-- For each task: name, inspect-ai task script path, dataset path (if different from training), description
-- Does the task already exist or need to be created? (use `create-inspect-task` skill if needed)
-- Verify task scripts exist: `ls {eval_script_path}`
-
-### 4. Training Configuration
+**Training configuration:**
 
 **Basic settings:**
 - How many epochs? (default: 1-2)
 - How many GPUs per job? (default: 1)
-- Should validation run during training? (default: no)
+- Should validation run during training? (default: yes)
 - System prompt for training and evaluation? (default: "")
 
 **Advanced settings (calculate from prior runs if available):**
@@ -216,9 +220,12 @@ The log enables:
 - Dataset packing - enabled by default, affects batch size
 - For help estimating: check `{scratch_dir}/*/slurm-*.out` for similar runs
 
-### 5. Evaluation Strategy (inspect-ai)
+### 5. Design Evaluation Runs
 
-**Evaluation tool:** inspect-ai will be used for model evaluation after fine-tuning.
+**Which evaluation tasks?**
+- Which inspect-ai task(s) to run?
+- For each task: name, script path, dataset path (if different from training), description
+- Does the task exist or need to be created? (use `create-inspect-task` skill if needed)
 
 **Which epochs to evaluate?**
 - Last epoch only (default, most efficient)
@@ -236,14 +243,14 @@ The log enables:
 - Different test set (typical for generalization evaluation)
 - Multiple evaluation datasets (comprehensive assessment)
 
-**Important:** Base models evaluate once per task (no epoch suffix), fine-tuned models evaluate per epoch.
-
 **Evaluation configuration:**
 - System prompt must match training for consistency
 - Temperature typically 0.0 for deterministic evaluation
 - Scorer selection (exact match, includes, model-graded, etc.)
 
-### 6. Experiment Naming
+**Important:** Base models evaluate once per task (no epoch suffix), fine-tuned models evaluate per epoch.
+
+### 6. Establish Naming
 
 Help the user choose a descriptive experiment name that includes:
 - Task/dataset indicator (e.g., `cap_8L` for capitalization 8-letter)
@@ -261,30 +268,23 @@ Use full model names with experimental factors:
 - `Llama-3.2-3B-Instruct_rank64`
 - `Llama-3.2-1B-Instruct_base` (control)
 
-## Resource Verification
+### 7. Verify Resources
 
-Before finalizing the plan, verify:
+Now that the design is complete, verify all resources exist (use `claude.local.md` for default paths):
 
-1. **Models exist:**
-   ```bash
-   ls {models_dir}/{model_name}
-   ```
+**Models:** `ls {models_dir}/{model_name}`
+- Verify each model directory exists
 
-2. **Dataset exists with splits:**
-   ```bash
-   ls -lh {dataset_path}
-   # Check for train/validation/test splits
-   ```
+**Training dataset:** `ls -lh {dataset_path}`
+- Check file exists and note size
+- Verify required splits (train, validation if needed, test if needed)
 
-3. **Evaluation scripts exist:**
-   ```bash
-   ls {eval_script_path}
-   ```
+**Evaluation task scripts:** `ls {eval_script_path}`
+- Verify each inspect-ai task script exists
+- If missing, note as prerequisite (may need `create-inspect-task` skill first)
 
-4. **Disk space available:**
-   ```bash
-   df -h {scratch_dir}
-   ```
+**Disk space:** `df -h {scratch_dir}`
+- Ensure sufficient space for checkpoints
 
 **If resources missing:**
 - Model: Suggest downloading with appropriate tool
@@ -292,7 +292,20 @@ Before finalizing the plan, verify:
 - Eval script: Note as prerequisite, proceed with plan anyway
 - Disk space: Warn user, suggest cleanup or alternative location
 
+### 8. Estimate Resources
+
+Calculate compute requirements for the complete experiment (training + evaluation):
+
+**Training time:** Estimate per-run and total training time (see Estimation Guidelines below)
+**Evaluation time:** Estimate total evaluation time across all runs and tasks
+**Disk space:** Calculate checkpoint storage requirements
+**GPU hours:** Sum total GPU time needed
+
+Use the **Estimation Guidelines** section below for methods and formulas.
+
 ## Estimation Guidelines
+
+This section provides detailed methods for making estimates requested in step 8 above.
 
 ### Time Estimates
 
@@ -359,30 +372,6 @@ Create a comprehensive document in `{experiment_name}/experiment_summary.md` wit
 7. **Configuration** - Recipe, epochs, batch sizes, hyperparameters, system prompt
 8. **Compute Estimates** - Training time, eval time, disk space, GPU hours
 9. **Naming Conventions** - How runs are named and organized
-10. **Status Tracking** - Embedded status for each run and evaluation
-
-### Status Tracking Format
-
-Include a status section that can be updated as work progresses:
-
-```markdown
-## Status
-
-### Fine-tuning
-| Run Name | Status | Job ID | Started | Completed | Notes |
-|----------|--------|--------|---------|-----------|-------|
-| {run1} | pending | - | - | - | - |
-| {run2} | pending | - | - | - | - |
-
-Status values: `pending`, `running`, `completed`, `failed`
-
-### Evaluations
-| Run Name | Task | Epoch | Status | Job ID | Completed | Notes |
-|----------|------|-------|--------|--------|-----------|-------|
-| {run1} | {task1} | 0 | pending | - | - | - |
-| {run1} | {task1} | 1 | pending | - | - | - |
-| {run1_base} | {task1} | - | pending | - | - | Base model |
-```
 
 ### Quick Reference Section
 
@@ -396,9 +385,11 @@ Include experiment-specific quick reference:
 - Dataset: `{dataset_path}`
 
 **Common Commands:**
-- Check jobs: `squeue -u $USER`
-- Monitor training: `tail -f {experiment_dir}/{run_name}/slurm-*.out`
-- Check disk: `df -h {scratch_dir}`
+- List available models: `ls {models_dir}`
+- Check dataset: `ls -lh {dataset_path}`
+- Find prior runs: `find {scratch_dir} -name "slurm-*.out" -path "*/ck-out-*" | head -10`
+- Extract training speed: `grep -E "[0-9.]+it/s" {prior_run_path}/slurm-*.out | tail -20`
+- Check disk space: `df -h {scratch_dir}`
 
 **Next Steps:**
 1. [Manual step or placeholder for future skill]
@@ -411,142 +402,109 @@ Include experiment-specific quick reference:
 
 ## Template Structure
 
-Use this outline (adapt details based on user's experiment):
+The experiment_summary.md file should follow the section order listed in "Required Sections" above. Here are examples of complex sections:
 
+**Note on paths in examples**: All example paths use placeholders like `{models_dir}`, `{scratch_dir}`, `{output_dir_base}`, and `{repo_dir}` which should be defined in your `claude.local.md` file. When creating an actual experiment_summary.md, replace these placeholders with your actual environment-specific paths.
+
+**All Runs Table Example** (document all fine-tuned and control runs):
 ```markdown
-# Experiment: {experiment_name}
+## All Runs
 
-## Overview
-- **Type:** {design_type} (e.g., 2×2 factorial, parameter sweep, ablation)
-- **Total Runs:** {count} ({finetuned} fine-tuned + {control} controls)
-- **Scientific Question:** {research_question}
-- **Created:** {timestamp}
+| Run Name | Model | LoRA Rank | Learning Rate | Batch Size | Type | Est. Time |
+|----------|-------|-----------|---------------|------------|------|-----------|
+| Llama-3.2-1B_rank8_lr1e-5 | Llama-3.2-1B-Instruct | 8 | 1e-5 | 4 | Fine-tuned | ~10min |
+| Llama-3.2-1B_rank8_lr5e-5 | Llama-3.2-1B-Instruct | 8 | 5e-5 | 4 | Fine-tuned | ~10min |
+| Llama-3.2-1B_rank16_lr1e-5 | Llama-3.2-1B-Instruct | 16 | 1e-5 | 4 | Fine-tuned | ~10min |
+| Llama-3.2-1B_rank16_lr5e-5 | Llama-3.2-1B-Instruct | 16 | 5e-5 | 4 | Fine-tuned | ~10min |
+| Llama-3.2-1B_base | Llama-3.2-1B-Instruct | - | - | - | Control | N/A |
 
+**Notes**:
+- **Type**: "Fine-tuned" for runs requiring training, "Control" for base model evaluation only
+- **Run Name**: Should match directory structure (varying parameters only)
+- Include all parameters that vary across runs as separate columns
+- Use `-` for non-applicable parameters (like LoRA rank for control runs)
+```
+
+**Evaluation Matrix Example** (when runs have different evaluation plans):
+```markdown
+## Evaluation Plan
+
+### Evaluation Matrix
+| Run Name | capitalization_task | reasoning_task | Notes |
+|----------|---------------------|----------------|-------|
+| Llama-3.2-1B_rank4 | ✓ epoch 0,1 | ✓ epoch 0,1 | All evals |
+| Llama-3.2-3B_rank4 | ✓ epoch 0,1 | - | Cap only |
+| Llama-3.2-1B_base | ✓ | ✓ | Base control |
+```
+
+**Tools Section Example** (documents which preparation and evaluation tools are used):
+```markdown
 ## Tools
 
-This experiment uses the following tools:
-
 - **Model Preparation:** torchtune
-  - *Current status:* Only option available
   - *Purpose:* Fine-tuning LLMs with LoRA
   - *Used by:* `scaffold-torchtune` and `run-torchtune` skills
 
 - **Evaluation:** inspect-ai
-  - *Current status:* Only option available
   - *Purpose:* Evaluating LLMs on custom tasks
   - *Used by:* `scaffold-inspect` and `run-inspect` skills
+```
 
-*Note:* Future iterations of cruijff_kit may support additional preparation and evaluation frameworks. Tool choices are documented here to facilitate that transition.
+**Configuration Section Example** (explicitly document system prompt even if blank):
+```markdown
+## Configuration
 
-## Variables
-| Factor | Levels |
-|--------|--------|
-| {factor1} | {level1}, {level2} |
+### Training
+- **Recipe:** lora_finetune_single_device
+- **Epochs:** 2
+- **Batch size:** 4
+- **LoRA rank:** 8
+- **Learning rate:** 3e-4
+- **System prompt:** "" (blank)
 
-## All Runs
-| Run Name | Model | LoRA Rank | Batch Size | Type | Est. Time |
-|----------|-------|-----------|------------|------|-----------|
-| ... | ... | ... | ... | ... | ... |
+### Evaluation
+- **Temperature:** 0.0
+- **Scorer:** exact_match
+- **System prompt:** "" (blank - must match training)
 
+### Output
+- **Checkpoint directory**: `{output_dir_base}`
+- **Naming pattern**: `ck-out-{run_name}/epoch_{N}`
+- **Example**: `{output_dir_base}/ck-out-rank8_lr1e-5/epoch_0`
+
+**IMPORTANT:** System prompt must be identical between training and evaluation for valid comparisons.
+```
+
+**Resources Section Example** (document all verified paths and files):
+```markdown
 ## Resources
 
 ### Models
-- **Location:** `{models_dir}`
-- **Models Used:**
-  - {model1}: `{full_path}` ✓ verified
-  - {model2}: `{full_path}` ✓ verified
+- **Llama-3.2-1B-Instruct**: `{models_dir}/Llama-3.2-1B-Instruct`
+  - Verified: ✓ (2025-10-22)
+  - Size: ~2.5 GB
 
 ### Dataset
-- **Path:** `{dataset_path}` ✓ verified
-- **Size:** {file_size}
-- **Splits:** train ({count}), validation ({count}), test ({count})
+- **Path**: `{repo_dir}/experiments/capitalization/input/words_8L_80P_10000.json`
+- **Format**: JSON
+- **Size**: 655KB
+- **Splits**: train (8000 samples), validation (1000 samples), test (1000 samples)
+- **Verified**: ✓ (2025-10-22)
 
 ### Evaluation Tasks
 | Task Name | Script | Dataset | Description |
 |-----------|--------|---------|-------------|
-| {task1} | `{path}` ✓ | `{dataset}` ✓ | {desc} |
+| capitalization | `{repo_dir}/experiments/capitalization/cap_task.py` | Same as training | Tests word capitalization accuracy |
+| generalization | `{repo_dir}/experiments/generalization/gen_task.py` | `{repo_dir}/data/test_set.json` | Tests on unseen word lengths |
 
-## Evaluation Plan
-
-### Configuration
-- **Epochs to evaluate:** {which_epochs}
-- **Total evaluations:** {count}
-
-### Evaluation Matrix
-| Run Name | {task1} | {task2} | Notes |
-|----------|---------|---------|-------|
-| {run1} | ✓ epoch 0,1 | ✓ epoch 0,1 | All evals |
-| {run1_base} | ✓ | - | Primary only |
-
-## Configuration
-- **Recipe:** `{recipe_path}`
-- **GPUs:** {count}
-- **Epochs:** {count}
-- **Batch sizes:** {details}
-- **Dataset packing:** {true/false} - {impact_note}
-- **LoRA alpha:** Auto-set to 2 × rank
-- **System prompt:** "{prompt}" (consistent across train and eval)
-- **Validation during training:** {yes/no}
-
-## Compute Estimates
-
-### Training
-- **{Model1}:** ~{time} per run × {count} runs = {total}
-- **{Model2}:** ~{time} per run × {count} runs = {total}
-- **Total GPU hours:** {hours}
-- **Basis:** {from_prior_runs or estimated}
-
-### Evaluation
-- **Per evaluation:** ~{time}
-- **Total evaluations:** {count}
-- **Total eval time:** {time}
-
-### Disk Space
-- **Checkpoints:** ~{size} GiB
-- **Available:** {size} GiB ✓
-
-## Naming Conventions
-- **Experiment:** `{experiment_name}`
-- **Fine-tuned runs:** `{model_name}_{factors}_rank{N}`
-- **Control runs:** `{model_name}_base`
-
-## Status
-
-### Fine-tuning
-| Run Name | Status | Job ID | Started | Completed | Notes |
-|----------|--------|--------|---------|-----------|-------|
-| ... | pending | - | - | - | - |
-
-### Evaluations
-| Run Name | Task | Epoch | Status | Job ID | Completed | Notes |
-|----------|------|-------|--------|--------|-----------|-------|
-| ... | ... | ... | pending | - | - | - |
-
-## Quick Reference
-
-**Paths:**
-- Experiment: `{full_path}`
-- Models: `{models_dir}`
-- Dataset: `{dataset_path}`
-
-**Common Commands:**
-- Check jobs: `squeue -u $USER`
-- Monitor: `tail -f {path}/slurm-*.out`
-
-**Next Steps:**
-1. Run `scaffold-experiment` skill to generate all configs (torchtune + inspect-ai)
-2. Run `run-experiment` skill to execute the full workflow:
-   - Submits and monitors fine-tuning jobs (via `run-torchtune`)
-   - Submits and monitors evaluation jobs (via `run-inspect`)
-3. Run `analyze-experiment` skill to interpret results (planned)
-
-## Notes
-{Any additional notes, assumptions, or considerations}
+**Note**: All paths verified during design phase. Evaluation task scripts must exist before scaffolding.
 ```
 
-## Validation Before Completion
+For complete examples, refer to existing experiment_summary.md files in `experiments/*/experiment_summary.md`.
 
-Verify the plan is complete:
+## Validation Before Presenting to User
+
+Before presenting the plan for approval (step 9 of workflow), verify it's complete:
 - ✓ All models verified
 - ✓ Dataset verified with correct splits
 - ✓ Evaluation scripts verified (or noted as prerequisites)
@@ -554,17 +512,20 @@ Verify the plan is complete:
 - ✓ Disk space checked
 - ✓ All run names follow convention
 - ✓ Evaluation matrix is consistent
-- ✓ Status tables initialized
 
-## Next Steps
+## After User Approval (Step 10 of Workflow)
 
-After creating `experiment_summary.md`:
+Once the user approves the plan:
 
-1. **Ask user for approval:**
-   - "I've created the experiment plan at `{path}/experiment_summary.md`. Please review it."
+1. **Create the files:**
+   - Write `experiment_summary.md` with the approved plan
+   - Write `design-experiment.log` with all verification steps and decisions
+
+2. **Ask about next steps:**
+   - "I've created the experiment plan at `{path}/experiment_summary.md`."
    - "Would you like me to proceed with scaffolding? I can run `scaffold-experiment` to generate all configs."
 
-2. **Automated workflow (recommended):**
+3. **Automated workflow (recommended):**
    - Run `scaffold-experiment` skill to generate:
      - Fine-tuning configs via `scaffold-torchtune` (finetune.yaml, finetune.slurm)
      - Evaluation configs via `scaffold-inspect` (inspect.slurm, task scripts)
@@ -573,7 +534,7 @@ After creating `experiment_summary.md`:
      - Evaluation via `run-inspect` (submit jobs after training completes, monitor progress)
    - Run `analyze-experiment` skill to interpret results (planned)
 
-3. **Manual workflow (if needed):**
+4. **Manual workflow (if needed):**
    - User can manually create directories and configs
    - Follow the experiment plan as documented in experiment_summary.md
 
@@ -584,7 +545,6 @@ After creating `experiment_summary.md`:
 - Be conservative with estimates if no prior run data available
 - **System prompt must be consistent between training and evaluation** (critical for inspect-ai)
 - Base models evaluate once (no epoch), fine-tuned models evaluate per epoch
-- Status tables track both fine-tuning and evaluation progress
 - Document which tool is used at each stage (torchtune for training, inspect-ai for evaluation)
 - Evaluation datasets may differ from training datasets (document clearly)
 - If inspect-ai task doesn't exist, note that `create-inspect-task` skill should be run first
