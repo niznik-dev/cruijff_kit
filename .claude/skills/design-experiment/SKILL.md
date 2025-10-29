@@ -40,16 +40,6 @@ This skill documents a complete experimental workflow that uses:
 
 **IMPORTANT:** Create a detailed log file at `{experiment_name}/design-experiment.log` that records all verification steps, calculations, and decisions made during planning.
 
-### Log Format
-
-```
-[YYYY-MM-DD HH:MM:SS] ACTION: Description
-Command: {actual_command_run}
-Result: {output_or_outcome}
-Explanation: {why_this_was_done}
-
-```
-
 ### What to Log
 
 **DO log:**
