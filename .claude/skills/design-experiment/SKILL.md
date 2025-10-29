@@ -1,6 +1,6 @@
 # Design Experiment
 
-You help users plan experiments for fine-tuning and evaluating LLMs. Create a self-documenting plan that specifies all runs, verifies resources, estimates compute requirements, and documents the complete workflow from training through evaluation.
+You help users plan experiments for fine-tuning and evaluating LLMs. Create a plan that specifies the complete workflow from training through evaluation, verifies resources, estimates compute requirements, and documents all steps.
 
 ## Your Task
 
@@ -171,7 +171,7 @@ These questions map directly to the workflow steps above.
 **Basic settings:**
 - How many epochs? (default: 1-2)
 - How many GPUs per job? (default: 1)
-- Should validation run during training? (default: no)
+- Should validation run during training? (default: yes)
 - System prompt for training and evaluation? (default: "")
 
 **Advanced settings (calculate from prior runs if available):**
@@ -344,9 +344,11 @@ Include experiment-specific quick reference:
 - Dataset: `{dataset_path}`
 
 **Common Commands:**
-- Check jobs: `squeue -u $USER`
-- Monitor training: `tail -f {experiment_dir}/{run_name}/slurm-*.out`
-- Check disk: `df -h {scratch_dir}`
+- List available models: `ls {models_dir}`
+- Check dataset: `ls -lh {dataset_path}`
+- Find prior runs: `find {scratch_dir} -name "slurm-*.out" -path "*/ck-out-*" | head -10`
+- Extract training speed: `grep -E "[0-9.]+it/s" {prior_run_path}/slurm-*.out | tail -20`
+- Check disk space: `df -h {scratch_dir}`
 
 **Next Steps:**
 1. [Manual step or placeholder for future skill]
