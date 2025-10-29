@@ -378,6 +378,26 @@ The experiment_summary.md file should follow the section order listed in "Requir
   - *Used by:* `scaffold-inspect` and `run-inspect` skills
 ```
 
+**Configuration Section Example** (explicitly document system prompt even if blank):
+```markdown
+## Configuration
+
+### Training
+- **Recipe:** lora_finetune_single_device
+- **Epochs:** 2
+- **Batch size:** 4
+- **LoRA rank:** 8
+- **Learning rate:** 3e-4
+- **System prompt:** "" (blank)
+
+### Evaluation
+- **Temperature:** 0.0
+- **Scorer:** exact_match
+- **System prompt:** "" (blank - must match training)
+
+**IMPORTANT:** System prompt must be identical between training and evaluation for valid comparisons.
+```
+
 For complete examples, refer to existing experiment_summary.md files in `experiments/*/experiment_summary.md`.
 
 ## Validation Before Presenting to User
