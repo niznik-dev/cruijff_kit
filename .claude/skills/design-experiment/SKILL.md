@@ -99,7 +99,7 @@ Result: Directory exists with 15 files (config.json, model.safetensors, etc.)
 Explanation: Verifying base model exists before creating experiment plan
 
 [2025-10-22 14:23:42] VERIFY_DATASET: Checking capitalization dataset
-Command: ls -lh {repo_dir}/experiments/capitalization/input/words_8L_80P_10000.json
+Command: ls -lh {repo_dir}/data/green/capitalization/words_8L_80P_10000.json
 Result: File exists, 655KB
 Explanation: Verifying training dataset exists and checking size
 
@@ -485,7 +485,7 @@ The experiment_summary.md file should follow the section order listed in "Requir
   - Size: ~2.5 GB
 
 ### Dataset
-- **Path**: `{repo_dir}/experiments/capitalization/input/words_8L_80P_10000.json`
+- **Path**: `{repo_dir}/data/green/capitalization/words_8L_80P_10000.json`
 - **Format**: JSON
 - **Size**: 655KB
 - **Splits**: train (8000 samples), validation (1000 samples), test (1000 samples)

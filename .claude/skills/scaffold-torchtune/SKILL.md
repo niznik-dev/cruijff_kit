@@ -139,7 +139,7 @@ model_checkpoint: {from experiment_summary.md Resources → Models}
 
 # Hyperparameters (run-specific)
 lora_rank: {from run table}
-learning_rate: {from run table, format as 1e-5 or 5e-5}
+lr: {from run table, format as 1e-5 or 5e-5}  # NOTE: parameter is 'lr' not 'learning_rate'
 batch_size: {from run table or common config}
 
 # Training configuration (common across runs)
