@@ -57,22 +57,22 @@ This skill documents a complete experimental workflow that uses:
 
 ```
 [2025-10-22 14:23:15] VERIFY_MODEL: Checking Llama-3.2-1B-Instruct
-Command: ls /scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct
+Command: ls {models_dir}/Llama-3.2-1B-Instruct
 Result: Directory exists with 15 files (config.json, model.safetensors, etc.)
 Explanation: Verifying base model exists before creating experiment plan
 
 [2025-10-22 14:23:42] VERIFY_DATASET: Checking capitalization dataset
-Command: ls -lh /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/capitalization/input/words_8L_80P_10000.json
+Command: ls -lh {repo_dir}/experiments/capitalization/input/words_8L_80P_10000.json
 Result: File exists, 655KB
 Explanation: Verifying training dataset exists and checking size
 
 [2025-10-22 14:24:01] SEARCH_PRIOR_RUNS: Looking for similar experiments
-Command: find /scratch/gpfs/MSALGANIK/mjs3 -name "slurm-*.out" -path "*/ck-out-*" -size +100k | head -5
+Command: find {scratch_dir} -name "slurm-*.out" -path "*/ck-out-*" -size +100k | head -5
 Result: Found 3 similar runs: ck-out-happy-narwhal, ck-out-bright-horizon, ck-out-calm-dolphin
 Explanation: Searching for prior SLURM logs to extract training speed data for estimates
 
 [2025-10-22 14:24:15] EXTRACT_SPEED: Analyzing prior run for training speed
-Command: grep -E "[0-9.]+it/s" /scratch/gpfs/MSALGANIK/mjs3/ck-out-happy-narwhal/slurm-12345.out | tail -20
+Command: grep -E "[0-9.]+it/s" {scratch_dir}/ck-out-happy-narwhal/slurm-12345.out | tail -20
 Result: Average speed after warmup: 4.34 it/s
 Explanation: Extracting iteration speed from similar prior run with same model and batch size
 
@@ -83,7 +83,7 @@ Result: Estimated 16 minutes total (8 min × 2 epochs)
 Explanation: Calculated training time based on actual iteration speed from prior run
 
 [2025-10-22 14:25:00] CHECK_DISK: Verifying available disk space
-Command: df -h /scratch/gpfs/MSALGANIK/niznik
+Command: df -h {scratch_dir}
 Result: 2.1T available
 Explanation: Ensuring sufficient space for ~40 GiB of checkpoints
 
@@ -93,7 +93,7 @@ Reasoning: Capitalization task (cap), 8-letter words (8L), comparing LoRA ranks,
 Explanation: User confirmed this naming follows convention and is descriptive
 
 [2025-10-22 14:26:00] CREATE_SUMMARY: Writing experiment plan
-Command: Created /scratch/gpfs/MSALGANIK/niznik/cap_8L_lora_comparison_2025-10-22/experiment_summary.md
+Command: Created {scratch_dir}/cap_8L_lora_comparison_2025-10-22/experiment_summary.md
 Result: File created with 4 runs (2 fine-tuned × 2 ranks + 2 controls)
 Explanation: Comprehensive experiment plan with all configurations documented
 
@@ -353,6 +353,8 @@ Include experiment-specific quick reference:
 
 The experiment_summary.md file should follow the section order listed in "Required Sections" above. Here are examples of complex sections:
 
+**Note on paths in examples**: All example paths use placeholders like `{models_dir}`, `{scratch_dir}`, `{output_dir_base}`, and `{repo_dir}` which should be defined in your `claude.local.md` file. When creating an actual experiment_summary.md, replace these placeholders with your actual environment-specific paths.
+
 **All Runs Table Example** (document all fine-tuned and control runs):
 ```markdown
 ## All Runs
@@ -415,9 +417,9 @@ The experiment_summary.md file should follow the section order listed in "Requir
 - **System prompt:** "" (blank - must match training)
 
 ### Output
-- **Checkpoint directory**: `/scratch/gpfs/MSALGANIK/niznik/ck-outputs`
+- **Checkpoint directory**: `{output_dir_base}`
 - **Naming pattern**: `ck-out-{run_name}/epoch_{N}`
-- **Example**: `/scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-rank8_lr1e-5/epoch_0`
+- **Example**: `{output_dir_base}/ck-out-rank8_lr1e-5/epoch_0`
 
 **IMPORTANT:** System prompt must be identical between training and evaluation for valid comparisons.
 ```
@@ -427,12 +429,12 @@ The experiment_summary.md file should follow the section order listed in "Requir
 ## Resources
 
 ### Models
-- **Llama-3.2-1B-Instruct**: `/scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct`
+- **Llama-3.2-1B-Instruct**: `{models_dir}/Llama-3.2-1B-Instruct`
   - Verified: ✓ (2025-10-22)
   - Size: ~2.5 GB
 
 ### Dataset
-- **Path**: `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/capitalization/input/words_8L_80P_10000.json`
+- **Path**: `{repo_dir}/experiments/capitalization/input/words_8L_80P_10000.json`
 - **Format**: JSON
 - **Size**: 655KB
 - **Splits**: train (8000 samples), validation (1000 samples), test (1000 samples)
@@ -441,8 +443,8 @@ The experiment_summary.md file should follow the section order listed in "Requir
 ### Evaluation Tasks
 | Task Name | Script | Dataset | Description |
 |-----------|--------|---------|-------------|
-| capitalization | `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/capitalization/cap_task.py` | Same as training | Tests word capitalization accuracy |
-| generalization | `/path/to/gen_task.py` | `/path/to/test_set.json` | Tests on unseen word lengths |
+| capitalization | `{repo_dir}/experiments/capitalization/cap_task.py` | Same as training | Tests word capitalization accuracy |
+| generalization | `{repo_dir}/experiments/generalization/gen_task.py` | `{repo_dir}/data/test_set.json` | Tests on unseen word lengths |
 
 **Note**: All paths verified during design phase. Evaluation task scripts must exist before scaffolding.
 ```
