@@ -105,6 +105,26 @@ Explanation: Will call scaffold-torchtune and scaffold-inspect
 
 ## Orchestration Steps
 
+### How to Invoke Worker Skills
+
+**IMPORTANT:** Use the `SlashCommand` tool to invoke worker skills (NOT the `Task` tool).
+
+**Correct approach:**
+```xml
+<invoke name="SlashCommand">
+<parameter name="command">/scaffold-torchtune</parameter>
+</invoke>
+```
+
+**Do NOT use:**
+- ❌ `Task` tool (that's for general-purpose agents, not skill invocation)
+- ❌ Direct function calls (skills are slash commands)
+
+**Why this matters:**
+- Worker skills like `scaffold-torchtune` and `scaffold-inspect` are Claude Code skills (slash commands)
+- They must be invoked via `SlashCommand` tool
+- The `Task` tool launches general-purpose agents, which is not what we want here
+
 ### Step 1: Call Preparation Skill
 
 Invoke the appropriate preparation skill based on tool specification in experiment_summary.md. Currently, this will be `scaffold-torchtune` for torchtune.

@@ -18,7 +18,12 @@ cruijff_kit is a research toolkit for fine-tuning and evaluating LLMs on social 
 cruijff_kit/
 ├── tools/              # Core workflow orchestration scripts
 │   ├── torchtune/      # Fine-tuning setup and custom recipes
-│   └── inspect/        # Evaluation setup
+│   └── inspect/        # Evaluation setup and analysis
+│       ├── setup_inspect.py   # Generate evaluation SLURM scripts
+│       └── heterogeneity/     # Group-level fairness analysis
+│           ├── heterogeneity_eval.py    # Inspect-ai task wrapper
+│           ├── heterogeneity_report.py  # Standalone analysis script
+│           └── README.md                # Usage documentation
 │
 ├── experiments/        # Research experiment types
 │   ├── capitalization/ # Generalization test with word capitalization
@@ -29,9 +34,9 @@ cruijff_kit/
 │       ├── twins_task.py # Inspect-ai evaluation task
 │       └── ...
 │
-├── tests/              # Synthetic validation tests
-│   ├── bit_sequences/  # Bit parity tests
-│   └── predictable_or_not/  # Stochastic prediction tests
+├── sanity_checks/      # Synthetic validation sanity checks for testing workflows and learning
+│   ├── bit_sequences/  # Bit parity sanity checks for testing memorization
+│   └── predictable_or_not/  # Stochastic prediction sanity checks for data leakage validation
 │
 ├── utils/              # Shared utilities and helpers
 │   ├── llm_utils.py    # Model loading and inference utilities
@@ -39,10 +44,6 @@ cruijff_kit/
 │   ├── finetune_custom_metrics.py  # Custom metrics for torchtune
 │   ├── check_if_model_is_finetuned.py  # Model state inspection
 │   └── convert_*.py    # Dataset format conversion utilities
-│
-├── heterogeneity/      # Group-level analysis tools
-│   ├── heterogeneity_eval.py    # Evaluate prediction heterogeneity
-│   └── heterogeneity_report.py  # Generate analysis reports
 │
 ├── misc/               # Experimental/legacy code
 ├── logs/               # Experiment outputs and logs
@@ -151,7 +152,41 @@ Finetuned model checkpoint → setup_inspect.py → inspect.slurm
   - Define evaluation prompts and scoring
   - Use inspect-ai framework
 
-## Experiments vs Tests
+### 3. Heterogeneity Analysis (Post-Evaluation)
+
+**Entry point:** `tools/inspect/heterogeneity/`
+
+**Purpose:** Detect performance bias across demographic or experimental groups
+
+**Process:**
+```
+Model predictions (CSV) → heterogeneity_report.py → analysis + visualizations
+                                  OR
+                          heterogeneity_eval.py (inspect-ai wrapper)
+```
+
+**Key files:**
+- `tools/inspect/heterogeneity/heterogeneity_report.py` - Standalone analysis
+  - Statistical tests (ANOVA for accuracy, variance for AUC)
+  - Identifies outlier groups
+  - Generates visualizations and JSON reports
+
+- `tools/inspect/heterogeneity/heterogeneity_eval.py` - Inspect-ai integration
+  - Wraps heterogeneity analysis as inspect-ai task
+  - Returns standardized metrics
+
+- `tools/inspect/heterogeneity/README.md` - Full documentation
+  - Input format requirements
+  - Usage examples (standalone and inspect-ai)
+  - Statistical methods explained
+  - Output interpretation guide
+
+**When to use:**
+- Evaluating fairness across demographic groups
+- Understanding which subpopulations a model serves well/poorly
+- Post-hoc analysis of any binary classification predictions with group labels
+
+## Experiments vs Sanity Checks
 
 ### Experiments (`experiments/`)
 Real research experiment types with scientific questions:
@@ -167,11 +202,11 @@ Each experiment typically includes:
 - `utils/` - Experiment-specific helper functions
 - `{name}_task.py` - Inspect-ai evaluation task (e.g., `cap_task.py`)
 
-### Tests (`tests/`)
-Synthetic validation tests with known ground truth:
+### Sanity Checks (`sanity_checks/`)
+Synthetic validation sanity checks for workflow testing and learning:
 
 - **bit_sequences**: Tests memorization and pattern learning with deterministic bit patterns
-- **predictable_or_not**: Stochastic tests to validate no data leakage
+- **predictable_or_not**: Validates no data leakage with stochastic prediction tasks
 
 ## Package Structure
 

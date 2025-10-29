@@ -26,15 +26,52 @@ This skill documents a complete experimental workflow that uses:
 
 ## Workflow
 
-1. **Understand the experiment** - What variables are being tested? What's the scientific question?
-2. **Confirm tool choices** - Ask which preparation and evaluation tools to use (currently only torchtune and inspect-ai)
-3. **Design training runs** - Which models? Which datasets? What hyperparameters? What LoRA ranks?
-4. **Design evaluation runs** - Which trained models on which tasks? Which epochs to evaluate?
-5. **Establish naming** - Choose descriptive names for the experiment and runs
-6. **Verify resources** - Check that models, datasets, and eval scripts exist (log all checks)
-7. **Estimate resources** - Calculate time and disk space for BOTH training and evaluation (log all calculations)
-8. **Get approval** - Present the complete plan to user, adjust if needed
-9. **Create files** - After approval, write `experiment_summary.md` and `design-experiment.log`
+1. **Determine experiment type and location** - Auto-detect sanity_check vs experiment and set base directory
+2. **Understand the experiment** - What variables are being tested? What's the scientific question?
+3. **Confirm tool choices** - Ask which preparation and evaluation tools to use (currently only torchtune and inspect-ai)
+4. **Design training runs** - Which models? Which datasets? What hyperparameters? What LoRA ranks?
+5. **Design evaluation runs** - Which trained models on which tasks? Which epochs to evaluate? What metrics?
+6. **Establish naming** - Choose descriptive names for the experiment and runs
+7. **Verify resources** - Check that models, datasets, and eval scripts exist (log all checks)
+8. **Estimate resources** - Calculate time and disk space for BOTH training and evaluation (log all calculations)
+9. **Get approval** - Present the complete plan to user, adjust if needed
+10. **Create files** - After approval, write `experiment_summary.md` and `design-experiment.log`
+
+## Determining Experiment Location
+
+**Auto-detect based on current working directory:**
+
+```python
+import os
+
+# Get current working directory
+cwd = os.getcwd()
+
+# Determine base directory based on context
+if "/sanity_checks/" in cwd or cwd.endswith("/sanity_checks"):
+    # Working from sanity_checks directory -> this is a sanity check
+    base_dir = "/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/"
+    experiment_type = "sanity_check"
+else:
+    # Default to experiments
+    base_dir = "/scratch/gpfs/MSALGANIK/niznik/ck-experiments/"
+    experiment_type = "experiment"
+
+# Full experiment directory
+experiment_dir = f"{base_dir}{experiment_name}/"
+```
+
+**Directory structure:**
+- **Experiments** (research tasks): `/scratch/gpfs/MSALGANIK/niznik/ck-experiments/{experiment_name}/`
+- **Sanity checks** (workflow validation): `/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/{sanity_check_name}/`
+
+**Outputs are automatically grouped:**
+- Output directory: `/scratch/gpfs/MSALGANIK/niznik/ck-outputs/{experiment_or_sanity_check_name}/ck-out-{run_name}/`
+
+**When logging:**
+- Log the detected experiment type (sanity_check vs experiment)
+- Log the full path where the experiment will be created
+- Note in experiment_summary.md that outputs will be grouped under the same name in ck-outputs/
 
 ## Logging
 
@@ -115,7 +152,21 @@ The log enables:
 
 These questions map directly to the workflow steps above.
 
-### 1. Understand the Experiment
+### 1. Determine Experiment Type and Location
+
+This step is typically automated, but you should confirm with the user:
+
+**Are you working on a sanity check or a research experiment?**
+- Auto-detect from current working directory (see "Determining Experiment Location" section)
+- If in `/sanity_checks/` directory → sanity check
+- Otherwise → research experiment
+
+**Where should this experiment be created?**
+- Sanity checks: `/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/{name}/`
+- Experiments: `/scratch/gpfs/MSALGANIK/niznik/ck-experiments/{name}/`
+- Log the detected type and path for user confirmation
+
+### 2. Understand the Experiment
 
 **What is the scientific question?**
 - What are you trying to learn?
@@ -125,7 +176,7 @@ These questions map directly to the workflow steps above.
 **Should we include base model controls?**
 - Controls evaluate base models without fine-tuning to measure the effect of fine-tuning
 
-### 2. Tool Selection
+### 3. Tool Selection
 
 **Which tools will you use for this experiment?**
 
@@ -139,7 +190,7 @@ These questions map directly to the workflow steps above.
 
 **Note:** While these are currently the only options, explicitly confirming and documenting tool choices now will make it easier to support multiple tools in future iterations.
 
-### 3. Design Training Runs
+### 4. Design Training Runs
 
 **Which models?**
 - Which model(s) to fine-tune? (e.g., 1B, 3B, 8B)
@@ -169,7 +220,7 @@ These questions map directly to the workflow steps above.
 - Dataset packing - enabled by default, affects batch size
 - For help estimating: check `{scratch_dir}/*/slurm-*.out` for similar runs
 
-### 4. Design Evaluation Runs
+### 5. Design Evaluation Runs
 
 **Which evaluation tasks?**
 - Which inspect-ai task(s) to run?
@@ -199,7 +250,7 @@ These questions map directly to the workflow steps above.
 
 **Important:** Base models evaluate once per task (no epoch suffix), fine-tuned models evaluate per epoch.
 
-### 5. Establish Naming
+### 6. Establish Naming
 
 Help the user choose a descriptive experiment name that includes:
 - Task/dataset indicator (e.g., `cap_8L` for capitalization 8-letter)
@@ -217,7 +268,7 @@ Use full model names with experimental factors:
 - `Llama-3.2-3B-Instruct_rank64`
 - `Llama-3.2-1B-Instruct_base` (control)
 
-### 6. Verify Resources
+### 7. Verify Resources
 
 Now that the design is complete, verify all resources exist (use `claude.local.md` for default paths):
 
@@ -241,7 +292,7 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 - Eval script: Note as prerequisite, proceed with plan anyway
 - Disk space: Warn user, suggest cleanup or alternative location
 
-### 7. Estimate Resources
+### 8. Estimate Resources
 
 Calculate compute requirements for the complete experiment (training + evaluation):
 
@@ -254,7 +305,7 @@ Use the **Estimation Guidelines** section below for methods and formulas.
 
 ## Estimation Guidelines
 
-This section provides detailed methods for making estimates requested in step 7 above.
+This section provides detailed methods for making estimates requested in step 8 above.
 
 ### Time Estimates
 
@@ -453,7 +504,7 @@ For complete examples, refer to existing experiment_summary.md files in `experim
 
 ## Validation Before Presenting to User
 
-Before presenting the plan for approval (step 8 of workflow), verify it's complete:
+Before presenting the plan for approval (step 9 of workflow), verify it's complete:
 - ✓ All models verified
 - ✓ Dataset verified with correct splits
 - ✓ Evaluation scripts verified (or noted as prerequisites)
@@ -462,7 +513,7 @@ Before presenting the plan for approval (step 8 of workflow), verify it's comple
 - ✓ All run names follow convention
 - ✓ Evaluation matrix is consistent
 
-## After User Approval (Step 9 of Workflow)
+## After User Approval (Step 10 of Workflow)
 
 Once the user approves the plan:
 
