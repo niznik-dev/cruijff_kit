@@ -40,6 +40,7 @@ parser.add_argument("--input_formatting", type=str, default="raw", help="Name of
 parser.add_argument("--dataset_label", type=str, default="tune_dataset", help="Name of the dataset file (without extension) or folder (either should be in input_dir)")
 parser.add_argument("--dataset_ext", type=str, default="", help="Extension of the dataset file (e.g. .json or .parquet)")
 
+parser.add_argument("--experiment_name", type=str, default="", help="Name of the experiment/sanity_check (used to group outputs in ck-outputs/{experiment_name}/). If not provided, outputs go directly to output_dir_base.")
 parser.add_argument("--output_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/", help="Full path to the output file folders (final output folder will be 'ck-out-' + my_wandb_name within this folder)")
 parser.add_argument("--input_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/zyg_in/", help="Full path to the input file folders")
 parser.add_argument("--models_dir", type=str, default="/scratch/gpfs/MSALGANIK/pretrained-llms/", help="Full path to the model file folders")
@@ -133,8 +134,15 @@ for key, value in vars(args).items():
     elif key == "input_dir_base":
         config["input_dir"] = value + args.input_formatting + ("/" if args.input_formatting else "")
     elif key == "output_dir_base":
-        full_output_dir = value + "ck-out-" + model_run_name + "/"
+        # If experiment_name is provided, group outputs under that directory
+        if args.experiment_name:
+            full_output_dir = value + args.experiment_name + "/ck-out-" + model_run_name + "/"
+        else:
+            # Backwards compatibility: outputs go directly to output_dir_base
+            full_output_dir = value + "ck-out-" + model_run_name + "/"
         config["output_dir"] = full_output_dir
+    elif key == "experiment_name":
+        pass  # Handled in output_dir_base
     elif key == "dataset_label":
         config["dataset_label"] = value
         if args.dataset_ext == '.parquet':

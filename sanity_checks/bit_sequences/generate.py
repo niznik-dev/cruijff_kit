@@ -2,13 +2,18 @@
 """
 Generate binary-sequence datasets with parity-based or probabilistic labelling.
 
+Outputs a single JSON file with nested 'train' and 'validation' keys.
+
+Note: Deduplication ensures no sequence string appears in both train and validation.
+Use bit_length such that 2^bit_length >> val_size to avoid removing all training data.
+
 Examples
 --------
-Parity dataset, 1 000 000 samples of length 5, noiseless, 1 000-example test set
-    python generate.py --bit_length 5 --N 1000000 --p 0 --bit_parity True --test_size 1000
+Parity dataset, ~30K samples of length 15, noiseless, 4 000-example validation set
+    python generate.py --bit_length 15 --N 33000 --p 0 --bit_parity True --val_size 4000 --output parity.json
 
-Probabilistic dataset, p = 0.5, 500 000 samples of length 8, 1 000-example test set
-    python generate.py --bit_length 8 --N 500000 --p 0.5 --bit_parity False --test_size 1000
+Probabilistic dataset, p = 0.5, ~30K samples of length 15, 4 000-example validation set
+    python generate.py --bit_length 15 --N 33000 --p 0.5 --bit_parity False --val_size 4000 --output prob_p05.json
 """
 import argparse
 import itertools
@@ -51,10 +56,10 @@ def parse_args() -> argparse.Namespace:
         "--N", type=int, required=True, help="Number of samples to generate (N ≥ 1)"
     )
     p.add_argument(
-        "--test_size",
+        "--val_size",
         type=int,
         required=True,
-        help="Exact number of examples to put in the test set",
+        help="Exact number of examples to put in the validation set",
     )
     p.add_argument(
         "--bit_parity",
@@ -74,10 +79,16 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--seed", type=int, default=42, help="Random seed")
     p.add_argument(
-        "--outdir",
+        "--output",
+        type=str,
+        required=True,
+        help="Output filename (e.g., parity.json, prob_p05.json)",
+    )
+    p.add_argument(
+        "--output_dir",
         type=Path,
-        default=Path.cwd(),
-        help="Directory for train.json and test.json",
+        default=None,
+        help="Output directory (default: data/green/bit_sequences/)",
     )
     return p.parse_args()
 
@@ -108,10 +119,20 @@ if __name__ == "__main__":
 
     n = args.bit_length
     N = args.N
-    test_size = args.test_size
+    val_size = args.val_size
 
     assert n > 0, "--bit_length must be ≥ 1"
-    assert 0 < test_size < N, "--test_size must be in (0, N)"
+    assert 0 < val_size < N, "--val_size must be in (0, N)"
+
+    # Set default output directory relative to repository root
+    if args.output_dir is None:
+        # Find repository root (assuming script is in sanity_checks/bit_sequences/)
+        script_dir = Path(__file__).parent
+        repo_root = script_dir.parent.parent
+        args.output_dir = repo_root / "data" / "green" / "bit_sequences"
+
+    # Create output directory if it doesn't exist
+    args.output_dir.mkdir(parents=True, exist_ok=True)
 
     rng = np.random.RandomState(args.seed)
 
@@ -122,40 +143,47 @@ if __name__ == "__main__":
     sampled_seqs = rng.choice(universe, size=N, replace=True)
 
     # ---------------------------------------------------------------------#
-    # 2. Pick EXACTLY `test_size` sample indices for the test split
+    # 2. Pick EXACTLY `val_size` sample indices for the validation split
     #    (no replacement → indices are unique)
     # ---------------------------------------------------------------------#
-    test_indices = rng.choice(N, size=test_size, replace=False)
-    test_mask = np.zeros(N, dtype=bool)
-    test_mask[test_indices] = True
+    val_indices = rng.choice(N, size=val_size, replace=False)
+    val_mask = np.zeros(N, dtype=bool)
+    val_mask[val_indices] = True
 
     # ---------------------------------------------------------------------#
-    # 3. Ensure the TRAIN split contains *no* sequence that appears in TEST
-    #    • Build a set of the sequences found in the test subset.
+    # 3. Ensure the TRAIN split contains *no* sequence that appears in VALIDATION
+    #    • Build a set of the sequences found in the validation subset.
     #    • Keep only those training rows whose sequence is NOT in that set.
     # ---------------------------------------------------------------------#
-    test_seqs = sampled_seqs[test_mask].tolist()
-    test_seq_set = set(test_seqs)
+    val_seqs = sampled_seqs[val_mask].tolist()
+    val_seq_set = set(val_seqs)
 
-    train_seqs = [seq for seq in sampled_seqs[~test_mask] if seq not in test_seq_set]
+    train_seqs = [seq for seq in sampled_seqs[~val_mask] if seq not in val_seq_set]
 
     # ---------------------------------------------------------------------#
     # 4. strict separation at the sequence level
     # ---------------------------------------------------------------------#
-    assert test_seq_set.isdisjoint(train_seqs), "Leakage: sequence appears in both splits"
+    assert val_seq_set.isdisjoint(train_seqs), "Leakage: sequence appears in both splits"
 
     # ---------------------------------------------------------------------#
-    # 5. Label, dump, done
+    # 5. Label and create nested structure
     # ---------------------------------------------------------------------#
     train_data = label_sequences(train_seqs, args.bit_parity, args.p, rng)
-    test_data = label_sequences(test_seqs, args.bit_parity, args.p, rng)
+    val_data = label_sequences(val_seqs, args.bit_parity, args.p, rng)
 
-    args.outdir.mkdir(parents=True, exist_ok=True)
-    (args.outdir / "train.json").write_text(json.dumps(train_data, indent=2))
-    (args.outdir / "test.json").write_text(json.dumps(test_data, indent=2))
+    # Create single JSON file with train/validation splits as top-level keys
+    output = {
+        'train': train_data,
+        'validation': val_data
+    }
+
+    # Write to specified output file in output directory
+    output_path = args.output_dir / args.output
+    with open(output_path, 'w') as f:
+        json.dump(output, f, indent=2)
 
     logger.info(
-        f"✅  Generated {len(train_data)} train and {len(test_data)} test examples "
+        f"✅  Generated {output_path}: {len(train_data)} train, {len(val_data)} validation "
         f"(bit_parity={args.bit_parity}, p={args.p})"
     )
 

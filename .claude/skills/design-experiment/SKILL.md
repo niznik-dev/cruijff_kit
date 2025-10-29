@@ -26,15 +26,52 @@ This skill documents a complete experimental workflow that uses:
 
 ## Workflow
 
-1. **Understand the experiment** - What variables are being tested? What's the scientific question?
-2. **Confirm tool choices** - Ask which preparation and evaluation tools to use (currently only torchtune and inspect-ai)
-3. **Verify resources** - Do models, datasets, and eval scripts exist? (log all checks)
-4. **Plan evaluation** - What metrics, which epochs, what eval datasets/tasks?
-5. **Establish naming** - Help choose a clear, descriptive name for the experiment
-6. **Estimate resources** - Calculate time and disk space for BOTH training and evaluation (log all calculations)
-7. **Create summary** - Write `experiment_summary.md` with complete plan including tool choices and evaluation workflow
-8. **Create log** - Write `design-experiment.log` with all verification steps and decisions
-9. **Get approval** - Review with user, adjust if needed
+1. **Determine experiment type and location** - Auto-detect sanity_check vs experiment and set base directory
+2. **Understand the experiment** - What variables are being tested? What's the scientific question?
+3. **Confirm tool choices** - Ask which preparation and evaluation tools to use (currently only torchtune and inspect-ai)
+4. **Verify resources** - Do models, datasets, and eval scripts exist? (log all checks)
+5. **Plan evaluation** - What metrics, which epochs, what eval datasets/tasks?
+6. **Establish naming** - Help choose a clear, descriptive name for the experiment
+7. **Estimate resources** - Calculate time and disk space for BOTH training and evaluation (log all calculations)
+8. **Create summary** - Write `experiment_summary.md` with complete plan including tool choices and evaluation workflow
+9. **Create log** - Write `design-experiment.log` with all verification steps and decisions
+10. **Get approval** - Review with user, adjust if needed
+
+## Determining Experiment Location
+
+**Auto-detect based on current working directory:**
+
+```python
+import os
+
+# Get current working directory
+cwd = os.getcwd()
+
+# Determine base directory based on context
+if "/sanity_checks/" in cwd or cwd.endswith("/sanity_checks"):
+    # Working from sanity_checks directory -> this is a sanity check
+    base_dir = "/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/"
+    experiment_type = "sanity_check"
+else:
+    # Default to experiments
+    base_dir = "/scratch/gpfs/MSALGANIK/niznik/ck-experiments/"
+    experiment_type = "experiment"
+
+# Full experiment directory
+experiment_dir = f"{base_dir}{experiment_name}/"
+```
+
+**Directory structure:**
+- **Experiments** (research tasks): `/scratch/gpfs/MSALGANIK/niznik/ck-experiments/{experiment_name}/`
+- **Sanity checks** (workflow validation): `/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/{sanity_check_name}/`
+
+**Outputs are automatically grouped:**
+- Output directory: `/scratch/gpfs/MSALGANIK/niznik/ck-outputs/{experiment_or_sanity_check_name}/ck-out-{run_name}/`
+
+**When logging:**
+- Log the detected experiment type (sanity_check vs experiment)
+- Log the full path where the experiment will be created
+- Note in experiment_summary.md that outputs will be grouped under the same name in ck-outputs/
 
 ## Logging
 
