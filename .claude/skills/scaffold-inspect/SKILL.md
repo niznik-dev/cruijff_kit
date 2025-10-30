@@ -99,6 +99,13 @@ For each evaluation to be performed, generate an `inspect.slurm` script.
 
 ### Evaluation Naming Convention
 
+**IMPORTANT: Epochs are 0-indexed**
+- First epoch after training is `epoch_0`, not `epoch_1`
+- Training for 1 epoch produces checkpoint at `epoch_0/`
+- Training for 2 epochs produces `epoch_0/` and `epoch_1/`
+- Evaluation script names must match: `{task_name}_epoch0.slurm`, not `epoch1`
+- When experiment_summary.md says "evaluate last epoch after 1 epoch of training", use `epoch_0`
+
 Organize evaluations within run directories:
 
 **For fine-tuned models:**

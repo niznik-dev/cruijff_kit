@@ -228,7 +228,10 @@ This step is typically automated, but you should confirm with the user:
 - Does the task exist or need to be created? (use `create-inspect-task` skill if needed)
 
 **Which epochs to evaluate?**
+- **NOTE:** Epochs are 0-indexed. Training for 1 epoch produces `epoch_0`, training for 2 epochs produces `epoch_0` and `epoch_1`, etc.
 - Last epoch only (default, most efficient)
+  - After 1 epoch of training, this is `epoch_0`
+  - After 2 epochs of training, this is `epoch_1`
 - All epochs (compare training progression)
 - Specific epochs (e.g., epoch 0 and final)
 - Best by validation loss (requires validation during training)

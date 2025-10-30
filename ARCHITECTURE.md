@@ -289,10 +289,17 @@ output_dir/
 
 ### Checkpoint Management
 
+- **Epoch indexing**: **IMPORTANT - Epochs are 0-indexed**
+  - First epoch is saved as `epoch_0/`, not `epoch_1/`
+  - Training for 1 epoch produces `epoch_0/`
+  - Training for 2 epochs produces `epoch_0/` and `epoch_1/`
+  - When referencing epochs in evaluation scripts, use the 0-indexed value
+  - Example: After 1 epoch of training, evaluate using `epoch_0`
+
 - **epochs_to_save**: Controls which epochs to save
   - `'all'` - Save every epoch (default)
   - `'none'` - Don't save any checkpoints
-  - `"0,2,4"` - Comma-delimited list of specific epochs
+  - `"0,2,4"` - Comma-delimited list of specific epochs (0-indexed)
 
 - **save_last_epoch_only**: `'true'`/`'false'` - Only save the final epoch
 
