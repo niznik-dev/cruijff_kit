@@ -192,7 +192,7 @@ Model predictions (CSV) → heterogeneity_report.py → analysis + visualization
 Real research experiment types with scientific questions:
 
 - **capitalization**: Tests generalization by training on 5-letter words and evaluating on other lengths
-- **synthetic_twins**: Predicts twin characteristics from synthetic social science data
+- **synthetic_twins**: Binary classification task predicting twin zygosity (identical vs fraternal) from 24 trait measurements (yellow tier data)
 
 Each experiment typically includes:
 - `README.md` - Experiment-specific instructions

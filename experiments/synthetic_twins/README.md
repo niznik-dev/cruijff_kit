@@ -1,3 +1,222 @@
-# Synthetic Twins
+# Synthetic Twins: Zygosity Prediction
 
-This folder contains files related to our original task of finetuning LLMs on synthetic twin data to see how well we could predict zygosity. It is in need of being filled out and some TLC. (Takers?)
+## Purpose
+
+This experiment fine-tunes LLMs on synthetic twin data to predict zygosity (whether twins are monozygotic/identical or dizygotic/fraternal) based on trait values.
+
+**Task**: Given trait measurements for two twins (24 traits with values for twin 1 and twin 2), predict:
+- `1` = Monozygotic (identical twins)
+- `0` = Dizygotic (fraternal twins)
+
+**Research Question**: Can an LLM learn to identify patterns in trait similarity that distinguish identical from fraternal twins?
+
+## Data Access
+
+⚠️ **IMPORTANT**: This dataset is in the **yellow tier** (restricted access).
+
+- **Location**: `data/yellow/synthetic_twins/twin_zygosity.json`
+- **Access Policy**: MSALGANIK research group only. Sharing requires explicit permission.
+- **Source**: `/scratch/gpfs/MSALGANIK/inputs/zyg/raw/twindat_sim_100k_24.csv`
+
+See `data/yellow/CLAUDE.md` for data access policies.
+
+## Dataset
+
+- **Total samples**: 200,000 twin pairs
+- **Traits**: 24 numerical features (V1-V24)
+- **Splits**: 80% train (160K), 10% validation (20K), 10% test (20K)
+- **Format**: JSON with top-level keys: `train`, `validation`, `test`
+
+### Example Input/Output
+
+```json
+{
+  "input": "V1: -0.62, 1.06, V10: -0.11, 0.51, V11: -0.83, 0.00, ...",
+  "output": "1"
+}
+```
+
+## Complete Workflow
+
+### Step 1: Data Preprocessing (One-time Setup)
+
+The preprocessed dataset already exists, but if you need to regenerate it:
+
+```bash
+cd experiments/synthetic_twins
+
+# Activate conda environment
+module load anaconda3/2025.6
+conda activate cruijff
+
+# Run preprocessing
+python preprocess_twin_data.py
+```
+
+This will:
+- Read raw twin data from `/scratch/gpfs/MSALGANIK/inputs/zyg/raw/twindat_sim_100k_24.csv`
+- Create formatted JSON with train/validation/test splits
+- Save to `data/yellow/synthetic_twins/twin_zygosity.json`
+
+### Step 2: Configure Fine-Tuning
+
+The experiment includes a `setup_finetune.yaml` configuration file. Review and adjust if needed:
+
+```yaml
+# Key parameters to consider changing:
+my_wandb_run_name: twin_zygosity_baseline  # Change for new runs
+system_prompt: 'Predict twin zygosity based on trait values'
+batch_size: 1
+epochs: 1
+```
+
+### Step 3: Generate Fine-Tuning Configs and Scripts
+
+```bash
+cd experiments/synthetic_twins
+
+# Generate torchtune config and SLURM script
+python ../../tools/torchtune/setup_finetune.py
+```
+
+This creates:
+- `finetune.yaml` - torchtune recipe configuration
+- `finetune.slurm` - SLURM job script
+
+### Step 4: Run Fine-Tuning
+
+```bash
+# Submit fine-tuning job
+sbatch finetune.slurm
+
+# Monitor job status
+squeue -u $USER
+
+# Check logs (after job starts)
+tail -f slurm-<jobid>.out
+```
+
+Fine-tuning outputs are saved to:
+```
+/scratch/gpfs/MSALGANIK/niznik/ck-outputs/<experiment_name>/ck-out-<run_name>/
+├── epoch_0/           # Model checkpoint after epoch 0
+├── epoch_1/           # Model checkpoint after epoch 1 (if epochs > 1)
+└── logs/              # Training logs
+```
+
+### Step 5: Evaluate the Model
+
+After fine-tuning completes, evaluate the model:
+
+```bash
+# Option 1: Using twins_task.py (recommended)
+inspect eval experiments/synthetic_twins/twins_task.py \
+  --model hf/local \
+  -M model_path=/path/to/checkpoint \
+  -T config_dir=/path/to/epoch_1
+
+# Option 2: Using general evaluation task
+inspect eval experiments/general_evaluation_task.py \
+  --model hf/local \
+  -M model_path=/path/to/checkpoint \
+  -T config_dir=/path/to/epoch_1
+
+# Evaluate on validation split instead of test
+inspect eval experiments/synthetic_twins/twins_task.py \
+  --model hf/local \
+  -M model_path=/path/to/checkpoint \
+  -T config_dir=/path/to/epoch_1 \
+  -T split=validation
+```
+
+**Or use the inspect setup script**:
+
+```bash
+# Generate inspect config and SLURM script
+python ../../tools/inspect/setup_inspect.py \
+  --finetune_epoch_dir /path/to/epoch_1
+
+# Submit evaluation job
+sbatch inspect.slurm
+```
+
+### Step 6: View Results
+
+```bash
+# Interactive results viewer
+inspect view --port=$(get_free_port)
+
+# Or check the JSON log directly
+cat /path/to/eval/results.json
+```
+
+## Expected Results
+
+Since this is a binary classification task, key metrics to examine:
+
+- **Accuracy**: Overall correctness (ideally close to human-level performance)
+- **Match scores**: Exact match of "0" or "1" predictions
+- **Includes scores**: Whether the prediction contains the correct answer
+
+**Baseline**: Random guessing would give ~50% accuracy.
+
+## File Structure
+
+```
+experiments/synthetic_twins/
+├── README.md                    # This file
+├── preprocess_twin_data.py      # Data preprocessing script
+├── setup_finetune.yaml          # Fine-tuning configuration
+├── twins_task.py                # Inspect-ai evaluation task
+├── finetune.yaml                # Generated by setup_finetune.py
+└── finetune.slurm               # Generated by setup_finetune.py
+```
+
+## Troubleshooting
+
+### Data Access Issues
+
+If you get permission errors accessing the twin data:
+- Verify you're in the MSALGANIK group: `groups`
+- Check file permissions: `ls -l /scratch/gpfs/MSALGANIK/inputs/zyg/raw/`
+- Confirm you're authorized to access this dataset
+
+### Preprocessing Errors
+
+**ModuleNotFoundError**: Make sure conda environment is activated
+```bash
+module load anaconda3/2025.6
+conda activate cruijff
+```
+
+### Fine-Tuning Issues
+
+**Out of memory**: Reduce `batch_size` in `setup_finetune.yaml`
+
+**Job doesn't start**: Check SLURM queue
+```bash
+squeue -u $USER
+sacct -u $USER -S today
+```
+
+### Evaluation Issues
+
+**Config not found**: Ensure `config_dir` points to an epoch directory (e.g., `epoch_1`)
+that has `../setup_finetune.yaml`
+
+**Wrong model path**: The `model_path` should point to the checkpoint directory, not the epoch directory
+
+## Next Steps
+
+After completing a baseline run:
+
+1. **Hyperparameter tuning**: Vary learning rate, batch size, epochs
+2. **Model comparison**: Try different base models (Llama 3.2 1B vs 3B)
+3. **Prompt engineering**: Experiment with different system prompts
+4. **Data analysis**: Examine which trait patterns are most predictive
+
+## References
+
+- **Original task proposal**: Issue #123
+- **Related experiments**: See `experiments/capitalization/` for comparison workflow
+- **Architecture docs**: See `ARCHITECTURE.md` for system design
