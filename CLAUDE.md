@@ -97,11 +97,20 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
     gh project item-add 3 --owner niznik-dev --url https://github.com/niznik-dev/cruijff_kit/issues/<issue_number>
     ```
 
+**Important**: Only add issues to the project board, not pull requests. PRs are automatically linked to the project via "Closes #N" in the PR description.
+
 ### Branch Workflow
 
 - Work in branches based on issues (e.g., `134-architecture-docs`)
 - Use descriptive commit messages
 - Create pull requests when work is ready for review
+
+### Pull Request Format
+
+Follow the PR template at `.github/pull_request_template.md`:
+- **Always start with** `Closes #<issue_number>` on the first line
+- Include Description, New Dependencies, and Testing Instructions sections
+- The "Closes #N" syntax automatically links and closes the issue when the PR is merged
 
 ### Commit Messages
 
