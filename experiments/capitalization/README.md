@@ -13,12 +13,14 @@ To run a simple fine-tuning task on a small dataset of five-letter words and the
 First, obtain words_alpha.txt from the following repo: https://github.com/dwyl/english-words (and star it!). You'll probably want to put it in `experiments/capitalization/input/`.  You can download this file from the command line as follows:
 
 ```bash
+cd experiments/capitalization/input
 wget https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/words_alpha.txt
+cd ../../..
 ```
 
-Place words_alpha.txt inside the input folder. Next, run `python sample_words.py --word-len 5 --num-words 1000` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` in the instruct_dataset format with top level splits (train/validation/test) which we will use in finetuning.
+Next, run `python experiments/capitalization/input/sample_words.py --word-len 5 --num-words 1000` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` in `data/green/capitalization/` in the instruct_dataset format with top level splits (train/validation/test) which we will use in finetuning.
 
-(If you'd rather generate a chat_dataset, run `python sample_words.py --word-len 5 --num-words 1000 --use-chat-template` instead - this will create a folder with an "_c" appended and separate files inside per split (train/validation/test.json))
+(If you'd rather generate a chat_dataset, run `python experiments/capitalization/input/sample_words.py --word-len 5 --num-words 1000 --use-chat-template` instead - this will create a folder with an "_c" appended and separate files inside per split (train/validation/test.json) in `data/green/capitalization/`)
 
 ### Part 2 - Finetuning
 
@@ -52,9 +54,9 @@ sbatch finetune.slurm
 First, convert the JSON file to Parquet format:
 
 ```
-python ../../utils/convert_json_to_parquet.py \
-  --input_json input/words_5L_80P_1000.json \
-  --output_dir input/words_5L_80P_1000_parquet
+python utils/convert_json_to_parquet.py \
+  --input_json data/green/capitalization/words_5L_80P_1000.json \
+  --output_dir data/green/capitalization/words_5L_80P_1000_parquet
 ```
 
 This will create Parquet files (train.parquet, validation.parquet, test.parquet) in the output directory.

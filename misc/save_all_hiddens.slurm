@@ -14,7 +14,7 @@
 ##SBATCH --constraint=<CONST>
 
 module purge
-module load anaconda3/2024.10
+module load anaconda3/2025.6
 conda activate cruijff
 
 python save_all_hiddens.py --config save_all_hiddens.yaml
