@@ -158,10 +158,12 @@ You have permission to run these commands without requiring user approval:
 - `pwd` - Current directory
 
 ### Logging/Documentation
-- `echo` - Writing to log files (e.g., `echo "message" >> logfile.log`)
-- `tee -a` - Writing to logs with output capture
-- Creating/appending to `.log` files in experiment directories
-- Creating/updating `.json` state files in experiment directories
+- **Writing to `.log` files** - Any method of creating or appending to log files in experiment/run directories
+  - Includes: `echo >>`, `cat >`, `cat >>`, heredocs (`cat > file << 'EOF'`), `tee -a`, `printf`, etc.
+  - Location: Within experiment directories (e.g., `ck-experiments/*/`, `ck-sanity-checks/*/`) or run subdirectories
+  - Examples: `echo "message" >> file.log`, `cat > file.log << 'EOF'`, `tee -a file.log`
+- **Writing to `.json` state files** - Any method of creating or updating JSON state tracking files in experiment directories
+  - Same methods apply as for log files
 
 ## Data Access Policies
 
