@@ -16,11 +16,9 @@ data/yellow/*
 data/green/*
 !data/green/CLAUDE.md
 experiments/capitalization/eval_output/
-experiments/capitalization/input/words*.txt
-experiments/capitalization/input/*.png
-experiments/capitalization/*.txt
-experiments/capitalization/*.csv
-experiments/capitalization/*.png
+experiments/capitalization/*/*.txt
+experiments/capitalization/*/*.csv
+experiments/capitalization/*/*.png
 logs/
 finetune.slurm
 finetune.yaml
