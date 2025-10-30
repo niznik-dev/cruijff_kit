@@ -157,6 +157,12 @@ You have permission to run these commands without requiring user approval:
 - `df`, `du` - Disk usage
 - `pwd` - Current directory
 
+### Logging/Documentation
+- `echo` - Writing to log files (e.g., `echo "message" >> logfile.log`)
+- `tee -a` - Writing to logs with output capture
+- Creating/appending to `.log` files in experiment directories
+- Creating/updating `.json` state files in experiment directories
+
 ## Data Access Policies
 
 cruijff_kit implements a three-tier data access system for Claude Code, using a traffic light metaphor:
