@@ -83,12 +83,31 @@ For each evaluation task in the experiment:
    ls {task_script_path}
    ```
 
-2. **If task doesn't exist:**
+2. **List available tasks in the script:**
+   ```bash
+   module load anaconda3/2025.6
+   conda activate {conda_env}
+   inspect list {task_script_path}
+   ```
+   This shows all `@task` decorated functions in the file, confirming:
+   - The task name exists
+   - The exact spelling/capitalization
+   - What other tasks are available
+
+   Example output:
+   ```
+   cap_task.py
+     cap_task
+   ```
+
+   Use this to verify the task name in experiment_summary.md matches what's actually in the file.
+
+3. **If task doesn't exist:**
    - Note in log that task needs to be created
    - Suggest running `create-inspect-task` skill first
    - Continue with other tasks (don't fail completely)
 
-3. **Verify task is compatible with experiment:**
+4. **Verify task is compatible with experiment:**
    - Can it accept `config_dir` parameter? (for fine-tuned models)
    - Can it accept `dataset_path` parameter? (for base models)
    - Check docstring/parameters if accessible
@@ -98,6 +117,13 @@ For each evaluation task in the experiment:
 For each evaluation to be performed, generate an `inspect.slurm` script.
 
 ### Evaluation Naming Convention
+
+**IMPORTANT: Epochs are 0-indexed**
+- First epoch after training is `epoch_0`, not `epoch_1`
+- Training for 1 epoch produces checkpoint at `epoch_0/`
+- Training for 2 epochs produces `epoch_0/` and `epoch_1/`
+- Evaluation script names must match: `{task_name}_epoch0.slurm`, not `epoch1`
+- When experiment_summary.md says "evaluate last epoch after 1 epoch of training", use `epoch_0`
 
 Organize evaluations within run directories:
 
@@ -133,7 +159,7 @@ Generate a SLURM script for each evaluation:
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 #SBATCH --time=0:30:00
-#SBATCH --gpus=1
+#SBATCH --gres=gpu:1
 {optional: #SBATCH --account={account}}
 {optional: #SBATCH --constraint=gpu80}
 
@@ -153,7 +179,7 @@ CONFIG_DIR=""
 cd {experiment_dir}/{run_dir}/eval
 
 {if fine-tuned with config_dir:}
-inspect eval {task_script_path} \\
+inspect eval {task_script_path}@{task_name} \\
   --model hf/local \\
   -M model_path="$MODEL_PATH" \\
   -T config_dir="$CONFIG_DIR" \\
@@ -161,7 +187,7 @@ inspect eval {task_script_path} \\
   --log-level info
 
 {if base model or direct dataset path:}
-inspect eval {task_script_path} \\
+inspect eval {task_script_path}@{task_name} \\
   --model hf/local \\
   -M model_path="$MODEL_PATH" \\
   -T dataset_path="{eval_dataset_path}" \\
@@ -200,7 +226,7 @@ echo "Evaluation complete"
 
 Task supports `config_dir` parameter:
 ```bash
-inspect eval cap_task.py \\
+inspect eval cap_task.py@capitalization \\
   --model hf/local \\
   -M model_path="/path/to/epoch_0" \\
   -T config_dir="/path/to/epoch_0"
@@ -212,7 +238,7 @@ The task reads dataset path and system prompt from `../setup_finetune.yaml`
 
 No config_dir, explicit parameters:
 ```bash
-inspect eval cap_task.py \\
+inspect eval cap_task.py@capitalization \\
   --model hf/local \\
   -M model_path="/path/to/base/model" \\
   -T dataset_path="/path/to/test_data.json" \\
@@ -223,7 +249,7 @@ inspect eval cap_task.py \\
 
 Fine-tuned model but different eval dataset:
 ```bash
-inspect eval cap_task.py \\
+inspect eval cap_task.py@capitalization \\
   --model hf/local \\
   -M model_path="/path/to/epoch_0" \\
   -T dataset_path="/path/to/generalization_test.json" \\
