@@ -38,7 +38,7 @@ def twins_zygosity(
     config_dir: Optional[str] = None,
     dataset_path: Optional[str] = None,
     system_prompt: str = "",
-    temperature: float = 0.0,
+    temperature: float = 1e-7,
     split: str = "test",
     max_tokens: int = 10
 ) -> Task:
@@ -52,7 +52,7 @@ def twins_zygosity(
                    If provided, reads dataset path and system prompt from config.
         dataset_path: Direct path to dataset JSON file. Used if config_dir not provided.
         system_prompt: System message for the model. Overrides config if both provided.
-        temperature: Generation temperature (default: 0.0 for deterministic output).
+        temperature: Generation temperature (default: 1e-7 for near-deterministic output).
         split: Which data split to use - "train", "validation", or "test" (default: "test").
         max_tokens: Maximum tokens to generate (default: 10, sufficient for binary output).
 
@@ -134,10 +134,10 @@ def twins_zygosity(
     solver_chain = chain(
         system_message(system_prompt),
         prompt_template("{prompt}"),
-        generate({
-            "temperature": temperature,
-            "max_tokens": max_tokens
-        })
+        generate(
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
     )
 
     # Configure scorers for binary classification
