@@ -53,7 +53,7 @@ conda activate cruijff
 pip3 install torch --index-url https://download.pytorch.org/whl/cu126
 
 # Install core packages
-pip3 install torchao wandb h5py inspect-ai datasets peft transformers scikit-learn matplotlib
+pip3 install torchao wandb h5py inspect-ai inspect-viz datasets peft transformers scikit-learn matplotlib
 
 # Install torchtune nightly (recommended for validation loss support)
 pip3 install --pre torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
@@ -97,7 +97,7 @@ These packages are required for fine-tuning and evaluation:
 
 ```bash
 # Core fine-tuning packages
-pip3 install torchao wandb h5py inspect-ai datasets peft
+pip3 install torchao wandb h5py inspect-ai inspect-viz datasets peft
 
 # Evaluation packages
 pip3 install transformers scikit-learn matplotlib
