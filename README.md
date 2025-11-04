@@ -7,7 +7,13 @@ cruijff_kit is a toolkit for doing research with social data and LLMs. We are bu
 
 We also have helper utilities for things like automated SLURM script generation and preprocessing pipelines.
 
+cruijff_kit is designed for software agents guided by humans, but it enables fully manual operations. We are working toward enabling fully self-driving research.
+
+The toolkit emphasizes the values of science: correctness, provenance of results, and continual learning and improvement.
+
 cruijff_kit is named after Dutch footballer and philosopher [Johan Cruijff](https://en.wikipedia.org/wiki/Johan_Cruyff). Many of these ideas were developed while we were doing research in Amsterdam, the city of his birth.
+
+We are grateful to the following funders and supporters: [Princeton AI Lab](https://ai.princeton.edu/ai-lab), [Princeton Precision Health](https://pph.princeton.edu/), [Princeton Research Computing](https://researchcomputing.princeton.edu/), and the [Center for Information Technology Policy](https://citp.princeton.edu/) at Princeton University.
 
 # ⚠️ Pre-Alpha Warning ⚠️
 
@@ -47,7 +53,7 @@ conda activate cruijff
 pip3 install torch --index-url https://download.pytorch.org/whl/cu126
 
 # Install core packages
-pip3 install torchao wandb h5py inspect-ai datasets peft transformers scikit-learn matplotlib
+pip3 install torchao wandb h5py inspect-ai inspect-viz datasets peft transformers scikit-learn matplotlib
 
 # Install torchtune nightly (recommended for validation loss support)
 pip3 install --pre torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
@@ -91,7 +97,7 @@ These packages are required for fine-tuning and evaluation:
 
 ```bash
 # Core fine-tuning packages
-pip3 install torchao wandb h5py inspect-ai datasets peft
+pip3 install torchao wandb h5py inspect-ai inspect-viz datasets peft
 
 # Evaluation packages
 pip3 install transformers scikit-learn matplotlib
