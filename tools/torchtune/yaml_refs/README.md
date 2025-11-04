@@ -12,7 +12,8 @@ Instead of running `tune cp` every time you need to check the default parameters
 
 ## Files
 
-- `1B_defaults.yaml` - Default config for Llama 3.1 1B Instruct with LoRA
+- `1B_defaults.yaml` - Default config for Llama 3.2 1B Instruct with LoRA
+- `3B_defaults.yaml` - Default config for Llama 3.2 3B Instruct with LoRA
 - `8B_defaults.yaml` - Default config for Llama 3.1 8B Instruct with LoRA
 
 ## Note

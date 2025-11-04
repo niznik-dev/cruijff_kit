@@ -1,0 +1,27 @@
+# cruijff_kit Model Configuration
+#
+# This file maps model names to their reference configs and SLURM resource recommendations.
+#
+# The yaml_refs/ files are torchtune reference configs.
+# This file adds cruijff_kit-specific metadata like SLURM resources.
+
+Llama-3.2-1B-Instruct:
+  reference_file: yaml_refs/1B_defaults.yaml
+  slurm_defaults:
+    mem: 48G    # memory estimated by Claude (when using 32G ran into OOM)
+    time: 01:00:00
+    constraint: null
+
+Llama-3.2-3B-Instruct:
+  reference_file: yaml_refs/3B_defaults.yaml
+  slurm_defaults:
+    mem: 64G
+    time: 02:00:00
+    constraint: null
+
+Llama-3.1-8B-Instruct:
+  reference_file: yaml_refs/8B_defaults.yaml
+  slurm_defaults:
+    mem: 80G
+    time: 04:00:00
+    constraint: gpu80  # Requires 80GB VRAM GPU (e.g., A100 80GB)

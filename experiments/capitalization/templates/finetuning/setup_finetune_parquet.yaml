@@ -6,6 +6,9 @@ my_wandb_run_name: oct1-prompt-1
 input_dir_base: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/data/green/capitalization/
 input_formatting: ''
 
+# Model Selection
+model_name: Llama-3.2-1B-Instruct  # Options: Llama-3.2-1B-Instruct, Llama-3.2-3B-Instruct, Llama-3.1-8B-Instruct
+
 # Dataset Configuration
 dataset_label: words_5L_80P_1000_parquet
 dataset_ext: '.parquet'

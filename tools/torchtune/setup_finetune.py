@@ -12,7 +12,56 @@ script_dir = Path(__file__).parent
 RANDOM_MODEL_RUN_NAME = run_names.generate_model_run_name()[0]
 
 # Skip these when writing the yaml file
-SLURM_ONLY = ['time', 'gpus', 'conda_env', 'account', 'partition', 'constraint']
+SLURM_ONLY = ['time', 'gpus', 'conda_env', 'account', 'partition', 'constraint', 'model_name']
+
+# Load model configurations (reference files + SLURM defaults)
+model_configs_path = script_dir / "model_configs.yaml"
+with open(model_configs_path, "r") as f:
+    MODEL_CONFIGS = yaml.safe_load(f)
+
+def get_model_config(model_name, models_dir):
+    """
+    Load model-specific configuration from reference file.
+
+    Args:
+        model_name: Name of the model (e.g., "Llama-3.2-1B-Instruct")
+        models_dir: Base directory where models are stored
+
+    Returns:
+        dict: Model configuration with keys:
+            - model_component: torchtune model component path
+            - model_type: Model type for checkpointer
+            - checkpoint_files: List of checkpoint file names
+            - tokenizer_path: Relative path to tokenizer within model directory
+            - enable_activation_checkpointing: Whether to enable activation checkpointing
+            - slurm_defaults: Dict with recommended mem, time, constraint
+    """
+    if model_name not in MODEL_CONFIGS:
+        raise ValueError(
+            f"Unsupported model: '{model_name}'. "
+            f"Supported models: {', '.join(MODEL_CONFIGS.keys())}"
+        )
+
+    model_meta = MODEL_CONFIGS[model_name]
+    ref_file = script_dir / model_meta["reference_file"]
+
+    with open(ref_file, "r") as f:
+        ref_config = yaml.safe_load(f)
+
+    # Extract just the filename from the full tokenizer path in reference
+    # e.g., "/tmp/Llama-3.2-1B-Instruct/original/tokenizer.model" -> "original/tokenizer.model"
+    tokenizer_full_path = ref_config["tokenizer"]["path"]
+    tokenizer_relative = "/".join(tokenizer_full_path.split("/")[-2:])
+
+    return {
+        "model_component": ref_config["model"]["_component_"],
+        "model_type": ref_config["checkpointer"]["model_type"],
+        "checkpoint_files": ref_config["checkpointer"]["checkpoint_files"],
+        "tokenizer_path": tokenizer_relative,
+        "enable_activation_checkpointing": ref_config["enable_activation_checkpointing"],
+        "checkpoint_dir": f"{models_dir}/{model_name}/",
+        "slurm_defaults": model_meta["slurm_defaults"],
+    }
 
 # Used for epochs_to_save to allow for all/none options
 def parse_epochs(value):
@@ -59,6 +108,8 @@ parser.add_argument("--system_prompt", type=str, default="", help="System prompt
 parser.add_argument("--train_on_input", type=str, default="false", help="Whether to train on the input data (true/false)")
 
 # ------ Model/Training Args -----
+parser.add_argument("--model_name", type=str, default="Llama-3.2-1B-Instruct",
+                    help=f"Model to use for fine-tuning. Supported models: {', '.join(MODEL_CONFIGS.keys())}")
 parser.add_argument("--lora_rank", type=int, default=64, help="LoRA rank (alpha will be auto-calculated as 2*rank)")
 parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate for optimizer")
 parser.add_argument("--num_warmup_steps", type=int, default=100, help="Number of warmup steps for learning rate scheduler")
@@ -124,6 +175,17 @@ username = os.environ.get("USER")
 # First edit the yaml template
 with open(f"{script_dir}/templates/finetune_template.yaml", "r") as f:
     config = yaml.safe_load(f)
+
+# Get model-specific configuration from reference file
+model_config = get_model_config(args.model_name, args.models_dir)
+
+# Apply model-specific settings to the config
+config["model"]["_component_"] = model_config["model_component"]
+config["checkpointer"]["checkpoint_dir"] = model_config["checkpoint_dir"]
+config["checkpointer"]["checkpoint_files"] = model_config["checkpoint_files"]
+config["checkpointer"]["model_type"] = model_config["model_type"]
+config["tokenizer"]["path"] = f"{args.models_dir}{args.model_name}/{model_config['tokenizer_path']}"
+config["enable_activation_checkpointing"] = model_config["enable_activation_checkpointing"]
 
 for key, value in vars(args).items():
     if key in SLURM_ONLY:
@@ -228,9 +290,27 @@ with open("finetune.yaml", "w") as f:
 with open(f"{script_dir}/templates/finetune_template.slurm", "r") as f:
     slurm_script = f.read()
 
+# Apply model-specific SLURM defaults if not explicitly overridden by user
+slurm_defaults = model_config["slurm_defaults"]
+
+# Use model-specific time if user didn't override the default
+if args.time == parser.get_default("time"):
+    actual_time = slurm_defaults["time"]
+else:
+    actual_time = args.time
+
+# Use model-specific memory
+actual_mem = slurm_defaults["mem"]
+
+# Use model-specific constraint if available and user didn't override
+if slurm_defaults["constraint"] and not args.constraint:
+    actual_constraint = slurm_defaults["constraint"]
+else:
+    actual_constraint = args.constraint
+
 slurm_script = slurm_script.replace("<JOBNAME>", model_run_name)
-# TODO - lookup reasonable memory/time values based on model choice (create a table somewhere)
-slurm_script = slurm_script.replace("00:15:00", args.time)
+slurm_script = slurm_script.replace("00:15:00", actual_time)
+slurm_script = slurm_script.replace("8G", actual_mem)
 slurm_script = slurm_script.replace("<NETID>", username)
 
 if args.gpus > 1:
@@ -241,8 +321,8 @@ if args.account:
     slurm_script = slurm_script.replace("##SBATCH --account=<ACT>", "#SBATCH --account=" + args.account)
 if args.partition:
     slurm_script = slurm_script.replace("##SBATCH --partition=<PART>", "#SBATCH --partition=" + args.partition)
-if args.constraint:
-    slurm_script = slurm_script.replace("##SBATCH --constraint=<CONST>", "#SBATCH --constraint=" + args.constraint)
+if actual_constraint:
+    slurm_script = slurm_script.replace("##SBATCH --constraint=<CONST>", "#SBATCH --constraint=" + actual_constraint)
 if args.custom_recipe:
     if args.gpus == 1:
         slurm_script = slurm_script.replace("lora_finetune_single_device", args.custom_recipe + '.__main__')
