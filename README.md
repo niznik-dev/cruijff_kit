@@ -13,7 +13,7 @@ The toolkit emphasizes the values of science: correctness, provenance of results
 
 cruijff_kit is named after Dutch footballer and philosopher [Johan Cruijff](https://en.wikipedia.org/wiki/Johan_Cruyff). Many of these ideas were developed while we were doing research in Amsterdam, the city of his birth.
 
-We are grateful to the following funders and supporters: Princeton AI Lab, Princeton Precision Health, Princeton Research Computing, and the Center for Information Technology Policy at Princeton University.
+We are grateful to the following funders and supporters: [Princeton AI Lab](https://ai.princeton.edu/ai-lab), [Princeton Precision Health](https://pph.princeton.edu/), [Princeton Research Computing](https://researchcomputing.princeton.edu/), and the [Center for Information Technology Policy](https://citp.princeton.edu/) at Princeton University.
 
 # ⚠️ Pre-Alpha Warning ⚠️
 
