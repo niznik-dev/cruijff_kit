@@ -7,7 +7,13 @@ cruijff_kit is a toolkit for doing research with social data and LLMs. We are bu
 
 We also have helper utilities for things like automated SLURM script generation and preprocessing pipelines.
 
+cruijff_kit is designed for software agents guided by human, but it enables fully manual operations. We are working toward enabling fully self-driving research.
+
+The toolkit emphasizes the values of science: corretness, provenance of results, and continual learning and improvement.
+
 cruijff_kit is named after Dutch footballer and philosopher [Johan Cruijff](https://en.wikipedia.org/wiki/Johan_Cruyff). Many of these ideas were developed while we were doing research in Amsterdam, the city of his birth.
+
+We are grateful to the following funders and supporters: Princeton AI Lab, Princeton Precision Health, Princeton Research Computing, and the Center for Infromation Technology Policy at Princeton University.
 
 # ⚠️ Pre-Alpha Warning ⚠️
 
