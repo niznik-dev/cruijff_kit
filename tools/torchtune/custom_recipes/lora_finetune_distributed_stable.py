@@ -16,6 +16,7 @@ import torch
 from omegaconf import DictConfig, ListConfig
 
 # !--- cruijff_kit patch ---!
+# Feature: stash_adapter_files - Helper function for checkpoint cleanup
 from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import stash_adapter_files
 # !--- end cruijff_kit patch ---!
 
@@ -169,6 +170,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         # !--- cruijff_kit patch ---!
+        # Feature: epochs_to_save - Selective checkpoint saving
+        # Allows saving only specific epochs (e.g., [0, 4, 9]) instead of all epochs.
+        # Includes backward compatibility for save_last_epoch_only flag.
         if cfg.save_last_epoch_only and cfg.epochs_to_save:
             utils.log_rank_zero(
                 log,
@@ -909,6 +913,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
             self.epochs_run += 1
             # !--- cruijff_kit patch ---!
+            # Feature: epochs_to_save - Only save checkpoints for specified epochs
             if curr_epoch in self._epochs_to_save:
                 log.info(f"Starting checkpoint save for epoch {curr_epoch}...")
                 self.save_checkpoint(epoch=curr_epoch)

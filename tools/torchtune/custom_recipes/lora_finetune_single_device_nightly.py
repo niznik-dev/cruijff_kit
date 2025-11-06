@@ -17,6 +17,7 @@ import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
 
 # !--- cruijff_kit patch ---!
+# Feature: stash_adapter_files - Helper function for checkpoint cleanup
 from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import stash_adapter_files
 # !--- end cruijff_kit patch ---!
 
@@ -41,17 +42,23 @@ from torchtune.training import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
 
+# !--- cruijff_kit patch ---!
+# Feature: custom_logger - Experimental custom logging setup
 from cruijff_kit.utils.logger import setup_logger
 
 # Set up logging
 logger = setup_logger(__name__)
+# !--- end cruijff_kit patch ---!
 
+# !--- cruijff_kit patch ---!
+# Feature: custom_metrics - Experimental metrics calculation during training
 # Conditional import of custom metrics
 try:
     from utils.finetune_custom_metrics import calculate_custom_metrics
     CUSTOM_METRICS_AVAILABLE = True
 except ImportError:
     CUSTOM_METRICS_AVAILABLE = False
+# !--- end cruijff_kit patch ---!
 
 log = utils.get_logger("DEBUG")
 
