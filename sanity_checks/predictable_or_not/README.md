@@ -144,7 +144,7 @@ run_val_every_n_steps: 4
 save_adapter_weights_only: 'true'
 input_formatting: ''
 system_prompt: ''
-custom_recipe: 'cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_val'
+custom_recipe: 'cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly'
 ```
 
 2. Generate configs and submit:
@@ -193,7 +193,7 @@ The split logic moved from runtime parameters to file structure for better flexi
 
 ## Validation During Training
 
-This sanity check uses the `lora_finetune_single_device_val` custom recipe, which:
+This sanity check uses the `lora_finetune_single_device_nightly` custom recipe, which:
 - Validates every 4 training steps (`run_val_every_n_steps: 4`)
 - Tracks both train and validation loss in real-time
 - Helps detect overfitting during training
@@ -212,7 +212,7 @@ Both train and validation loss curves will appear in your W&B dashboard, allowin
 - Log every: 1 step
 - Validate every: 4 steps
 - System prompt: "" (empty)
-- Custom recipe: `cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_val`
+- Custom recipe: `cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly`
 
 **Experimental variables** (differ across runs):
 - `train_on_input`: `false` (output_only) vs `true` (input_and_output)
