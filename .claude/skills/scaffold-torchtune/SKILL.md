@@ -161,7 +161,7 @@ account: {from claude.local.md SLURM Defaults, if present}
 system_prompt: {from experiment_summary.md Configuration, often empty string ""}
 
 # Custom Recipe
-custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_v1}
+custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable}
 ```
 
 4. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
