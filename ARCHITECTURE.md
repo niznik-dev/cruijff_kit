@@ -12,6 +12,8 @@ cruijff_kit is a research toolkit for fine-tuning and evaluating LLMs on social 
 4. **Custom torchtune recipes** with validation support
 5. **Inspect-ai integration** for model evaluation
 
+> **Note (2025-11-06):** Custom recipes now use `_stable` and `_nightly` suffixes instead of `_v1` and `_val` to clarify torchtune version requirements. Some references in this document may not be updated yet due to ongoing documentation refactoring.
+
 ## Directory Structure
 
 ```
