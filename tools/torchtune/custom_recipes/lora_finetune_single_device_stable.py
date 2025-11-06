@@ -41,6 +41,14 @@ from torchtune.training import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
 
+# !--- cruijff_kit patch ---!
+# Feature: custom_logger - Custom logging setup
+from cruijff_kit.utils.logger import setup_logger
+
+# Set up logging
+logger = setup_logger(__name__)
+# !--- end cruijff_kit patch ---!
+
 log = utils.get_logger("DEBUG")
 
 
