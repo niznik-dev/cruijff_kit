@@ -134,6 +134,10 @@ for key, value in vars(args).items():
     elif key == "input_dir_base":
         config["input_dir"] = value + args.input_formatting + ("/" if args.input_formatting else "")
     elif key == "output_dir_base":
+        # Ensure output_dir_base ends with /
+        if not value.endswith('/'):
+            value += '/'
+
         # If experiment_name is provided, group outputs under that directory
         if args.experiment_name:
             full_output_dir = value + args.experiment_name + "/ck-out-" + model_run_name + "/"

@@ -27,8 +27,9 @@ The goal is to validate that:
 **Sanity check code** (in repository):
 ```
 sanity_checks/bit_sequences/
-├── README.md              # This file
-└── generate.py            # Generates datasets with various configurations
+├── README.md                  # This file
+├── generate.py                # Generates datasets with various configurations
+└── bit_sequences_inspect.py   # Inspect-ai evaluation task
 ```
 
 **Sanity check data** (in repository, generated):
@@ -228,22 +229,55 @@ for dir in ck-out-*/; do
 done
 ```
 
-## Expected Results
+## Evaluation Phase
 
-This sanity check focuses on **training dynamics** and binary classification learning. No inspect-ai evaluation is performed.
+After fine-tuning completes, evaluate the models using inspect-ai to measure binary classification accuracy on held-out validation data.
 
-**Key comparisons to examine in W&B:**
+### Evaluation Task
+
+The evaluation task is defined in `bit_sequences_inspect.py` and automatically:
+- Reads the fine-tuning configuration from `setup_finetune.yaml`
+- Loads the same dataset used for training (e.g., parity.json)
+- Evaluates on the validation split
+- Reports exact match and substring match accuracy
+
+### Running Evaluation
+
+**For a single run:**
+```bash
+cd /path/to/ck-sanity-checks/sanity_check_bit_sequences_YYYY-MM-DD/parity_run
+inspect eval ../../sanity_checks/bit_sequences/bit_sequences_inspect.py \
+  --model hf/local \
+  -M model_path=/path/to/ck-outputs/.../ck-out-parity_run/epoch_9 \
+  -T config_dir=/path/to/ck-outputs/.../ck-out-parity_run/epoch_9
+```
+
+**For all runs:**
+Use the skills-based workflow to automate evaluation across all runs (implementation pending).
+
+### Expected Evaluation Results
+
+This sanity check validates both **training dynamics** (via W&B loss curves) and **binary classification performance** (via inspect-ai accuracy).
+
+**Key comparisons:**
+
+**Training dynamics (W&B):**
 1. **Parity tasks**: Model should achieve near-zero loss (pattern is learnable)
 2. **Probabilistic tasks**: Loss should plateau at a level reflecting the inherent uncertainty
 3. **Validation curves**: Should track training curves without significant overfitting
 4. **Convergence speed**: Simpler patterns (shorter bit_length) should converge faster
 
+**Evaluation accuracy (inspect-ai):**
+1. **Parity (deterministic)**: Should achieve ~100% accuracy on validation set
+2. **Probabilistic (p=0.5)**: Accuracy around 50% expected (reflecting random labeling)
+3. **Validation performance**: Should closely match validation loss trends from training
+
 ## Notes
 
 - Multiple runs can execute in parallel (estimated 40-80 minutes per run on one A100 GPU)
-- This sanity check validates: data generation → fine-tuning → monitoring
+- This sanity check validates: data generation → fine-tuning → monitoring → evaluation
 - Designed as a learning tool for understanding binary classification with cruijff_kit
-- No evaluation phase (W&B loss comparison is sufficient for this sanity check)
+- Evaluation phase validates binary classification accuracy on held-out validation data beyond just loss curves
 
 ## Troubleshooting
 

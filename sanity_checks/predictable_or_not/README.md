@@ -40,8 +40,9 @@ This sanity check tests **8 runs total**:
 **Sanity check code** (in repository):
 ```
 sanity_checks/predictable_or_not/
-├── README.md              # This file
-└── generate_data.py       # Generates the 4 scenario datasets
+├── README.md                      # This file
+├── generate_data.py               # Generates the 4 scenario datasets
+└── predictable_or_not_inspect.py  # Inspect-ai evaluation task
 ```
 
 **Sanity check data** (in repository, generated):
@@ -239,22 +240,57 @@ for dir in ck-out-*/; do
 done
 ```
 
-## Expected Results
+## Evaluation Phase
 
-This sanity check focuses on **training dynamics**, not final model performance. No inspect-ai evaluation is performed.
+After fine-tuning completes, evaluate the models using inspect-ai to measure accuracy on held-out validation data.
 
-**Key comparisons to examine in W&B:**
+### Evaluation Task
+
+The evaluation task is defined in `predictable_or_not_inspect.py` and automatically:
+- Reads the fine-tuning configuration from `setup_finetune.yaml`
+- Loads the same dataset used for training (e.g., pp.json for pp_output_only)
+- Evaluates on the validation split (100 examples)
+- Reports exact match and substring match accuracy
+
+### Running Evaluation
+
+**For a single run:**
+```bash
+cd /path/to/ck-sanity-checks/sanity_check_predictable_or_not_YYYY-MM-DD/pp_output_only
+inspect eval ../../sanity_checks/predictable_or_not/predictable_or_not_inspect.py \
+  --model hf/local \
+  -M model_path=/path/to/ck-outputs/.../ck-out-pp_output_only/epoch_9 \
+  -T config_dir=/path/to/ck-outputs/.../ck-out-pp_output_only/epoch_9
+```
+
+**For all runs:**
+Use the skills-based workflow to automate evaluation across all 8 runs (implementation pending).
+
+### Expected Evaluation Results
+
+This sanity check validates both **training dynamics** (via W&B loss curves) and **final model performance** (via inspect-ai accuracy).
+
+**Key comparisons:**
+
+**Training dynamics (W&B):**
 1. How does `train_on_input` affect learning speed and final loss?
 2. Which scenarios show the biggest difference between output_only vs input_and_output?
 3. Do validation loss curves show overfitting in any scenarios?
 4. How does predictability of inputs vs outputs affect learning difficulty?
 
+**Evaluation accuracy (inspect-ai):**
+1. **pp (predictable → predictable)**: Should achieve ~100% accuracy (pattern is fully learnable)
+2. **pu (predictable → unpredictable)**: Low accuracy expected (outputs are random)
+3. **up (unpredictable → predictable)**: Should achieve ~100% accuracy (constant output "42")
+4. **uu (unpredictable → unpredictable)**: Low accuracy expected (both random)
+5. **train_on_input effect**: May see different accuracy between output_only vs input_and_output modes
+
 ## Notes
 
 - All 8 runs can execute in parallel (estimated 40-80 minutes total on one A100 GPU)
-- This sanity check validates the complete workflow: data generation → fine-tuning → monitoring
-- Designed as a learning tool for understanding cruijff_kit's fine-tuning capabilities
-- No evaluation phase (W&B loss comparison is sufficient for this sanity check)
+- This sanity check validates the complete workflow: data generation → fine-tuning → monitoring → evaluation
+- Designed as a learning tool for understanding cruijff_kit's fine-tuning and evaluation capabilities
+- Evaluation phase validates model performance on held-out validation data beyond just loss curves
 
 ## Troubleshooting
 
