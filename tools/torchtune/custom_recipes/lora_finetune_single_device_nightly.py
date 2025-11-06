@@ -232,7 +232,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Enabling activation offloading should reduce memory further.",
             )
 
-        # Embeddings
+        # !--- cruijff_kit patch ---!
+        # Feature: embeddings_extraction - Extract and save hidden state embeddings (nightly-only)
+        # Added by @drigobon for analyzing model representations (Issue #54, PR #77)
+        # Extracts embeddings during both training and validation passes
         self._get_embeddings = cfg.get("get_embeddings", False)
         self._embeddings_output_path = cfg.get("embeddings_output_path", None)
         if self._get_embeddings:
@@ -242,7 +245,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._embeddings = {}
             self._targets = {}
             os.makedirs(self._embeddings_output_path, exist_ok=True)
-
+        # !--- end cruijff_kit patch ---!
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -749,7 +752,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # free logits otherwise it peaks backward memory
         del logits
 
-
+        # !--- cruijff_kit patch ---!
+        # Feature: embeddings_extraction - Collect embeddings during each forward pass
+        # Called during both training batches and validation batches
         # Get embeddings if needed
         if self._get_embeddings:
             embeddings = self.get_embeddings(batch)
@@ -766,15 +771,17 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self._targets[self.epochs_run] = torch.cat(
                     (self._targets[self.epochs_run], labels.detach())
                 )
-        
+        # !--- end cruijff_kit patch ---!
 
         return loss
 
-
-
+    # !--- cruijff_kit patch ---!
+    # Feature: embeddings_extraction - Extract hidden state embeddings using forward hook
+    # Added by @drigobon (Issue #54, PR #77)
+    # WARNING: Only works correctly without sequence packing
     def get_embeddings(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         """
-        Get embeddings from the model for the given batch. Requires no packing!!! 
+        Get embeddings from the model for the given batch. Requires no packing!!!
         (Otherwise the mean pooling will not work correctly)
         """
         # Ensure the model is in eval mode
@@ -801,7 +808,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         last_hidden = hidden_states['last_hidden']  # shape: (batch_size, seq_len, hidden_size)
         logger.info(f"Last hidden state shape: {last_hidden.shape}")
         logger.info(f"Last hidden state values:\n{last_hidden}")
-        
+
         handle.remove() # Remove the hook
 
         # Mean pooling (ignore padding tokens)
@@ -810,8 +817,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         logger.info(f"Pooled embeddings shape: {embeddings.shape}")
         logger.info(f"Pooled embeddings values:\n{embeddings}")
-        
+
         return embeddings
+    # !--- end cruijff_kit patch ---!
 
 
     def validate(self) -> Dict[str, float]:
