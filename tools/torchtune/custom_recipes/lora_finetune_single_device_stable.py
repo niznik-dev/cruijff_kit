@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
-import os
 import time
 
 from functools import partial
@@ -17,6 +16,7 @@ import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
 
 # !--- cruijff_kit patch ---!
+# Feature: stash_adapter_files - Helper function for checkpoint cleanup
 from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import stash_adapter_files
 # !--- end cruijff_kit patch ---!
 
@@ -41,17 +41,23 @@ from torchtune.training import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
 
+# !--- cruijff_kit patch ---!
+# Feature: custom_logger - Custom logging setup
 from cruijff_kit.utils.logger import setup_logger
 
 # Set up logging
 logger = setup_logger(__name__)
+# !--- end cruijff_kit patch ---!
 
+# !--- cruijff_kit patch ---!
+# Feature: custom_metrics - Experimental metrics calculation during training
 # Conditional import of custom metrics
 try:
     from utils.finetune_custom_metrics import calculate_custom_metrics
     CUSTOM_METRICS_AVAILABLE = True
 except ImportError:
     CUSTOM_METRICS_AVAILABLE = False
+# !--- end cruijff_kit patch ---!
 
 log = utils.get_logger("DEBUG")
 
@@ -171,20 +177,29 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.global_step = 0
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
+        # !--- cruijff_kit patch ---!
+        # Feature: epochs_to_save - Selective checkpoint saving
+        # Allows saving only specific epochs (e.g., [0, 4, 9]) instead of all epochs.
+        # Includes backward compatibility for save_last_epoch_only flag.
+        if cfg.save_last_epoch_only and cfg.epochs_to_save:
+            utils.log_rank_zero(
+                log,
+                "Both save_last_epoch_only and epochs_to_save are in use. The value for save_last_epoch_only takes precedence but will be removed in a future release.",
+            )
         self._save_last_epoch_only = cfg.get("save_last_epoch_only", False)
+        self._epochs_to_save = [self.total_epochs - 1] if self._save_last_epoch_only else cfg.get("epochs_to_save", 'all')
+        if self._epochs_to_save == 'all':
+            self._epochs_to_save = list(range(self.total_epochs))
         self._stash_adapter_weights = cfg.get("stash_adapter_weights", False)
+        # !--- end cruijff_kit patch ---!
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
-        self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
-        if self._run_val_every_n_steps is not None:
-            assert (
-                cfg.get("dataset_val") is not None
-            ), "run_val_every_n_steps is set but dataset_val is not provided"
-
-        # Enable metrics calculation automatically if utils.metrics is available
+        # !--- cruijff_kit patch ---!
+        # Feature: custom_metrics - Enable metrics calculation if available
         self._calculate_custom_metrics = CUSTOM_METRICS_AVAILABLE
         self._custom_metrics = {}
+        # !--- end cruijff_kit patch ---!
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
@@ -211,18 +226,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Hint: enable_activation_checkpointing is True, but enable_activation_offloading isn't. "
                 "Enabling activation offloading should reduce memory further.",
             )
-
-        # Embeddings
-        self._get_embeddings = cfg.get("get_embeddings", False)
-        self._embeddings_output_path = cfg.get("embeddings_output_path", None)
-        if self._get_embeddings:
-            assert(
-                self._embeddings_output_path is not None
-            ), "embeddings_output_path must be set if get_embeddings is True"
-            self._embeddings = {}
-            self._targets = {}
-            os.makedirs(self._embeddings_output_path, exist_ok=True)
-
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -359,17 +362,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
-        # Setup validation dataloader if validation dataset is provided
-        self._val_dataloader = None
-        if cfg.get("dataset_val") is not None:
-            batch_size_val = cfg.get("batch_size_val", cfg.batch_size)
-            self._val_dataloader = self._setup_data(
-                cfg_dataset=cfg.dataset_val,
-                batch_size=batch_size_val,
-                collate_fn=collate_name,
-                shuffle=False,
-            )
-
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
 
@@ -400,14 +392,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
         # Used to ignore labels for loss computation
-        bsz_cache = (
-            cfg.batch_size
-            if self._val_dataloader is None
-            else max(cfg.batch_size, self._val_dataloader.batch_size)
-        )
-
         self.ignore_labels_cache = torch.full(
-            (bsz_cache, 1), self._loss_fn.ignore_index, device=self._device
+            (cfg.batch_size, 1), self._loss_fn.ignore_index, device=self._device
         )
 
     def _setup_profiler(
@@ -526,7 +512,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
             apply_lora_to_output=self._apply_lora_to_output,
-            #state_dict_keys=model.state_dict().keys(), # ! Fails if left uncommented... Unexpected keyword...
             base_missing=base_missing,
             base_unexpected=base_unexpected,
             lora_missing=lora_missing,
@@ -696,15 +681,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
-        
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
-        
         # run model
         with self.activations_handling_ctx:
             logits = self._model(**batch)
 
-        # Calculate custom metrics before computing loss
+        # !--- cruijff_kit patch ---!
+        # Feature: custom_metrics - Calculate custom metrics before computing loss
         # We do this here because the logits are needed for custom metrics
         if self._calculate_custom_metrics:
             metrics = calculate_custom_metrics(logits, labels, self._tokenizer, self._loss_fn.ignore_index)
@@ -713,6 +697,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     self._custom_metrics[metric_name] = metric_value.detach().item()
                 else:
                     self._custom_metrics[metric_name] = metric_value
+        # !--- end cruijff_kit patch ---!
 
         # Shift labels to compute loss
         # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
@@ -729,111 +714,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # free logits otherwise it peaks backward memory
         del logits
 
-
-        # Get embeddings if needed
-        if self._get_embeddings:
-            embeddings = self.get_embeddings(batch)
-
-            # Store embeddings and targets for later use
-            if self.epochs_run not in self._embeddings:
-                self._embeddings[self.epochs_run] = embeddings.detach().item()
-                self._targets[self.epochs_run] = labels.detach().item()
-            else: # if already initialized for current epoch
-                # Concatenate new embeddings and targets to the existing ones
-                self._embeddings[self.epochs_run] = torch.cat(
-                    (self._embeddings[self.epochs_run], embeddings.detach())
-                )
-                self._targets[self.epochs_run] = torch.cat(
-                    (self._targets[self.epochs_run], labels.detach())
-                )
-        
-
         return loss
-
-
-
-    def get_embeddings(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
-        """
-        Get embeddings from the model for the given batch. Requires no packing!!! 
-        (Otherwise the mean pooling will not work correctly)
-        """
-        # Ensure the model is in eval mode
-        self._model.eval()
-
-        # ! NOT WORKING! Needs to be fixed for packed sequences...
-        mask = batch.get("mask").materialize().float()  # shape: (batch_size, 1, seq_len, seq_len)
-        logger.info(f"Attention mask shape: {mask.shape}")
-        logger.info(f"Attention mask values:\n{mask}")
-
-        # Define hook to capture the last hidden state
-        hidden_states = {'last_hidden': None}
-        def hook_fn(module, input, output):
-            hidden_states['last_hidden'] = output
-
-        # Register hook to last layer of the model
-        handle = self._model.layers[-1].register_forward_hook(hook_fn)
-
-        # Run forward pass (no grad needed for embeddings)
-        with torch.no_grad():
-            outputs = self._model(**batch)
-
-        # Access hidden state
-        last_hidden = hidden_states['last_hidden']  # shape: (batch_size, seq_len, hidden_size)
-        logger.info(f"Last hidden state shape: {last_hidden.shape}")
-        logger.info(f"Last hidden state values:\n{last_hidden}")
-        
-        handle.remove() # Remove the hook
-
-        # Mean pooling (ignore padding tokens)
-        # ! NOTE: This will ONLY make sense if no packing is used in the dataloader...
-        embeddings = (last_hidden * mask.unsqueeze(-1)).sum(1) / mask.sum(1) # shape: (batch_size, hidden_size)
-
-        logger.info(f"Pooled embeddings shape: {embeddings.shape}")
-        logger.info(f"Pooled embeddings values:\n{embeddings}")
-        
-        return embeddings
-
-
-    def validate(self) -> Dict[str, float]:
-        """
-        Run validation loop and return average validation loss.
-        """
-
-        self._model.eval()
-        total_val_loss = torch.tensor(0.0, device=self._device)
-        total_val_tokens = torch.tensor(0.0, device=self._device)
-
-        with torch.no_grad():
-            for batch_idx, batch in enumerate(self._val_dataloader):
-                utils.batch_to_device(batch, self._device)
-
-                # Count tokens excluding padding
-                current_num_tokens = (
-                    batch["labels"] != self._loss_fn.ignore_index
-                ).sum()
-
-                # Compute loss
-                val_loss = self._loss_step(batch) * current_num_tokens
-
-                total_val_loss += val_loss
-                total_val_tokens += current_num_tokens
-
-        avg_val_loss = (
-            (total_val_loss / total_val_tokens).item()
-            if total_val_tokens > 0
-            else float("inf")
-        )
-        log_dict = {"val_loss": avg_val_loss}
-
-        log.info(f"Validation loss: {avg_val_loss:.4f}")
-        self._metric_logger.log_dict(
-            log_dict,
-            step=self.global_step,
-        )
-
-        self._model.train()
-
-        return log_dict
 
     def train(self) -> None:
         """
@@ -894,7 +775,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         # Update the number of steps when the weights are updated
                         self.global_step += 1
 
-                        loss_to_log = running_loss.detach().item() / num_tokens
+                        loss_to_log = running_loss.item() / num_tokens
                         pbar.update(1)
                         pbar.set_description(
                             f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
@@ -917,12 +798,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 )
                             if self._clip_grad_norm is not None:
                                 log_dict.update({"grad_norm": grad_norm})
-                            
-                            # Add custom metrics to log_dict and then reset for the next step
+
+                            # !--- cruijff_kit patch ---!
+                            # Feature: custom_metrics - Add custom metrics to log_dict and reset
                             if self._custom_metrics:
                                 log_dict.update(self._custom_metrics)
                                 self._custom_metrics = {}
-                            
+                            # !--- end cruijff_kit patch ---!
+
                             self._metric_logger.log_dict(
                                 log_dict,
                                 step=self.global_step,
@@ -950,25 +833,17 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # if the schedule cycle doesn't align with gradient accumulation.
                     prof.step()
 
-                    # Run validation after gradient update
-                    if (
-                        self._run_val_every_n_steps is not None
-                        and self.global_step % self._run_val_every_n_steps == 0
-                    ):
-                        pbar.refresh()
-                        self.validate()
-
                     if (
                         (idx + 1) // self._gradient_accumulation_steps
                     ) == self.max_steps_per_epoch:
                         break
 
                 self.epochs_run += 1
-                
-                # If self._save_last_epoch_only is true, only save checkpoint on the final epoch to save disk space
-                if not self._save_last_epoch_only or curr_epoch == self.total_epochs - 1:
+                # !--- cruijff_kit patch ---!
+                # Feature: epochs_to_save - Only save checkpoints for specified epochs
+                if curr_epoch in self._epochs_to_save:
                     start_save_checkpoint = time.perf_counter()
-                    log.info("Starting checkpoint save...")
+                    log.info(f"Starting checkpoint save for epoch {curr_epoch}...")
                     self.save_checkpoint(epoch=curr_epoch)
                     log.info(
                         "Checkpoint saved in {:.2f} seconds.".format(
@@ -981,7 +856,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         log.info("Stashing adapter files from merged model checkpoint...")
                         stash_adapter_files(self._output_dir, curr_epoch, log)
                 else:
-                    log.info(f"Skipping checkpoint save for epoch {curr_epoch + 1}...")
+                    log.info(f"Skipping checkpoint save for epoch {curr_epoch}...")
+                # !--- end cruijff_kit patch ---!
 
     def cleanup(self) -> None:
         self._metric_logger.close()

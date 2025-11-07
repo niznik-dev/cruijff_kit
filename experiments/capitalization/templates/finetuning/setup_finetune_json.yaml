@@ -29,4 +29,4 @@ stash_adapter_weights: 'true'
 conda_env: cruijff
 
 # Custom Recipe
-custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_v1
+custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable

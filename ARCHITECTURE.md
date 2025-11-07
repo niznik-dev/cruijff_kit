@@ -116,9 +116,9 @@ setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
 - `tools/torchtune/templates/finetune_template.yaml` - Base template for torchtune configs
 
 - `tools/torchtune/custom_recipes/` - Modified torchtune recipes
-  - `lora_finetune_single_device_v1.py` - Single GPU with custom features
-  - `lora_finetune_distributed_v1.py` - Multi-GPU distributed training
-  - `lora_finetune_single_device_val.py` - With validation loss tracking
+  - `lora_finetune_single_device_stable.py` - Single GPU with custom features
+  - `lora_finetune_distributed_stable.py` - Multi-GPU distributed training
+  - `lora_finetune_single_device_nightly.py` - With validation loss tracking
   - `custom_recipe_utils.py` - Shared utilities for recipes
 
 **Custom features added to torchtune:**
@@ -310,13 +310,13 @@ output_dir/
 cruijff_kit uses modified torchtune recipes for added features. To use a custom recipe:
 
 ```bash
-python setup_finetune.py --custom_recipe cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_val
+python setup_finetune.py --custom_recipe cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly
 ```
 
 Available custom recipes:
-- `lora_finetune_single_device_v1.py` - Single GPU with selective epoch saving
-- `lora_finetune_distributed_v1.py` - Multi-GPU distributed training
-- `lora_finetune_single_device_val.py` - With validation loss tracking (requires torchtune nightly)
+- `lora_finetune_single_device_stable.py` - Single GPU with selective epoch saving
+- `lora_finetune_distributed_stable.py` - Multi-GPU distributed training
+- `lora_finetune_single_device_nightly.py` - With validation loss tracking (requires torchtune nightly)
 
 ## Key Abstractions
 
