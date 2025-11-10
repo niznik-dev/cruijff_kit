@@ -29,7 +29,7 @@ The goal is to validate that:
 sanity_checks/bit_sequences/
 ├── README.md                  # This file
 ├── generate.py                # Generates datasets with various configurations
-└── bit_sequences_inspect.py   # Inspect-ai evaluation task
+└── bit_sequences_inspect_task.py   # Inspect-ai evaluation task
 ```
 
 **Sanity check data** (in repository, generated):
@@ -235,7 +235,7 @@ After fine-tuning completes, evaluate the models using inspect-ai to measure bin
 
 ### Evaluation Task
 
-The evaluation task is defined in `bit_sequences_inspect.py` and automatically:
+The evaluation task is defined in `bit_sequences_inspect_task.py` and automatically:
 - Reads the fine-tuning configuration from `setup_finetune.yaml`
 - Loads the same dataset used for training (e.g., parity.json)
 - Evaluates on the validation split
@@ -246,7 +246,7 @@ The evaluation task is defined in `bit_sequences_inspect.py` and automatically:
 **For a single run:**
 ```bash
 cd /path/to/ck-sanity-checks/sanity_check_bit_sequences_YYYY-MM-DD/parity_run
-inspect eval ../../sanity_checks/bit_sequences/bit_sequences_inspect.py \
+inspect eval ../../sanity_checks/bit_sequences/bit_sequences_inspect_task.py \
   --model hf/local \
   -M model_path=/path/to/ck-outputs/.../ck-out-parity_run/epoch_9 \
   -T config_dir=/path/to/ck-outputs/.../ck-out-parity_run/epoch_9
