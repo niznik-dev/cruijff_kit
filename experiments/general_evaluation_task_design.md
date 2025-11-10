@@ -1,7 +1,7 @@
 # General Evaluation Task
 
 **Created:** 2025-10-24
-**Task File:** `experiments/general_evaluation_task.py`
+**Task File:** `experiments/general_evaluation_inspect_task.py`
 **Inspect-AI Version:** Latest (designed for current API)
 
 ## Evaluation Objective
@@ -118,13 +118,13 @@ Using both scorers provides:
 **Parameter Usage:**
 ```bash
 # With config_dir
-inspect eval experiments/general_evaluation_task.py -T config_dir=/path/to/epoch_0
+inspect eval experiments/general_evaluation_inspect_task.py -T config_dir=/path/to/epoch_0
 
 # With dataset_path
-inspect eval experiments/general_evaluation_task.py -T dataset_path=/path/to/data.json
+inspect eval experiments/general_evaluation_inspect_task.py -T dataset_path=/path/to/data.json
 
 # With custom parameters
-inspect eval experiments/general_evaluation_task.py -T dataset_path=/path/to/data.json -T temperature=0.5
+inspect eval experiments/general_evaluation_inspect_task.py -T dataset_path=/path/to/data.json -T temperature=0.5
 ```
 
 ## Model Specification
@@ -136,7 +136,7 @@ inspect eval experiments/general_evaluation_task.py -T dataset_path=/path/to/dat
 For models from fine-tuning experiments:
 
 ```bash
-inspect eval experiments/general_evaluation_task.py \
+inspect eval experiments/general_evaluation_inspect_task.py \
   --model hf/local \
   -M model_path=/scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-rank8/epoch_0 \
   -T config_dir=/scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-rank8/epoch_0
@@ -152,7 +152,7 @@ This mode:
 For evaluating any model on a specific dataset:
 
 ```bash
-inspect eval experiments/general_evaluation_task.py \
+inspect eval experiments/general_evaluation_inspect_task.py \
   --model hf/local \
   -M model_path=/path/to/model \
   -T dataset_path=/path/to/experiments/capitalization/input/words_4L_80P_5000.json
@@ -171,7 +171,7 @@ This mode:
 ```bash
 cd /scratch/gpfs/MSALGANIK/niznik/experiment_name/run_name/epoch_0
 
-inspect eval /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/general_evaluation_task.py \
+inspect eval /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/general_evaluation_inspect_task.py \
   --model hf/local \
   -M model_path=$PWD \
   -T config_dir=$PWD
@@ -179,7 +179,7 @@ inspect eval /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/gener
 
 **Base model on capitalization data:**
 ```bash
-inspect eval experiments/general_evaluation_task.py \
+inspect eval experiments/general_evaluation_inspect_task.py \
   --model hf/local \
   -M model_path=/scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct \
   -T dataset_path=experiments/capitalization/input/words_4L_80P_5000.json
@@ -188,7 +188,7 @@ inspect eval experiments/general_evaluation_task.py \
 ### Testing with Limited Samples
 
 ```bash
-inspect eval experiments/general_evaluation_task.py \
+inspect eval experiments/general_evaluation_inspect_task.py \
   --model hf/local \
   -M model_path=/path/to/model \
   -T dataset_path=experiments/capitalization/input/words_4L_80P_5000.json \
@@ -198,7 +198,7 @@ inspect eval experiments/general_evaluation_task.py \
 ### With Custom System Prompt
 
 ```bash
-inspect eval experiments/general_evaluation_task.py \
+inspect eval experiments/general_evaluation_inspect_task.py \
   --model hf/local \
   -M model_path=/path/to/model \
   -T dataset_path=experiments/capitalization/input/words_4L_80P_5000.json \
@@ -219,7 +219,7 @@ sbatch finetune.slurm
 ```bash
 cd /path/to/experiment/run_dir/epoch_0
 
-inspect eval /path/to/cruijff_kit/experiments/general_evaluation_task.py \
+inspect eval /path/to/cruijff_kit/experiments/general_evaluation_inspect_task.py \
   --model hf/local \
   -M model_path=$PWD \
   -T config_dir=$PWD
