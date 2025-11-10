@@ -1,22 +1,22 @@
 """
-Bit Sequences Sanity Check - Inspect-AI Evaluation Task
+Predictable or Not Sanity Check - Inspect-AI Evaluation Task
 
-Evaluates fine-tuned models on binary classification tasks with parity-based
-or probabilistic labeling.
+Evaluates fine-tuned models on their ability to learn predictable patterns.
+Tests four scenarios (pp, pu, up, uu) across output_only and input_and_output modes.
 
 Usage:
     # Evaluate fine-tuned model (reads from setup_finetune.yaml)
-    inspect eval sanity_checks/bit_sequences/bit_sequences_inspect_task.py --model hf/local \\
+    inspect eval sanity_checks/predictable_or_not/inspect_task_predictable_or_not.py --model hf/local \\
         -M model_path=/path/to/model \\
         -T config_dir=/path/to/epoch_0
 
     # Standalone evaluation with direct dataset path
-    inspect eval sanity_checks/bit_sequences/bit_sequences_inspect_task.py --model hf/local \\
+    inspect eval sanity_checks/predictable_or_not/inspect_task_predictable_or_not.py --model hf/local \\
         -M model_path=/path/to/model \\
-        -T dataset_path=/path/to/parity.json
+        -T dataset_path=/path/to/pp.json
 
     # Evaluate on validation split instead of test
-    inspect eval sanity_checks/bit_sequences/bit_sequences_inspect_task.py --model hf/local \\
+    inspect eval sanity_checks/predictable_or_not/inspect_task_predictable_or_not.py --model hf/local \\
         -M model_path=/path/to/model \\
         -T config_dir=/path/to/epoch_0 \\
         -T split=validation
@@ -34,7 +34,7 @@ import yaml
 
 
 @task
-def bit_sequences(
+def predictable_or_not(
     config_dir: Optional[str] = None,
     dataset_path: Optional[str] = None,
     system_prompt: str = "",
@@ -43,10 +43,10 @@ def bit_sequences(
     max_tokens: int = 10
 ) -> Task:
     """
-    Evaluation task for bit_sequences sanity check.
+    Evaluation task for predictable_or_not sanity check.
 
-    Expected input: Binary sequence (e.g., "01011")
-    Expected output: "0" or "1" (binary classification)
+    Expected input: Comma-separated numbers (e.g., "42,43,44,45,46,")
+    Expected output: Single number (e.g., "47")
 
     Args:
         config_dir: Path to epoch directory (contains ../setup_finetune.yaml).
@@ -56,7 +56,7 @@ def bit_sequences(
         temperature: Generation temperature (default: 1e-7 for near-deterministic output).
         split: Which data split to use - "train" or "validation" (default: "validation").
                Note: This sanity check has no "test" split.
-        max_tokens: Maximum tokens to generate (default: 10, sufficient for binary output).
+        max_tokens: Maximum tokens to generate (default: 10, sufficient for single number).
 
     Returns:
         Task: Configured inspect-ai task
@@ -108,7 +108,7 @@ def bit_sequences(
             "Must provide either config_dir or dataset_path.\n"
             "Examples:\n"
             "  -T config_dir=/path/to/epoch_0\n"
-            "  -T dataset_path=/path/to/parity.json"
+            "  -T dataset_path=/path/to/pp.json"
         )
 
     # Handle system prompt if it was parsed as a list (CLI quirk)
@@ -117,8 +117,6 @@ def bit_sequences(
 
     # Define record to sample conversion
     def record_to_sample(record):
-        # Note: bit_sequences data has an 'instruction' field (always empty)
-        # We only use input and output for evaluation
         return Sample(
             input=record["input"],
             target=record["output"]
@@ -144,10 +142,10 @@ def bit_sequences(
         )
     )
 
-    # Configure scorers for binary classification
+    # Configure scorers
     # Using both exact match and includes for robustness
     scorers = [
-        match(location="exact", ignore_case=False),  # Exact match: "0" or "1"
+        match(location="exact", ignore_case=False),  # Exact match for number
         includes(ignore_case=False)  # Substring match (for verbose responses)
     ]
 

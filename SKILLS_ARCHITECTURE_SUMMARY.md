@@ -330,7 +330,7 @@ experiments/                             # Research experiment types
 │   ├── input/                          # Dataset generation
 │   └── templates/                      # Fine-tuning configs
 └── synthetic_twins/
-    ├── twins_inspect_task.py           # Inspect-ai evaluation task
+    ├── inspect_task_twins.py           # Inspect-ai evaluation task
     └── ...
 ```
 

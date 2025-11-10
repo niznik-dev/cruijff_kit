@@ -31,7 +31,7 @@ cruijff_kit/
 │   │   ├── input/      # Dataset generation
 │   │   └── templates/  # Fine-tuning configs
 │   └── synthetic_twins/# Social science twin prediction experiment
-│       ├── twins_inspect_task.py # Inspect-ai evaluation task
+│       ├── inspect_task_twins.py # Inspect-ai evaluation task
 │       └── ...
 │
 ├── sanity_checks/      # Synthetic validation sanity checks for testing workflows and learning
@@ -148,7 +148,7 @@ Finetuned model checkpoint → setup_inspect.py → inspect.slurm
   - Can evaluate base model or finetuned model
   - Points to task-specific inspect task files
 
-- Experiment-specific inspect-ai task files (e.g., `experiments/capitalization/capitalization_inspect_task.py`)
+- Experiment-specific inspect-ai task files (e.g., `experiments/capitalization/inspect_task_capitalization.py`)
   - Define evaluation prompts and scoring
   - Use inspect-ai framework
 
@@ -200,7 +200,7 @@ Each experiment typically includes:
 - `templates/` - YAML templates for different dataset formats
 - `input/` - Data generation or preprocessing scripts
 - `utils/` - Experiment-specific helper functions
-- `{name}_inspect_task.py` - Inspect-ai evaluation task (e.g., `capitalization_inspect_task.py`)
+- `{name}_inspect_task.py` - Inspect-ai evaluation task (e.g., `inspect_task_capitalization.py`)
 
 ### Sanity Checks (`sanity_checks/`)
 Synthetic validation sanity checks for workflow testing and learning:
