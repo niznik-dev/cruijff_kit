@@ -18,9 +18,9 @@ wget https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/word
 cd ../../..
 ```
 
-Next, run `python experiments/capitalization/input/sample_words.py --word-len 5 --num-words 1000` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` in `data/green/capitalization/` in the instruct_dataset format with top level splits (train/validation/test) which we will use in finetuning.
+Next, run `python experiments/capitalization/preprocess_capitalization_data.py --word-len 5 --num-words 1000` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` in `data/green/capitalization/` in the instruct_dataset format with top level splits (train/validation/test) which we will use in finetuning.
 
-(If you'd rather generate a chat_dataset, run `python experiments/capitalization/input/sample_words.py --word-len 5 --num-words 1000 --use-chat-template` instead - this will create a folder with an "_c" appended and separate files inside per split (train/validation/test.json) in `data/green/capitalization/`)
+(If you'd rather generate a chat_dataset, run `python experiments/capitalization/preprocess_capitalization_data.py --word-len 5 --num-words 1000 --use-chat-template` instead - this will create a folder with an "_c" appended and separate files inside per split (train/validation/test.json) in `data/green/capitalization/`)
 
 ### Part 2 - Finetuning
 
@@ -34,7 +34,7 @@ First, copy `setup_finetune_json.yaml` from the capitalization task templates/fi
 - Change input_dir_base to match where you cloned the repo
 - Match your data format
   - For this example, make sure dataset_label (the filename without ".json") and dataset_ext (".json") match what you generated in Part 1 
-  - If you'd rather use the chat template, revisit sample_words.py to create that folder and then once again make sure dataset_label matches the directory (usually ending in "_c"); dataset_ext is still ".json"
+  - If you'd rather use the chat template, revisit preprocess_capitalization_data.py to create that folder and then once again make sure dataset_label matches the directory (usually ending in "_c"); dataset_ext is still ".json"
 - Change system_prompt if necessary
 
 Then run

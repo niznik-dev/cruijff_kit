@@ -36,9 +36,9 @@ USE_CHAT_TEMPLATE = args.use_chat_template
 
 # Set default output directory relative to repository root
 if args.output_dir is None:
-    # Find repository root (assuming script is in experiments/capitalization/input/)
+    # Find repository root (assuming script is in experiments/capitalization/)
     script_dir = Path(__file__).parent
-    repo_root = script_dir.parent.parent.parent
+    repo_root = script_dir.parent.parent
     args.output_dir = repo_root / "data" / "green" / "capitalization"
 
 # Create output directory if it doesn't exist
@@ -48,7 +48,7 @@ args.output_dir.mkdir(parents=True, exist_ok=True)
 if args.input_file is None:
     # Default to the input file in experiments/capitalization/input/
     script_dir = Path(__file__).parent
-    args.input_file = script_dir / "words_alpha.txt"
+    args.input_file = script_dir / "input" / "words_alpha.txt"
 
 OUTFOLDER = f"words_{WORD_LEN}L_{TRAIN_PERCENT}P_{NUMBER_OF_WORDS}{'_c' if USE_CHAT_TEMPLATE else ''}"
 OUTFILE = f"{OUTFOLDER}.json"
