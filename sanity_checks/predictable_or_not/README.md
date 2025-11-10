@@ -41,7 +41,7 @@ This sanity check tests **8 runs total**:
 ```
 sanity_checks/predictable_or_not/
 ├── README.md                      # This file
-├── generate_data.py               # Generates the 4 scenario datasets
+├── generate_input_data.py               # Generates the 4 scenario datasets
 └── predictable_or_not_inspect_task.py  # Inspect-ai evaluation task
 ```
 
@@ -88,7 +88,7 @@ From the repository root or sanity check directory:
 
 ```bash
 cd sanity_checks/predictable_or_not
-python generate_data.py
+python generate_input_data.py
 ```
 
 This creates four JSON files in `data/green/predictable_or_not/` (`pp.json`, `pu.json`, `up.json`, `uu.json`), each with:
@@ -297,7 +297,7 @@ This sanity check validates both **training dynamics** (via W&B loss curves) and
 **Data files missing:**
 ```bash
 cd sanity_checks/predictable_or_not
-python generate_data.py
+python generate_input_data.py
 ```
 
 **Wrong directory structure:**

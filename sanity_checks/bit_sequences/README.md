@@ -28,7 +28,7 @@ The goal is to validate that:
 ```
 sanity_checks/bit_sequences/
 ├── README.md                  # This file
-├── generate.py                # Generates datasets with various configurations
+├── generate_input_data.py                # Generates datasets with various configurations
 └── bit_sequences_inspect_task.py   # Inspect-ai evaluation task
 ```
 
@@ -67,12 +67,12 @@ From the repository root or sanity check directory:
 **Parity dataset (deterministic, no noise):**
 ```bash
 cd sanity_checks/bit_sequences
-python generate.py --bit_length 15 --N 33000 --p 0 --bit_parity True --val_size 4000 --output parity.json
+python generate_input_data.py --bit_length 15 --N 33000 --p 0 --bit_parity True --val_size 4000 --output parity.json
 ```
 
 **Probabilistic dataset (p=0.5):**
 ```bash
-python generate.py --bit_length 15 --N 33000 --p 0.5 --bit_parity False --val_size 4000 --output prob_p05.json
+python generate_input_data.py --bit_length 15 --N 33000 --p 0.5 --bit_parity False --val_size 4000 --output prob_p05.json
 ```
 
 **Note:** The generator deduplicates at the sequence level - no sequence string appears in both train and validation. Use `bit_length` such that 2^bit_length >> val_size (e.g., 2^15 = 32,768 >> 4,000) to avoid removing all training data.
@@ -284,7 +284,7 @@ This sanity check validates both **training dynamics** (via W&B loss curves) and
 **Data files missing:**
 ```bash
 cd sanity_checks/bit_sequences
-python generate.py --bit_length 15 --N 33000 --p 0 --bit_parity True --val_size 4000 --output parity.json
+python generate_input_data.py --bit_length 15 --N 33000 --p 0 --bit_parity True --val_size 4000 --output parity.json
 ```
 
 **Wrong directory structure:**
