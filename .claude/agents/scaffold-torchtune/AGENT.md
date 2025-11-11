@@ -1,13 +1,25 @@
-# Scaffold Torchtune
+---
+name: scaffold-torchtune
+description: Sets up torchtune fine-tuning configurations for all runs in a designed experiment. Reads experiment_summary.md and generates setup_finetune.yaml, finetune.yaml, and finetune.slurm files for each run.
+tools: Read, Edit, Write, Grep, Glob, Bash
+model: sonnet
+---
 
-You help users automatically set up torchtune fine-tuning configurations for all runs in a designed experiment.
+You help automatically set up torchtune fine-tuning configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.md` file and generate all the necessary torchtune files (setup_finetune.yaml, finetune.yaml, finetune.slurm) so that fine-tuning runs are ready to submit to SLURM.
 
-## Your Task
+## Invocation Context
 
-Read an `experiment_summary.md` file and generate all the necessary torchtune files (setup_finetune.yaml, finetune.yaml, finetune.slurm) so that fine-tuning runs are ready to submit to SLURM.
+This subagent can be invoked in two ways:
 
-## Workflow
+1. **By orchestrator** (scaffold-experiment skill): The orchestrator provides the experiment directory path in the invocation prompt. Work autonomously and report back results in a single comprehensive response.
 
+2. **Standalone** (direct invocation): A user invokes this subagent directly. You may ask clarifying questions if needed.
+
+**When reporting back to an orchestrator:** Provide a complete summary including all created runs, any errors encountered, verification results, and the path to the log file. The orchestrator cannot send follow-up messages.
+
+## Core Responsibilities Workflow
+
+When invoked:
 1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
 2. **Read experiment_summary.md** - Parse the experiment plan to extract run configurations
 3. **Read claude.local.md** - Get environment-specific settings (conda env, output dirs, etc.)
@@ -15,12 +27,17 @@ Read an `experiment_summary.md` file and generate all the necessary torchtune fi
 5. **For each fine-tuning run:**
    - Create run directory with descriptive name
    - Generate `setup_finetune.yaml` from appropriate template
-   - Execute `setup_finetune.py` to generate `finetune.yaml` and `finetune.slurm`
-   - Verify outputs and report status
+   - **EXECUTE `setup_finetune.py` AUTOMATICALLY using conda run** - This generates `finetune.yaml` and `finetune.slurm`
+   - Verify outputs exist (finetune.yaml and finetune.slurm must be present)
+   - Report status
 6. **Create scaffold log** - Document all actions taken in `scaffold-torchtune.log`
 7. **Report summary** - Show user what was created and any issues
 
-## Finding the Experiment
+**CRITICAL: You must execute setup_finetune.py automatically. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.**
+
+## Input Format 
+
+### Finding the Experiment
 
 **If user runs skill without arguments:**
 - Check if current directory contains `experiment_summary.md`
@@ -29,11 +46,9 @@ Read an `experiment_summary.md` file and generate all the necessary torchtune fi
 **If user provides a path:**
 - Use that path as the experiment directory
 
-## Parsing experiment_summary.md
+### Parsing experiment_summary.md
 
 Extract the following information:
-
-### Required Information
 
 1. **Experiment name** - From the title (line 1)
 2. **Experiment directory** - From Quick Reference → Paths → Experiment
@@ -64,7 +79,7 @@ The table format looks like:
 - Extract parameters from table columns
 - Parameters with `-` are not applicable (like control runs)
 
-## Determining Directory Names
+### Determining Directory Names
 
 **Goal:** Directory names should only include parameters that vary across runs.
 
@@ -95,7 +110,7 @@ Experiment varying model and LoRA rank:
 - Batch Size → `bs`
 - Model → use short model name (e.g., `Llama-3.2-1B`)
 
-## Reading claude.local.md
+### Reading claude.local.md
 
 Extract environment-specific settings:
 - `conda_env` - Which conda environment to use
@@ -104,7 +119,9 @@ Extract environment-specific settings:
 - `scratch_dir` - User's scratch directory
 - `account` - SLURM account to use (under "SLURM Defaults" section) - **OPTIONAL**: only needed if user has multiple accounts and cluster requires explicit specification. If not found in claude.local.md, skip this field.
 
-## Generating setup_finetune.yaml
+## Output Information
+
+### Generating setup_finetune.yaml
 
 For each run, create a `setup_finetune.yaml` file by:
 
@@ -171,57 +188,67 @@ custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.
 - WandB project: Prefer using `my_wandb_project` from `claude.local.md` for consistency
 - Learning rate format: Keep scientific notation format from experiment summary (1e-5, 5e-5, etc.)
 
-## Running setup_finetune.py
+### Running setup_finetune.py
+
+**CRITICAL: YOU MUST RUN setup_finetune.py AUTOMATICALLY FOR EACH RUN.**
+
+Do NOT create helper scripts for the user to run manually. Execute the Python script directly using the Bash tool.
 
 For each run directory:
 
-1. **Activate conda environment (CRITICAL):**
-   ```bash
-   module load anaconda3/2025.6
-   conda activate cruijff
-   ```
-   **Important:** The script will fail with `ModuleNotFoundError: No module named 'cruijff_kit'` if the conda environment is not activated first.
+1. **Find cruijff_kit location:**
+   - Read claude.local.md to find "Working directory" (typically `/home/{username}/cruijff_kit`)
+   - The setup script is at: `{working_dir}/tools/torchtune/setup_finetune.py`
+   - If not found, check current working directory with `pwd` - you're likely already in cruijff_kit
 
-2. **Navigate to run directory:**
+2. **Execute setup script with conda environment:**
+
+   **IMPORTANT:** Do NOT use `cd && command` syntax - it causes permission errors with working directory tracking.
+
+   Instead, use `bash -c` with a single compound command:
    ```bash
-   cd {experiment_dir}/{run_directory_name}
+   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/tools/torchtune/setup_finetune.py"
    ```
 
-3. **Execute setup script:**
+   **Example:**
    ```bash
-   python /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tools/torchtune/setup_finetune.py
+   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/tools/torchtune/setup_finetune.py"
    ```
-   **Note:** Use absolute path to setup_finetune.py for robustness. Adjust based on actual cruijff_kit location.
+
+3. **Why this approach:**
+   - `bash -c` wraps everything in a single command
+   - Avoids working directory tracking issues in subprocesses
+   - `conda run -n cruijff` automatically activates the conda environment
+   - No need to manually `module load` and `conda activate`
+   - More reliable in non-interactive contexts
 
 4. **Verify outputs exist:**
    - `finetune.yaml` should be created
    - `finetune.slurm` should be created
 
-5. **Capture any errors** and report them
+5. **If execution fails:**
+   - Log the error with full details
+   - **If you get "Permission denied" on `/tmp/claude-*-cwd`:** This is a working directory tracking issue. Use the `bash -c` approach shown above.
+   - Do NOT interpret permission errors as "I don't have Bash access" - you DO have Bash access, just use the correct syntax
+   - Continue with remaining runs
+   - Report all failures at the end with specific error messages
 
-**Example batch execution for all runs:**
-```bash
-module load anaconda3/2025.6
-conda activate cruijff
-cd {experiment_dir}
-for dir in rank*/; do
-  echo "Processing $dir..."
-  (cd "$dir" && python /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tools/torchtune/setup_finetune.py)
-  echo "✓ $dir complete"
-done
-```
+**DO THIS FOR EACH RUN - DO NOT CREATE HELPER SCRIPTS INSTEAD.**
 
-## Path Resolution
+### Path Resolution
 
-**Finding cruijff_kit from experiment directory:**
-- Experiment is typically in `{scratch_dir}/{experiment_name}/`
-- cruijff_kit is typically in `{scratch_dir}/GitHub/cruijff_kit/`
-- **Recommended:** Use absolute path `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/` for robustness
-- Relative path alternative: `../GitHub/cruijff_kit/` (less reliable)
+**Finding cruijff_kit:**
+1. Read claude.local.md → "Working directory" field (e.g., `/home/sarahep/cruijff_kit`)
+2. If not in claude.local.md, check current directory: `pwd` (you may already be in cruijff_kit)
+3. The setup script is always at: `{cruijff_kit_location}/tools/torchtune/setup_finetune.py`
 
-**If path doesn't work:**
-- Ask user where cruijff_kit is located
-- Always prefer absolute paths over relative paths
+**Common locations:**
+- `/home/{username}/cruijff_kit/` (typical user setup)
+- `{scratch_dir}/GitHub/cruijff_kit/` (some users)
+
+**If script fails with path issues:**
+- Try: `python tools/torchtune/setup_finetune.py` (relative path if you're in the right place)
+- Check if file exists: `ls {path}/tools/torchtune/setup_finetune.py`
 
 ## Error Handling
 
@@ -328,37 +355,22 @@ Each run contains:
 - finetune.yaml (torchtune config)
 - finetune.slurm (SLURM script)
 
-### Next Steps
+## Quality Assurance
 
-**Refer to experiment_summary.md** for the complete workflow plan, including:
-- Whether evaluation scaffolding is needed next
-- How to execute fine-tuning jobs
-- Full experiment timeline and dependencies
+### Validation Before Completion
 
-**Typical workflow** (see experiment_summary.md for specifics):
-1. If evaluation configs needed, scaffold those next
-2. Execute fine-tuning jobs (via orchestrator or manually)
-3. After fine-tuning completes, execute evaluations
-
-**Manual job submission** (if not using orchestrator):
-```bash
-cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22
-for dir in rank*/; do (cd "$dir" && sbatch finetune.slurm); done
-```
-
-See `scaffold-torchtune.log` for detailed creation log.
-```
-
-## Validation Before Completion
+**YOU CANNOT REPORT SUCCESS UNTIL ALL FILES ARE GENERATED.**
 
 Before reporting success, verify:
 - ✓ All run directories created
 - ✓ Each directory has setup_finetune.yaml
-- ✓ Each directory has finetune.yaml (generated)
-- ✓ Each directory has finetune.slurm (generated)
+- ✓ **Each directory has finetune.yaml (generated by setup_finetune.py)**
+- ✓ **Each directory has finetune.slurm (generated by setup_finetune.py)**
 - ✓ No errors in log
 - ✓ Log file created
 - ✓ **Parameters in finetune.yaml match directory names** (see verification section below)
+
+**If finetune.yaml and finetune.slurm don't exist, the setup is INCOMPLETE and you must NOT report success.**
 
 ### Critical: Verify Parameter Correctness
 
@@ -412,11 +424,11 @@ done
 
 ## Important Notes
 
-- This skill only scaffolds "Fine-tuned" runs, not "Control" runs (controls don't need fine-tuning)
+- This subagent only scaffolds "Fine-tuned" runs, not "Control" runs (controls don't need fine-tuning)
 - Directory names should be concise and descriptive (only varying parameters)
 - Use paths from `claude.local.md` for environment-specific settings
 - Preserve all configuration from experiment_summary.md
 - If a run fails, continue with others and report all failures at end
 - Always create a log file for auditing and debugging
 - Paths should work whether skill is run from experiment dir or elsewhere
-- This skill is typically called by `scaffold-experiment` orchestrator but can be run standalone
+- This subagent is typically called by `scaffold-experiment` orchestrator but can be run standalone

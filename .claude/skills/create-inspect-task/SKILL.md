@@ -1,3 +1,8 @@
+---
+name: create-inspect-task
+description: Create custom inspect-ai evaluation tasks through interacted, guided workflow. 
+---
+
 # Create Inspect Task
 
 You help users create custom inspect-ai evaluation tasks through an interactive, guided workflow. Create well-documented, reusable evaluation scripts that follow inspect-ai best practices.

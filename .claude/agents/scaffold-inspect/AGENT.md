@@ -1,12 +1,23 @@
-# Scaffold Inspect
+---
+name: scaffold-inspect
+description: Sets up inspect-ai evaluation configurations for all runs in a designed experiment. Reads experiment_summary.md and generates inspect.slurm scripts for each run/evaluation combination.
+tools: Read, Edit, Write, Grep, Glob, Bash
+model: sonnet
+---
 
-You help users automatically set up inspect-ai evaluation configurations for all runs in a designed experiment.
+You help automatically set up inspect-ai evaluation configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.md` file and generate all the necessary inspect-ai files (inspect.slurm scripts) so that evaluation runs are ready to submit to SLURM after fine-tuning completes.
 
-## Your Task
+## Invocation Context
 
-Read an `experiment_summary.md` file and generate all the necessary inspect-ai files (inspect.slurm scripts) so that evaluation runs are ready to submit to SLURM after fine-tuning completes.
+This subagent can be invoked in two ways:
 
-## Workflow
+1. **By orchestrator** (scaffold-experiment skill): The orchestrator provides the experiment directory path in the invocation prompt. Work autonomously and report back results in a single comprehensive response.
+
+2. **Standalone** (direct invocation): A user invokes this subagent directly. You may ask clarifying questions if needed.
+
+**When reporting back to an orchestrator:** Provide a complete summary including all created evaluation scripts, any errors encountered, verification results, and the path to the log file. The orchestrator cannot send follow-up messages.
+
+## Core Responsibilities Workflow
 
 1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
 2. **Read experiment_summary.md** - Parse the experiment plan to extract evaluation configuration
@@ -19,20 +30,20 @@ Read an `experiment_summary.md` file and generate all the necessary inspect-ai f
 6. **Create scaffold log** - Document all actions taken in `scaffold-inspect.log`
 7. **Report summary** - Show user what was created and any issues
 
-## Finding the Experiment
+## Input Format 
 
-**If user runs skill without arguments:**
+### Finding the Experiment
+
+**If user invokes subagent without arguments:**
 - Check if current directory contains `experiment_summary.md`
 - If not, ask user for the experiment directory path
 
 **If user provides a path:**
 - Use that path as the experiment directory
 
-## Parsing experiment_summary.md
+### Parsing experiment_summary.md
 
 Extract the following information:
-
-### Required Information
 
 1. **Experiment name** - From the title (line 1)
 2. **Experiment directory** - From Quick Reference → Paths → Experiment
@@ -46,7 +57,7 @@ Extract the following information:
 7. **System prompt** - From Configuration section (must match training)
 8. **Output directory base** - Where fine-tuned models will be saved
 
-### Parsing the "Evaluation Tasks" Table
+#### Parsing the "Evaluation Tasks" Table
 
 ```markdown
 | Task Name | Script | Dataset | Description |
@@ -60,14 +71,14 @@ Extract:
 - Dataset path (if specified and different from training)
 - Description (for documentation)
 
-### Parsing the "Evaluation Plan" Section
+#### Parsing the "Evaluation Plan" Section
 
 Determine:
 - **Epochs to evaluate**: "last", "all", or specific list (e.g., "0,2")
 - **Evaluation matrix**: Which runs evaluate on which tasks
 - **Base model evaluations**: Control runs that need evaluation
 
-## Reading claude.local.md
+### Reading claude.local.md
 
 Extract environment-specific settings:
 - `conda_env` - Which conda environment to use
@@ -423,11 +434,11 @@ Before reporting success, verify:
 
 ## Important Notes
 
-- This skill generates evaluation configs for both fine-tuned and base models
+- This subagent generates evaluation configs for both fine-tuned and base models
 - Evaluation scripts should not be submitted until fine-tuning completes
 - System prompt consistency between training and evaluation is critical
 - Model paths reference fine-tuning output directories that don't exist yet (created during training)
 - inspect-ai task scripts must exist before scaffolding (or note as prerequisite)
 - Base model evaluations use original model paths, not fine-tuned checkpoints
-- This skill is typically called by `scaffold-experiment` orchestrator but can be run standalone
+- This subagent is typically called by `scaffold-experiment` orchestrator but can be run standalone
 - Evaluation logs will be written to `{run_dir}/eval/logs/` subdirectories
