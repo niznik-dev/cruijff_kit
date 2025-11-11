@@ -78,6 +78,19 @@ Before reporting success, verify:
 - ✓ Each evaluation has corresponding SLURM script
 - ✓ scaffold.log created with complete process details
 
+## Logging
+
+**IMPORTANT:** All modules log their actions to tool-specific log files (see `logging.md`).
+
+- **Torchtune:** `{experiment_dir}/scaffold-torchtune.log`
+- **Inspect-ai:** `{experiment_dir}/scaffold-inspect.log`
+
+Logging enables debugging, reproducibility, and auditing. Each module in optimizers/ and evaluators/ is responsible for logging its actions.
+
+**See `logging.md` for complete format specification and examples.**
+
+---
+
 ## Error Handling
 
 **If experiment_summary.md not found:**

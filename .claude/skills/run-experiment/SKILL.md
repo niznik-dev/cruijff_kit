@@ -115,6 +115,10 @@ After successful execution:
 - Model checkpoints from optimization
 - Evaluation logs from evaluation
 
+**Logging:** All actions logged to `{experiment_dir}/run-{torchtune|inspect}.log` (see `logging.md`)
+
+---
+
 ## Error Handling
 
 **If experiment_summary.md not found:**
