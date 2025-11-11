@@ -11,7 +11,8 @@ Generates torchtune fine-tuning configurations for all runs in an experiment.
 ## Submodules
 
 - **[parsing.md](parsing.md)** - Extract config from experiment_summary.md and claude.local.md
-- **[directory_naming.md](directory_naming.md)** - Algorithm for run directory names based on varying parameters
+- **[directory_name_selection.md](directory_name_selection.md)** - Algorithm for run directory names based on varying parameters
+- **[directory_generation.md](directory_generation.md)** - Create run directories
 - **[yaml_generation.md](yaml_generation.md)** - Generate setup_finetune.yaml files
-- **[execution.md](execution.md)** - Execute setup_finetune.py to create finetune.yaml and finetune.slurm
+- **[script_execution.md](script_execution.md)** - Execute setup_finetune.py to create finetune.yaml and finetune.slurm
 - **[validation.md](validation.md)** - Verify parameter correctness in generated files

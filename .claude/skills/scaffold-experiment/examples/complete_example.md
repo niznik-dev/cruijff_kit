@@ -23,8 +23,8 @@ ls experiment_summary.md  # Verify exists
 ### Create Run Directories
 
 ```bash
-mkdir -p rank8_lr1e-5 rank8_lr5e-5 rank16_lr1e-5 rank16_lr5e-5 \
-         rank32_lr1e-5 rank32_lr5e-5 rank64_lr1e-5 rank64_lr5e-5
+mkdir -p r8_lr1e-5 r8_lr5e-5 r16_lr1e-5 r16_lr5e-5 \
+         r32_lr1e-5 r32_lr5e-5 r64_lr1e-5 r64_lr5e-5
 ```
 
 ### Generate Configs
@@ -35,7 +35,7 @@ For each run, create `setup_finetune.yaml` using the template structure from [te
 module load anaconda3/2025.6
 conda activate cruijff
 
-for dir in rank*/; do
+for dir in r*/; do
   (cd "$dir" && python /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/tools/torchtune/setup_finetune.py)
 done
 ```
@@ -45,9 +45,9 @@ done
 ### Validate Parameters
 
 ```bash
-for dir in rank*/; do
+for dir in r*/; do
   dir_clean=${dir%/}
-  expected_rank=$(echo $dir_clean | grep -oP 'rank\K\d+')
+  expected_rank=$(echo $dir_clean | grep -oP 'r\K\d+')
   actual_rank=$(grep "lora_rank:" "$dir_clean/finetune.yaml" | awk '{print $2}')
   [ "$expected_rank" = "$actual_rank" ] && echo "✓ $dir_clean" || echo "✗ $dir_clean"
 done
@@ -65,7 +65,7 @@ inspect list /path/to/cap_task.py
 ### Create Eval Directories and Scripts
 
 ```bash
-for dir in rank*/; do
+for dir in r*/; do
   mkdir -p "$dir/eval/logs"
 done
 ```
@@ -86,7 +86,7 @@ tree -L 3 /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/
 cap_4L_lora_lr_sweep_2025-10-22/
 ├── experiment_summary.md
 ├── scaffold.log
-├── rank8_lr1e-5/
+├── r8_lr1e-5/
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
@@ -102,10 +102,10 @@ Execute via run-experiment skill or manually:
 
 ```bash
 # Submit fine-tuning
-for dir in rank*/; do (cd "$dir" && sbatch finetune.slurm); done
+for dir in r*/; do (cd "$dir" && sbatch finetune.slurm); done
 
 # After fine-tuning completes, submit evaluations
-for dir in rank*/; do (cd "$dir/eval" && sbatch capitalization_epoch0.slurm); done
+for dir in r*/; do (cd "$dir/eval" && sbatch capitalization_epoch0.slurm); done
 ```
 
 ## Summary

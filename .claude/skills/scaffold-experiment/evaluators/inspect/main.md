@@ -12,6 +12,6 @@ Generates inspect-ai evaluation configurations for all runs in an experiment.
 ## Submodules
 
 - **[parsing.md](parsing.md)** - Extract evaluation config from experiment_summary.md and claude.local.md
-- **[task_verification.md](task_verification.md)** - Verify inspect-ai task scripts exist using `inspect list`
+- **[scenario_selection.md](scenario_selection.md)** - Choose evaluation approach (fine-tuned, base, custom dataset)
 - **[slurm_generation.md](slurm_generation.md)** - Generate SLURM evaluation scripts with correct model paths
-- **[scenarios.md](scenarios.md)** - Different evaluation scenarios (fine-tuned, base, custom dataset)
+- **[validation.md](validation.md)** - Verify inspect-ai task scripts exist using `inspect list`

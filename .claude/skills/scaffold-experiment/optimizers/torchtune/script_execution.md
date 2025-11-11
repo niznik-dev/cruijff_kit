@@ -60,8 +60,8 @@ done
 ```
 
 **Pattern for different directory structures:**
-- If directories are `rank8_lr1e-5/`, use `rank*/`
-- If directories are `bs4_lr1e-5/`, use `bs*/`
+- If directories are `r8_lr1e-5/`, use `r*/`
+- If directories are `b4_lr1e-5/`, use `b*/`
 - If all runs share a common prefix, use that prefix with wildcard
 
 ## Path Resolution

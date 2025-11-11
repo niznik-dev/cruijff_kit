@@ -53,7 +53,7 @@ for param in parameters:
 
 ```bash
 # Build directory name from varying parameters
-# Example: rank8_lr1e-5/
+# Example: r8_lr1e-5/
 mkdir -p {experiment_dir}/{run_directory_name}
 ```
 

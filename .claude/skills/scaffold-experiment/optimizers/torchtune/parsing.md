@@ -28,7 +28,7 @@ The table format looks like:
 ```markdown
 | Run Name | Model | LoRA Rank | Learning Rate | Batch Size | Type | Est. Time |
 |----------|-------|-----------|---------------|------------|------|-----------|
-| Llama-3.2-1B-Instruct_rank8_lr1e-5 | Llama-3.2-1B-Instruct | 8 | 1e-5 | 4 | Fine-tuned | ~10s |
+| Llama-3.2-1B-Instruct_r8_lr1e-5 | Llama-3.2-1B-Instruct | 8 | 1e-5 | 4 | Fine-tuned | ~10s |
 | Llama-3.2-1B-Instruct_base | Llama-3.2-1B-Instruct | - | - | - | Control | N/A |
 ```
 

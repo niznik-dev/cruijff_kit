@@ -14,30 +14,30 @@ Directory names should only include parameters that vary across runs.
 
 ## Parameter Name Abbreviations
 
-- LoRA Rank → `rank`
+- LoRA Rank → `r`
 - Learning Rate → `lr`
-- Batch Size → `bs`
+- Batch Size → `b`
 - Model → use short model name (e.g., `Llama-3.2-1B`)
 
 ## Examples
 
 **Experiment varying LoRA rank and learning rate:**
-- `rank8_lr1e-5/`
-- `rank16_lr5e-5/`
-- `rank32_lr1e-5/`
+- `r8_lr1e-5/`
+- `r16_lr5e-5/`
+- `r32_lr1e-5/`
 
 **Experiment varying only LoRA rank:**
-- `rank8/`
-- `rank16/`
-- `rank32/`
+- `r8/`
+- `r16/`
+- `r32/`
 
 **Experiment varying model and LoRA rank:**
-- `Llama-3.2-1B_rank8/`
-- `Llama-3.2-3B_rank16/`
+- `Llama-3.2-1B_r8/`
+- `Llama-3.2-3B_r16/`
 
 **Experiment varying batch size and learning rate:**
-- `bs4_lr1e-5/`
-- `bs8_lr5e-5/`
+- `b4_lr1e-5/`
+- `b8_lr5e-5/`
 
 ## Implementation Notes
 

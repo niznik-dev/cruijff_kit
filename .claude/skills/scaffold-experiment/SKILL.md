@@ -57,14 +57,14 @@ After successful scaffolding:
 ```
 {experiment_dir}/
 ├── scaffold.log
-├── rank8_lr1e-5/
+├── r8_lr1e-5/
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   └── eval/
 │       ├── capitalization_epoch0.slurm
 │       └── logs/
-└── rank16_lr5e-5/
+└── r16_lr5e-5/
     └── ...
 ```
 

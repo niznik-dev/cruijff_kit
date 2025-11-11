@@ -3,7 +3,7 @@
 
 # Run identification
 my_wandb_project: {from claude.local.md or experiment-level project name}
-my_wandb_run_name: {directory_name, e.g., "rank8_lr1e-5"}
+my_wandb_run_name: {directory_name, e.g., "r8_lr1e-5"}
 
 # Directory Configuration (for dataset path construction)
 input_dir_base: {parent directory of dataset from experiment_summary}

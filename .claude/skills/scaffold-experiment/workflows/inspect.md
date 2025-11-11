@@ -218,7 +218,7 @@ chmod +x {experiment_dir}/{run_dir}/eval/{task_name}_epoch{N}.slurm
 
 ```
 [YYYY-MM-DD HH:MM:SS] SCAFFOLD_INSPECT_START
-Details: Using evaluators/inspect.md logic
+Details: Using evaluators/inspect/main.md logic
 Result: Analyzing experiment_summary.md for evaluation tasks and plan
 
 [YYYY-MM-DD HH:MM:SS] PARSE_EVAL_TASKS
@@ -291,7 +291,7 @@ Duration: {elapsed_time}
 ### Model Paths
 
 Fine-tuned model paths reference output directories that **don't exist yet**:
-- Paths like `/scratch/.../ck-out-rank8_lr1e-5/epoch_0/` won't exist until training completes
+- Paths like `/scratch/.../ck-out-r8_lr1e-5/epoch_0/` won't exist until training completes
 - This is expected - evaluation scripts are generated before training
 - Evaluations should only be submitted AFTER fine-tuning completes
 
