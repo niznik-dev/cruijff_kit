@@ -12,86 +12,117 @@ Create tool-agnostic experiment plans that specify:
 
 **Output:** `experiment_summary.md` that scaffold-experiment and run-experiment skills consume
 
-## Meta-Pattern: Components + Validation
+## Meta-Pattern: param_selection → validation → generation
 
-This skill uses a **components + validation** pattern because it performs **tool-agnostic planning**, not tool-specific implementation.
+This skill uses **action verbs** consistent with scaffold/run, but simplified because it handles one workflow (not multiplexed by tools).
 
 ### Why This Pattern?
 
-**design-experiment PURPOSE:** Create plans that OTHER skills execute
+**design-experiment PURPOSE:** Create tool-agnostic plans that OTHER skills execute
 - Doesn't execute with torchtune or inspect-ai directly
 - Creates experiment_summary.md that scaffold/run skills read
-- Organized by PLAN SECTIONS, not EXECUTION TOOLS
+- One linear conversation flow (not branching by tool type)
 
-**Contrast with scaffold-experiment and run-experiment:**
-- Those skills use **optimizers/evaluators** pattern
-- They perform tool-specific implementation (torchtune, inspect-ai)
-- They execute code and generate configs/jobs
+**Action verbs match scaffold/run:**
+- **param_selection** (like scaffold's config_selection)
+- **validation** (same as scaffold/run)
+- **generation** (like scaffold's config_generation)
+
+**Simpler than scaffold/run because:**
+- scaffold/run: 20 files (2 tools × ~7 modules each + shared)
+- design: 7 files (1 workflow, not tool-multiplexed)
 
 ### Pattern Structure
 
 ```
 design-experiment/
-├── SKILL.md (147 lines - lean orchestrator)
-├── components/           ← Plan sections (NOT tools!)
-│   ├── experiment_metadata.md
-│   ├── tool_selection.md
-│   ├── model_preparation.md
-│   ├── evaluation_plan.md
-│   ├── resources.md
-│   └── estimation.md
-├── validation/           ← Completeness checks
-│   ├── preparation_validation.md
-│   ├── evaluation_validation.md
-│   └── resources_validation.md
-├── workflows/            ← Conversation patterns
-│   └── interactive_planning.md
-└── templates/            ← Output structure
-    └── experiment_summary_template.md
+├── SKILL.md                        (119 lines - lean orchestrator)
+├── param_selection.md              (~350 lines - interactive workflow)
+├── validation.md                   (~120 lines - completeness checklist)
+├── experiment_generation.md        (~80 lines - create outputs)
+├── logging.md                      (~100 lines - cross-cutting)
+├── templates/
+│   └── experiment_summary.md      (~200 lines - output structure)
+└── README.md                       (this file)
 ```
+
+**Total: 7 files**
 
 ## Workflow Stages
 
-### Stage 1: GATHERING (components/)
-Collect user requirements interactively:
-1. **experiment_metadata.md** - Determine type, location, naming
-2. **tool_selection.md** - Confirm which tools (torchtune, inspect-ai)
-3. **model_preparation.md** - Design training runs
-4. **evaluation_plan.md** - Design evaluation runs
-5. **resources.md** - Verify everything exists
-6. **estimation.md** - Calculate time, disk, GPU hours
+### Stage 1: PARAM_SELECTION (param_selection.md)
 
-### Stage 2: VALIDATION (validation/)
-Verify plan is feasible:
-- **preparation_validation.md** - Runs table is complete
-- **evaluation_validation.md** - Eval plan is consistent
-- **resources_validation.md** - All resources verified
+10-step interactive conversation to gather all parameters:
+1. **Determine type/location** - Auto-detect sanity_check vs experiment
+2. **Understand experiment** - Scientific question, variables
+3. **Confirm tools** - torchtune (preparation), inspect-ai (evaluation)
+4. **Design training** - Models, datasets, hyperparameters
+5. **Design evaluation** - Tasks, epochs, evaluation matrix
+6. **Establish naming** - Experiment and run names
+7. **Verify resources** - Check models, datasets, scripts exist
+8. **Estimate resources** - Calculate time, disk, GPU hours
+9. **Get approval** - Present plan (after validation)
+10. **Create files** - Proceed to generation
 
-### Stage 3: ESTIMATION (components/estimation.md)
-Calculate resource requirements from prior runs when possible
+### Stage 2: VALIDATION (validation.md)
 
-### Stage 4: DOCUMENTATION
-Generate experiment_summary.md using template
+Before presenting to user (step 9), verify plan completeness:
+- Preparation: Run names, parameters, configurations
+- Evaluation: Epochs (0-indexed!), system prompt consistency (critical!)
+- Resources: All verified, disk space sufficient
+
+### Stage 3: GENERATION (experiment_generation.md)
+
+After approval, create outputs:
+- `experiment_summary.md` (using template)
+- `design-experiment.log` (audit trail)
+
+Then suggest next steps (scaffold-experiment).
+
+## Cross-Cutting Concerns
+
+### Logging (logging.md)
+
+**Unique to design-experiment:** Creates detailed audit log
+
+Throughout workflow, log:
+- Resource verification commands and results
+- Prior run searches and data extraction
+- All calculations (time, disk, batch sizes)
+- Decisions (naming, recipe, configuration)
+- File creation
+
+**Not a template** - it's guidance on HOW to log. Lives at top level because it's used during multiple stages.
+
+### Templates (templates/)
+
+Output structure reference:
+- `experiment_summary.md` - 10 required sections with examples
 
 ## File Organization
 
-| Category | Files | Purpose | Avg Lines |
-|----------|-------|---------|-----------|
-| Orchestrator | SKILL.md | Coordinate workflow | 147 |
-| Planning | components/*.md | Gather requirements | 69 |
-| Validation | validation/*.md | Verify completeness | 44 |
-| Workflow | workflows/*.md | Conversation patterns | 128 |
-| Templates | templates/*.md | Output structure | 206 |
+| Category | Files | Purpose | Lines |
+|----------|-------|---------|-------|
+| Orchestrator | SKILL.md | Coordinate workflow | 119 |
+| Selection | param_selection.md | Gather parameters | ~350 |
+| Validation | validation.md | Verify completeness | ~120 |
+| Generation | experiment_generation.md | Create outputs | ~80 |
+| Cross-cutting | logging.md | Audit trail spec | ~100 |
+| Templates | templates/experiment_summary.md | Output structure | ~200 |
+| Documentation | README.md | Pattern explanation | - |
 
-**Total:** 12 files, 1029 lines (down from 553 monolithic lines)
+**Total:** 7 files, ~970 lines (down from 553 monolithic lines)
+
+**Why more lines total?** Because we extracted embedded templates and added comprehensive guidance. The SKILL.md orchestrator is leaner (119 vs 553), and modules are focused and maintainable.
 
 ## Key Principles
 
 1. **Tool-agnostic planning** - Plan WHAT to do, not HOW to execute
-2. **Comprehensive logging** - Log all verifications and calculations in design-experiment.log
-3. **Resource verification** - Check everything exists before committing
-4. **Conservative estimation** - Use prior runs when available, be cautious otherwise
-5. **Validation before presentation** - Ensure plan is complete before showing user
+2. **Action verb pattern** - Matches scaffold/run for consistency
+3. **Simpler structure** - 7 files vs 20 (because 1 workflow, not 2 tools)
+4. **Comprehensive logging** - Unique requirement for planning phase
+5. **Conservative estimation** - Use prior runs when available
+6. **Validation before presentation** - Ensure plan is complete
 
 ## Integration
 
@@ -104,53 +135,58 @@ Generate experiment_summary.md using template
 
 ## Comparison to Other Patterns
 
-| Skill | Pattern | Structure | Purpose |
-|-------|---------|-----------|---------|
-| design-experiment | components/validation | Plan sections | Tool-agnostic planning |
-| scaffold-experiment | optimizers/evaluators | Tool directories | Tool-specific config generation |
-| run-experiment | optimizers/evaluators | Tool directories | Tool-specific job execution |
+| Skill | Pattern | Files | Structure |
+|-------|---------|-------|-----------|
+| scaffold-experiment | optimizers/evaluators | 20 | Tool-specific (torchtune, inspect-ai) |
+| run-experiment | optimizers/evaluators | 20 | Tool-specific (torchtune, inspect-ai) |
+| design-experiment | selection/validation/generation | 7 | Tool-agnostic workflow |
 
-**Key insight:** Structure reflects PURPOSE, not blind pattern reuse.
+**Key insight:**
+- scaffold/run use **optimizers/evaluators** because they handle 2 tools
+- design uses **selection/validation/generation** because it's 1 workflow
+- All use **action verbs** for consistency
+- Structure reflects PURPOSE, not blind pattern reuse
 
 ## Module Guidelines
 
-### Planning Components
-- Focus on ONE aspect of the plan
-- Ask questions, don't make assumptions
-- Document what should go in experiment_summary.md
-- Keep under 150 lines
+### param_selection.md
+- Complete 10-step conversation flow
+- Ask questions, don't assume
+- Document what goes in experiment_summary.md
+- Include conversation patterns
+- Reference logging.md for what to log
 
-### Validation Modules
-- Provide checklists for specific aspects
-- Identify what makes a plan "complete"
-- Flag common mistakes (e.g., 1-indexed epochs)
-- Keep focused and concise
+### validation.md
+- Checklist for each aspect (preparation, evaluation, resources)
+- Identify common issues (system prompt mismatch, 1-indexed epochs)
+- Don't block on missing resources - document as prerequisites
 
-### Workflow Narrative
-- Describe conversation flow
-- Provide example dialogue
-- Link to relevant components
-- Show both gathering and validation stages
+### experiment_generation.md
+- File creation instructions
+- Next steps conversation
+- Prerequisites handling
 
-### Templates
-- Provide complete structure reference
-- Show examples for complex sections
-- Document required vs optional sections
-- Explain critical requirements (e.g., system prompt consistency)
+### logging.md
+- Cross-cutting: used during selection AND generation
+- Complete format spec with examples
+- When to log, what to log, what NOT to log
+
+### templates/
+- Output structures only (not guidance)
+- Complete examples for complex sections
 
 ## Success Metrics
 
-**Before modularization:**
+**Before refactoring:**
 - SKILL.md: 553 lines (monolithic)
-- Hard to navigate
-- Embedded templates
 - Mixed concerns
+- Hard to navigate
 
-**After modularization:**
-- SKILL.md: 147 lines (73% reduction) ✓
-- All modules < 150 lines ✓
+**After refactoring:**
+- SKILL.md: 119 lines (78% reduction) ✓
+- Action verb pattern matching scaffold/run ✓
+- Appropriately simpler (7 vs 20 files) ✓
 - Clear separation of concerns ✓
-- Purpose-driven organization ✓
 - Easy to maintain and extend ✓
 
 ## Notes
@@ -159,3 +195,4 @@ Generate experiment_summary.md using template
 - Logging is critical - design-experiment.log enables debugging, reproducibility, and improvement
 - System prompt consistency between training and evaluation is critical for inspect-ai
 - Validation before presenting ensures we don't waste user's time with incomplete plans
+- Pattern consistency with scaffold/run (action verbs) while being appropriately simpler (fewer files)

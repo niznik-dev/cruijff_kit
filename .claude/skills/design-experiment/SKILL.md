@@ -6,123 +6,86 @@ You help users plan experiments for fine-tuning and evaluating LLMs. Create a pl
 
 Guide the user through designing their experiment by asking questions, verifying resources, and creating a comprehensive `experiment_summary.md` file that documents the complete plan.
 
-## Workflow Overview
+## Workflow
 
-Follow the 10-step interactive planning process. For detailed conversation patterns and step-by-step guidance, see:
-- **`workflows/interactive_planning.md`** - Complete workflow narrative
+Follow the three-stage process:
 
-### Quick Reference: 10 Steps
+### 1. Parameter Selection → `param_selection.md`
 
-1. **Determine experiment type and location** → `components/experiment_metadata.md`
-2. **Understand the experiment** - What variables? What's the question?
-3. **Confirm tool choices** → `components/tool_selection.md`
-4. **Design training runs** → `components/model_preparation.md`
-5. **Design evaluation runs** → `components/evaluation_plan.md`
-6. **Establish naming** → `components/experiment_metadata.md`
-7. **Verify resources** → `components/resources.md`
-8. **Estimate resources** → `components/estimation.md`
-9. **Get approval** → `validation/` (validate before presenting)
-10. **Create files** → `templates/experiment_summary_template.md`
+Guide the user through 10 interactive steps to gather all experiment parameters:
+1. Determine experiment type and location (sanity check vs research experiment)
+2. Understand the experiment (scientific question, variables)
+3. Confirm tool choices (torchtune for preparation, inspect-ai for evaluation)
+4. Design training runs (models, datasets, hyperparameters)
+5. Design evaluation runs (tasks, epochs, evaluation matrix)
+6. Establish naming (experiment name, run names)
+7. Verify resources (models, datasets, eval scripts exist)
+8. Estimate resources (time, disk space, GPU hours)
+9. Get approval (validate first, then present)
+10. Create files (proceed to generation stage)
 
-## Module Organization
+**See `param_selection.md` for:**
+- Complete question flow for each step
+- Auto-detection logic for experiment type/location
+- Resource verification commands
+- Estimation methods (from prior runs preferred)
+- Conversation patterns
 
-This skill uses a **components + validation** pattern for tool-agnostic planning:
+### 2. Validation → `validation.md`
 
-### Planning Components (`components/`)
-- `experiment_metadata.md` - Type detection, location, naming
-- `tool_selection.md` - Choose preparation and evaluation tools
-- `model_preparation.md` - Design training runs (models, datasets, hyperparameters)
-- `evaluation_plan.md` - Design evaluation runs (tasks, epochs, matrices)
-- `resources.md` - Verify models, datasets, eval scripts exist
-- `estimation.md` - Calculate time, disk space, GPU hours
-
-### Validation (`validation/`)
-- `preparation_validation.md` - Validate runs table completeness
-- `evaluation_validation.md` - Validate eval plan consistency
-- `resources_validation.md` - Validate all resources verified
-
-### Templates (`templates/`)
-- `experiment_summary_template.md` - Structure for output file
-
-### Workflows (`workflows/`)
-- `interactive_planning.md` - Step-by-step conversation patterns
-
-## Logging
-
-**IMPORTANT:** Create a detailed log file at `{experiment_name}/design-experiment.log` that records all verification steps, calculations, and decisions made during planning.
-
-### What to Log
-
-**DO log:**
-- ✓ Resource verification commands (ls, du, df)
-- ✓ Prior run searches and data extraction (find, grep)
-- ✓ Calculations (time estimates, batch sizes, disk space)
-- ✓ Decisions made (naming choices, recipe selection, configuration)
-- ✓ File creation (experiment_summary.md, directories)
-
-**DON'T log:**
-- ✗ Job status checks (squeue, sacct)
-- ✗ Simple read operations that don't affect the plan
-
-### Log Format
-
-```
-[{timestamp}] {ACTION_TYPE}: {Brief description}
-Command: {command_run}
-Result: {result_summary}
-Explanation: {why_this_matters}
-```
-
-**Example:**
-```
-[2025-10-22 14:24:30] CALCULATE_TIME: Training time estimate
-Input: 8000 samples, batch_size=4, speed=4.34 it/s, epochs=2
-Calculation: steps_per_epoch = 8000/4 = 2000, time_per_epoch = 2000/4.34 ≈ 461s ≈ 8min
-Result: Estimated 16 minutes total (8 min × 2 epochs)
-Explanation: Calculated training time based on actual iteration speed from prior run
-```
-
-### Purpose of the Log
-
-The log enables:
-1. **Debugging:** If estimates are wrong, check what commands were run and what data was used
-2. **Reproducibility:** Another person (or Claude) can understand exactly what was done
-3. **Improvement:** Review logs to identify better approaches or missing steps
-4. **Auditing:** Verify that all resources were properly checked before committing to the experiment
-
-## Validation Before Presenting
-
-Before presenting the plan for approval (step 9), use the validation modules to verify completeness:
-
-See `validation/resources_validation.md` for complete checklist:
-- ✓ All models verified
-- ✓ Dataset verified with correct splits
-- ✓ Evaluation scripts verified (or noted as prerequisites)
-- ✓ Time estimates calculated or clearly marked as preliminary
-- ✓ Disk space checked
+Before presenting plan to user (step 9), validate completeness:
 - ✓ All run names follow convention
-- ✓ Evaluation matrix is consistent
+- ✓ All parameters documented
+- ✓ Evaluation plan is consistent (0-indexed epochs, base vs fine-tuned)
+- ✓ **System prompt matches between training and evaluation** (critical!)
+- ✓ All resources verified (or noted as prerequisites)
+- ✓ Time estimates calculated (actual or preliminary)
+- ✓ Disk space checked
 
-## After User Approval
+**See `validation.md` for:**
+- Complete validation checklist
+- Common issues to check
+- How to handle missing prerequisites
 
-Once the user approves the plan (step 10 of workflow):
+### 3. Experiment Generation → `experiment_generation.md`
 
-### 1. Create the files
-- Write `experiment_summary.md` with the approved plan (see `templates/experiment_summary_template.md`)
-- Write `design-experiment.log` with all verification steps and decisions
+After user approves, create output files:
+1. `experiment_summary.md` - Complete experiment plan (use `templates/experiment_summary.md`)
+2. `design-experiment.log` - Detailed audit trail (see `logging.md`)
 
-### 2. Ask about next steps
-"I've created the experiment plan at `{path}/experiment_summary.md`.
+Then ask about next steps (scaffold-experiment?).
 
-Would you like me to proceed with scaffolding? I can run `scaffold-experiment` to generate all configs."
+**See `experiment_generation.md` for:**
+- File creation instructions
+- Next steps conversation pattern
+- Prerequisites handling
 
-### 3. Automated workflow (recommended)
-- Run `scaffold-experiment` skill to generate configs
-- Run `run-experiment` skill to execute jobs
-- Run `analyze-experiment` skill to interpret results (planned)
+---
 
-### 4. Manual workflow (if needed)
-User can manually create directories and configs following the experiment_summary.md plan.
+## Cross-Cutting Concerns
+
+### Logging → `logging.md`
+
+**IMPORTANT:** Throughout param_selection and generation, create detailed log at `{experiment_dir}/design-experiment.log`.
+
+**What to log:**
+- ✓ Resource verification (ls, du, df commands and results)
+- ✓ Prior run searches and data extraction
+- ✓ Calculations (time, disk space, batch sizes)
+- ✓ Decisions (naming, recipe, configuration)
+- ✓ File creation
+
+**See `logging.md` for:**
+- Complete log format specification
+- Example entries for each action type
+- When to log during workflow
+
+### Templates → `templates/`
+
+Reference materials for output generation:
+- `templates/experiment_summary.md` - Structure and required sections for experiment plan
+
+---
 
 ## Important Reminders
 
@@ -136,12 +99,20 @@ User can manually create directories and configs following the experiment_summar
 - **Handle missing resources gracefully** - note as prerequisites, don't block the plan
 - **If inspect-ai task doesn't exist** - note that `create-inspect-task` skill should be run first
 
-## Meta-Pattern
+---
 
-This skill follows the **components + validation** pattern:
-- **Purpose:** Tool-agnostic planning that creates experiment designs for other skills to execute
-- **Organization:** By plan sections (metadata, preparation, evaluation, resources, estimation) NOT by execution tools
-- **Workflow:** Gather → Validate → Estimate → Document
-- **Output:** `experiment_summary.md` that scaffold-experiment and run-experiment skills consume
+## Module Organization
 
-This differs from scaffold-experiment and run-experiment which use optimizers/evaluators pattern because they perform tool-specific implementation, while design-experiment creates tool-agnostic plans.
+This skill uses the **param_selection → validation → generation** pattern:
+
+| Module | Purpose | Lines |
+|--------|---------|-------|
+| param_selection.md | 10-step interactive workflow | ~350 |
+| validation.md | Completeness checklist | ~120 |
+| experiment_generation.md | Create output files | ~80 |
+| logging.md | Audit trail specification | ~100 |
+| templates/experiment_summary.md | Output structure | ~200 |
+
+**Pattern:** Three action verbs (selection, validation, generation) matching scaffold/run skills, plus cross-cutting logging and templates.
+
+**See `README.md` for:** Complete pattern documentation and rationale.
