@@ -1,0 +1,115 @@
+# Workflow Integration Test Specification
+#
+# This file defines a minimal, repeatable experiment for testing the complete
+# workflow: design-experiment, scaffold-experiment, and run-experiment skills.
+#
+# Invocation: When user says "test the workflow" or similar, read this spec
+# and execute all three skills in sequence.
+
+metadata:
+  # Experiment naming pattern (actual name will include timestamp)
+  name_pattern: "workflow_test_{date}"
+  type: "sanity_check"  # Goes in ck-sanity-checks/
+  scientific_question: >-
+    Verify that the complete workflow (design, scaffold, run) executes correctly
+    for a minimal fine-tuning experiment with two LoRA ranks.
+  purpose: >-
+    Integration test to validate skills are working after architecture changes
+    or documentation updates.
+
+tools:
+  optimizer: "torchtune"
+  evaluator: "inspect-ai"
+
+models:
+  - name: "Llama-3.2-1B-Instruct"
+    purpose: "Fast training for integration testing"
+
+dataset:
+  task: "capitalization"
+  path: "data/green/capitalization/words_5L_80P_1000.json"
+  format: "json"
+  description: "5-letter words, 80% train split, 1000 samples"
+  splits:
+    train: 800
+    validation: 100
+    test: 100
+
+training_runs:
+  # Two runs varying only LoRA rank
+  - run_name: "Llama-3.2-1B-Instruct_rank4"
+    model: "Llama-3.2-1B-Instruct"
+    lora_rank: 4
+    type: "fine-tuned"
+
+  - run_name: "Llama-3.2-1B-Instruct_rank8"
+    model: "Llama-3.2-1B-Instruct"
+    lora_rank: 8
+    type: "fine-tuned"
+
+  # Optional: Add base model control
+  # - run_name: "Llama-3.2-1B-Instruct_base"
+  #   model: "Llama-3.2-1B-Instruct"
+  #   type: "control"
+
+evaluation:
+  tasks:
+    - name: "capitalization"
+      script: "experiments/capitalization/inspect_task_capitalization.py"
+      dataset: "same"  # Use same dataset as training
+      description: "Tests word capitalization accuracy"
+
+  epochs_to_evaluate: ["last"]  # Just final epoch for speed (epoch_0 after 1 epoch training)
+
+  runs_to_evaluate: "all"  # All runs get evaluated on all tasks
+
+common_config:
+  # Training parameters
+  epochs: 1
+  batch_size: 8
+  learning_rate: "1e-4"  # Standard default
+
+  # System resources
+  gpus: 1
+
+  # Prompts
+  system_prompt: "You are a helpful assistant."  # Simple, reliable prompt
+
+  # Optional settings
+  validation_during_training: true
+
+expected_outputs:
+  # What should exist after successful run
+  directories:
+    - "Llama-3.2-1B-Instruct_rank4/"
+    - "Llama-3.2-1B-Instruct_rank8/"
+
+  configs_per_run:
+    - "setup_finetune.yaml"
+    - "finetune.yaml"
+    - "finetune.slurm"
+    - "eval/capitalization_epoch0.slurm"
+
+  logs_per_run:
+    - "slurm-*.out"  # Training log
+    - "eval/logs/*.eval"  # Evaluation logs
+
+estimated_time:
+  training: "~10 minutes"  # 1B model, 1 epoch, 1000 samples
+  evaluation: "~2 minutes"  # 2 runs × 1 eval × 1 epoch
+  total: "~12 minutes"
+
+validation_checks:
+  # What to verify after execution
+  - "All run directories created"
+  - "setup_finetune.yaml contains correct lora_rank per directory"
+  - "finetune.yaml parameters match directory names"
+  - "Training jobs complete successfully"
+  - "Checkpoint directories exist (epoch_0/)"
+  - "Evaluation jobs complete successfully"
+  - "Evaluation logs contain results"
+
+cleanup:
+  # After successful test, these can be deleted to save space
+  auto_delete: false  # Manual cleanup preferred
+  keep_logs: true  # Always preserve logs for debugging
