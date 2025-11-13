@@ -87,6 +87,13 @@ See [templates/setup_finetune_template.yaml](../templates/setup_finetune_templat
 
 ### 6. Execute setup_finetune.py
 
+**CRITICAL: Always use setup_finetune.py**
+
+- **DO:** Generate configs fresh using setup_finetune.py
+- **DON'T:** Copy finetune.yaml from previous experiments
+- **DON'T:** Manually create or edit finetune.yaml files
+- **WHY:** Ensures configs match current experiment parameters and prevents subtle bugs from stale values
+
 **CRITICAL: Activate conda environment first**
 
 ```bash

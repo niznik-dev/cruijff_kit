@@ -117,6 +117,11 @@ experiment_dir = f"{base_dir}{experiment_name}/"
 - Training dataset location and format
 - Required splits: train, validation (optional), test (optional)
 
+**Note:** If the dataset needs to be created, check `experiments/{task}/README.md` for:
+- Dataset naming conventions (e.g., parameter-based filenames)
+- Preprocessing script details and usage
+- Expected output formats and locations
+
 ### What Variables Are You Testing?
 - Different model sizes?
 - Different LoRA ranks?
@@ -249,6 +254,11 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 - Check file exists and note size
 - Verify required splits (train, validation if needed, test if needed)
 
+**If dataset was just created:**
+- Verify the actual filename matches what was documented in experiment_summary.md
+- Generated datasets often include parameters in filename (e.g., `words_7L_80P_1000.json`)
+- Update experiment_summary.md if filename differs from initial expectations
+
 ### Evaluation Task Scripts
 **Command:** `ls {eval_script_path}`
 - Verify each inspect-ai task script exists
@@ -262,7 +272,12 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 
 **Model:** Suggest downloading with appropriate tool
 
-**Dataset:** Offer to help create it (if known task like capitalization)
+**Dataset:**
+1. **Check for existing preprocessing scripts:** Look in `experiments/{task}/` for scripts like `preprocess_*.py`
+2. **Consult task README:** Check `experiments/{task}/README.md` for dataset creation instructions
+3. **Use the proper tool:** Run the task-specific preprocessing script with appropriate parameters
+4. **DON'T:** Write ad-hoc Python code or copy dataset creation code from previous experiments
+5. **WHY:** Task-specific scripts ensure correct format, naming conventions, and reproducibility
 
 **Eval script:** Note as prerequisite, proceed with plan anyway
 
@@ -288,7 +303,7 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 ### Evaluation Tasks
 | Task Name | Script | Dataset | Description |
 |-----------|--------|---------|-------------|
-| capitalization | `{repo_dir}/experiments/capitalization/cap_task.py` | Same as training | Tests word capitalization accuracy |
+| capitalization | `{repo_dir}/experiments/capitalization/inspect_task_capitalization.py` | Same as training | Tests word capitalization accuracy |
 
 **Note**: All paths verified during design phase. Evaluation task scripts must exist before scaffolding.
 ```
