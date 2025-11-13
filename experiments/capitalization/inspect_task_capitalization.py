@@ -8,9 +8,7 @@ from inspect_ai.scorer import match, includes
 import yaml
 
 @task
-def cap_task(config_dir: str) -> Task:
-    config_path = f"{config_dir}/../setup_finetune.yaml"  # Will always be one level up from the epoch directory
-
+def cap_task(config_path: str) -> Task:
     with open(config_path, 'r') as setup_finetune_file:
         setup_finetune = yaml.safe_load(setup_finetune_file)
 

@@ -42,15 +42,15 @@ Use this to verify the task name in experiment_summary.md matches what's actuall
 ### 3. Verify task compatibility
 
 Check if the task is compatible with the experiment:
-- Can it accept `config_dir` parameter? (for fine-tuned models)
-- Can it accept `dataset_path` parameter? (for base models)
+- Can it accept `config_path` parameter? (for both fine-tuned and base models)
+- Can it accept `dataset_path` parameter? (fallback approach)
 - Check docstring/parameters if accessible
 
 **Preferred approach for experiments:**
-Tasks that support `config_dir` can read dataset path and system prompt from `setup_finetune.yaml`, making configuration more consistent.
+Tasks that support `config_path` can read dataset path and system prompt from `setup_finetune.yaml`, making configuration more consistent for both fine-tuned and base models.
 
 **Fallback approach:**
-Tasks that accept `dataset_path` and `system_prompt` as direct parameters work for base models or when explicit control is needed.
+Tasks that accept `dataset_path` and `system_prompt` as direct parameters work when explicit control is needed.
 
 ## Handling Missing Tasks
 

@@ -4,26 +4,27 @@ This module describes different approaches for configuring inspect-ai evaluation
 
 ## Scenario 1: Fine-tuned Model with Config Integration
 
-**When to use:** Task supports `config_dir` parameter (preferred for experiments)
+**When to use:** Task supports `config_path` parameter (preferred for experiments)
 
-**How it works:** The task reads dataset path and system prompt from `../setup_finetune.yaml`
+**How it works:** The task reads dataset path and system prompt from `setup_finetune.yaml`
 
 **inspect eval command:**
 ```bash
 inspect eval cap_task.py@capitalization \
   --model hf/local \
   -M model_path="/path/to/epoch_0" \
-  -T config_dir="/path/to/epoch_0"
+  -T config_path="/path/to/run_dir/setup_finetune.yaml"
 ```
 
 **Advantages:**
 - Configuration stays consistent with training
 - No need to duplicate dataset path and system prompt
 - Simpler command (fewer parameters)
+- Works for both fine-tuned and base models
 
 **Requirements:**
-- Task must accept `config_dir` parameter
-- Task must read and parse `../setup_finetune.yaml`
+- Task must accept `config_path` parameter
+- Task must read and parse `setup_finetune.yaml`
 - `setup_finetune.yaml` must exist with correct dataset configuration
 
 ## Scenario 2: Base Model Evaluation
@@ -80,21 +81,19 @@ inspect eval cap_task.py@capitalization \
 
 **Decision tree:**
 
-1. **Is this a base model (control) evaluation?**
-   - Yes → Use **Scenario 2** (explicit parameters)
+1. **Does the task support `config_path` parameter?**
+   - Yes → Use **Scenario 1** (config integration) — **PREFERRED** for all model types
    - No → Continue
 
-2. **Does the task support `config_dir` parameter?**
-   - Yes → Use **Scenario 1** (config integration) — **PREFERRED**
+2. **Are you testing generalization on a different dataset?**
+   - Yes → Use **Scenario 3** (custom dataset)
    - No → Use **Scenario 2** (explicit parameters)
 
-3. **Are you testing generalization on a different dataset?**
-   - Yes → Use **Scenario 3** (custom dataset)
-   - No → Use **Scenario 1** or **Scenario 2**
+**Note:** With the updated `config_path` approach, Scenario 1 now works for both fine-tuned and base models, making it the preferred approach in all cases where the task supports it.
 
 ## Error Handling
 
 **If unclear which approach to use:**
-- Check if task file has `config_dir` parameter (preferred for experiments)
+- Check if task file has `config_path` parameter (preferred for experiments)
 - Fall back to `dataset_path` + `system_prompt` approach
 - Log the decision

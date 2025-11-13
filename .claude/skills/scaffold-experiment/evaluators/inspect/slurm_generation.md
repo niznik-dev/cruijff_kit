@@ -57,19 +57,19 @@ conda activate {conda_env}
 # Set model and config paths
 {if fine-tuned:}
 MODEL_PATH="{output_dir_base}/ck-out-{run_name}/epoch_{N}"
-CONFIG_DIR="$MODEL_PATH"
+CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
 {if base model:}
 MODEL_PATH="{base_model_path}"
-CONFIG_DIR=""
+CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
 
 # Run inspect-ai evaluation
 cd {experiment_dir}/{run_dir}/eval
 
-{if fine-tuned with config_dir:}
+{if fine-tuned with config_path:}
 inspect eval {task_script_path}@{task_name} \\
   --model hf/local \\
   -M model_path="$MODEL_PATH" \\
-  -T config_dir="$CONFIG_DIR" \\
+  -T config_path="$CONFIG_PATH" \\
   --log-dir ./logs \\
   --log-level info
 
@@ -101,7 +101,7 @@ echo "Evaluation complete"
 
 ### Task Parameters
 
-- `config_dir`: For fine-tuned models (reads from setup_finetune.yaml)
+- `config_path`: Path to setup_finetune.yaml (for both fine-tuned and base models)
 - `dataset_path`: For base models or when explicit path needed
 - `system_prompt`: Must match training configuration
 - `temperature`: Typically 0.0 (may be task-specific)

@@ -131,7 +131,7 @@ mkdir -p {experiment_dir}/{run_directory}_base/eval/logs
 
 ```python
 if eval['type'] == 'fine-tuned':
-    if task_supports_config_dir:
+    if task_supports_config_path:
         scenario = 'fine_tuned_with_config'  # PREFERRED
     else:
         scenario = 'fine_tuned_explicit'
@@ -144,10 +144,10 @@ elif eval['type'] == 'base':
 ```python
 if scenario == 'fine_tuned_with_config':
     model_path = f"{output_dir_base}/ck-out-{run_name}/epoch_{epoch_num}"
-    config_dir = model_path
+    config_path = f"{experiment_dir}/{run_dir}/setup_finetune.yaml"
 elif scenario == 'base_model':
     model_path = base_model_path  # From experiment_summary.md
-    config_dir = None
+    config_path = f"{experiment_dir}/{run_dir}/setup_finetune.yaml"
 ```
 
 #### 5.3 Generate SLURM Script
@@ -177,11 +177,11 @@ conda activate {conda_env}
 # Set model and config paths
 {if fine-tuned:}
 MODEL_PATH="{output_dir_base}/ck-out-{run_name}/epoch_{N}"
-CONFIG_DIR="$MODEL_PATH"
+CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
 
 {if base model:}
 MODEL_PATH="{base_model_path}"
-CONFIG_DIR=""
+CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
 
 # Run inspect-ai evaluation
 cd {experiment_dir}/{run_dir}/eval
@@ -190,7 +190,7 @@ cd {experiment_dir}/{run_dir}/eval
 inspect eval {task_script_path}@{task_name} \\
   --model hf/local \\
   -M model_path="$MODEL_PATH" \\
-  -T config_dir="$CONFIG_DIR" \\
+  -T config_path="$CONFIG_PATH" \\
   --log-dir ./logs \\
   --log-level info
 
@@ -265,7 +265,7 @@ Duration: {elapsed_time}
 - Remind about 0-indexing
 
 **If unclear which scenario to use:**
-- Check if task accepts `config_dir` parameter
+- Check if task accepts `config_path` parameter
 - Fall back to `dataset_path` + `system_prompt` approach
 - Log the decision
 
@@ -275,7 +275,7 @@ Duration: {elapsed_time}
 - ✓ Evaluation matrix determined
 - ✓ All eval/ directories created
 - ✓ All SLURM scripts generated with correct paths
-- ✓ Scripts use appropriate scenario (config_dir vs dataset_path)
+- ✓ Scripts use appropriate scenario (config_path vs dataset_path)
 - ✓ scaffold.log contains complete process details
 
 ## Important Notes
@@ -305,12 +305,11 @@ Fine-tuned model paths reference output directories that **don't exist yet**:
 
 ### Config Integration
 
-**Preferred approach:** Use `config_dir` parameter
-- Task reads dataset path and system prompt from `../setup_finetune.yaml`
-- Ensures configuration consistency
+**Preferred approach:** Use `config_path` parameter
+- Task reads dataset path and system prompt from `setup_finetune.yaml`
+- Ensures configuration consistency for both fine-tuned and base models
 - Simpler command (fewer parameters)
 
 **Fallback approach:** Use explicit parameters
 - Task accepts `dataset_path` and `system_prompt` directly
-- Required for base models (no config file)
 - More explicit but harder to maintain consistency

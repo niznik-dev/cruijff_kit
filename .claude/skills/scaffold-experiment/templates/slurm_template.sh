@@ -16,7 +16,7 @@ conda activate {conda_env}
 
 # Set model and config paths
 MODEL_PATH="{output_dir_base}/ck-out-{run_name}/epoch_{N}"
-CONFIG_DIR="$MODEL_PATH"
+CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
 
 # Run inspect-ai evaluation
 cd {experiment_dir}/{run_dir}/eval
@@ -24,7 +24,7 @@ cd {experiment_dir}/{run_dir}/eval
 inspect eval {task_script_path}@{task_name} \
   --model hf/local \
   -M model_path="$MODEL_PATH" \
-  -T config_dir="$CONFIG_DIR" \
+  -T config_path="$CONFIG_PATH" \
   --log-dir ./logs \
   --log-level info
 

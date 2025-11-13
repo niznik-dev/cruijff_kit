@@ -67,7 +67,7 @@ Evaluating models using inspect-ai framework.
 
 **Workflow:**
 1. `parsing.md` - Extract evaluation tasks and configuration from experiment_summary.md
-2. `scenario_selection.md` - Choose evaluation approach (config_dir vs explicit params)
+2. `scenario_selection.md` - Choose evaluation approach (config_path vs explicit params)
 3. `slurm_generation.md` - Generate evaluation SLURM scripts (manual)
 4. `validation.md` - Verify task scripts exist and contain expected functions
 
