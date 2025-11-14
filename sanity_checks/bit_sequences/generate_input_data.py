@@ -10,10 +10,10 @@ Use bit_length such that 2^bit_length >> val_size to avoid removing all training
 Examples
 --------
 Parity dataset, ~30K samples of length 15, noiseless, 4 000-example validation set
-    python generate.py --bit_length 15 --N 33000 --p 0 --bit_parity True --val_size 4000 --output parity.json
+    python generate_input_data.py --bit_length 15 --N 33000 --p 0 --bit_parity True --val_size 4000 --output parity.json
 
 Probabilistic dataset, p = 0.5, ~30K samples of length 15, 4 000-example validation set
-    python generate.py --bit_length 15 --N 33000 --p 0.5 --bit_parity False --val_size 4000 --output prob_p05.json
+    python generate_input_data.py --bit_length 15 --N 33000 --p 0.5 --bit_parity False --val_size 4000 --output prob_p05.json
 """
 import argparse
 import itertools

@@ -1,25 +1,18 @@
 """
-Bit Sequences Sanity Check - Inspect-AI Evaluation Task
+General Inspect-AI Evaluation Task
 
-Evaluates fine-tuned models on binary classification tasks with parity-based
-or probabilistic labeling.
+A flexible evaluation task that works with JSON datasets containing input/output pairs.
+Can be used for any experiment in experiments/ directory.
 
 Usage:
     # Evaluate fine-tuned model (reads from setup_finetune.yaml)
-    inspect eval sanity_checks/bit_sequences/bit_sequences_inspect.py --model hf/local \\
-        -M model_path=/path/to/model \\
-        -T config_dir=/path/to/epoch_0
+    inspect eval experiments/inspect_task_general.py --model hf/local -M model_path=/path/to/model -T config_dir=/path/to/epoch_0
 
     # Standalone evaluation with direct dataset path
-    inspect eval sanity_checks/bit_sequences/bit_sequences_inspect.py --model hf/local \\
-        -M model_path=/path/to/model \\
-        -T dataset_path=/path/to/parity.json
+    inspect eval experiments/inspect_task_general.py --model hf/local -M model_path=/path/to/model -T dataset_path=/path/to/data.json
 
-    # Evaluate on validation split instead of test
-    inspect eval sanity_checks/bit_sequences/bit_sequences_inspect.py --model hf/local \\
-        -M model_path=/path/to/model \\
-        -T config_dir=/path/to/epoch_0 \\
-        -T split=validation
+    # With custom parameters
+    inspect eval experiments/inspect_task_general.py --model hf/local -M model_path=/path/to/model -T dataset_path=/path/to/data.json -T temperature=0.5 -T system_prompt="You are a helpful assistant"
 """
 
 from __future__ import annotations
@@ -29,34 +22,30 @@ from pathlib import Path
 from inspect_ai import Task, task
 from inspect_ai.dataset import hf_dataset, Sample
 from inspect_ai.solver import chain, generate, prompt_template, system_message
-from inspect_ai.scorer import match, includes
+from inspect_ai.scorer import match, includes, accuracy, stderr
 import yaml
 
 
 @task
-def bit_sequences(
+def general_eval(
     config_dir: Optional[str] = None,
     dataset_path: Optional[str] = None,
     system_prompt: str = "",
-    temperature: float = 1e-7,
-    split: str = "validation",
-    max_tokens: int = 10
+    temperature: float = 0.0,
+    split: str = "test",
+    max_tokens: Optional[int] = None
 ) -> Task:
     """
-    Evaluation task for bit_sequences sanity check.
-
-    Expected input: Binary sequence (e.g., "01011")
-    Expected output: "0" or "1" (binary classification)
+    General evaluation task for input/output pair datasets.
 
     Args:
         config_dir: Path to epoch directory (contains ../setup_finetune.yaml).
                    If provided, reads dataset path and system prompt from config.
         dataset_path: Direct path to dataset JSON file. Used if config_dir not provided.
         system_prompt: System message for the model. Overrides config if both provided.
-        temperature: Generation temperature (default: 1e-7 for near-deterministic output).
-        split: Which data split to use - "train" or "validation" (default: "validation").
-               Note: This sanity check has no "test" split.
-        max_tokens: Maximum tokens to generate (default: 10, sufficient for binary output).
+        temperature: Generation temperature (default: 0.0 for deterministic output).
+        split: Which data split to use (default: "test").
+        max_tokens: Maximum tokens to generate (default: None, uses model default).
 
     Returns:
         Task: Configured inspect-ai task
@@ -108,7 +97,7 @@ def bit_sequences(
             "Must provide either config_dir or dataset_path.\n"
             "Examples:\n"
             "  -T config_dir=/path/to/epoch_0\n"
-            "  -T dataset_path=/path/to/parity.json"
+            "  -T dataset_path=/path/to/data.json"
         )
 
     # Handle system prompt if it was parsed as a list (CLI quirk)
@@ -117,20 +106,18 @@ def bit_sequences(
 
     # Define record to sample conversion
     def record_to_sample(record):
-        # Note: bit_sequences data has an 'instruction' field (always empty)
-        # We only use input and output for evaluation
         return Sample(
             input=record["input"],
             target=record["output"]
         )
 
     # Load dataset
-    # Assumes JSON format with structure: {"train": [...], "validation": [...]}
+    # Assumes JSON format with structure: {"train": [...], "test": [...]}
     dataset = hf_dataset(
         path="json",
         data_files=data_path,
-        field=split,  # Access the specified split (e.g., "validation")
-        split="train",  # Top-level split (HuggingFace quirk - always use "train" here)
+        field=split,  # Access the specified split (e.g., "test")
+        split="train",  # Top-level split (confusing but this is how hf_dataset works with nested JSON)
         sample_fields=record_to_sample
     )
 
@@ -138,17 +125,17 @@ def bit_sequences(
     solver_chain = chain(
         system_message(system_prompt),
         prompt_template("{prompt}"),
-        generate(
-            temperature=temperature,
-            max_tokens=max_tokens
-        )
+        generate({
+            "temperature": temperature,
+            **({"max_tokens": max_tokens} if max_tokens else {})
+        })
     )
 
-    # Configure scorers for binary classification
-    # Using both exact match and includes for robustness
+    # Configure scorers
+    # Using multiple scorers to get different perspectives on accuracy
     scorers = [
-        match(location="exact", ignore_case=False),  # Exact match: "0" or "1"
-        includes(ignore_case=False)  # Substring match (for verbose responses)
+        match(location="exact", ignore_case=False),  # Exact match (case-sensitive)
+        includes(ignore_case=False)  # Substring match (case-sensitive)
     ]
 
     return Task(

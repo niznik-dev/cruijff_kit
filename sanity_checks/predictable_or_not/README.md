@@ -41,8 +41,8 @@ This sanity check tests **8 runs total**:
 ```
 sanity_checks/predictable_or_not/
 ├── README.md                      # This file
-├── generate_data.py               # Generates the 4 scenario datasets
-└── predictable_or_not_inspect.py  # Inspect-ai evaluation task
+├── generate_input_data.py               # Generates the 4 scenario datasets
+└── inspect_task_predictable_or_not.py  # Inspect-ai evaluation task
 ```
 
 **Sanity check data** (in repository, generated):
@@ -88,7 +88,7 @@ From the repository root or sanity check directory:
 
 ```bash
 cd sanity_checks/predictable_or_not
-python generate_data.py
+python generate_input_data.py
 ```
 
 This creates four JSON files in `data/green/predictable_or_not/` (`pp.json`, `pu.json`, `up.json`, `uu.json`), each with:
@@ -246,7 +246,7 @@ After fine-tuning completes, evaluate the models using inspect-ai to measure acc
 
 ### Evaluation Task
 
-The evaluation task is defined in `predictable_or_not_inspect.py` and automatically:
+The evaluation task is defined in `inspect_task_predictable_or_not.py` and automatically:
 - Reads the fine-tuning configuration from `setup_finetune.yaml`
 - Loads the same dataset used for training (e.g., pp.json for pp_output_only)
 - Evaluates on the validation split (100 examples)
@@ -257,7 +257,7 @@ The evaluation task is defined in `predictable_or_not_inspect.py` and automatica
 **For a single run:**
 ```bash
 cd /path/to/ck-sanity-checks/sanity_check_predictable_or_not_YYYY-MM-DD/pp_output_only
-inspect eval ../../sanity_checks/predictable_or_not/predictable_or_not_inspect.py \
+inspect eval ../../sanity_checks/predictable_or_not/inspect_task_predictable_or_not.py \
   --model hf/local \
   -M model_path=/path/to/ck-outputs/.../ck-out-pp_output_only/epoch_9 \
   -T config_dir=/path/to/ck-outputs/.../ck-out-pp_output_only/epoch_9
@@ -297,7 +297,7 @@ This sanity check validates both **training dynamics** (via W&B loss curves) and
 **Data files missing:**
 ```bash
 cd sanity_checks/predictable_or_not
-python generate_data.py
+python generate_input_data.py
 ```
 
 **Wrong directory structure:**

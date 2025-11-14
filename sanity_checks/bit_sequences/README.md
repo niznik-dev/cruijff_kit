@@ -28,8 +28,8 @@ The goal is to validate that:
 ```
 sanity_checks/bit_sequences/
 ├── README.md                  # This file
-├── generate.py                # Generates datasets with various configurations
-└── bit_sequences_inspect.py   # Inspect-ai evaluation task
+├── generate_input_data.py                # Generates datasets with various configurations
+└── inspect_task_bit_sequences.py   # Inspect-ai evaluation task
 ```
 
 **Sanity check data** (in repository, generated):
@@ -67,12 +67,12 @@ From the repository root or sanity check directory:
 **Parity dataset (deterministic, no noise):**
 ```bash
 cd sanity_checks/bit_sequences
-python generate.py --bit_length 15 --N 33000 --p 0 --bit_parity True --val_size 4000 --output parity.json
+python generate_input_data.py --bit_length 15 --N 33000 --p 0 --bit_parity True --val_size 4000 --output parity.json
 ```
 
 **Probabilistic dataset (p=0.5):**
 ```bash
-python generate.py --bit_length 15 --N 33000 --p 0.5 --bit_parity False --val_size 4000 --output prob_p05.json
+python generate_input_data.py --bit_length 15 --N 33000 --p 0.5 --bit_parity False --val_size 4000 --output prob_p05.json
 ```
 
 **Note:** The generator deduplicates at the sequence level - no sequence string appears in both train and validation. Use `bit_length` such that 2^bit_length >> val_size (e.g., 2^15 = 32,768 >> 4,000) to avoid removing all training data.
@@ -235,7 +235,7 @@ After fine-tuning completes, evaluate the models using inspect-ai to measure bin
 
 ### Evaluation Task
 
-The evaluation task is defined in `bit_sequences_inspect.py` and automatically:
+The evaluation task is defined in `inspect_task_bit_sequences.py` and automatically:
 - Reads the fine-tuning configuration from `setup_finetune.yaml`
 - Loads the same dataset used for training (e.g., parity.json)
 - Evaluates on the validation split
@@ -246,7 +246,7 @@ The evaluation task is defined in `bit_sequences_inspect.py` and automatically:
 **For a single run:**
 ```bash
 cd /path/to/ck-sanity-checks/sanity_check_bit_sequences_YYYY-MM-DD/parity_run
-inspect eval ../../sanity_checks/bit_sequences/bit_sequences_inspect.py \
+inspect eval ../../sanity_checks/bit_sequences/inspect_task_bit_sequences.py \
   --model hf/local \
   -M model_path=/path/to/ck-outputs/.../ck-out-parity_run/epoch_9 \
   -T config_dir=/path/to/ck-outputs/.../ck-out-parity_run/epoch_9
@@ -284,7 +284,7 @@ This sanity check validates both **training dynamics** (via W&B loss curves) and
 **Data files missing:**
 ```bash
 cd sanity_checks/bit_sequences
-python generate.py --bit_length 15 --N 33000 --p 0 --bit_parity True --val_size 4000 --output parity.json
+python generate_input_data.py --bit_length 15 --N 33000 --p 0 --bit_parity True --val_size 4000 --output parity.json
 ```
 
 **Wrong directory structure:**

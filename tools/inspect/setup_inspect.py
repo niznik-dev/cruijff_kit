@@ -12,7 +12,7 @@ script_dir = Path(__file__).parent
 # Set up logging
 logger = setup_logger(__name__)
 
-parser = argparse.ArgumentParser(description="Set up the run_inspect.py file for the current project.")
+parser = argparse.ArgumentParser(description="Set up the inspect task evaluation for the current project.")
 parser.add_argument("--base_model_dir", type=str, default="", help="Path to a base model directory")
 parser.add_argument("--finetune_epoch_dir", type=str, required=True, help="Path to a finetuned model's target epoch (and its slurm parameters one folder up); if base_model_dir is provided, only the slurm parameters are used")
 args = parser.parse_args()
