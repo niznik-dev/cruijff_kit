@@ -80,6 +80,27 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 
 **Architecture**: The primary workflow skills (scaffold-experiment, run-experiment) are orchestrators that delegate to specialized worker skills (scaffold-torchtune, scaffold-inspect, run-torchtune, run-inspect) which handle tool-specific operations. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for the complete skills architecture.
 
+## Workflow Testing
+
+To validate that the complete workflow (design, scaffold, run) is functioning correctly after changes to skills or documentation, use the integration test specification:
+
+**Test Specification:** `.claude/workflow_test.yaml`
+
+**Invocation:** When user says "test the workflow" or similar, read the specification and execute:
+1. `design-experiment` skill with parameters from the spec
+2. `scaffold-experiment` skill on the designed experiment
+3. `run-experiment` skill to submit jobs and monitor completion
+4. Verify expected outputs match validation checks
+
+**Test Details:**
+- **Experiment:** Minimal capitalization fine-tuning (2 runs: rank4, rank8)
+- **Model:** Llama-3.2-1B-Instruct (fast training)
+- **Dataset:** words_5L_80P_1000.json (small, reliable)
+- **Duration:** ~12 minutes (1 epoch training + evaluation)
+- **Location:** ck-sanity-checks/ (automatically cleaned up separately from research)
+
+**Purpose:** Catch regressions in skills, ensure documentation changes don't break workflows, validate end-to-end integration.
+
 ## Git Workflow
 
 ### Issue Management

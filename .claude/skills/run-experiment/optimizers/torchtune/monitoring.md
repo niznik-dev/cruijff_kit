@@ -1,0 +1,152 @@
+# Monitoring - Execution Tracking
+
+Monitor SLURM jobs until all reach terminal states.
+
+## Polling Strategy
+
+**Interval:** 60 seconds (1 minute)
+
+**Stop condition:** All jobs reach terminal states (COMPLETED, FAILED, CANCELLED, TIMEOUT)
+
+## Query Commands
+
+### For Running Jobs
+
+```bash
+squeue -u $USER -o "%.18i %.9P %.50j %.8T %.10M %.6D"
+```
+
+Returns:
+- JOBID
+- PARTITION
+- NAME (job name)
+- STATE (PENDING, RUNNING, etc.)
+- TIME (elapsed time)
+- NODES
+
+### For Completed Jobs
+
+Jobs disappear from squeue when complete. Use sacct:
+
+```bash
+sacct -j {job_id} --format=JobID,State,Start,End,Elapsed
+```
+
+## Status Update Process
+
+On each poll (every 60 seconds):
+
+### 1. Query All Jobs at Once
+
+**Good:** `squeue -u $USER` (single call)
+**Avoid:** Querying jobs one by one
+
+### 2. Match Job IDs
+
+Cross-reference squeue results with tracked job IDs to identify which belong to this experiment.
+
+### 3. Detect State Changes
+
+Compare current state to previous state for each job.
+
+**If state changed:**
+- Log the change with timestamp
+- Update experiment_summary.md
+- Record new status
+
+### 4. Update experiment_summary.md
+
+Update Fine-tuning status table:
+
+**PENDING → RUNNING:**
+```markdown
+| r8_lr1e-5 | RUNNING | 12345678 | 2025-11-11 14:35:22 | - | - |
+```
+Add "Started" timestamp
+
+**RUNNING → COMPLETED:**
+```markdown
+| r8_lr1e-5 | COMPLETED | 12345678 | 2025-11-11 14:35:22 | 2025-11-11 14:43:25 | 8m 3s |
+```
+Add "Completed" timestamp and elapsed time
+
+**RUNNING → FAILED:**
+```markdown
+| r8_lr1e-5 | FAILED | 12345678 | 2025-11-11 14:35:22 | 2025-11-11 14:40:00 | Check slurm-12345678.out |
+```
+Add note to check SLURM log
+
+## Terminal States
+
+Stop monitoring when job reaches:
+- **COMPLETED** - Finished successfully
+- **FAILED** - Error occurred
+- **CANCELLED** - User canceled job
+- **TIMEOUT** - Exceeded time limit
+
+## Logging
+
+### Status Checks (Brief)
+
+```
+[YYYY-MM-DD HH:MM:SS] STATUS_CHECK: Polling SLURM
+Result: 8 jobs found - 6 PENDING, 2 RUNNING, 0 COMPLETED
+```
+
+### State Changes (Detailed)
+
+```
+[YYYY-MM-DD HH:MM:SS] STATE_CHANGE: r8_lr1e-5
+Previous: PENDING
+Current: RUNNING
+Started: 2025-11-11 14:35:22
+Action: Updated experiment_summary.md
+```
+
+```
+[YYYY-MM-DD HH:MM:SS] STATE_CHANGE: r8_lr1e-5
+Previous: RUNNING
+Current: COMPLETED
+Completed: 2025-11-11 14:43:25
+Elapsed: 8m 3s
+Action: Updated experiment_summary.md
+```
+
+## Completion Detection
+
+When all jobs reach terminal states:
+
+```
+[YYYY-MM-DD HH:MM:SS] ALL_COMPLETE: Monitoring finished
+Summary: 8 jobs completed - 7 COMPLETED, 1 FAILED
+Total time: 25 minutes
+```
+
+## Error Handling
+
+**If monitoring query fails:**
+- Log the error
+- Wait until next interval
+- Retry query
+- If repeated failures, alert user
+
+**If job fails:**
+- Record failure in status
+- Continue monitoring other jobs
+- Include in final summary
+
+## Best Practices
+
+**Efficient:**
+- Single squeue call for all jobs
+- Poll every 60 seconds (not faster)
+- Stop when all terminal
+
+**Avoid:**
+- Polling faster than 60 seconds (wastes resources)
+- Querying jobs individually (slow)
+- Continuing after all complete (unnecessary)
+
+## Next Stage
+
+Pass completion status to validation.md for final checks.
