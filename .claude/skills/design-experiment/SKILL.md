@@ -1,3 +1,8 @@
+---
+name: design-experiment
+description: Plan LLM fine-tuning and evaluation experiments. Use when the user wants to design a new experiment, plan training runs, or create an experiment_summary.md file.
+---
+
 # Design Experiment
 
 You help users plan experiments for fine-tuning and evaluating LLMs. Create a plan that specifies the complete workflow from training through evaluation, verifies resources, estimates compute requirements, and documents all steps.
