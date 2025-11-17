@@ -46,8 +46,7 @@ For most users, this will set up everything you need:
 
 ```bash
 # Create and activate environment
-conda create -n cruijff python=3.13 -y
-conda activate cruijff
+conda create -n cruijff python=3.13 -y && conda activate cruijff
 
 # Install cruijff_kit with all dependencies (from repository root)
 cd /path/to/cruijff_kit
@@ -84,8 +83,7 @@ module load anaconda3/2025.6
 You can name your environment anything, but we recommend `cruijff`:
 
 ```bash
-conda create -n cruijff python=3.13 -y
-conda activate cruijff
+conda create -n cruijff python=3.13 -y && conda activate cruijff
 ```
 
 ### 3. Install cruijff_kit
