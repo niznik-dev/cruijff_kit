@@ -16,7 +16,8 @@ dependencies = [
     "inspect-viz",
     "datasets",
     "peft",
-    "transformers",
+    "transformers>=4.57.1",
+    "tokenizers>=0.22.1",
     "scikit-learn",
     "matplotlib",
 ]
