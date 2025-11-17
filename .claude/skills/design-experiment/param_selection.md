@@ -89,6 +89,20 @@ experiment_dir = f"{base_dir}{experiment_name}/"
   - Produces: Evaluation logs (`.eval` files)
 - *Future:* Other evaluation frameworks may be supported
 
+### Workflow Architecture
+
+The experiment workflow uses an **orchestrator → worker** pattern:
+
+- **Scaffolding (current):** `scaffold-experiment` reads experiment_summary.md and launches:
+  - `scaffold-torchtune` agent → generates torchtune configs
+  - `scaffold-inspect` agent → generates inspect-ai configs
+
+- **Execution (planned):** `run-experiment` will launch:
+  - `run-torchtune` agent → submit and monitor fine-tuning jobs
+  - `run-inspect` agent → submit and monitor evaluation jobs (after training)
+
+**Why document tools:** Orchestrators use tool specifications to route to the correct worker agents. This architecture enables future support for multiple tool options (e.g., axolotl, lm-eval-harness).
+
 ### Document in experiment_summary.md
 
 ```markdown
