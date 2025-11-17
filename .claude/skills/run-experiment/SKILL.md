@@ -1,475 +1,216 @@
 # Run Experiment
 
-You help users execute the complete experimental workflow - fine-tuning followed by evaluation - for all runs in a scaffolded experiment.
+Execute the complete experimental workflow - model optimization followed by evaluation - for all runs in a scaffolded experiment.
 
 ## Your Task
 
-Orchestrate the execution process by reading tool specifications from experiment_summary.md and calling the appropriate sub-skills **sequentially**:
+Orchestrate experiment execution by reading tool specifications from experiment_summary.md and calling the appropriate tool modules **sequentially**:
 
-1. Read experiment_summary.md to identify which tools are being used
-2. Call the appropriate preparation execution skill (currently only `run-torchtune`)
-3. Wait for preparation to complete (REQUIRED)
-4. Call the appropriate evaluation execution skill (currently only `run-inspect`)
+1. Read experiment_summary.md to identify tools being used
+2. Execute model optimization (fine-tuning) for all runs
+3. Wait for optimization to complete (REQUIRED)
+4. Execute model evaluation for all runs
 
-This ensures the entire experiment executes from training through evaluation with proper dependency management.
+This ensures the entire experiment runs from training through evaluation with proper dependency management.
 
-**Current tool support:**
-- **Preparation:** torchtune only (via `run-torchtune`)
-- **Evaluation:** inspect-ai only (via `run-inspect`)
+## Prerequisites
 
-**Future tool support:** This orchestrator is designed to route to different worker skills based on tool choices documented in experiment_summary.md. Future iterations may support additional frameworks.
+- experiment_summary.md exists (from design-experiment skill)
+- Scaffolding complete (from scaffold-experiment skill)
+- SLURM cluster access
 
 ## Workflow
 
-1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
-2. **Verify scaffolding complete** - Ensure both fine-tuning and evaluation configs exist
-3. **Read tool specifications** - Parse experiment_summary.md to identify preparation and evaluation tools
-4. **Validate tool support** - Ensure the specified tools have corresponding worker skills
-5. **Call preparation execution skill** - Execute fine-tuning jobs and wait for completion (currently `run-torchtune`)
-6. **Call evaluation execution skill** - Execute evaluation jobs after fine-tuning finishes (currently `run-inspect`)
-7. **Create orchestration log** - Document the execution process in `run-experiment.log`
-8. **Report combined summary** - Show user complete status of both execution phases
+### High-Level Steps
 
-## Finding the Experiment
+1. **Locate experiment** - Find experiment directory (current dir or ask user)
+2. **Verify scaffolding** - Ensure configs exist for optimization and evaluation
+3. **Read tool specifications** - Parse experiment_summary.md "Tools" section
+4. **Execute optimization** - Call optimizer module (torchtune)
+5. **Execute evaluation** - Call evaluator module (inspect) - **MUST wait for optimization**
+6. **Create orchestration log** - Document process in `run-experiment.log`
+7. **Report combined summary** - Show complete status
 
-**If user runs skill without arguments:**
-- Check if current directory contains `experiment_summary.md`
-- If not, ask user for the experiment directory path
+### Tool Modules
 
-**If user provides a path:**
-- Use that path as the experiment directory
+**Optimizer modules:** See [optimizers/](optimizers/) for tool-specific execution logic
+- Currently supported: torchtune (fine-tuning)
+- Future: DSPy (prompt optimization), custom trainers
 
-## Verification Before Starting
+**Evaluator modules:** See [evaluators/](evaluators/) for tool-specific execution logic
+- Currently supported: inspect-ai
+- Future: custom evaluation frameworks
 
-Before beginning execution, verify:
+### Detailed Workflows
 
-1. **experiment_summary.md exists:**
-   ```bash
-   ls {experiment_dir}/experiment_summary.md
-   ```
-   If missing, suggest running `design-experiment` skill first.
-
-2. **Fine-tuning configs exist:**
-   ```bash
-   ls {experiment_dir}/*/finetune.slurm
-   ```
-   If missing, suggest running `scaffold-experiment` or `scaffold-torchtune` first.
-
-3. **Evaluation configs exist:**
-   ```bash
-   ls {experiment_dir}/*/eval/*.slurm
-   ```
-   If missing, warn user but can proceed with fine-tuning only.
+For step-by-step execution details:
+- **Torchtune execution:** [workflows/torchtune.md](workflows/torchtune.md)
+- **Inspect execution:** [workflows/inspect.md](workflows/inspect.md)
 
 ## Reading Tool Specifications
 
-After verifying experiment_summary.md exists, read the "Tools" section to identify which frameworks are being used:
+Parse experiment_summary.md "Tools" section to identify frameworks:
 
-**Expected format in experiment_summary.md:**
+**Expected format:**
 ```markdown
 ## Tools
 
-This experiment uses the following tools:
-
 - **Model Preparation:** torchtune
-  - *Current status:* Only option available
-  - *Purpose:* Fine-tuning LLMs with LoRA
-  - *Used by:* `scaffold-torchtune` and `run-torchtune` skills
-
 - **Evaluation:** inspect-ai
-  - *Current status:* Only option available
-  - *Purpose:* Evaluating LLMs on custom tasks
-  - *Used by:* `scaffold-inspect` and `run-inspect` skills
 ```
 
-**Parsing logic:**
-1. Look for "Model Preparation:" line and extract the tool name (e.g., "torchtune")
-2. Look for "Evaluation:" line and extract the tool name (e.g., "inspect-ai")
+**Tool to module mapping:**
+- `torchtune` → [optimizers/torchtune/](optimizers/torchtune/)
+- `inspect-ai` → [evaluators/inspect/](evaluators/inspect/)
 
-**Tool to skill mapping:**
-- `torchtune` → `run-torchtune`
-- `inspect-ai` → `run-inspect`
-
-**Error handling:**
-- If "Tools" section is missing: Assume torchtune + inspect-ai (backward compatibility with older experiment summaries)
-- If tool name is not recognized: Report error and list supported tools
-- If experiment_summary.md format is unexpected: Report parsing error with details
-
-**Logging:**
-```
-[2025-10-27 14:30:00] READ_TOOL_SPECS: Parsing experiment_summary.md
-Details: Found Tools section
-Result: Preparation=torchtune, Evaluation=inspect-ai
-Explanation: Will call run-torchtune and run-inspect sequentially
-```
-
-## Orchestration Steps
-
-### How to Invoke Worker Skills
-
-**IMPORTANT:** Use the `SlashCommand` tool to invoke worker skills (NOT the `Task` tool).
-
-**Correct approach:**
-```xml
-<invoke name="SlashCommand">
-<parameter name="command">/run-torchtune</parameter>
-</invoke>
-```
-
-**Do NOT use:**
-- ❌ `Task` tool (that's for general-purpose agents, not skill invocation)
-- ❌ Direct function calls (skills are slash commands)
-
-**Why this matters:**
-- Worker skills like `run-torchtune` and `run-inspect` are Claude Code skills (slash commands)
-- They must be invoked via `SlashCommand` tool
-- The `Task` tool launches general-purpose agents, which is not what we want here
-
-### Step 1: Call Preparation Execution Skill (REQUIRED)
-
-Invoke the appropriate preparation execution skill based on tool specification in experiment_summary.md. Currently, this will be `run-torchtune` for torchtune.
-
-**What run-torchtune does:**
-- Submits all `finetune.slurm` jobs to SLURM
-- Monitors job progress with 1-minute polling
-- Updates experiment_summary.md status table
-- Creates `run-torchtune.log` with detailed execution log
-- Waits until ALL fine-tuning jobs reach terminal states
-
-**Expected duration:**
-- Depends on model size, dataset size, and epochs
-- Typical range: 30 minutes to several hours per run
-- Multiple runs execute in parallel
-
-**If run-torchtune fails:**
-- Log the error in orchestration log
-- Ask user: "Fine-tuning failed. Do you want to proceed with evaluation anyway?"
-- If no, stop and report failure
-- If yes, evaluation will skip runs with missing checkpoints
-- Report the failure in final summary
-
-**Important:** This step MUST complete before evaluation starts.
-
-### Step 2: Call Evaluation Execution Skill (SEQUENTIAL)
-
-Invoke the appropriate evaluation execution skill based on tool specification in experiment_summary.md. Currently, this will be `run-inspect` for inspect-ai.
-
-**⚠️ CRITICAL:** Only start after run-torchtune completes. Evaluation requires fine-tuned model checkpoints.
-
-**What run-inspect does:**
-- Verifies fine-tuning completed and checkpoints exist
-- Submits all evaluation SLURM jobs
-- Monitors job progress with 1-minute polling
-- Updates experiment_summary.md evaluations status table
-- Creates `run-inspect.log` with detailed execution log
-- Waits until ALL evaluation jobs reach terminal states
-
-**Expected duration:**
-- Typically faster than fine-tuning (5-10 minutes per evaluation)
-- Multiple evaluations execute in parallel
-
-**If run-inspect fails:**
-- Log the error in orchestration log
-- Fine-tuning results are still valid
-- Some analyses can proceed without evaluation
-- Report the failure in final summary
+**If Tools section missing:** Assume torchtune + inspect-ai (backward compatibility)
 
 ## Sequential Execution
 
-**Key principle:** run-inspect MUST wait for run-torchtune to complete.
+**CRITICAL:** Evaluation MUST wait for optimization to complete.
 
-**Why?**
-- Evaluation jobs need fine-tuned model checkpoints
-- Checkpoints are created during fine-tuning
-- Submitting evaluation too early → jobs fail with "model not found"
+**Why?** Evaluation jobs need optimized model checkpoints.
 
 **Implementation:**
-```
-1. Start run-torchtune
-2. Monitor until ALL fine-tuning jobs complete
-3. Only then start run-inspect
+1. Execute optimizer module (torchtune fine-tuning)
+2. Monitor until ALL optimization jobs complete
+3. Only then execute evaluator module (inspect evaluation)
 4. Monitor until ALL evaluation jobs complete
 5. Report combined results
-```
-
-**If user cancels during fine-tuning:**
-- Fine-tuning jobs continue running (SLURM jobs are independent)
-- User can resume with `run-torchtune` alone to monitor
-- Or re-run `run-experiment` to resume full workflow
 
 ## Logging
 
-Create an orchestration log at `{experiment_dir}/run-experiment.log` that records:
+Create orchestration log at `{experiment_dir}/run-experiment.log`:
 
-### Log Format
-
+**Log format:**
 ```
 [YYYY-MM-DD HH:MM:SS] ACTION: Description
 Details: {specifics}
 Result: {outcome}
-
 ```
 
-### What to Log
-
+**What to log:**
 - Experiment discovery and validation
 - Scaffolding verification
-- Invocation of run-torchtune (timestamp, result, duration)
-- Fine-tuning completion status (successes/failures)
-- Invocation of run-inspect (timestamp, result, duration)
-- Evaluation completion status (successes/failures)
-- Any errors or warnings from sub-skills
-- Final combined status summary
-- Paths to results and individual skill logs
+- Tool module invocations (timestamps, results, durations)
+- Completion status (successes/failures)
+- Errors or warnings
+- Final combined summary
+- Paths to results and module logs
 
-### Example Log Entries
+## Expected Outputs
 
-```
-[2025-10-24 00:00:00] DISCOVER_EXPERIMENT: Found experiment
-Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/experiment_summary.md
-Result: Experiment ready for execution (8 runs, 8 evaluations)
+After successful execution:
 
-[2025-10-24 00:00:05] VERIFY_SCAFFOLDING: Checking configs
-Details: finetune.slurm found in 8 directories, eval/*.slurm found in 8 directories
-Result: All scaffolding complete, ready to execute
+**Logs created:**
+- `run-experiment.log` - Orchestration log
+- Optimizer module logs (e.g., detailed fine-tuning execution)
+- Evaluator module logs (e.g., detailed evaluation execution)
 
-[2025-10-24 00:00:08] READ_TOOL_SPECS: Parsing tool specifications
-Details: Reading Tools section from experiment_summary.md
-Result: Preparation tool = torchtune, Evaluation tool = inspect-ai
-Explanation: Will invoke run-torchtune and run-inspect sequentially
+**Status updated:**
+- experiment_summary.md status tables fully populated
+- All job IDs, timestamps, states recorded
 
-[2025-10-24 00:00:10] INVOKE_RUN_TORCHTUNE: Starting fine-tuning execution
-Details: Calling run-torchtune skill
-Result: Started at 2025-10-24 00:00:10
+**Artifacts created:**
+- Model checkpoints from optimization
+- Evaluation logs from evaluation
 
-[2025-10-24 00:25:00] RUN_TORCHTUNE_COMPLETE: Fine-tuning finished
-Details: 8 jobs completed - 8 COMPLETED, 0 FAILED
-Duration: 25m
-Result: See run-torchtune.log for detailed execution
-Model checkpoints: /scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-*/epoch_0/
+**Logging:** All actions logged to `{experiment_dir}/run-{torchtune|inspect}.log` (see `logging.md`)
 
-[2025-10-24 00:25:05] INVOKE_RUN_INSPECT: Starting evaluation execution
-Details: Calling run-inspect skill (sequential - after fine-tuning complete)
-Result: Started at 2025-10-24 00:25:05
-
-[2025-10-24 00:40:00] RUN_INSPECT_COMPLETE: Evaluation finished
-Details: 8 evaluations completed - 8 COMPLETED, 0 FAILED
-Duration: 15m
-Result: See run-inspect.log for detailed execution
-Evaluation logs: {run_dir}/eval/logs/*.eval
-
-[2025-10-24 00:40:05] COMPLETE: Experiment execution finished
-Summary: Full workflow completed successfully
-- Fine-tuning: 8/8 runs completed
-- Evaluation: 8/8 evaluations completed
-Total time: 40 minutes
-Next: User can view results with inspect view or run analyze-experiment skill (planned)
-```
+---
 
 ## Error Handling
 
 **If experiment_summary.md not found:**
-- Report error to user
-- Suggest running `design-experiment` skill first
+- Suggest running design-experiment skill first
 - Do not proceed
 
 **If scaffolding incomplete:**
-- Check which parts are missing
-- If fine-tuning configs missing: Must run `scaffold-torchtune` first
-- If evaluation configs missing: Can proceed with fine-tuning only, warn user
+- Report which parts missing
+- Suggest running scaffold-experiment skill
+- Can proceed with optimization only if just evaluation configs missing
 
-**If run-torchtune fails:**
-- Log the failure with details
-- Ask user: "Fine-tuning failed. Evaluation cannot proceed without trained models. Check run-torchtune.log and fix issues."
-- Do NOT proceed to evaluation
+**If optimization fails:**
+- Log failure details
+- Do NOT proceed to evaluation (missing model checkpoints)
 - Report failure and stop
 
-**If run-inspect fails:**
-- Log the failure with details
-- Note that fine-tuning succeeded
-- User can still analyze fine-tuning metrics
-- Report partial success (fine-tuning done, evaluation failed)
+**If evaluation fails:**
+- Log failure details
+- Optimization results still valid
+- Report partial success
 
-**If user cancels during execution:**
-- Note that SLURM jobs continue running
-- User can resume monitoring with individual skills (run-torchtune, run-inspect)
-- Or re-run run-experiment to resume
+**If user cancels:**
+- SLURM jobs continue running independently
+- Can resume monitoring by re-running skill
+
+## Validation Checklist
+
+Before reporting success, verify:
+- ✓ experiment_summary.md found and read
+- ✓ Scaffolding verified
+- ✓ Optimizer module executed and completed
+- ✓ Evaluator module executed and completed
+- ✓ Model checkpoints exist
+- ✓ Evaluation logs exist
+- ✓ Orchestration log created
+- ✓ All module logs exist
 
 ## Output Summary
 
-After completing orchestration, provide a comprehensive summary:
+Provide comprehensive summary after completion:
 
 ```markdown
 ## Run Experiment Complete
 
-Successfully executed experiment:
-`/scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/`
+Experiment: `{experiment_dir}`
 
-### Fine-Tuning Results (run-torchtune)
+### Optimization Results
 
-✓ 8/8 runs completed successfully
-Duration: 25 minutes
+✓ {N}/{M} runs completed successfully
+Duration: {duration}
 
-**Completed runs:**
-- rank8_lr1e-5 (8m 2s)
-- rank8_lr5e-5 (8m 15s)
-- rank16_lr1e-5 (9m 1s)
-- rank16_lr5e-5 (9m 12s)
-- rank32_lr1e-5 (10m 45s)
-- rank32_lr5e-5 (10m 58s)
-- rank64_lr1e-5 (12m 3s)
-- rank64_lr5e-5 (12m 18s)
+**Completed runs:** [list with times]
+**Failed runs:** [list with errors]
+**Model checkpoints:** {paths}
 
-**Model checkpoints:**
-- `/scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-rank*/epoch_0/`
+### Evaluation Results
 
-### Evaluation Results (run-inspect)
+✓ {N}/{M} evaluations completed successfully
+Duration: {duration}
 
-✓ 8/8 evaluations completed successfully
-Duration: 15 minutes
-
-**Completed evaluations:**
-- rank8_lr1e-5/capitalization/epoch0 (4m 52s)
-- rank8_lr5e-5/capitalization/epoch0 (5m 1s)
-- rank16_lr1e-5/capitalization/epoch0 (5m 15s)
-- rank16_lr5e-5/capitalization/epoch0 (5m 22s)
-- rank32_lr1e-5/capitalization/epoch0 (5m 45s)
-- rank32_lr5e-5/capitalization/epoch0 (5m 51s)
-- rank64_lr1e-5/capitalization/epoch0 (6m 8s)
-- rank64_lr5e-5/capitalization/epoch0 (6m 15s)
-
-**Evaluation logs:**
-- `rank*/eval/logs/*.eval`
-
-### Logs Created
-
-- `run-experiment.log` - Orchestration log (this process)
-- `run-torchtune.log` - Fine-tuning execution details
-- `run-inspect.log` - Evaluation execution details
+**Completed evaluations:** [list with times]
+**Failed evaluations:** [list with errors]
+**Evaluation logs:** {paths}
 
 ### Total Time
 
-**Complete workflow:** 40 minutes
-- Fine-tuning: 25 minutes
-- Evaluation: 15 minutes
-
-### Viewing Results
-
-**Interactive viewer (recommended):**
-```bash
-cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22
-inspect view --port=$(get_free_port)
-```
-Then open the provided URL in your browser.
-
-**Training metrics:**
-- Check SLURM logs: `rank*/slurm-*.out`
-- Check WandB (if configured): https://wandb.ai/
+Complete workflow: {total_duration}
+- Optimization: {opt_duration}
+- Evaluation: {eval_duration}
 
 ### Next Steps
 
-1. **Analyze results:**
-   Run `analyze-experiment` skill to generate comparison tables and plots (planned)
-
-2. **Export evaluation data:**
-   ```bash
-   for dir in rank*/eval/logs; do
-     inspect log export $dir/*.eval --format csv >> all_results.csv
-   done
-   ```
-
-3. **Share findings:**
-   - Results are in experiment directory
-   - experiment_summary.md tracks all job IDs and status
-   - Logs provide full audit trail
-
-**Congratulations!** Your experiment workflow is complete.
+1. View results: `inspect view --port=$(get_free_port)`
+2. Export data: `inspect log export ...`
+3. Analyze results (see experiment_summary.md for workflow)
 ```
-
-## Validation Before Completion
-
-Before reporting success, verify:
-- ✓ experiment_summary.md was found and read
-- ✓ Scaffolding was verified before starting
-- ✓ run-torchtune was invoked (check for log file)
-- ✓ run-torchtune completed (all jobs reached terminal states)
-- ✓ run-inspect was invoked (check for log file)
-- ✓ run-inspect completed (all jobs reached terminal states)
-- ✓ Model checkpoints exist
-- ✓ Evaluation logs exist
-- ✓ Orchestration log was created
-- ✓ Both sub-skill logs exist
 
 ## Important Notes
 
-### Orchestration Principles
+**Orchestration principles:**
+- This skill orchestrates rather than implements
+- Each tool module maintains its own detailed log
+- Sequential execution is mandatory (evaluation requires optimization complete)
+- Partial success is acceptable (some runs succeed, others fail)
+- Tool modules can be executed independently if needed
 
-- This skill **orchestrates** rather than implements - it calls other skills
-- Each sub-skill maintains its own detailed log
-- The orchestration log tracks high-level flow and timing
-- **Sequential execution is critical** - evaluation requires fine-tuning to complete first
-- Sub-skills can be run independently if needed (e.g., re-run just evaluation)
-- Partial success is acceptable (e.g., fine-tuning succeeds but evaluation fails)
+**Relationship to other skills:**
+- **Before:** design-experiment, scaffold-experiment
+- **After:** analyze-experiment (planned)
+- **Standalone:** Individual tool modules can run independently
 
-### Execution Order
-
-1. **run-torchtune first** - Trains models and creates checkpoints
-2. **Wait for completion** - ALL fine-tuning jobs must finish
-3. **run-inspect second** - Evaluates trained models
-4. **Wait for completion** - ALL evaluation jobs must finish
-
-This order is **mandatory** - evaluation cannot proceed without trained models.
-
-### Relationship to Other Skills
-
-**Before this skill:**
-- `design-experiment` creates experiment_summary.md
-- `scaffold-experiment` generates configs (calls `scaffold-torchtune` and `scaffold-inspect`)
-
-**After this skill:**
-- `analyze-experiment` interprets results (planned)
-
-**Can be run standalone:**
-- `run-torchtune` - Just execute fine-tuning
-- `run-inspect` - Just execute evaluation (requires fine-tuning complete)
-
-### Time Management
-
-**Typical timeline:**
-- Design: 10-30 minutes (interactive with user)
-- Scaffold: 2-5 minutes (automated)
-- Execute (this skill): 30 minutes to several hours
-  - Fine-tuning: Most of the time (model and data dependent)
-  - Evaluation: Typically 5-15 minutes
-- Analysis: 5-10 minutes (planned)
-
-**Long-running experiments:**
-- If experiments take hours, user doesn't need to stay connected
-- SLURM jobs run independently
-- Can resume monitoring later
-- experiment_summary.md tracks all job IDs
-
-### Error Recovery
-
-If execution fails:
-1. Check individual skill logs (run-torchtune.log, run-inspect.log)
-2. Check SLURM logs in run directories
-3. Fix the issue (e.g., out of disk space, model path incorrect)
-4. Re-run this skill (will skip completed jobs)
-5. Or run individual sub-skills directly (run-torchtune, run-inspect)
-
-### Resumability
-
+**Resumability:**
 - Re-running run-experiment is safe
-- Sub-skills check for already-completed jobs
-- Won't re-submit jobs that finished successfully
-- Useful if monitoring was interrupted
-
-## Future Enhancements
-
-Potential additions:
-- Dry-run mode (validate without submitting jobs)
-- Selective execution (only certain runs)
-- Conditional evaluation (only evaluate successful fine-tuning runs)
-- Email notifications on completion
-- Integration with analyze-experiment (auto-run analysis after completion)
+- Tool modules check for completed jobs
+- Won't re-submit successful jobs
