@@ -3,7 +3,7 @@
 help:
 	@echo "Available targets:"
 	@echo "  make install      - Install cruijff_kit with all dependencies (torchtune nightly)"
-	@echo "  make install-dev  - Install with dev dependencies (pytest, pytest-cov) + reminder for gh"
+	@echo "  make install-dev  - Install with dev dependencies (pytest, pytest-cov, gh if using conda)"
 
 install:
 	@if [ -z "$$VIRTUAL_ENV" ] && [ -z "$$CONDA_DEFAULT_ENV" ]; then \
