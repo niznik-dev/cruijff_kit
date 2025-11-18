@@ -5,6 +5,30 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cruijff_kit"
 version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "torch",
+    "torchtune",
+    "torchao",
+    "wandb",
+    "h5py",
+    "inspect-ai",
+    "inspect-viz",
+    "datasets",
+    "peft",
+    "transformers>=4.57.1",
+    "tokenizers>=0.22.1",
+    "scikit-learn",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    # Note: GitHub CLI (gh) must be installed via conda separately:
+    # conda install -c conda-forge gh -y
+]
 
 [tool.setuptools.package-dir]
 cruijff_kit = "."

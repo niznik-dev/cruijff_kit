@@ -42,27 +42,31 @@ This project is in early development and things may break without notice; you ma
 
 ## Quick Start (Recommended)
 
-For most users, this single code block will set up everything you need:
+For most users, this will set up everything you need:
 
 ```bash
 # Create and activate environment
-conda create -n cruijff python=3.13 -y
-conda activate cruijff
+conda create -n cruijff python=3.13 -y && conda activate cruijff
 
-# Install PyTorch with CUDA support
-pip3 install torch --index-url https://download.pytorch.org/whl/cu126
-
-# Install core packages
-pip3 install torchao wandb h5py inspect-ai inspect-viz datasets peft transformers scikit-learn matplotlib
-
-# Install torchtune nightly (recommended for validation loss support)
-pip3 install --pre torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-
-# Install cruijff_kit (from repository root)
-pip install -e .
+# Install cruijff_kit with all dependencies (from repository root)
+cd /path/to/cruijff_kit
+make install
 ```
 
+**For contributors** (adds pytest and pytest-cov):
+```bash
+make install-dev  # Auto-installs gh via conda if in conda environment
+```
+
+**Note:** If you're not using conda, `make install-dev` will prompt you to install GitHub CLI manually. While not strictly required, gh is very helpful for managing issues and pull requests. See installation options at https://github.com/cli/cli#installation
+
 **Installation time**: Approximately 5-10 minutes depending on network speed.
+
+**What gets installed:**
+- PyTorch with CUDA 12.6 support
+- torchtune (nightly build with validation loss tracking)
+- Core packages: torchao, wandb, h5py, inspect-ai, inspect-viz, datasets, peft, transformers, scikit-learn, matplotlib
+- Dev packages (if using `make install-dev`): pytest, pytest-cov
 
 ## Step-by-Step Instructions
 
@@ -79,66 +83,30 @@ module load anaconda3/2025.6
 You can name your environment anything, but we recommend `cruijff`:
 
 ```bash
-conda create -n cruijff python=3.13 -y
-conda activate cruijff
+conda create -n cruijff python=3.13 -y && conda activate cruijff
 ```
 
-### 3. Install PyTorch
+### 3. Install cruijff_kit
 
-Install PyTorch with CUDA 12.6 support:
-
-```bash
-pip3 install torch --index-url https://download.pytorch.org/whl/cu126
-```
-
-### 4. Install Core Dependencies
-
-These packages are required for fine-tuning and evaluation:
-
-```bash
-# Core fine-tuning packages
-pip3 install torchao wandb h5py inspect-ai inspect-viz datasets peft
-
-# Evaluation packages
-pip3 install transformers scikit-learn matplotlib
-```
-
-### 5. Install Torchtune
-
-**Choose one option:**
-
-**Option A: Nightly build (recommended)**
-Includes validation loss tracking during fine-tuning:
-```bash
-pip3 install --pre torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-```
-
-**Option B: Stable release (v0.6.1)**
-For production environments:
-```bash
-pip3 install torchtune
-```
-
-**Why nightly?** The nightly build includes `val_loss` (validation loss) tracking, which is essential for monitoring overfitting during fine-tuning. This feature is not yet available in stable releases.
-
-### 6. Install cruijff_kit
-
-Navigate to the repository root and install as an editable package:
+Navigate to the repository root and use the Makefile:
 
 ```bash
 cd /path/to/cruijff_kit
-pip install -e .
+make install
 ```
 
-This allows you to use cruijff_kit utilities and import custom recipes in your Python code.
+This will install all dependencies including:
+- PyTorch with CUDA 12.6 support
+- torchtune (nightly build with validation loss tracking)
+- All core packages (torchao, wandb, h5py, inspect-ai, inspect-viz, datasets, peft, transformers, scikit-learn, matplotlib)
 
-### 7. Install GitHub CLI (For Contributors Only)
-
-If you plan to contribute to cruijff_kit, install the GitHub CLI for managing issues and pull requests:
+**For contributors**, use `make install-dev` to also install testing tools (pytest, pytest-cov):
 
 ```bash
-conda install -c conda-forge gh -y
+make install-dev  # Auto-installs gh via conda if in conda environment
 ```
+
+**Note:** If using conda, GitHub CLI (gh) will be installed automatically. If not using conda, you'll be prompted to install it manually (optional but helpful). See https://github.com/cli/cli#installation
 
 ## Verify Installation
 
