@@ -25,6 +25,18 @@ def parse_epochs(value):
             raise argparse.ArgumentTypeError(f"Invalid epochs format: {value}")
 
 
+def calculate_lora_alpha(lora_rank):
+    """Calculate LoRA alpha from LoRA rank.
+
+    Args:
+        lora_rank: The LoRA rank value
+
+    Returns:
+        LoRA alpha value (always 2 * rank)
+    """
+    return lora_rank * 2
+
+
 def validate_lr_scheduler(scheduler_name):
     """Validate learning rate scheduler name.
 
@@ -263,7 +275,7 @@ def main():
         elif key == "lora_rank":
             # Set both rank and alpha (alpha = 2 * rank)
             config["model"]["lora_rank"] = value
-            config["model"]["lora_alpha"] = value * 2
+            config["model"]["lora_alpha"] = calculate_lora_alpha(value)
         elif key == "lr":
             config["optimizer"]["lr"] = value
         elif key == "num_warmup_steps":

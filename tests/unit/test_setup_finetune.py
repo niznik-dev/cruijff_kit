@@ -4,6 +4,7 @@ import argparse
 import pytest
 from cruijff_kit.tools.torchtune.setup_finetune import (
     parse_epochs,
+    calculate_lora_alpha,
     validate_lr_scheduler,
     validate_dataset_type,
     construct_output_dir,
@@ -65,6 +66,16 @@ def test_parse_epochs_invalid_text():
     with pytest.raises(argparse.ArgumentTypeError) as exc_info:
         parse_epochs("invalid")
     assert "Invalid epochs format" in str(exc_info.value)
+
+
+# Tests for calculate_lora_alpha()
+
+def test_calculate_lora_alpha():
+    """Test LoRA alpha calculation (alpha = 2 * rank) for standard values."""
+    assert calculate_lora_alpha(8) == 16
+    assert calculate_lora_alpha(16) == 32
+    assert calculate_lora_alpha(32) == 64
+    assert calculate_lora_alpha(64) == 128
 
 
 # Tests for validate_lr_scheduler()
