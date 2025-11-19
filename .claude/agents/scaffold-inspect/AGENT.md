@@ -235,15 +235,15 @@ echo "Evaluation complete"
 
 ### Scenario 1: Fine-tuned Model with Config Integration
 
-Task supports `config_dir` parameter:
+Task supports `config_path` parameter:
 ```bash
 inspect eval cap_task.py@capitalization \\
   --model hf/local \\
-  -M model_path="/path/to/epoch_0" \\
-  -T config_dir="/path/to/epoch_0"
+  -M model_path="/absolute/path/to/ck-out-{run_name}/epoch_0" \\
+  -T config_path="/absolute/path/to/ck-out-{run_name}/setup_finetune.yaml"
 ```
 
-The task reads dataset path and system prompt from `../setup_finetune.yaml`
+**Use absolute paths** for `config_path` to avoid ambiguity. The task reads dataset path and system prompt from setup_finetune.yaml.
 
 ### Scenario 2: Base Model Evaluation
 

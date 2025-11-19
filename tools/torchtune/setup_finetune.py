@@ -9,8 +9,6 @@ from cruijff_kit.utils import run_names
 # Calculate paths relative to this script
 script_dir = Path(__file__).parent
 
-RANDOM_MODEL_RUN_NAME = run_names.generate_model_run_name()[0]
-
 # Skip these when writing the yaml file
 SLURM_ONLY = ['time', 'gpus', 'conda_env', 'account', 'partition', 'constraint']
 
@@ -27,247 +25,357 @@ def parse_epochs(value):
             raise argparse.ArgumentTypeError(f"Invalid epochs format: {value}")
 
 
-parser = argparse.ArgumentParser()
+# Used for boolean arguments to accept flexible input
+def parse_bool(value):
+    """Parse boolean values from strings or booleans.
 
-# ----- Config File -----
-parser.add_argument("--config_file", type=str, default="setup_finetune.yaml", help="Path to YAML configuration file. Values from this file will be used as defaults, and can be overridden by CLI arguments.")
+    Args:
+        value: String or boolean to parse
 
-# ----- Required YAML Args Reused in Templating -----
-parser.add_argument("--my_wandb_project", type=str, default="PredictingZygosity", help="Project for when results are synced to wandb")
-parser.add_argument("--my_wandb_run_name", type=str, help="Name for when results are synced to wandb; if not provided, a random name will be generated")
-parser.add_argument("--input_formatting", type=str, default="raw", help="Name of the folder where your input files are stored within input_dir; useful for multiple formatting styles (e.g. difference vs raw values). If same directory, set to empty string.")
+    Returns:
+        Boolean value
 
-parser.add_argument("--dataset_label", type=str, default="tune_dataset", help="Name of the dataset file (without extension) or folder (either should be in input_dir)")
-parser.add_argument("--dataset_ext", type=str, default="", help="Extension of the dataset file (e.g. .json or .parquet)")
+    Raises:
+        argparse.ArgumentTypeError: If value cannot be parsed as boolean
 
-parser.add_argument("--experiment_name", type=str, default="", help="Name of the experiment/sanity_check (used to group outputs in ck-outputs/{experiment_name}/). If not provided, outputs go directly to output_dir_base.")
-parser.add_argument("--output_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/", help="Full path to the output file folders (final output folder will be 'ck-out-' + my_wandb_name within this folder)")
-parser.add_argument("--input_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/zyg_in/", help="Full path to the input file folders")
-parser.add_argument("--models_dir", type=str, default="/scratch/gpfs/MSALGANIK/pretrained-llms/", help="Full path to the model file folders")
+    Accepts: true/false, True/False, 1/0, yes/no (case-insensitive)
+    """
+    if isinstance(value, bool):
+        return value  # Already a boolean (e.g., from YAML config)
 
-# ----- Optional YAML Args -----
-parser.add_argument("--batch_size", type=int, default=4, help="Batch size for training")
-parser.add_argument("--epochs", type=int, default=1, help="Number of epochs to train for")
-parser.add_argument("--save_adapter_weights_only", type=str, default="false", help="Whether to save only the adapter weights (true/false)")
-parser.add_argument("--save_last_epoch_only", type=str, default="false", help="Whether to save only the last epoch (true/false)")
-parser.add_argument("--stash_adapter_weights", type=str, default="false", help="Whether to stash adapter files in subdirectory to avoid confusing inspect-ai (true/false)")
-parser.add_argument("--epochs_to_save", type=parse_epochs, default="all", help="Comma delimited epochs to save checkpoints at; can also be 'all' or 'none'.")
-parser.add_argument("--max_steps_per_epoch", type=int, help="Maximum steps per epoch (useful for debugging)")
-parser.add_argument("--log_every_n_steps", type=int, default=5, help="How often to log (in steps)")
-parser.add_argument("--run_val_every_n_steps", type=int, default=0, help="How often to run validation (in steps)")
-parser.add_argument("--system_prompt", type=str, default="", help="System prompt to use (if any)")
-parser.add_argument("--train_on_input", type=str, default="false", help="Whether to train on the input data (true/false)")
+    value_lower = str(value).lower()
+    if value_lower in ('true', '1', 'yes'):
+        return True
+    elif value_lower in ('false', '0', 'no'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError(
+            f"Boolean value expected. Got: '{value}'. "
+            "Valid values: true/false, yes/no, 1/0 (case-insensitive)"
+        )
 
-# ------ Model/Training Args -----
-parser.add_argument("--lora_rank", type=int, default=64, help="LoRA rank (alpha will be auto-calculated as 2*rank)")
-parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate for optimizer")
-parser.add_argument("--num_warmup_steps", type=int, default=100, help="Number of warmup steps for learning rate scheduler")
-parser.add_argument("--lr_scheduler", type=str, default="get_cosine_schedule_with_warmup", help="Learning rate scheduler function name (without 'torchtune.training.lr_schedulers.' prefix)")
-parser.add_argument("--dataset_type", type=str, default="instruct_dataset", help="Dataset type function name (without 'torchtune.datasets.' prefix)")
 
-# ------ Slurm Args -----
-parser.add_argument("--time", type=str, default="00:15:00", help="Time to run the job (HH:MM:SS)")
-parser.add_argument("--gpus", type=int, default=1, help="Number of GPUs to use")
-parser.add_argument("--conda_env", type=str, default="cruijff", help="Name of the conda environment to use")
-parser.add_argument("--venv", type=str, default="", help="Path to the virtual environment to use (if not using conda)")
-parser.add_argument("--modules", type=str, default="", help="Modules to load before running the script, separated by commas (e.g. '2024,Python/3.12.3')")
+def calculate_lora_alpha(lora_rank):
+    """Calculate LoRA alpha from LoRA rank.
 
-parser.add_argument("--account", type=str, help="Slurm account to use")
-parser.add_argument("--partition", type=str, help="Slurm partition to use")
-parser.add_argument("--constraint", type=str, help="Slurm constraint to use")
+    Args:
+        lora_rank: The LoRA rank value
 
-parser.add_argument("--custom_recipe", type=str, help="Full name of a custom recipe file in the repo's custom_recipes folder to use for fine-tuning")
+    Returns:
+        LoRA alpha value (always 2 * rank)
+    """
+    return lora_rank * 2
 
-args = parser.parse_args()
 
-# Load config file if it exists and merge with CLI arguments
-config_data = {}
-if args.config_file and os.path.exists(args.config_file):
-    with open(args.config_file, "r") as f:
-        config_data = yaml.safe_load(f) or {}
+def validate_lr_scheduler(scheduler_name):
+    """Validate learning rate scheduler name.
 
-    # For each argument, use CLI value if provided, otherwise use config file value
-    for key, value in config_data.items():
-        # Only use config value if the argument wasn't explicitly provided on CLI
-        # We check if it's still at its default value
-        if hasattr(args, key):
-            default_value = parser.get_default(key)
-            current_value = getattr(args, key)
-            # If current value equals default, use config file value
-            if current_value == default_value:
-                setattr(args, key, value)
+    Args:
+        scheduler_name: Name of the learning rate scheduler (without prefix)
 
-# Validate lr_scheduler (after config file has been loaded and merged)
-VALID_LR_SCHEDULERS = [
-    'get_cosine_schedule_with_warmup',
-    'get_linear_schedule_with_warmup',
-    'get_constant_schedule_with_warmup',
-    'get_exponential_schedule_with_warmup'
-]
+    Raises:
+        ValueError: If scheduler_name is not in the list of valid schedulers
+    """
+    VALID_LR_SCHEDULERS = [
+        'get_cosine_schedule_with_warmup',
+        'get_linear_schedule_with_warmup',
+        'get_constant_schedule_with_warmup',
+        'get_exponential_schedule_with_warmup'
+    ]
 
-if args.lr_scheduler not in VALID_LR_SCHEDULERS:
-    raise ValueError(f"Invalid lr_scheduler: '{args.lr_scheduler}'. Must be one of: {', '.join(VALID_LR_SCHEDULERS)}")
+    if scheduler_name not in VALID_LR_SCHEDULERS:
+        raise ValueError(
+            f"Invalid lr_scheduler: '{scheduler_name}'. "
+            f"Must be one of: {', '.join(VALID_LR_SCHEDULERS)}"
+        )
 
-# Validate dataset_type (after config file has been loaded and merged)
-VALID_DATASET_TYPES = [
-    'instruct_dataset',
-    'chat_dataset',
-    'text_completion_dataset'
-]
 
-if args.dataset_type not in VALID_DATASET_TYPES:
-    raise ValueError(f"Invalid dataset_type: '{args.dataset_type}'. Must be one of: {', '.join(VALID_DATASET_TYPES)}")
+def validate_dataset_type(dataset_type):
+    """Validate dataset type.
 
-model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
-username = os.environ.get("USER")
+    Args:
+        dataset_type: Name of the dataset type (without prefix)
 
-# First edit the yaml template
-with open(f"{script_dir}/templates/finetune_template.yaml", "r") as f:
-    config = yaml.safe_load(f)
+    Raises:
+        ValueError: If dataset_type is not in the list of valid types
+    """
+    VALID_DATASET_TYPES = [
+        'instruct_dataset',
+        'chat_dataset',
+        'text_completion_dataset'
+    ]
 
-for key, value in vars(args).items():
-    if key in SLURM_ONLY:
-        continue
-    # Special cases first
-    elif key == "my_wandb_run_name":
-        config["my_wandb_run_name"] = model_run_name
-    elif key == "input_dir_base":
-        config["input_dir"] = value + args.input_formatting + ("/" if args.input_formatting else "")
-    elif key == "output_dir_base":
-        # Ensure output_dir_base ends with /
-        if not value.endswith('/'):
-            value += '/'
+    if dataset_type not in VALID_DATASET_TYPES:
+        raise ValueError(
+            f"Invalid dataset_type: '{dataset_type}'. "
+            f"Must be one of: {', '.join(VALID_DATASET_TYPES)}"
+        )
 
-        # If experiment_name is provided, group outputs under that directory
-        if args.experiment_name:
-            full_output_dir = value + args.experiment_name + "/ck-out-" + model_run_name + "/"
-        else:
-            # Backwards compatibility: outputs go directly to output_dir_base
-            full_output_dir = value + "ck-out-" + model_run_name + "/"
-        config["output_dir"] = full_output_dir
-    elif key == "experiment_name":
-        pass  # Handled in output_dir_base
-    elif key == "dataset_label":
-        config["dataset_label"] = value
-        if args.dataset_ext == '.parquet':
-            # For parquet, we just need to add the filenames inside the folder (dataset_label is the folder name here)
-            config["dataset"]["data_dir"] += '/train.parquet'
-            if "dataset_val" in config:
-                config["dataset_val"]["data_dir"] += '/validation.parquet'
-        elif args.dataset_ext == '.json':
-            # For json, we need to change source and rename data_dir to data_files
-            config["dataset"]["source"] = "json"
-            config["dataset"]["data_files"] = config["dataset"].pop("data_dir")
-            if "dataset_val" in config:
-                config["dataset_val"]["source"] = "json"
-                config["dataset_val"]["data_files"] = config["dataset_val"].pop("data_dir")
 
-            if args.dataset_type == 'instruct_dataset':
-                # For instruct, we need to add .json to data_files because we use a single file instead of a folder
-                # and change split to field
-                config["dataset"]["data_files"] += '.json'
-                config["dataset"]["field"] = config["dataset"].pop("split")
-                if "dataset_val" in config:
-                    config["dataset_val"]["data_files"] += '.json'
-                    config["dataset_val"]["field"] = config["dataset_val"].pop("split")
-            else:
-                # For chat, we need to remove split and add the filenames inside the folder (dataset_label is the folder name here)
-                config["dataset"]["data_files"] += '/train.json'
-                config["dataset"].pop("split")
-                if "dataset_val" in config:
-                    config["dataset_val"]["data_files"] += '/validation.json'
-                    config["dataset_val"].pop("split")
-    elif key == "dataset_ext":
-        pass  # Handled in dataset_label
-    elif key == "system_prompt":
-        if value:
-            config["dataset"]["new_system_prompt"] = value
-            config["dataset_val"]["new_system_prompt"] = value
-    # TODO - change these to actual booleans in argparse?
-    elif key == "save_adapter_weights_only":
-        config["save_adapter_weights_only"] = (value == "true")
-    elif key == "save_last_epoch_only":
-        config["save_last_epoch_only"] = (value == "true")
-    elif key == "stash_adapter_weights":
-        config["stash_adapter_weights"] = (value == "true")
-    elif key == "train_on_input":
-        config["dataset"]["train_on_input"] = (value == "true")
-    elif key == "lora_rank":
-        # Set both rank and alpha (alpha = 2 * rank)
-        config["model"]["lora_rank"] = value
-        config["model"]["lora_alpha"] = value * 2
-    elif key == "lr":
-        config["optimizer"]["lr"] = value
-    elif key == "num_warmup_steps":
-        config["lr_scheduler"]["num_warmup_steps"] = value
-    elif key == "lr_scheduler":
-        # Construct full component path
-        config["lr_scheduler"]["_component_"] = f"torchtune.training.lr_schedulers.{value}"
-    elif key == "dataset_type":
-        config["dataset"]["_component_"] = f"torchtune.datasets.{value}"
-        if value == 'chat_dataset':
-            config["dataset"]["conversation_column"] = "messages"
-            config["dataset"]["conversation_style"] = "openai"
+def construct_output_dir(output_dir_base, experiment_name, model_run_name):
+    """Construct the full output directory path.
+
+    Args:
+        output_dir_base: Base directory for outputs
+        experiment_name: Optional experiment name for grouping outputs
+        model_run_name: Name of this specific model run
+
+    Returns:
+        Full output directory path with trailing slash
+    """
+    # Ensure output_dir_base ends with /
+    if not output_dir_base.endswith('/'):
+        output_dir_base += '/'
+
+    # If experiment_name is provided, group outputs under that directory
+    if experiment_name:
+        return output_dir_base + experiment_name + "/ck-out-" + model_run_name + "/"
+    else:
+        # Backwards compatibility: outputs go directly to output_dir_base
+        return output_dir_base + "ck-out-" + model_run_name + "/"
+
+
+def configure_dataset_for_format(config, dataset_label, dataset_ext, dataset_type):
+    """Configure dataset paths and structure based on file format and type.
+
+    Args:
+        config: The configuration dictionary to modify
+        dataset_label: Name of the dataset file (without extension) or folder
+        dataset_ext: Extension of the dataset file (e.g., '.json' or '.parquet')
+        dataset_type: Type of dataset ('instruct_dataset', 'chat_dataset', etc.)
+
+    Returns:
+        Modified configuration dictionary
+    """
+    config["dataset_label"] = dataset_label
+
+    if dataset_ext == '.parquet':
+        # For parquet, add filenames inside the folder (dataset_label is the folder name)
+        config["dataset"]["data_dir"] += '/train.parquet'
         if "dataset_val" in config:
-            config["dataset_val"]["_component_"] = f"torchtune.datasets.{value}"
+            config["dataset_val"]["data_dir"] += '/validation.parquet'
+
+    elif dataset_ext == '.json':
+        # Change source and rename data_dir to data_files
+        config["dataset"]["source"] = "json"
+        config["dataset"]["data_files"] = config["dataset"].pop("data_dir")
+        if "dataset_val" in config:
+            config["dataset_val"]["source"] = "json"
+            config["dataset_val"]["data_files"] = config["dataset_val"].pop("data_dir")
+
+        if dataset_type == 'instruct_dataset':
+            # For instruct, use a single file and change split to field
+            config["dataset"]["data_files"] += '.json'
+            config["dataset"]["field"] = config["dataset"].pop("split")
+            if "dataset_val" in config:
+                config["dataset_val"]["data_files"] += '.json'
+                config["dataset_val"]["field"] = config["dataset_val"].pop("split")
+        else:
+            # For chat, remove split and add filenames inside the folder
+            config["dataset"]["data_files"] += '/train.json'
+            config["dataset"].pop("split")
+            if "dataset_val" in config:
+                config["dataset_val"]["data_files"] += '/validation.json'
+                config["dataset_val"].pop("split")
+
+    return config
+
+
+def create_parser():
+    """Create and return the argument parser."""
+    parser = argparse.ArgumentParser()
+
+    # ----- Config File -----
+    parser.add_argument("--config_file", type=str, default="setup_finetune.yaml", help="Path to YAML configuration file. Values from this file will be used as defaults, and can be overridden by CLI arguments.")
+
+    # ----- Required YAML Args Reused in Templating -----
+    parser.add_argument("--my_wandb_project", type=str, default="PredictingZygosity", help="Project for when results are synced to wandb")
+    parser.add_argument("--my_wandb_run_name", type=str, help="Name for when results are synced to wandb; if not provided, a random name will be generated")
+    parser.add_argument("--input_formatting", type=str, default="raw", help="Name of the folder where your input files are stored within input_dir; useful for multiple formatting styles (e.g. difference vs raw values). If same directory, set to empty string.")
+
+    parser.add_argument("--dataset_label", type=str, default="tune_dataset", help="Name of the dataset file (without extension) or folder (either should be in input_dir)")
+    parser.add_argument("--dataset_ext", type=str, default="", help="Extension of the dataset file (e.g. .json or .parquet)")
+
+    parser.add_argument("--experiment_name", type=str, default="", help="Name of the experiment/sanity_check (used to group outputs in ck-outputs/{experiment_name}/). If not provided, outputs go directly to output_dir_base.")
+    parser.add_argument("--output_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/", help="Full path to the output file folders (final output folder will be 'ck-out-' + my_wandb_name within this folder)")
+    parser.add_argument("--input_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/zyg_in/", help="Full path to the input file folders")
+    parser.add_argument("--models_dir", type=str, default="/scratch/gpfs/MSALGANIK/pretrained-llms/", help="Full path to the model file folders")
+
+    # ----- Optional YAML Args -----
+    parser.add_argument("--batch_size", type=int, default=4, help="Batch size for training")
+    parser.add_argument("--epochs", type=int, default=1, help="Number of epochs to train for")
+    parser.add_argument("--save_adapter_weights_only", type=parse_bool, default=False, help="Whether to save only the adapter weights (true/false)")
+    parser.add_argument("--save_last_epoch_only", type=parse_bool, default=False, help="Whether to save only the last epoch (true/false)")
+    parser.add_argument("--stash_adapter_weights", type=parse_bool, default=False, help="Whether to stash adapter files in subdirectory to avoid confusing inspect-ai (true/false)")
+    parser.add_argument("--epochs_to_save", type=parse_epochs, default="all", help="Comma delimited epochs to save checkpoints at; can also be 'all' or 'none'.")
+    parser.add_argument("--max_steps_per_epoch", type=int, help="Maximum steps per epoch (useful for debugging)")
+    parser.add_argument("--log_every_n_steps", type=int, default=5, help="How often to log (in steps)")
+    parser.add_argument("--run_val_every_n_steps", type=int, default=0, help="How often to run validation (in steps)")
+    parser.add_argument("--system_prompt", type=str, default="", help="System prompt to use (if any)")
+    parser.add_argument("--train_on_input", type=parse_bool, default=False, help="Whether to train on the input data (true/false)")
+
+    # ------ Model/Training Args -----
+    parser.add_argument("--lora_rank", type=int, default=64, help="LoRA rank (alpha will be auto-calculated as 2*rank)")
+    parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate for optimizer")
+    parser.add_argument("--num_warmup_steps", type=int, default=100, help="Number of warmup steps for learning rate scheduler")
+    parser.add_argument("--lr_scheduler", type=str, default="get_cosine_schedule_with_warmup", help="Learning rate scheduler function name (without 'torchtune.training.lr_schedulers.' prefix)")
+    parser.add_argument("--dataset_type", type=str, default="instruct_dataset", help="Dataset type function name (without 'torchtune.datasets.' prefix)")
+
+    # ------ Slurm Args -----
+    parser.add_argument("--time", type=str, default="00:15:00", help="Time to run the job (HH:MM:SS)")
+    parser.add_argument("--gpus", type=int, default=1, help="Number of GPUs to use")
+    parser.add_argument("--conda_env", type=str, default="cruijff", help="Name of the conda environment to use")
+    parser.add_argument("--venv", type=str, default="", help="Path to the virtual environment to use (if not using conda)")
+    parser.add_argument("--modules", type=str, default="", help="Modules to load before running the script, separated by commas (e.g. '2024,Python/3.12.3')")
+
+    parser.add_argument("--account", type=str, help="Slurm account to use")
+    parser.add_argument("--partition", type=str, help="Slurm partition to use")
+    parser.add_argument("--constraint", type=str, help="Slurm constraint to use")
+
+    parser.add_argument("--custom_recipe", type=str, help="Full name of a custom recipe file in the repo's custom_recipes folder to use for fine-tuning")
+
+    return parser
+
+
+def main():
+    """Main function to set up fine-tuning configuration and SLURM script."""
+    parser = create_parser()
+    args = parser.parse_args()
+
+    RANDOM_MODEL_RUN_NAME = run_names.generate_model_run_name()[0]
+
+    # Load config file if it exists and merge with CLI arguments
+    config_data = {}
+    if args.config_file and os.path.exists(args.config_file):
+        with open(args.config_file, "r") as f:
+            config_data = yaml.safe_load(f) or {}
+
+        # For each argument, use CLI value if provided, otherwise use config file value
+        for key, value in config_data.items():
+            # Only use config value if the argument wasn't explicitly provided on CLI
+            # We check if it's still at its default value
+            if hasattr(args, key):
+                default_value = parser.get_default(key)
+                current_value = getattr(args, key)
+                # If current value equals default, use config file value
+                if current_value == default_value:
+                    setattr(args, key, value)
+
+    # Validate lr_scheduler and dataset_type (after config file has been loaded and merged)
+    validate_lr_scheduler(args.lr_scheduler)
+    validate_dataset_type(args.dataset_type)
+
+    model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
+    username = os.environ.get("USER")
+
+    # First edit the yaml template
+    with open(f"{script_dir}/templates/finetune_template.yaml", "r") as f:
+        config = yaml.safe_load(f)
+
+    for key, value in vars(args).items():
+        if key in SLURM_ONLY:
+            continue
+        # Special cases first
+        elif key == "my_wandb_run_name":
+            config["my_wandb_run_name"] = model_run_name
+        elif key == "input_dir_base":
+            config["input_dir"] = value + args.input_formatting + ("/" if args.input_formatting else "")
+        elif key == "output_dir_base":
+            full_output_dir = construct_output_dir(value, args.experiment_name, model_run_name)
+            config["output_dir"] = full_output_dir
+        elif key == "experiment_name":
+            pass  # Handled in output_dir_base
+        elif key == "dataset_label":
+            config = configure_dataset_for_format(config, value, args.dataset_ext, args.dataset_type)
+        elif key == "dataset_ext":
+            pass  # Handled in dataset_label
+        elif key == "system_prompt":
+            if value:
+                config["dataset"]["new_system_prompt"] = value
+                config["dataset_val"]["new_system_prompt"] = value
+        elif key == "train_on_input":
+            # Special case: nested in dataset config
+            config["dataset"]["train_on_input"] = value
+        elif key == "lora_rank":
+            # Set both rank and alpha (alpha = 2 * rank)
+            config["model"]["lora_rank"] = value
+            config["model"]["lora_alpha"] = calculate_lora_alpha(value)
+        elif key == "lr":
+            config["optimizer"]["lr"] = value
+        elif key == "num_warmup_steps":
+            config["lr_scheduler"]["num_warmup_steps"] = value
+        elif key == "lr_scheduler":
+            # Construct full component path
+            config["lr_scheduler"]["_component_"] = f"torchtune.training.lr_schedulers.{value}"
+        elif key == "dataset_type":
+            config["dataset"]["_component_"] = f"torchtune.datasets.{value}"
             if value == 'chat_dataset':
-                config["dataset_val"]["conversation_column"] = "messages"
-                config["dataset_val"]["conversation_style"] = "openai"
-    # The rest are straightforward
-    else:
-        config[key] = value
+                config["dataset"]["conversation_column"] = "messages"
+                config["dataset"]["conversation_style"] = "openai"
+            if "dataset_val" in config:
+                config["dataset_val"]["_component_"] = f"torchtune.datasets.{value}"
+                if value == 'chat_dataset':
+                    config["dataset_val"]["conversation_column"] = "messages"
+                    config["dataset_val"]["conversation_style"] = "openai"
+        # The rest are straightforward
+        else:
+            config[key] = value
 
-if config["run_val_every_n_steps"] == 0:
-    # Remove all validation-related keys if not running validation
-    config.pop("dataset_val", None)
-    config.pop("run_val_every_n_steps", None)
+    if config["run_val_every_n_steps"] == 0:
+        # Remove all validation-related keys if not running validation
+        config.pop("dataset_val", None)
+        config.pop("run_val_every_n_steps", None)
 
-for key in ['input_dir', 'output_dir', 'models_dir']:
-    config[key] = config[key].replace("$USER", username)
+    for key in ['input_dir', 'output_dir', 'models_dir']:
+        config[key] = config[key].replace("$USER", username)
 
-with open("finetune.yaml", "w") as f:
-    yaml.dump(config, f, sort_keys=False)
+    with open("finetune.yaml", "w") as f:
+        yaml.dump(config, f, sort_keys=False)
 
-# Now create the slurm script
-with open(f"{script_dir}/templates/finetune_template.slurm", "r") as f:
-    slurm_script = f.read()
+    # Now create the slurm script
+    with open(f"{script_dir}/templates/finetune_template.slurm", "r") as f:
+        slurm_script = f.read()
 
-slurm_script = slurm_script.replace("<JOBNAME>", model_run_name)
-# TODO - lookup reasonable memory/time values based on model choice (create a table somewhere)
-slurm_script = slurm_script.replace("00:15:00", args.time)
-slurm_script = slurm_script.replace("<NETID>", username)
+    slurm_script = slurm_script.replace("<JOBNAME>", model_run_name)
+    # TODO - lookup reasonable memory/time values based on model choice (create a table somewhere)
+    slurm_script = slurm_script.replace("00:15:00", args.time)
+    slurm_script = slurm_script.replace("<NETID>", username)
 
-if args.gpus > 1:
-    slurm_script = slurm_script.replace("#SBATCH --cpus-per-task=1", "#SBATCH --cpus-per-task=" + str(args.gpus))
-    slurm_script = slurm_script.replace("#SBATCH --gres=gpu:1", "#SBATCH --gres=gpu:" + str(args.gpus))
-    slurm_script = slurm_script.replace("lora_finetune_single_device", "--nproc_per_node=" + str(args.gpus) + " lora_finetune_distributed")
-if args.account:
-    slurm_script = slurm_script.replace("##SBATCH --account=<ACT>", "#SBATCH --account=" + args.account)
-if args.partition:
-    slurm_script = slurm_script.replace("##SBATCH --partition=<PART>", "#SBATCH --partition=" + args.partition)
-if args.constraint:
-    slurm_script = slurm_script.replace("##SBATCH --constraint=<CONST>", "#SBATCH --constraint=" + args.constraint)
-if args.custom_recipe:
-    if args.gpus == 1:
-        slurm_script = slurm_script.replace("lora_finetune_single_device", args.custom_recipe + '.__main__')
-    else:
-        slurm_script = slurm_script.replace("lora_finetune_distributed", args.custom_recipe + '.__main__')
+    if args.gpus > 1:
+        slurm_script = slurm_script.replace("#SBATCH --cpus-per-task=1", "#SBATCH --cpus-per-task=" + str(args.gpus))
+        slurm_script = slurm_script.replace("#SBATCH --gres=gpu:1", "#SBATCH --gres=gpu:" + str(args.gpus))
+        slurm_script = slurm_script.replace("lora_finetune_single_device", "--nproc_per_node=" + str(args.gpus) + " lora_finetune_distributed")
+    if args.account:
+        slurm_script = slurm_script.replace("##SBATCH --account=<ACT>", "#SBATCH --account=" + args.account)
+    if args.partition:
+        slurm_script = slurm_script.replace("##SBATCH --partition=<PART>", "#SBATCH --partition=" + args.partition)
+    if args.constraint:
+        slurm_script = slurm_script.replace("##SBATCH --constraint=<CONST>", "#SBATCH --constraint=" + args.constraint)
+    if args.custom_recipe:
+        if args.gpus == 1:
+            slurm_script = slurm_script.replace("lora_finetune_single_device", args.custom_recipe + '.__main__')
+        else:
+            slurm_script = slurm_script.replace("lora_finetune_distributed", args.custom_recipe + '.__main__')
 
-slurm_script = slurm_script.replace("<CONDA_ENV>", args.conda_env)
-if args.venv:
-    slurm_script = slurm_script.replace(f"conda activate {args.conda_env}", f"source $PROJECT/venvs/{args.venv}/bin/activate")
-if args.modules:
-    slurm_script = "\n".join(
-        line for line in slurm_script.splitlines()
-        if "conda" not in line
-    )
-    module_string = ''
-    for m in args.modules.split(','):
-        module_string += f"\nmodule load {m.strip()}"
-    slurm_script = slurm_script.replace("module purge", "module purge" + module_string)
+    slurm_script = slurm_script.replace("<CONDA_ENV>", args.conda_env)
+    if args.venv:
+        slurm_script = slurm_script.replace(f"conda activate {args.conda_env}", f"source $PROJECT/venvs/{args.venv}/bin/activate")
+    if args.modules:
+        slurm_script = "\n".join(
+            line for line in slurm_script.splitlines()
+            if "conda" not in line
+        )
+        module_string = ''
+        for m in args.modules.split(','):
+            module_string += f"\nmodule load {m.strip()}"
+        slurm_script = slurm_script.replace("module purge", "module purge" + module_string)
 
-slurm_script = slurm_script.replace("<OUTPUT_DIR>", full_output_dir)
-slurm_script = slurm_script.replace("$USER", username)
+    slurm_script = slurm_script.replace("<OUTPUT_DIR>", full_output_dir)
+    slurm_script = slurm_script.replace("$USER", username)
 
-with open("finetune.slurm", "w") as f:
-    f.write(slurm_script)
+    with open("finetune.slurm", "w") as f:
+        f.write(slurm_script)
+
+
+if __name__ == "__main__":
+    main()
