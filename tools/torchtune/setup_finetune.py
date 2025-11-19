@@ -25,6 +25,36 @@ def parse_epochs(value):
             raise argparse.ArgumentTypeError(f"Invalid epochs format: {value}")
 
 
+# Used for boolean arguments to accept flexible input
+def parse_bool(value):
+    """Parse boolean values from strings or booleans.
+
+    Args:
+        value: String or boolean to parse
+
+    Returns:
+        Boolean value
+
+    Raises:
+        argparse.ArgumentTypeError: If value cannot be parsed as boolean
+
+    Accepts: true/false, True/False, 1/0, yes/no (case-insensitive)
+    """
+    if isinstance(value, bool):
+        return value  # Already a boolean (e.g., from YAML config)
+
+    value_lower = str(value).lower()
+    if value_lower in ('true', '1', 'yes'):
+        return True
+    elif value_lower in ('false', '0', 'no'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError(
+            f"Boolean value expected. Got: '{value}'. "
+            "Valid values: true/false, yes/no, 1/0 (case-insensitive)"
+        )
+
+
 def calculate_lora_alpha(lora_rank):
     """Calculate LoRA alpha from LoRA rank.
 
@@ -174,15 +204,15 @@ def create_parser():
     # ----- Optional YAML Args -----
     parser.add_argument("--batch_size", type=int, default=4, help="Batch size for training")
     parser.add_argument("--epochs", type=int, default=1, help="Number of epochs to train for")
-    parser.add_argument("--save_adapter_weights_only", type=str, default="false", help="Whether to save only the adapter weights (true/false)")
-    parser.add_argument("--save_last_epoch_only", type=str, default="false", help="Whether to save only the last epoch (true/false)")
-    parser.add_argument("--stash_adapter_weights", type=str, default="false", help="Whether to stash adapter files in subdirectory to avoid confusing inspect-ai (true/false)")
+    parser.add_argument("--save_adapter_weights_only", type=parse_bool, default=False, help="Whether to save only the adapter weights (true/false)")
+    parser.add_argument("--save_last_epoch_only", type=parse_bool, default=False, help="Whether to save only the last epoch (true/false)")
+    parser.add_argument("--stash_adapter_weights", type=parse_bool, default=False, help="Whether to stash adapter files in subdirectory to avoid confusing inspect-ai (true/false)")
     parser.add_argument("--epochs_to_save", type=parse_epochs, default="all", help="Comma delimited epochs to save checkpoints at; can also be 'all' or 'none'.")
     parser.add_argument("--max_steps_per_epoch", type=int, help="Maximum steps per epoch (useful for debugging)")
     parser.add_argument("--log_every_n_steps", type=int, default=5, help="How often to log (in steps)")
     parser.add_argument("--run_val_every_n_steps", type=int, default=0, help="How often to run validation (in steps)")
     parser.add_argument("--system_prompt", type=str, default="", help="System prompt to use (if any)")
-    parser.add_argument("--train_on_input", type=str, default="false", help="Whether to train on the input data (true/false)")
+    parser.add_argument("--train_on_input", type=parse_bool, default=False, help="Whether to train on the input data (true/false)")
 
     # ------ Model/Training Args -----
     parser.add_argument("--lora_rank", type=int, default=64, help="LoRA rank (alpha will be auto-calculated as 2*rank)")
@@ -263,15 +293,9 @@ def main():
             if value:
                 config["dataset"]["new_system_prompt"] = value
                 config["dataset_val"]["new_system_prompt"] = value
-        # TODO - change these to actual booleans in argparse?
-        elif key == "save_adapter_weights_only":
-            config["save_adapter_weights_only"] = (value == "true")
-        elif key == "save_last_epoch_only":
-            config["save_last_epoch_only"] = (value == "true")
-        elif key == "stash_adapter_weights":
-            config["stash_adapter_weights"] = (value == "true")
         elif key == "train_on_input":
-            config["dataset"]["train_on_input"] = (value == "true")
+            # Special case: nested in dataset config
+            config["dataset"]["train_on_input"] = value
         elif key == "lora_rank":
             # Set both rank and alpha (alpha = 2 * rank)
             config["model"]["lora_rank"] = value

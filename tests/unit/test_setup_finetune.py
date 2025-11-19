@@ -4,6 +4,7 @@ import argparse
 import pytest
 from cruijff_kit.tools.torchtune.setup_finetune import (
     parse_epochs,
+    parse_bool,
     calculate_lora_alpha,
     validate_lr_scheduler,
     validate_dataset_type,
@@ -66,6 +67,57 @@ def test_parse_epochs_invalid_text():
     with pytest.raises(argparse.ArgumentTypeError) as exc_info:
         parse_epochs("invalid")
     assert "Invalid epochs format" in str(exc_info.value)
+
+
+# Tests for parse_bool()
+
+@pytest.mark.parametrize("value,expected", [
+    ("true", True),
+    ("True", True),
+    ("TRUE", True),
+    ("1", True),
+    ("yes", True),
+    ("Yes", True),
+    ("YES", True),
+])
+def test_parse_bool_true_values(value, expected):
+    """Test that various true representations are parsed correctly."""
+    assert parse_bool(value) == expected
+
+
+@pytest.mark.parametrize("value,expected", [
+    ("false", False),
+    ("False", False),
+    ("FALSE", False),
+    ("0", False),
+    ("no", False),
+    ("No", False),
+    ("NO", False),
+])
+def test_parse_bool_false_values(value, expected):
+    """Test that various false representations are parsed correctly."""
+    assert parse_bool(value) == expected
+
+
+def test_parse_bool_already_boolean():
+    """Test that actual boolean values pass through unchanged."""
+    assert parse_bool(True) is True
+    assert parse_bool(False) is False
+
+
+def test_parse_bool_invalid_value():
+    """Test that invalid values raise ArgumentTypeError."""
+    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+        parse_bool("invalid")
+    assert "Boolean value expected" in str(exc_info.value)
+    assert "invalid" in str(exc_info.value)
+
+
+def test_parse_bool_invalid_numeric():
+    """Test that invalid numeric strings raise ArgumentTypeError."""
+    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
+        parse_bool("2")
+    assert "Boolean value expected" in str(exc_info.value)
 
 
 # Tests for calculate_lora_alpha()
