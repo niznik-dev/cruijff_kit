@@ -25,6 +25,120 @@ def parse_epochs(value):
             raise argparse.ArgumentTypeError(f"Invalid epochs format: {value}")
 
 
+def validate_lr_scheduler(scheduler_name):
+    """Validate learning rate scheduler name.
+
+    Args:
+        scheduler_name: Name of the learning rate scheduler (without prefix)
+
+    Raises:
+        ValueError: If scheduler_name is not in the list of valid schedulers
+    """
+    VALID_LR_SCHEDULERS = [
+        'get_cosine_schedule_with_warmup',
+        'get_linear_schedule_with_warmup',
+        'get_constant_schedule_with_warmup',
+        'get_exponential_schedule_with_warmup'
+    ]
+
+    if scheduler_name not in VALID_LR_SCHEDULERS:
+        raise ValueError(
+            f"Invalid lr_scheduler: '{scheduler_name}'. "
+            f"Must be one of: {', '.join(VALID_LR_SCHEDULERS)}"
+        )
+
+
+def validate_dataset_type(dataset_type):
+    """Validate dataset type.
+
+    Args:
+        dataset_type: Name of the dataset type (without prefix)
+
+    Raises:
+        ValueError: If dataset_type is not in the list of valid types
+    """
+    VALID_DATASET_TYPES = [
+        'instruct_dataset',
+        'chat_dataset',
+        'text_completion_dataset'
+    ]
+
+    if dataset_type not in VALID_DATASET_TYPES:
+        raise ValueError(
+            f"Invalid dataset_type: '{dataset_type}'. "
+            f"Must be one of: {', '.join(VALID_DATASET_TYPES)}"
+        )
+
+
+def construct_output_dir(output_dir_base, experiment_name, model_run_name):
+    """Construct the full output directory path.
+
+    Args:
+        output_dir_base: Base directory for outputs
+        experiment_name: Optional experiment name for grouping outputs
+        model_run_name: Name of this specific model run
+
+    Returns:
+        Full output directory path with trailing slash
+    """
+    # Ensure output_dir_base ends with /
+    if not output_dir_base.endswith('/'):
+        output_dir_base += '/'
+
+    # If experiment_name is provided, group outputs under that directory
+    if experiment_name:
+        return output_dir_base + experiment_name + "/ck-out-" + model_run_name + "/"
+    else:
+        # Backwards compatibility: outputs go directly to output_dir_base
+        return output_dir_base + "ck-out-" + model_run_name + "/"
+
+
+def configure_dataset_for_format(config, dataset_label, dataset_ext, dataset_type):
+    """Configure dataset paths and structure based on file format and type.
+
+    Args:
+        config: The configuration dictionary to modify
+        dataset_label: Name of the dataset file (without extension) or folder
+        dataset_ext: Extension of the dataset file (e.g., '.json' or '.parquet')
+        dataset_type: Type of dataset ('instruct_dataset', 'chat_dataset', etc.)
+
+    Returns:
+        Modified configuration dictionary
+    """
+    config["dataset_label"] = dataset_label
+
+    if dataset_ext == '.parquet':
+        # For parquet, add filenames inside the folder (dataset_label is the folder name)
+        config["dataset"]["data_dir"] += '/train.parquet'
+        if "dataset_val" in config:
+            config["dataset_val"]["data_dir"] += '/validation.parquet'
+
+    elif dataset_ext == '.json':
+        # Change source and rename data_dir to data_files
+        config["dataset"]["source"] = "json"
+        config["dataset"]["data_files"] = config["dataset"].pop("data_dir")
+        if "dataset_val" in config:
+            config["dataset_val"]["source"] = "json"
+            config["dataset_val"]["data_files"] = config["dataset_val"].pop("data_dir")
+
+        if dataset_type == 'instruct_dataset':
+            # For instruct, use a single file and change split to field
+            config["dataset"]["data_files"] += '.json'
+            config["dataset"]["field"] = config["dataset"].pop("split")
+            if "dataset_val" in config:
+                config["dataset_val"]["data_files"] += '.json'
+                config["dataset_val"]["field"] = config["dataset_val"].pop("split")
+        else:
+            # For chat, remove split and add filenames inside the folder
+            config["dataset"]["data_files"] += '/train.json'
+            config["dataset"].pop("split")
+            if "dataset_val" in config:
+                config["dataset_val"]["data_files"] += '/validation.json'
+                config["dataset_val"].pop("split")
+
+    return config
+
+
 def create_parser():
     """Create and return the argument parser."""
     parser = argparse.ArgumentParser()
@@ -105,26 +219,9 @@ def main():
                 if current_value == default_value:
                     setattr(args, key, value)
 
-    # Validate lr_scheduler (after config file has been loaded and merged)
-    VALID_LR_SCHEDULERS = [
-        'get_cosine_schedule_with_warmup',
-        'get_linear_schedule_with_warmup',
-        'get_constant_schedule_with_warmup',
-        'get_exponential_schedule_with_warmup'
-    ]
-
-    if args.lr_scheduler not in VALID_LR_SCHEDULERS:
-        raise ValueError(f"Invalid lr_scheduler: '{args.lr_scheduler}'. Must be one of: {', '.join(VALID_LR_SCHEDULERS)}")
-
-    # Validate dataset_type (after config file has been loaded and merged)
-    VALID_DATASET_TYPES = [
-        'instruct_dataset',
-        'chat_dataset',
-        'text_completion_dataset'
-    ]
-
-    if args.dataset_type not in VALID_DATASET_TYPES:
-        raise ValueError(f"Invalid dataset_type: '{args.dataset_type}'. Must be one of: {', '.join(VALID_DATASET_TYPES)}")
+    # Validate lr_scheduler and dataset_type (after config file has been loaded and merged)
+    validate_lr_scheduler(args.lr_scheduler)
+    validate_dataset_type(args.dataset_type)
 
     model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
     username = os.environ.get("USER")
@@ -142,49 +239,12 @@ def main():
         elif key == "input_dir_base":
             config["input_dir"] = value + args.input_formatting + ("/" if args.input_formatting else "")
         elif key == "output_dir_base":
-            # Ensure output_dir_base ends with /
-            if not value.endswith('/'):
-                value += '/'
-
-            # If experiment_name is provided, group outputs under that directory
-            if args.experiment_name:
-                full_output_dir = value + args.experiment_name + "/ck-out-" + model_run_name + "/"
-            else:
-                # Backwards compatibility: outputs go directly to output_dir_base
-                full_output_dir = value + "ck-out-" + model_run_name + "/"
+            full_output_dir = construct_output_dir(value, args.experiment_name, model_run_name)
             config["output_dir"] = full_output_dir
         elif key == "experiment_name":
             pass  # Handled in output_dir_base
         elif key == "dataset_label":
-            config["dataset_label"] = value
-            if args.dataset_ext == '.parquet':
-                # For parquet, we just need to add the filenames inside the folder (dataset_label is the folder name here)
-                config["dataset"]["data_dir"] += '/train.parquet'
-                if "dataset_val" in config:
-                    config["dataset_val"]["data_dir"] += '/validation.parquet'
-            elif args.dataset_ext == '.json':
-                # For json, we need to change source and rename data_dir to data_files
-                config["dataset"]["source"] = "json"
-                config["dataset"]["data_files"] = config["dataset"].pop("data_dir")
-                if "dataset_val" in config:
-                    config["dataset_val"]["source"] = "json"
-                    config["dataset_val"]["data_files"] = config["dataset_val"].pop("data_dir")
-
-                if args.dataset_type == 'instruct_dataset':
-                    # For instruct, we need to add .json to data_files because we use a single file instead of a folder
-                    # and change split to field
-                    config["dataset"]["data_files"] += '.json'
-                    config["dataset"]["field"] = config["dataset"].pop("split")
-                    if "dataset_val" in config:
-                        config["dataset_val"]["data_files"] += '.json'
-                        config["dataset_val"]["field"] = config["dataset_val"].pop("split")
-                else:
-                    # For chat, we need to remove split and add the filenames inside the folder (dataset_label is the folder name here)
-                    config["dataset"]["data_files"] += '/train.json'
-                    config["dataset"].pop("split")
-                    if "dataset_val" in config:
-                        config["dataset_val"]["data_files"] += '/validation.json'
-                        config["dataset_val"].pop("split")
+            config = configure_dataset_for_format(config, value, args.dataset_ext, args.dataset_type)
         elif key == "dataset_ext":
             pass  # Handled in dataset_label
         elif key == "system_prompt":
