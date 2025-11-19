@@ -14,7 +14,7 @@
 module load anaconda3/2025.6
 conda activate {conda_env}
 
-# Set model and config paths
+# CRITICAL: Paths MUST be absolute (start with /), never relative (../file)
 MODEL_PATH="{output_dir_base}/ck-out-{run_name}/epoch_{N}"
 CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
 

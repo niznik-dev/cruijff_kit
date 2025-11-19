@@ -141,13 +141,15 @@ elif eval['type'] == 'base':
 
 #### 5.2 Build Model Path
 
+**CRITICAL: All paths must be absolute (start with /), never relative (../file). SLURM working directories are unpredictable.**
+
 ```python
 if scenario == 'fine_tuned_with_config':
     model_path = f"{output_dir_base}/ck-out-{run_name}/epoch_{epoch_num}"
-    config_path = f"{experiment_dir}/{run_dir}/setup_finetune.yaml"
+    config_path = f"{experiment_dir}/{run_dir}/setup_finetune.yaml"  # absolute path required
 elif scenario == 'base_model':
     model_path = base_model_path  # From experiment_summary.md
-    config_path = f"{experiment_dir}/{run_dir}/setup_finetune.yaml"
+    config_path = f"{experiment_dir}/{run_dir}/setup_finetune.yaml"  # absolute path required
 ```
 
 #### 5.3 Generate SLURM Script
@@ -174,7 +176,7 @@ elif scenario == 'base_model':
 module load anaconda3/2025.6
 conda activate {conda_env}
 
-# Set model and config paths
+# CRITICAL: Paths must be absolute (start with /), never relative (../file)
 {if fine-tuned:}
 MODEL_PATH="{output_dir_base}/ck-out-{run_name}/epoch_{N}"
 CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
@@ -279,6 +281,10 @@ Duration: {elapsed_time}
 - ✓ scaffold.log contains complete process details
 
 ## Important Notes
+
+### Path Requirements
+
+**CRITICAL: All paths in SLURM scripts must be absolute (start with /), never relative.** SLURM working directories are unpredictable; relative paths like `../setup_finetune.yaml` will fail with FileNotFoundError. This applies to MODEL_PATH, CONFIG_PATH, and all paths passed via -T or -M parameters.
 
 ### Epoch Indexing
 
