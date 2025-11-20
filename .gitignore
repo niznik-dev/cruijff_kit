@@ -5,6 +5,11 @@
 __pycache__/
 cruijff_kit.egg-info/
 
+# Testing and coverage
+.coverage
+.pytest_cache/
+htmlcov/
+
 # Environment-specific configuration (users should customize from template)
 claude.local.md
 
