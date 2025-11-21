@@ -82,22 +82,22 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 
 ## Workflow Testing
 
-To validate that the complete workflow (design, scaffold, run) is functioning correctly after changes to skills or documentation, use the integration test specification:
+To validate that the complete workflow (design, scaffold, run) is functioning correctly after changes to skills or documentation, use the integration test specifications.
 
-**Test Specification:** `.claude/workflow_test.yaml`
-
-**Invocation:** When user says "test the workflow" or similar, read the specification and execute:
-1. `design-experiment` skill with parameters from the spec
-2. `scaffold-experiment` skill on the designed experiment
-3. `run-experiment` skill to submit jobs and monitor completion
+**Invocation:** When user says "test the workflow" or similar:
+1. **Always use AskUserQuestion** to prompt which test variant to run
+2. Read the appropriate specification file
+3. Execute: `design-experiment` → `scaffold-experiment` → `run-experiment`
 4. Verify expected outputs match validation checks
 
-**Test Details:**
-- **Experiment:** Minimal capitalization fine-tuning (2 runs: rank4, rank8)
-- **Model:** Llama-3.2-1B-Instruct (fast training)
-- **Dataset:** words_5L_80P_1000.json (small, reliable)
-- **Duration:** ~12 minutes (1 epoch training + evaluation)
-- **Location:** ck-sanity-checks/ (automatically cleaned up separately from research)
+### Test Variants
+
+| Option | Spec File | Runs | Duration | Tests |
+|--------|-----------|------|----------|-------|
+| **LoRA Comparison** | `.claude/workflow_test.yaml` | 2 fine-tuned (rank4, rank8) | ~12 min | Parameter variations |
+| **Base vs Fine-tuned** | `.claude/workflow_test_base.yaml` | 1 base + 1 fine-tuned (rank4) | ~12 min | Base model evaluation |
+
+Both use Llama-3.2-1B-Instruct with words_5L_80P_1000.json in `ck-sanity-checks/`
 
 **Purpose:** Catch regressions in skills, ensure documentation changes don't break workflows, validate end-to-end integration.
 

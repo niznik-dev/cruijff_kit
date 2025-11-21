@@ -60,7 +60,7 @@ MODEL_PATH="{output_dir_base}/ck-out-{run_name}/epoch_{N}"
 CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
 {if base model:}
 MODEL_PATH="{base_model_path}"
-CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
+CONFIG_PATH="{experiment_dir}/{run_dir}/eval_config.yaml"
 
 # Run inspect-ai evaluation
 cd {experiment_dir}/{run_dir}/eval
@@ -134,3 +134,7 @@ chmod +x {experiment_dir}/{run_dir}/eval/{task_name}_epoch{N}.slurm
 - Model paths reference fine-tuning output directories that don't exist yet (created during training)
 - System prompt consistency between training and evaluation is critical
 - Evaluation logs will be written to `{run_dir}/eval/logs/` subdirectories
+- **Base/control models**: Use `eval_config.yaml` (created during scaffolding) instead of `setup_finetune.yaml`
+  - This file contains dataset path, system prompt, and format info needed for evaluation
+  - Located at `{experiment_dir}/{run_dir}/eval_config.yaml`
+  - Created automatically for runs where Type = "Control" or "Base" in the All Runs table
