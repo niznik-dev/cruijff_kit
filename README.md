@@ -62,12 +62,6 @@ make install-dev  # Auto-installs gh via conda if in conda environment
 
 **Installation time**: Approximately 5-10 minutes depending on network speed.
 
-**What gets installed:**
-- PyTorch with CUDA 12.6 support
-- torchtune (nightly build with validation loss tracking)
-- Core packages: torchao, wandb, h5py, inspect-ai, inspect-viz, datasets, peft, transformers, scikit-learn, matplotlib
-- Dev packages (if using `make install-dev`): pytest, pytest-cov
-
 ## Step-by-Step Instructions
 
 ### 1. HPC-Specific Setup (Optional)
@@ -88,22 +82,17 @@ conda create -n cruijff python=3.13 -y && conda activate cruijff
 
 ### 3. Install cruijff_kit
 
-Navigate to the repository root and use the Makefile:
+**For regular users**, use `make install`
 
 ```bash
 cd /path/to/cruijff_kit
 make install
 ```
-
-This will install all dependencies including:
-- PyTorch with CUDA 12.6 support
-- torchtune (nightly build with validation loss tracking)
-- All core packages (torchao, wandb, h5py, inspect-ai, inspect-viz, datasets, peft, transformers, scikit-learn, matplotlib)
-
 **For contributors**, use `make install-dev` to also install testing tools (pytest, pytest-cov):
 
 ```bash
-make install-dev  # Auto-installs gh via conda if in conda environment
+cd /path/to/cruijff_kit
+make install-dev
 ```
 
 **Note:** If using conda, GitHub CLI (gh) will be installed automatically. If not using conda, you'll be prompted to install it manually (optional but helpful). See https://github.com/cli/cli#installation
