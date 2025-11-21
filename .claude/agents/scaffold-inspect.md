@@ -275,6 +275,8 @@ echo "Evaluation complete"
 
 ### Script Configuration
 
+**Important:** Write the shebang `#!/bin/bash` as the first line with NO escaping (not `#\!/bin/bash`).
+
 **SLURM parameters:**
 - Time: Default to 30 minutes (adjust based on experiment estimates if available)
 - GPUs: 1 (evaluation is typically single-GPU)
@@ -494,6 +496,7 @@ See `scaffold-inspect.log` for detailed creation log.
 Before reporting success, verify:
 - ✓ All eval directories created
 - ✓ Each evaluation has corresponding SLURM script
+- ✓ Scripts start with `#!/bin/bash` (no backslash escape)
 - ✓ Scripts reference correct model paths
 - ✓ Scripts reference correct task scripts
 - ✓ System prompts match training configuration
