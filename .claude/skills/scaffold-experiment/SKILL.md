@@ -152,41 +152,45 @@ Invoke the appropriate preparation subagent based on tool specification in exper
 
 **Prompt template for scaffold-torchtune:**
 ```
-Set up torchtune fine-tuning configurations for all runs in the experiment located at {experiment_dir}.
+Set up torchtune fine-tuning configurations for all FINE-TUNED runs in the experiment located at {experiment_dir}.
 
 Your tasks:
 1. Read experiment_summary.md to extract run configurations
 2. Read claude.local.md for environment-specific settings
-3. For each fine-tuning run:
+3. Identify which runs are fine-tuned (Type = "Fine-tuned") vs control (Type = "Control")
+4. For ONLY the fine-tuned runs (skip control/base model runs):
    - Create run directory with descriptive name based on varying parameters
    - Generate setup_finetune.yaml from appropriate template
    - Execute setup_finetune.py to generate finetune.yaml and finetune.slurm
    - Verify outputs were created successfully
-4. Create a detailed log at {experiment_dir}/scaffold-torchtune.log
-5. Verify that parameters in generated finetune.yaml files match directory names
+5. For control/base model runs: Create ONLY the run directory (no training configs needed)
+6. Create a detailed log at {experiment_dir}/scaffold-torchtune.log
+7. Verify that parameters in generated finetune.yaml files match directory names
 
 Report back:
-- Summary of all created runs (directory names)
+- Summary of all created runs (directory names and what was generated)
 - Any errors or warnings encountered
 - Verification results showing parameter correctness
 - Path to the log file for detailed information
 ```
 
 **What scaffold-torchtune does:**
-- Creates run directories (e.g., `rank8_lr1e-5/`, `rank16_lr5e-5/`)
-- Generates `setup_finetune.yaml` for each run
-- Executes `setup_finetune.py` to create `finetune.yaml` and `finetune.slurm`
+- Creates run directories for all runs (e.g., `rank8_lr1e-5/`, `rank16_lr5e-5/`, `base_model/`)
+- For fine-tuned runs: Generates `setup_finetune.yaml`, executes `setup_finetune.py` to create `finetune.yaml` and `finetune.slurm`
+- For control/base runs: Creates directory only (no training configs)
 - Creates `scaffold-torchtune.log` with detailed process log
 - Verifies parameter correctness in generated files
 
 **Expected output structure:**
 ```
 {experiment_dir}/
-├── rank8_lr1e-5/
+├── base_model/                    # Control run (directory only)
+│   └── (no training configs)
+├── rank8_lr1e-5/                  # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
-├── rank16_lr5e-5/
+├── rank16_lr5e-5/                 # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
@@ -233,14 +237,21 @@ Report back:
 **Expected output structure:**
 ```
 {experiment_dir}/
-├── rank8_lr1e-5/
+├── base_model/                    # Control run
+│   └── eval/
+│       ├── capitalization_epoch0.slurm
+│       └── logs/
+├── rank8_lr1e-5/                  # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   └── eval/
 │       ├── capitalization_epoch0.slurm
 │       └── logs/
-├── rank16_lr5e-5/
+├── rank16_lr5e-5/                 # Fine-tuned run
+│   ├── setup_finetune.yaml
+│   ├── finetune.yaml
+│   ├── finetune.slurm
 │   └── eval/
 │       ├── capitalization_epoch0.slurm
 │       └── logs/

@@ -35,6 +35,28 @@ Extract:
 - **Dataset path** - If specified and different from training
 - **Description** - For documentation
 
+## Parsing the "All Runs" Table for Base/Control Models
+
+**Purpose:** Identify which runs are base/control models (not fine-tuned) to create `eval_config.yaml` for them.
+
+**Example table format:**
+```markdown
+| Run Name | Model | LoRA Rank | Type | Est. Time |
+|----------|-------|-----------|------|-----------|
+| Llama-3.2-1B-Instruct_rank4 | Llama-3.2-1B-Instruct | 4 | Fine-tuned | ~10s |
+| Llama-3.2-1B-Instruct_base | Llama-3.2-1B-Instruct | - | Control | N/A |
+```
+
+**Detection logic:**
+- Look for `Type` column = "Control" or "Base"
+- These runs have no LoRA rank (or LoRA Rank = "-")
+- They won't have `setup_finetune.yaml` (no fine-tuning), so scaffold-inspect must create `eval_config.yaml`
+
+**Extract for each base/control run:**
+- Run name (e.g., "Llama-3.2-1B-Instruct_base")
+- Model path (original base model, not a checkpoint)
+- System prompt (may differ per run for comparison experiments)
+
 ## Parsing the "Evaluation Plan" Section
 
 Determine:
