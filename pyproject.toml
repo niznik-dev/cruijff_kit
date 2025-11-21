@@ -10,6 +10,7 @@ dependencies = [
     "torch",
     "torchtune",
     "torchao",
+    "torchvision",
     "wandb",
     "h5py",
     "inspect-ai",
