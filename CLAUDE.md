@@ -133,6 +133,8 @@ Follow the PR template at `.github/pull_request_template.md`:
 - Include Description, New Dependencies, and Testing Instructions sections
 - The "Closes #N" syntax automatically links and closes the issue when the PR is merged
 
+**Before creating a PR**, consult `.claude/PR_CHECKLIST.md` for a helpful reminder list of common things to verify (documentation updates, testing, git hygiene, etc.). This checklist is not mandatory but helps catch oversights.
+
 ### Commit Messages
 
 Follow this format for commits:
