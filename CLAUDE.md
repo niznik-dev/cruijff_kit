@@ -92,23 +92,12 @@ To validate that the complete workflow (design, scaffold, run) is functioning co
 
 ### Test Variants
 
-**Option 1: LoRA Comparison** (`.claude/workflow_test.yaml`)
-- **Purpose:** Test workflow with multiple fine-tuning runs
-- **Experiment:** 2 fine-tuned runs with different LoRA ranks (rank4, rank8)
-- **Model:** Llama-3.2-1B-Instruct
-- **Dataset:** words_5L_80P_1000.json
-- **Duration:** ~12 minutes
-- **Use case:** Validate fine-tuning workflow with parameter variations
+| Option | Spec File | Runs | Duration | Tests |
+|--------|-----------|------|----------|-------|
+| **LoRA Comparison** | `.claude/workflow_test.yaml` | 2 fine-tuned (rank4, rank8) | ~12 min | Parameter variations |
+| **Base vs Fine-tuned** | `.claude/workflow_test_base.yaml` | 1 base + 1 fine-tuned (rank4) | ~12 min | Base model evaluation |
 
-**Option 2: Base vs Fine-tuned** (`.claude/workflow_test_base.yaml`)
-- **Purpose:** Test workflow with base model comparison
-- **Experiment:** 1 base model (no training) + 1 fine-tuned run (rank4)
-- **Model:** Llama-3.2-1B-Instruct
-- **Dataset:** words_5L_80P_1000.json
-- **Duration:** ~12 minutes
-- **Use case:** Validate base model evaluation workflow alongside fine-tuning
-
-**Location:** Both tests run in `ck-sanity-checks/` (automatically cleaned up separately from research)
+Both use Llama-3.2-1B-Instruct with words_5L_80P_1000.json in `ck-sanity-checks/`
 
 **Purpose:** Catch regressions in skills, ensure documentation changes don't break workflows, validate end-to-end integration.
 
