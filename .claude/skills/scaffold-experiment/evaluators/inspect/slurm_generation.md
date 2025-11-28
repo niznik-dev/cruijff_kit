@@ -97,8 +97,6 @@ echo "Evaluation complete"
 ### Model Paths
 
 - **Fine-tuned**: `{output_dir_base}/ck-out-{run_dir}/epoch_{N}`
-  - **Important**: Use `{run_dir}` (actual directory name like `rank4`) NOT `{run_name}` (full YAML name like `Llama-3.2-1B-Instruct_rank4`)
-  - The run directory name is determined by scaffold-torchtune's directory naming algorithm (only varying parameters)
 - **Base model**: Original model path from experiment_summary.yaml
 
 ### Task Parameters

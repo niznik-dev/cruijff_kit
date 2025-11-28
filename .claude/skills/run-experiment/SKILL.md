@@ -4,9 +4,9 @@ Execute the complete experimental workflow - model optimization followed by eval
 
 ## Your Task
 
-Orchestrate experiment execution by reading tool specifications from experiment_summary.md and calling the appropriate tool modules **sequentially**:
+Orchestrate experiment execution by reading tool specifications from experiment_summary.yaml and calling the appropriate tool modules **sequentially**:
 
-1. Read experiment_summary.md to identify tools being used
+1. Read experiment_summary.yaml to identify tools being used
 2. Execute model optimization (fine-tuning) for all runs
 3. Wait for optimization to complete (REQUIRED)
 4. Execute model evaluation for all runs
@@ -15,7 +15,7 @@ This ensures the entire experiment runs from training through evaluation with pr
 
 ## Prerequisites
 
-- experiment_summary.md exists (from design-experiment skill)
+- experiment_summary.yaml exists (from design-experiment skill)
 - Scaffolding complete (from scaffold-experiment skill)
 - SLURM cluster access
 
@@ -25,7 +25,7 @@ This ensures the entire experiment runs from training through evaluation with pr
 
 1. **Locate experiment** - Find experiment directory (current dir or ask user)
 2. **Verify scaffolding** - Ensure configs exist for optimization and evaluation
-3. **Read tool specifications** - Parse experiment_summary.md "Tools" section
+3. **Read tool specifications** - Parse experiment_summary.yaml "tools" section
 4. **Execute optimization** - Call optimizer module (torchtune)
 5. **Execute evaluation** - Call evaluator module (inspect) - **MUST wait for optimization**
 6. **Create orchestration log** - Document process in `run-experiment.log`
@@ -49,21 +49,20 @@ For step-by-step execution details:
 
 ## Reading Tool Specifications
 
-Parse experiment_summary.md "Tools" section to identify frameworks:
+Parse experiment_summary.yaml "tools" section to identify frameworks:
 
 **Expected format:**
-```markdown
-## Tools
-
-- **Model Preparation:** torchtune
-- **Evaluation:** inspect-ai
+```yaml
+tools:
+  preparation: "torchtune"
+  evaluation: "inspect-ai"
 ```
 
 **Tool to module mapping:**
 - `torchtune` → [optimizers/torchtune/](optimizers/torchtune/)
 - `inspect-ai` → [evaluators/inspect/](evaluators/inspect/)
 
-**If Tools section missing:** Assume torchtune + inspect-ai (backward compatibility)
+**If tools section missing:** Assume torchtune + inspect-ai (backward compatibility)
 
 ## Sequential Execution
 
@@ -108,8 +107,8 @@ After successful execution:
 - Evaluator module logs (e.g., detailed evaluation execution)
 
 **Status updated:**
-- experiment_summary.md status tables fully populated
-- All job IDs, timestamps, states recorded
+- Run tracking logs updated with job IDs, timestamps, states
+- All execution details recorded in module logs
 
 **Artifacts created:**
 - Model checkpoints from optimization
@@ -121,7 +120,7 @@ After successful execution:
 
 ## Error Handling
 
-**If experiment_summary.md not found:**
+**If experiment_summary.yaml not found:**
 - Suggest running design-experiment skill first
 - Do not proceed
 
@@ -147,7 +146,7 @@ After successful execution:
 ## Validation Checklist
 
 Before reporting success, verify:
-- ✓ experiment_summary.md found and read
+- ✓ experiment_summary.yaml found and read
 - ✓ Scaffolding verified
 - ✓ Optimizer module executed and completed
 - ✓ Evaluator module executed and completed
@@ -193,7 +192,7 @@ Complete workflow: {total_duration}
 
 1. View results: `inspect view --port=$(get_free_port)`
 2. Export data: `inspect log export ...`
-3. Analyze results (see experiment_summary.md for workflow)
+3. Analyze results (see experiment_summary.yaml for configuration)
 ```
 
 ## Important Notes
