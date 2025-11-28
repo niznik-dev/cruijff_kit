@@ -9,9 +9,9 @@ You help users automatically set up the complete experimental infrastructure - b
 
 ## Your Task
 
-Orchestrate the scaffolding process by reading tool specifications from experiment_summary.md and launching the appropriate subagents in parallel:
+Orchestrate the scaffolding process by reading tool specifications from experiment_summary.yaml and launching the appropriate subagents in parallel:
 
-1. Read experiment_summary.md to identify which tools are being used
+1. Read experiment_summary.yaml to identify which tools are being used
 2. Launch the appropriate preparation subagent (currently only `scaffold-torchtune`)
 3. Launch the appropriate evaluation subagent (currently only `scaffold-inspect`)
 4. Wait for both subagents to complete and report their results
@@ -22,13 +22,13 @@ This ensures the entire experiment is ready to execute from training through eva
 - **Preparation:** torchtune only (via `scaffold-torchtune` subagent)
 - **Evaluation:** inspect-ai only (via `scaffold-inspect` subagent)
 
-**Future tool support:** This orchestrator is designed to route to different worker subagents based on tool choices documented in experiment_summary.md. Future iterations may support additional frameworks.
+**Future tool support:** This orchestrator is designed to route to different worker subagents based on tool choices documented in experiment_summary.yaml. Future iterations may support additional frameworks.
 
 ## Workflow
 
 1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
-2. **Verify experiment_summary.md exists** - Ensure design phase is complete
-3. **Read tool specifications** - Parse experiment_summary.md to identify preparation and evaluation tools
+2. **Verify experiment_summary.yaml exists** - Ensure design phase is complete
+3. **Read tool specifications** - Parse experiment_summary.yaml to identify preparation and evaluation tools
 4. **Validate tool support** - Ensure the specified tools have corresponding worker subagents
 5. **Launch preparation and evaluation subagents in parallel** - Use Task tool to launch both simultaneously
 6. **Wait for both subagents to complete** - Each will report back when done
@@ -38,7 +38,7 @@ This ensures the entire experiment is ready to execute from training through eva
 ## Finding the Experiment
 
 **If user runs skill without arguments:**
-- Check if current directory contains `experiment_summary.md`
+- Check if current directory contains `experiment_summary.yaml`
 - If not, ask user for the experiment directory path
 
 **If user provides a path:**
@@ -48,18 +48,20 @@ This ensures the entire experiment is ready to execute from training through eva
 
 Before beginning scaffolding, perform **minimal structural validation**:
 
-1. **experiment_summary.md exists:**
+1. **experiment_summary.yaml exists:**
    ```bash
-   ls {experiment_dir}/experiment_summary.md
+   ls {experiment_dir}/experiment_summary.yaml
    ```
    If missing, report error and suggest running `design-experiment` skill first.
    DO NOT launch subagents.
 
-2. **experiment_summary.md is readable:**
-   ```bash
-   head {experiment_dir}/experiment_summary.md
+2. **experiment_summary.yaml is readable:**
+   ```python
+   import yaml
+   with open(f"{experiment_dir}/experiment_summary.yaml") as f:
+       config = yaml.safe_load(f)
    ```
-   If unreadable, report error. DO NOT launch subagents.
+   If unreadable or invalid YAML, report error. DO NOT launch subagents.
 
 **Note on validation division:**
 - **Skill validates:** Structure only (file existence, readability, tool recognition)
@@ -75,42 +77,38 @@ The subagents (scaffold-torchtune, scaffold-inspect) will perform complete valid
 
 ## Reading Tool Specifications
 
-After verifying experiment_summary.md exists, read the "Tools" section to identify which frameworks are being used:
+After verifying experiment_summary.yaml exists, read the "tools" section to identify which frameworks are being used:
 
-**Expected format in experiment_summary.md:**
-```markdown
-## Tools
-
-This experiment uses the following tools:
-
-- **Model Preparation:** torchtune
-  - *Current status:* Only option available
-  - *Purpose:* Fine-tuning LLMs with LoRA
-  - *Used by:* `scaffold-torchtune` and `run-torchtune` skills
-
-- **Evaluation:** inspect-ai
-  - *Current status:* Only option available
-  - *Purpose:* Evaluating LLMs on custom tasks
-  - *Used by:* `scaffold-inspect` and `run-inspect` skills
+**Expected format in experiment_summary.yaml:**
+```yaml
+tools:
+  preparation: "torchtune"
+  evaluation: "inspect-ai"
 ```
 
 **Parsing logic:**
-1. Look for "Model Preparation:" line and extract the tool name (e.g., "torchtune")
-2. Look for "Evaluation:" line and extract the tool name (e.g., "inspect-ai")
+```python
+import yaml
+with open(f"{experiment_dir}/experiment_summary.yaml", 'r') as f:
+    config = yaml.safe_load(f)
+
+prep_tool = config['tools']['preparation']  # e.g., "torchtune"
+eval_tool = config['tools']['evaluation']   # e.g., "inspect-ai"
+```
 
 **Tool to subagent mapping:**
 - `torchtune` → `scaffold-torchtune` subagent
 - `inspect-ai` → `scaffold-inspect` subagent
 
 **Error handling:**
-- If "Tools" section is missing: Assume torchtune + inspect-ai (backward compatibility with older experiment summaries)
+- If "tools" section is missing: Report error (YAML schema requires it)
 - If tool name is not recognized: Report error and list supported tools
-- If experiment_summary.md format is unexpected: Report parsing error with details
+- If experiment_summary.yaml format is unexpected: Report parsing error with details
 
 **Logging:**
 ```
-[2025-10-27 14:30:00] READ_TOOL_SPECS: Parsing experiment_summary.md
-Details: Found Tools section
+[2025-10-27 14:30:00] READ_TOOL_SPECS: Parsing experiment_summary.yaml
+Details: Found tools section
 Result: Preparation=torchtune, Evaluation=inspect-ai
 Explanation: Will launch scaffold-torchtune and scaffold-inspect subagents
 ```
@@ -135,7 +133,7 @@ I'll launch both the torchtune and inspect-ai scaffolding subagents in parallel.
 
 **Subagent prompts should:**
 - Specify the experiment directory path
-- Ask the subagent to read experiment_summary.md
+- Ask the subagent to read experiment_summary.yaml
 - Request generation of all necessary configuration files
 - Ask for a detailed log file (scaffold-torchtune.log or scaffold-inspect.log)
 - Request a summary report of created files and any errors
@@ -148,16 +146,16 @@ I'll launch both the torchtune and inspect-ai scaffolding subagents in parallel.
 
 ### Step 1: Launch Preparation Subagent
 
-Invoke the appropriate preparation subagent based on tool specification in experiment_summary.md. Currently, this will be `scaffold-torchtune` for torchtune.
+Invoke the appropriate preparation subagent based on tool specification in experiment_summary.yaml. Currently, this will be `scaffold-torchtune` for torchtune.
 
 **Prompt template for scaffold-torchtune:**
 ```
 Set up torchtune fine-tuning configurations for all FINE-TUNED runs in the experiment located at {experiment_dir}.
 
 Your tasks:
-1. Read experiment_summary.md to extract run configurations
+1. Read experiment_summary.yaml to extract run configurations
 2. Read claude.local.md for environment-specific settings
-3. Identify which runs are fine-tuned (Type = "Fine-tuned") vs control (Type = "Control")
+3. Identify which runs are fine-tuned (type: "fine-tuned") vs control (type: "control")
 4. For ONLY the fine-tuned runs (skip control/base model runs):
    - Create run directory with descriptive name based on varying parameters
    - Generate setup_finetune.yaml from appropriate template
@@ -205,14 +203,14 @@ Report back:
 
 ### Step 2: Launch Evaluation Subagent
 
-Invoke the appropriate evaluation subagent based on tool specification in experiment_summary.md. Currently, this will be `scaffold-inspect` for inspect-ai.
+Invoke the appropriate evaluation subagent based on tool specification in experiment_summary.yaml. Currently, this will be `scaffold-inspect` for inspect-ai.
 
 **Prompt template for scaffold-inspect:**
 ```
 Set up inspect-ai evaluation configurations for all runs in the experiment located at {experiment_dir}.
 
 Your tasks:
-1. Read experiment_summary.md to extract evaluation configurations
+1. Read experiment_summary.yaml to extract evaluation configurations
 2. Read claude.local.md for environment-specific settings
 3. Verify that inspect-ai task scripts exist at the specified paths
 4. For each run and evaluation combination:
@@ -314,15 +312,15 @@ Result: {outcome}
 
 ```
 [2025-10-24 17:30:00] DISCOVER_EXPERIMENT: Found experiment
-Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/experiment_summary.md
+Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/experiment_summary.yaml
 Result: Experiment plan ready for scaffolding (8 fine-tuned runs, 1 evaluation task)
 
 [2025-10-24 17:30:05] VERIFY_PREREQUISITES: Checking required files
-Details: experiment_summary.md exists, claude.local.md found
+Details: experiment_summary.yaml exists, claude.local.md found
 Result: All prerequisites satisfied
 
 [2025-10-24 17:30:08] READ_TOOL_SPECS: Parsing tool specifications
-Details: Reading Tools section from experiment_summary.md
+Details: Reading Tools section from experiment_summary.yaml
 Result: Preparation tool = torchtune, Evaluation tool = inspect-ai
 Explanation: Will launch scaffold-torchtune and scaffold-inspect subagents
 
@@ -351,7 +349,7 @@ Next: User can proceed with run-experiment skill to execute workflow
 
 ## Error Handling
 
-**If experiment_summary.md not found:**
+**If experiment_summary.yaml not found:**
 - Report error to user
 - Suggest running `design-experiment` skill first
 - Do not proceed
@@ -371,7 +369,7 @@ Next: User can proceed with run-experiment skill to execute workflow
 **If both subagents fail:**
 - Report complete failure
 - Direct user to individual subagent logs (scaffold-torchtune.log, scaffold-inspect.log)
-- Suggest checking experiment_summary.md for completeness
+- Suggest checking experiment_summary.yaml for completeness
 - May need to run subagents individually for debugging
 
 **If a subagent doesn't report back:**
@@ -464,7 +462,7 @@ tail -f rank8_lr1e-5/slurm-*.out
 ## Validation Before Completion
 
 Before reporting success, verify:
-- ✓ experiment_summary.md was found and read
+- ✓ experiment_summary.yaml was found and read
 - ✓ scaffold-torchtune subagent was launched and reported back
 - ✓ scaffold-inspect subagent was launched and reported back
 - ✓ Both subagent log files exist (scaffold-torchtune.log, scaffold-inspect.log)
@@ -503,7 +501,7 @@ Before reporting success, verify:
 ### Relationship to Other Skills
 
 **Before this skill:**
-- `design-experiment` creates experiment_summary.md
+- `design-experiment` creates experiment_summary.yaml
 
 **After this skill:**
 - `run-experiment` executes the workflow (launches `run-torchtune` and `run-inspect` subagents)

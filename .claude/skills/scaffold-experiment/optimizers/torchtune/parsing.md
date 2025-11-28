@@ -1,70 +1,75 @@
 # Parsing Experiment Configuration
 
-This module handles parsing experiment_summary.md and claude.local.md to extract configuration needed for torchtune scaffolding.
+This module handles parsing experiment_summary.yaml and claude.local.md to extract configuration needed for torchtune scaffolding.
 
-## Parsing experiment_summary.md
+## Parsing experiment_summary.yaml
 
-Extract the following information:
+Load the YAML file and extract required fields:
 
-### Required Information
+```python
+import yaml
 
-1. **Experiment name** - From the title (line 1)
-2. **Experiment directory** - From Quick Reference → Paths → Experiment
-3. **All runs table** - Extract run names and their parameters
-4. **Model path** - From Resources → Models
-5. **Dataset path** - From Resources → Dataset
-6. **Common configuration:**
-   - Epochs (from Configuration section)
-   - GPUs (from Configuration section)
-   - Batch size (from Configuration section or run table)
-   - LoRA ranks (from run table)
-   - Learning rates (from run table if present)
-   - System prompt (from Configuration section)
-   - Validation during training (from Configuration section)
-
-### Parsing the "All Runs" Table
-
-The table format looks like:
-```markdown
-| Run Name | Model | LoRA Rank | Learning Rate | Batch Size | Type | Est. Time |
-|----------|-------|-----------|---------------|------------|------|-----------|
-| Llama-3.2-1B-Instruct_r8_lr1e-5 | Llama-3.2-1B-Instruct | 8 | 1e-5 | 4 | Fine-tuned | ~10s |
-| Llama-3.2-1B-Instruct_base | Llama-3.2-1B-Instruct | - | - | - | Control | N/A |
+with open(f"{experiment_dir}/experiment_summary.yaml", 'r') as f:
+    config = yaml.safe_load(f)
 ```
 
-**Important:**
-- Only process runs where `Type` = "Fine-tuned" (skip control runs)
-- Extract parameters from table columns
-- Parameters with `-` are not applicable (like control runs)
+### YAML Structure → Extracted Fields
 
-### Dataset Information
+| What | YAML Path | Example |
+|------|-----------|---------|
+| Experiment name | `config['experiment']['name']` | `"workflow_test_2025-11-27"` |
+| Experiment dir | `config['experiment']['directory']` | `"/scratch/.../ck-sanity-checks/..."` |
+| Model name | `config['models']['base'][0]['name']` | `"Llama-3.2-1B-Instruct"` |
+| Model path | `config['models']['base'][0]['path']` | `"/scratch/.../pretrained-llms/..."` |
+| Dataset path | `config['data']['training']['path']` | `"data/green/words_5L_80P_1000.json"` |
+| Dataset label | `config['data']['training']['label']` | `"words_5L_80P_1000"` |
+| Dataset format | `config['data']['training']['format']` | `"json"` |
+| Base recipe | `config['controls']['base_recipe']` | `"lora_finetune_single_device"` |
+| Epochs | `config['controls']['epochs']` | `1` |
+| Batch size (default) | `config['controls']['batch_size']` | `4` |
+| System prompt | `config['controls']['system_prompt']` | `""` or `"You are..."` |
+| Validation | `config['controls']['validation_during_training']` | `true` |
+| GPUs | `config['controls']['gpus']` | `1` |
+| LoRA alpha (default) | `config['controls'].get('lora_alpha')` | `16` |
+| Learning rate (default) | `config['controls'].get('learning_rate')` | `1e-4` |
+| Output base dir | `config['output']['base_directory']` | `"/scratch/.../sarahep"` |
+| WandB project | `config['output']['wandb_project']` | `"cruijff_kit"` |
 
-Extract from Resources → Dataset section:
-- **Dataset path** (full path including filename)
-- **Dataset label** - filename without extension (e.g., `words_4L_80P_300.json` → `words_4L_80P_300`)
-- **Dataset extension** (`.json` or `.parquet`)
-- **Parent directory** - will be used as `input_dir_base`
+### Processing Runs
+
+Filter for fine-tuned runs only (skip control runs):
+
+```python
+fine_tuned_runs = [r for r in config['runs'] if r['type'] == 'fine-tuned']
+
+for run in fine_tuned_runs:
+    run_name = run['name']
+    model = run['model']
+
+    # Get parameters: try run-specific first, fall back to controls
+    lora_rank = run['parameters'].get('lora_rank') or config['controls'].get('lora_rank')
+    learning_rate = run['parameters'].get('learning_rate') or config['controls'].get('learning_rate')
+    batch_size = run['parameters'].get('batch_size') or config['controls']['batch_size']
+```
+
+**Key point:** Parameters can be in `run['parameters']` (varied) or `config['controls']` (constant).
 
 ## Reading claude.local.md
 
 Extract environment-specific settings:
-- `conda_env` - Which conda environment to use
-- `output_dir_base` - Where to write model checkpoints
-- `my_wandb_project` - WandB project name
-- `scratch_dir` - User's scratch directory
-- `account` - SLURM account (under "SLURM Defaults") - **OPTIONAL**: only if user has multiple accounts and cluster requires explicit specification. Skip if not found.
+- `conda_env` - Conda environment name
+- `account` - SLURM account (OPTIONAL, skip if not found)
+
+**Note:** `output_dir_base` and `wandb_project` come from experiment_summary.yaml.
 
 ## Error Handling
 
-**If experiment_summary.md not found:**
-- Report error to user
-- Verify file exists before proceeding
+Check for required fields:
+```python
+if not config.get('runs'):
+    raise ValueError("No runs found in experiment_summary.yaml")
 
-**If required information missing from experiment_summary.md:**
-- Report specific missing fields
-- Ask user to provide missing information
-- Do not proceed with incomplete data
-
-**If claude.local.md not found or missing fields:**
-- Report which fields are missing
-- Ask user to provide values or update claude.local.md
+fine_tuned = [r for r in config['runs'] if r['type'] == 'fine-tuned']
+if not fine_tuned:
+    raise ValueError("No fine-tuned runs found (only control runs)")
+```

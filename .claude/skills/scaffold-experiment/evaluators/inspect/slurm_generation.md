@@ -56,7 +56,7 @@ conda activate {conda_env}
 
 # Set model and config paths
 {if fine-tuned:}
-MODEL_PATH="{output_dir_base}/ck-out-{run_name}/epoch_{N}"
+MODEL_PATH="{output_dir_base}/ck-out-{run_dir}/epoch_{N}"
 CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
 {if base model:}
 MODEL_PATH="{base_model_path}"
@@ -96,8 +96,10 @@ echo "Evaluation complete"
 
 ### Model Paths
 
-- **Fine-tuned**: `{output_dir_base}/ck-out-{run_name}/epoch_{N}`
-- **Base model**: Original model path from experiment_summary.md
+- **Fine-tuned**: `{output_dir_base}/ck-out-{run_dir}/epoch_{N}`
+  - **Important**: Use `{run_dir}` (actual directory name like `rank4`) NOT `{run_name}` (full YAML name like `Llama-3.2-1B-Instruct_rank4`)
+  - The run directory name is determined by scaffold-torchtune's directory naming algorithm (only varying parameters)
+- **Base model**: Original model path from experiment_summary.yaml
 
 ### Task Parameters
 

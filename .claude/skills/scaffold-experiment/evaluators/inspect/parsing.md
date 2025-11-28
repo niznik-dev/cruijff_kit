@@ -1,88 +1,91 @@
 # Parsing Evaluation Configuration
 
-This module handles parsing experiment_summary.md and claude.local.md to extract evaluation configuration.
+This module handles parsing experiment_summary.yaml and claude.local.md to extract evaluation configuration.
 
-## Parsing experiment_summary.md
+## Parsing experiment_summary.yaml
 
-Extract the following information:
+Load the YAML file and extract required fields:
 
-### Required Information
+```python
+import yaml
 
-1. **Experiment name** - From the title (line 1)
-2. **Experiment directory** - From Quick Reference → Paths → Experiment
-3. **All runs table** - Extract run names and their configurations
-4. **Model paths** - From Resources → Models
-5. **Evaluation tasks** - From Resources → Evaluation Tasks table
-6. **Evaluation plan** - From Evaluation Plan section:
-   - Which epochs to evaluate
-   - Which runs get which evaluations
-   - Evaluation datasets (if different from training)
-7. **System prompt** - From Configuration section (must match training)
-8. **Output directory base** - Where fine-tuned models will be saved
-
-## Parsing the "Evaluation Tasks" Table
-
-Example format:
-```markdown
-| Task Name | Script | Dataset | Description |
-|-----------|--------|---------|-------------|
-| capitalization | `path/to/cap_task.py` | `path/to/test.json` | Tests capitalization |
+with open(f"{experiment_dir}/experiment_summary.yaml", 'r') as f:
+    config = yaml.safe_load(f)
 ```
 
-Extract:
-- **Task name** - For naming evaluation outputs
-- **Script path** - Inspect-ai task file path
-- **Dataset path** - If specified and different from training
-- **Description** - For documentation
+### YAML Structure → Extracted Fields
 
-## Parsing the "All Runs" Table for Base/Control Models
+| What | YAML Path | Example |
+|------|-----------|---------|
+| Experiment name | `config['experiment']['name']` | `"workflow_test_2025-11-27"` |
+| Experiment dir | `config['experiment']['directory']` | `"/scratch/.../ck-sanity-checks/..."` |
+| Model paths | `config['models']['base'][i]['path']` | `"/scratch/.../pretrained-llms/..."` |
+| System prompt | `config['evaluation']['system_prompt']` | `""` or `"You are..."` |
+| Temperature | `config['evaluation']['temperature']` | `0.0` |
+| Scorer | `config['evaluation']['scorer']` | `"match"` |
+| Output base dir | `config['output']['base_directory']` | `"/scratch/.../sarahep"` |
+| Checkpoint pattern | `config['output']['checkpoint_pattern']` | `"ck-outputs/.../ck-out-{run_name}/epoch_{N}"` |
 
-**Purpose:** Identify which runs are base/control models (not fine-tuned) to create `eval_config.yaml` for them.
+### Evaluation Tasks
 
-**Example table format:**
-```markdown
-| Run Name | Model | LoRA Rank | Type | Est. Time |
-|----------|-------|-----------|------|-----------|
-| Llama-3.2-1B-Instruct_rank4 | Llama-3.2-1B-Instruct | 4 | Fine-tuned | ~10s |
-| Llama-3.2-1B-Instruct_base | Llama-3.2-1B-Instruct | - | Control | N/A |
+Extract from `config['evaluation']['tasks']`:
+
+```python
+tasks = config['evaluation']['tasks']
+for task in tasks:
+    task_name = task['name']  # e.g., "capitalization"
+    script_path = task['script']  # e.g., "/home/.../cap_task.py"
+    dataset = task.get('dataset')  # Optional, may be None
+    description = task['description']  # Human-readable description
 ```
 
-**Detection logic:**
-- Look for `Type` column = "Control" or "Base"
-- These runs have no LoRA rank (or LoRA Rank = "-")
-- They won't have `setup_finetune.yaml` (no fine-tuning), so scaffold-inspect must create `eval_config.yaml`
+### Evaluation Matrix
 
-**Extract for each base/control run:**
-- Run name (e.g., "Llama-3.2-1B-Instruct_base")
-- Model path (original base model, not a checkpoint)
-- System prompt (may differ per run for comparison experiments)
+Extract from `config['evaluation']['matrix']`:
 
-## Parsing the "Evaluation Plan" Section
+```python
+eval_matrix = config['evaluation']['matrix']
+for entry in eval_matrix:
+    run_name = entry['run']  # e.g., "Llama-3.2-1B-Instruct_rank4"
+    tasks_list = entry['tasks']  # e.g., ["capitalization", "reasoning"]
+    epochs = entry['epochs']  # e.g., [0, 1] or null for control runs
+```
 
-Determine:
-- **Epochs to evaluate**: "last", "all", or specific list (e.g., "0,2")
-- **Evaluation matrix**: Which runs evaluate on which tasks
-- **Base model evaluations**: Control runs that need evaluation
+**Key points:**
+- Fine-tuned runs: `epochs: [0, 1, 2]` - list of which epochs to evaluate
+- Control runs: `epochs: null` - no epoch suffix (evaluate base model once)
 
-**Example plan formats:**
-- "Evaluate all fine-tuned models on epoch 0" → Generate `{task}_epoch0.slurm` for each run
-- "Evaluate base model and last epoch" → Generate base model eval + final epoch eval
-- "Evaluate epochs 0 and 2" → Generate `{task}_epoch0.slurm` and `{task}_epoch2.slurm`
+### Identifying Control/Base Runs
+
+Control runs need `eval_config.yaml` (no fine-tuning configs exist):
+
+```python
+control_runs = [r for r in config['runs'] if r['type'] == 'control']
+
+for run in control_runs:
+    run_name = run['name']  # e.g., "Llama-3.2-1B-Instruct_base"
+    model_name = run['model']  # e.g., "Llama-3.2-1B-Instruct"
+
+    # Find model path
+    model_info = next(m for m in config['models']['base'] if m['name'] == model_name)
+    model_path = model_info['path']
+```
 
 ## Reading claude.local.md
 
 Extract environment-specific settings:
-- `conda_env` - Which conda environment to use
-- `scratch_dir` - User's scratch directory
-- `account` - SLURM account (OPTIONAL, under "SLURM Defaults")
+- `conda_env` - Conda environment name
+- `account` - SLURM account (OPTIONAL, skip if not found)
 
 ## Error Handling
 
-**If evaluation task information missing:**
-- Report what's missing (task script path, dataset, etc.)
-- Ask user to update experiment_summary.md
-- Don't proceed without complete information
+Check for required evaluation fields:
+```python
+if not config.get('evaluation', {}).get('tasks'):
+    raise ValueError("No evaluation tasks found in experiment_summary.yaml")
 
-**If evaluation plan is unclear:**
-- Ask user for clarification on which epochs to evaluate
-- Confirm which runs get which evaluations
+if not config.get('evaluation', {}).get('matrix'):
+    raise ValueError("No evaluation matrix found in experiment_summary.yaml")
+```
+
+**System prompt consistency:** Verify `config['evaluation']['system_prompt']` matches `config['controls']['system_prompt']`.
