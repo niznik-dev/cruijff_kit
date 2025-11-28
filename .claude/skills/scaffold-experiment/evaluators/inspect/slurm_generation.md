@@ -13,9 +13,11 @@ This module describes how to generate inspect.slurm evaluation scripts.
 
 ## Directory Organization
 
+**Note:** `{run_dir}` = `{run_name}` from the YAML (e.g., `Llama-3.2-1B-Instruct_rank4`)
+
 **For fine-tuned models:**
 ```
-{experiment_dir}/{run_dir}/
+{experiment_dir}/{run_name}/
 ├── finetune.slurm
 ├── finetune.yaml
 ├── setup_finetune.yaml
@@ -27,7 +29,7 @@ This module describes how to generate inspect.slurm evaluation scripts.
 
 **For base models (controls):**
 ```
-{experiment_dir}/{run_dir}_base/
+{experiment_dir}/{run_name}/
 └── eval/
     ├── {task_name}_base.slurm
     └── logs/
@@ -56,11 +58,12 @@ conda activate {conda_env}
 
 # Set model and config paths
 {if fine-tuned:}
-MODEL_PATH="{output_dir_base}/ck-out-{run_dir}/epoch_{N}"
-CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
+OUTPUT_BASE="{output_dir_base}/ck-out-{run_name}"
+MODEL_PATH="$OUTPUT_BASE/epoch_{N}"
+CONFIG_PATH="$OUTPUT_BASE/setup_finetune.yaml"
 {if base model:}
 MODEL_PATH="{base_model_path}"
-CONFIG_PATH="{experiment_dir}/{run_dir}/eval_config.yaml"
+CONFIG_PATH="{experiment_dir}/{run_name}/eval_config.yaml"
 
 # Run inspect-ai evaluation
 cd {experiment_dir}/{run_dir}/eval
@@ -96,7 +99,8 @@ echo "Evaluation complete"
 
 ### Model Paths
 
-- **Fine-tuned**: `{output_dir_base}/ck-out-{run_dir}/epoch_{N}`
+- **Fine-tuned**: `{output_dir_base}/ck-out-{run_name}/epoch_{N}`
+  - Use `{run_name}` from evaluation matrix (matches `runs[].name` in YAML)
 - **Base model**: Original model path from experiment_summary.yaml
 
 ### Task Parameters
