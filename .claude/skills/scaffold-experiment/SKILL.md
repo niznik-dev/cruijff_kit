@@ -157,7 +157,7 @@ Your tasks:
 2. Read claude.local.md for environment-specific settings
 3. Identify which runs are fine-tuned (type: "fine-tuned") vs control (type: "control")
 4. For ONLY the fine-tuned runs (skip control/base model runs):
-   - Create run directory with descriptive name based on varying parameters
+   - Create run directory based on run name in experiment_summary.yaml
    - Generate setup_finetune.yaml from appropriate template
    - Execute setup_finetune.py to generate finetune.yaml and finetune.slurm
    - Verify outputs were created successfully
@@ -173,7 +173,7 @@ Report back:
 ```
 
 **What scaffold-torchtune does:**
-- Creates run directories for all runs (e.g., `rank8_lr1e-5/`, `rank16_lr5e-5/`, `base_model/`)
+- Creates run directories for all runs using full run names 
 - For fine-tuned runs: Generates `setup_finetune.yaml`, executes `setup_finetune.py` to create `finetune.yaml` and `finetune.slurm`
 - For control/base runs: Creates directory only (no training configs)
 - Creates `scaffold-torchtune.log` with detailed process log
@@ -182,13 +182,13 @@ Report back:
 **Expected output structure:**
 ```
 {experiment_dir}/
-├── base_model/                    # Control run (directory only)
+├── Llama-3.2-1B-Instruct_base/    # Control run (directory only)
 │   └── (no training configs)
-├── rank8_lr1e-5/                  # Fine-tuned run
+├── Llama-3.2-1B-Instruct_rank4/   # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
-├── rank16_lr5e-5/                 # Fine-tuned run
+├── Llama-3.2-1B-Instruct_rank8/   # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
@@ -235,18 +235,18 @@ Report back:
 **Expected output structure:**
 ```
 {experiment_dir}/
-├── base_model/                    # Control run
+├── Llama-3.2-1B-Instruct_base/    # Control run
 │   └── eval/
-│       ├── capitalization_epoch0.slurm
+│       ├── capitalization_base.slurm
 │       └── logs/
-├── rank8_lr1e-5/                  # Fine-tuned run
+├── Llama-3.2-1B-Instruct_rank4/   # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   └── eval/
 │       ├── capitalization_epoch0.slurm
 │       └── logs/
-├── rank16_lr5e-5/                 # Fine-tuned run
+├── Llama-3.2-1B-Instruct_rank8/   # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
@@ -329,10 +329,10 @@ Details: Launching scaffold-torchtune and scaffold-inspect in parallel
 Result: Both subagents launched at 2025-10-24 17:30:10
 
 [2025-10-24 17:31:30] SCAFFOLD_TORCHTUNE_COMPLETE: Fine-tuning configs generated
-Details: 8 runs scaffolded successfully (0 failures)
+Details: 2 runs scaffolded successfully (0 failures)
 Duration: 1m 20s
 Result: See scaffold-torchtune.log for detailed process
-Outputs: rank8_lr1e-5/, rank8_lr5e-5/, rank16_lr1e-5/, rank16_lr5e-5/, rank32_lr1e-5/, rank32_lr5e-5/, rank64_lr1e-5/, rank64_lr5e-5/
+Outputs: Llama-3.2-1B-Instruct_rank4/, Llama-3.2-1B-Instruct_rank8/
 
 [2025-10-24 17:31:35] SCAFFOLD_INSPECT_COMPLETE: Evaluation configs generated
 Details: 8 evaluation scripts created successfully (0 failures)
@@ -389,17 +389,11 @@ Successfully scaffolded experiment:
 
 ### Fine-Tuning Configurations (scaffold-torchtune)
 
-✓ 8 runs configured successfully
+✓ 2 runs configured successfully
 
 **Created runs:**
-- rank8_lr1e-5/
-- rank8_lr5e-5/
-- rank16_lr1e-5/
-- rank16_lr5e-5/
-- rank32_lr1e-5/
-- rank32_lr5e-5/
-- rank64_lr1e-5/
-- rank64_lr5e-5/
+- Llama-3.2-1B-Instruct_rank4/
+- Llama-3.2-1B-Instruct_rank8/
 
 **Each run contains:**
 - setup_finetune.yaml (configuration)
@@ -408,17 +402,11 @@ Successfully scaffolded experiment:
 
 ### Evaluation Configurations (scaffold-inspect)
 
-✓ 8 evaluation scripts configured successfully
+✓ 2 evaluation scripts configured successfully
 
 **Created evaluations:**
-- rank8_lr1e-5/eval/capitalization_epoch0.slurm
-- rank8_lr5e-5/eval/capitalization_epoch0.slurm
-- rank16_lr1e-5/eval/capitalization_epoch0.slurm
-- rank16_lr5e-5/eval/capitalization_epoch0.slurm
-- rank32_lr1e-5/eval/capitalization_epoch0.slurm
-- rank32_lr5e-5/eval/capitalization_epoch0.slurm
-- rank64_lr1e-5/eval/capitalization_epoch0.slurm
-- rank64_lr5e-5/eval/capitalization_epoch0.slurm
+- Llama-3.2-1B-Instruct_rank4/eval/capitalization_epoch0.slurm
+- Llama-3.2-1B-Instruct_rank8/eval/capitalization_epoch0.slurm
 
 **Each evaluation directory contains:**
 - {task}_epoch{N}.slurm (SLURM script)
@@ -455,7 +443,7 @@ for dir in rank*/; do (cd "$dir/eval" && sbatch capitalization_epoch0.slurm); do
 squeue -u $USER
 
 # Monitor a specific run
-tail -f rank8_lr1e-5/slurm-*.out
+tail -f Llama-3.2-1B-Instruct_rank4/slurm-*.out
 ```
 ```
 

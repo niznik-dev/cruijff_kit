@@ -69,8 +69,13 @@ data:
       test: int
 
 output:
-  base_directory: string           # REQUIRED: Where checkpoints are saved (e.g., "/scratch/gpfs/MSALGANIK/niznik")
-  checkpoint_pattern: string       # REQUIRED: Pattern for checkpoint paths (e.g., "ck-out-{run_name}/epoch_{N}")
+  base_directory: string           # REQUIRED: Full path to this experiment's output directory
+                                   # Construction: read "Output base directory" from claude.local.md, append experiment name
+                                   # Format: {output_base_from_claude_local}/{experiment_name}
+                                   # Example: "/scratch/gpfs/MSALGANIK/niznik/ck-outputs/workflow_test_2025-11-28"
+  checkpoint_pattern: string       # REQUIRED: Pattern for checkpoint paths relative to base_directory
+                                   # Standard value: "ck-out-{run_name}/epoch_{N}"
+                                   # Full checkpoint path: {base_directory}/ck-out-{run_name}/epoch_{N}
   wandb_project: string            # REQUIRED: Weights & Biases project name
 
 # =============================================================================
