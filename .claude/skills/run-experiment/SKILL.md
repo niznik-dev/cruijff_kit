@@ -1,6 +1,7 @@
-# Run Experiment
-
-Execute the complete experimental workflow - model optimization followed by evaluation - for all runs in a scaffolded experiment.
+---
+name: run-experiment
+description: Execute the complete experimental workflow - model optimization followed by evaluation - for all runs in a scaffolded experiment. Use after scaffold-experiment to submit jobs to SLURM.  
+---
 
 ## Your Task
 

@@ -45,15 +45,7 @@ ls {run_dir}/eval/logs/*.eval
 - Check SLURM output for errors
 - Mark as validation failure
 
-### 5. experiment_summary.md Updated
-
-Verify evaluations status table contains:
-- Job IDs for all evaluations
-- Current status for all jobs
-- Completion timestamps
-- Elapsed times for completed jobs
-
-### 6. Log File Created
+### 5. Log File Created
 
 Verify `run-inspect.log` exists with:
 - Dependency checks logged
@@ -101,7 +93,6 @@ Verify `run-inspect.log` exists with:
 ✓ All evaluations submitted (7 evaluations)
 ✓ All jobs completed (6 COMPLETED, 1 FAILED)
 ✓ Evaluation logs verified (6/6 successful)
-✓ experiment_summary.md updated
 ✓ Log file created: run-inspect.log
 
 **Skipped:**

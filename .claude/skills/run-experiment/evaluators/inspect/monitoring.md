@@ -56,27 +56,6 @@ Compare current state to previous state for each evaluation.
 - Update experiment_summary.md
 - Record new status
 
-### 4. Update experiment_summary.md
-
-Update Evaluations status table:
-
-**PENDING → RUNNING:**
-```markdown
-| r8_lr1e-5 | capitalization | 0 | RUNNING | 12345690 | - | - |
-```
-
-**RUNNING → COMPLETED:**
-```markdown
-| r8_lr1e-5 | capitalization | 0 | COMPLETED | 12345690 | 2025-11-11 14:50:12 | 4m 52s |
-```
-Add "Completed" timestamp and elapsed time
-
-**RUNNING → FAILED:**
-```markdown
-| r8_lr1e-5 | capitalization | 0 | FAILED | 12345690 | 2025-11-11 14:48:00 | Check logs |
-```
-Add note to check logs
-
 ## Terminal States
 
 Stop monitoring when job reaches:
