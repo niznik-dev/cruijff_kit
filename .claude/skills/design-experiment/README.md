@@ -7,10 +7,12 @@ Interactive skill for planning LLM fine-tuning and evaluation experiments.
 Create tool-agnostic experiment plans that specify:
 - Which models to fine-tune and evaluate
 - Which datasets and evaluation tasks to use
-- Resource estimates (time, disk space, GPU hours)
 - Complete configuration for downstream skills
+- Verified resource availability
 
-**Output:** `experiment_summary.md` that scaffold-experiment and run-experiment skills consume
+**Outputs:**
+- `experiment_summary.yaml` - Structured configuration consumed by scaffold-experiment and run-experiment
+- `design-experiment.jsonl` - Machine-readable audit log for reproducibility
 
 ## Meta-Pattern: param_selection → validation → generation
 
@@ -42,7 +44,7 @@ design-experiment/
 ├── experiment_generation.md        (~80 lines - create outputs)
 ├── logging.md                      (~100 lines - cross-cutting)
 ├── templates/
-│   └── experiment_summary.md      (~200 lines - output structure)
+│   └── experiment_summary.yaml    (~200 lines - YAML structure)
 └── README.md                       (this file)
 ```
 
@@ -52,7 +54,7 @@ design-experiment/
 
 ### Stage 1: PARAM_SELECTION (param_selection.md)
 
-10-step interactive conversation to gather all parameters:
+Interactive conversation to gather all parameters:
 1. **Determine type/location** - Auto-detect sanity_check vs experiment
 2. **Understand experiment** - Scientific question, variables
 3. **Confirm tools** - torchtune (preparation), inspect-ai (evaluation)
@@ -60,22 +62,21 @@ design-experiment/
 5. **Design evaluation** - Tasks, epochs, evaluation matrix
 6. **Establish naming** - Experiment and run names
 7. **Verify resources** - Check models, datasets, scripts exist
-8. **Estimate resources** - Calculate time, disk, GPU hours
-9. **Get approval** - Present plan (after validation)
-10. **Create files** - Proceed to generation
+8. **Get approval** - Present plan (after validation)
+9. **Create files** - Proceed to generation
 
 ### Stage 2: VALIDATION (validation.md)
 
-Before presenting to user (step 9), verify plan completeness:
+Before presenting to user (step 8), verify plan completeness:
 - Preparation: Run names, parameters, configurations
 - Evaluation: Epochs (0-indexed!), system prompt consistency (critical!)
-- Resources: All verified, disk space sufficient
+- Resources: All verified and accessible
 
 ### Stage 3: GENERATION (experiment_generation.md)
 
 After approval, create outputs:
-- `experiment_summary.md` (using template)
-- `design-experiment.log` (audit trail)
+- `experiment_summary.yaml` (structured configuration)
+- `design-experiment.jsonl` (machine-readable audit trail)
 
 Then suggest next steps (scaffold-experiment).
 
@@ -83,21 +84,22 @@ Then suggest next steps (scaffold-experiment).
 
 ### Logging (logging.md)
 
-**Unique to design-experiment:** Creates detailed audit log
+Creates machine-readable audit log in `.jsonl` format.
 
-Throughout workflow, log:
-- Resource verification commands and results
+Throughout workflow, log structured events:
+- Resource verification (models, datasets, eval tasks)
 - Prior run searches and data extraction
-- All calculations (time, disk, batch sizes)
 - Decisions (naming, recipe, configuration)
-- File creation
+- File creation and validation
+
+**Format:** JSON Lines - each line is a complete JSON object with timestamp, action, result, and action-specific fields.
 
 **Not a template** - it's guidance on HOW to log. Lives at top level because it's used during multiple stages.
 
 ### Templates (templates/)
 
 Output structure reference:
-- `experiment_summary.md` - 10 required sections with examples
+- `experiment_summary.yaml` - Structured schema with required/optional fields and examples
 
 ## File Organization
 
@@ -107,8 +109,8 @@ Output structure reference:
 | Selection | param_selection.md | Gather parameters | ~350 |
 | Validation | validation.md | Verify completeness | ~120 |
 | Generation | experiment_generation.md | Create outputs | ~80 |
-| Cross-cutting | logging.md | Audit trail spec | ~100 |
-| Templates | templates/experiment_summary.md | Output structure | ~200 |
+| Cross-cutting | logging.md | JSONL log format spec | ~100 |
+| Templates | templates/experiment_summary.yaml | YAML schema & examples | ~200 |
 | Documentation | README.md | Pattern explanation | - |
 
 **Total:** 7 files, ~970 lines (down from 553 monolithic lines)
@@ -120,8 +122,8 @@ Output structure reference:
 1. **Tool-agnostic planning** - Plan WHAT to do, not HOW to execute
 2. **Action verb pattern** - Matches scaffold/run for consistency
 3. **Simpler structure** - 7 files vs 20 (because 1 workflow, not 2 tools)
-4. **Comprehensive logging** - Unique requirement for planning phase
-5. **Conservative estimation** - Use prior runs when available
+4. **Structured output** - YAML for machine parsing, JSONL for audit logs
+5. **Resource verification** - Verify models, datasets, and eval tasks exist
 6. **Validation before presentation** - Ensure plan is complete
 
 ## Integration
@@ -129,9 +131,9 @@ Output structure reference:
 **Upstream:** User conversation
 
 **Downstream:**
-- `scaffold-experiment` reads experiment_summary.md to generate configs
-- `run-experiment` reads experiment_summary.md to track progress
-- `analyze-experiment` (planned) reads experiment_summary.md to interpret results
+- `scaffold-experiment` reads experiment_summary.yaml to generate configs
+- `run-experiment` reads experiment_summary.yaml to track progress
+- `analyze-experiment` (planned) reads experiment_summary.yaml to interpret results
 
 ## Comparison to Other Patterns
 
@@ -150,9 +152,9 @@ Output structure reference:
 ## Module Guidelines
 
 ### param_selection.md
-- Complete 10-step conversation flow
+- Complete interactive conversation flow
 - Ask questions, don't assume
-- Document what goes in experiment_summary.md
+- Document what goes in experiment_summary.yaml
 - Include conversation patterns
 - Reference logging.md for what to log
 
@@ -192,7 +194,7 @@ Output structure reference:
 ## Notes
 
 - This skill is tool-agnostic TODAY (only torchtune/inspect-ai exist) but structured to support multiple tools in the future
-- Logging is critical - design-experiment.log enables debugging, reproducibility, and improvement
+- Logging is critical - design-experiment.jsonl enables debugging, reproducibility, and improvement
 - System prompt consistency between training and evaluation is critical for inspect-ai
 - Validation before presenting ensures we don't waste user's time with incomplete plans
 - Pattern consistency with scaffold/run (action verbs) while being appropriately simpler (fewer files)
