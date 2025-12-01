@@ -22,7 +22,6 @@ This skill uses **action verbs** consistent with scaffold/run, but simplified be
 
 **design-experiment PURPOSE:** Create tool-agnostic plans that OTHER skills execute
 - Doesn't execute with torchtune or inspect-ai directly
-- Creates experiment_summary.md that scaffold/run skills read
 - One linear conversation flow (not branching by tool type)
 
 **Action verbs match scaffold/run:**
@@ -38,17 +37,15 @@ This skill uses **action verbs** consistent with scaffold/run, but simplified be
 
 ```
 design-experiment/
-├── SKILL.md                        (119 lines - lean orchestrator)
-├── param_selection.md              (~350 lines - interactive workflow)
-├── validation.md                   (~120 lines - completeness checklist)
-├── experiment_generation.md        (~80 lines - create outputs)
-├── logging.md                      (~100 lines - cross-cutting)
+├── SKILL.md                        (lean orchestrator)
+├── param_selection.md              (interactive workflow)
+├── validation.md                   (completeness checklist)
+├── experiment_generation.md        (create outputs)
+├── logging.md                      (cross-cutting)
 ├── templates/
-│   └── experiment_summary.yaml    (~200 lines - YAML structure)
+│   └── experiment_summary.yaml    (YAML structure)
 └── README.md                       (this file)
 ```
-
-**Total: 7 files**
 
 ## Workflow Stages
 
@@ -62,7 +59,7 @@ Interactive conversation to gather all parameters:
 5. **Design evaluation** - Tasks, epochs, evaluation matrix
 6. **Establish naming** - Experiment and run names
 7. **Verify resources** - Check models, datasets, scripts exist
-8. **Get approval** - Present plan (after validation)
+8. **Get approval** - Present plan to user for questions and improvements 
 9. **Create files** - Proceed to generation
 
 ### Stage 2: VALIDATION (validation.md)
@@ -78,7 +75,7 @@ After approval, create outputs:
 - `experiment_summary.yaml` (structured configuration)
 - `design-experiment.jsonl` (machine-readable audit trail)
 
-Then suggest next steps (scaffold-experiment).
+After outputs are created, suggest the next step in the pipeline: scaffold-experiment.
 
 ## Cross-Cutting Concerns
 
@@ -101,30 +98,13 @@ Throughout workflow, log structured events:
 Output structure reference:
 - `experiment_summary.yaml` - Structured schema with required/optional fields and examples
 
-## File Organization
-
-| Category | Files | Purpose | Lines |
-|----------|-------|---------|-------|
-| Orchestrator | SKILL.md | Coordinate workflow | 119 |
-| Selection | param_selection.md | Gather parameters | ~350 |
-| Validation | validation.md | Verify completeness | ~120 |
-| Generation | experiment_generation.md | Create outputs | ~80 |
-| Cross-cutting | logging.md | JSONL log format spec | ~100 |
-| Templates | templates/experiment_summary.yaml | YAML schema & examples | ~200 |
-| Documentation | README.md | Pattern explanation | - |
-
-**Total:** 7 files, ~970 lines (down from 553 monolithic lines)
-
-**Why more lines total?** Because we extracted embedded templates and added comprehensive guidance. The SKILL.md orchestrator is leaner (119 vs 553), and modules are focused and maintainable.
-
 ## Key Principles
 
 1. **Tool-agnostic planning** - Plan WHAT to do, not HOW to execute
 2. **Action verb pattern** - Matches scaffold/run for consistency
-3. **Simpler structure** - 7 files vs 20 (because 1 workflow, not 2 tools)
-4. **Structured output** - YAML for machine parsing, JSONL for audit logs
-5. **Resource verification** - Verify models, datasets, and eval tasks exist
-6. **Validation before presentation** - Ensure plan is complete
+3. **Structured output** - YAML for machine parsing, JSONL for audit logs
+4. **Resource verification** - Verify models, datasets, and eval tasks exist
+5. **Validation before presentation** - Ensure plan is complete
 
 ## Integration
 
@@ -134,20 +114,6 @@ Output structure reference:
 - `scaffold-experiment` reads experiment_summary.yaml to generate configs
 - `run-experiment` reads experiment_summary.yaml to track progress
 - `analyze-experiment` (planned) reads experiment_summary.yaml to interpret results
-
-## Comparison to Other Patterns
-
-| Skill | Pattern | Files | Structure |
-|-------|---------|-------|-----------|
-| scaffold-experiment | optimizers/evaluators | 20 | Tool-specific (torchtune, inspect-ai) |
-| run-experiment | optimizers/evaluators | 20 | Tool-specific (torchtune, inspect-ai) |
-| design-experiment | selection/validation/generation | 7 | Tool-agnostic workflow |
-
-**Key insight:**
-- scaffold/run use **optimizers/evaluators** because they handle 2 tools
-- design uses **selection/validation/generation** because it's 1 workflow
-- All use **action verbs** for consistency
-- Structure reflects PURPOSE, not blind pattern reuse
 
 ## Module Guidelines
 
@@ -176,20 +142,6 @@ Output structure reference:
 ### templates/
 - Output structures only (not guidance)
 - Complete examples for complex sections
-
-## Success Metrics
-
-**Before refactoring:**
-- SKILL.md: 553 lines (monolithic)
-- Mixed concerns
-- Hard to navigate
-
-**After refactoring:**
-- SKILL.md: 119 lines (78% reduction) ✓
-- Action verb pattern matching scaffold/run ✓
-- Appropriately simpler (7 vs 20 files) ✓
-- Clear separation of concerns ✓
-- Easy to maintain and extend ✓
 
 ## Notes
 
