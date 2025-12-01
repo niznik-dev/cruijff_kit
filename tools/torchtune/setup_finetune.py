@@ -12,6 +12,24 @@ script_dir = Path(__file__).parent
 # Skip these when writing the yaml file
 SLURM_ONLY = ['time', 'gpus', 'conda_env', 'account', 'partition', 'constraint']
 
+# Model-specific configurations
+# Keys are model directory names (e.g., "Llama-3.2-3B-Instruct")
+MODEL_CONFIGS = {
+    "Llama-3.2-1B-Instruct": {
+        "component": "torchtune.models.llama3_2.lora_llama3_2_1b",
+        "checkpoint_files": ["model.safetensors"],
+        "model_type": "LLAMA3_2",
+    },
+    "Llama-3.2-3B-Instruct": {
+        "component": "torchtune.models.llama3_2.lora_llama3_2_3b",
+        "checkpoint_files": {
+            "filename_format": "model-{}-of-{}.safetensors",
+            "max_filename": "00002",
+        },
+        "model_type": "LLAMA3_2",
+    },
+}
+
 # Used for epochs_to_save to allow for all/none options
 def parse_epochs(value):
     if value.lower() == 'none':
@@ -234,6 +252,12 @@ def create_parser():
 
     parser.add_argument("--custom_recipe", type=str, help="Full name of a custom recipe file in the repo's custom_recipes folder to use for fine-tuning")
 
+    # ------ Model Selection -----
+    parser.add_argument("--torchtune_model_name", type=str, default="Llama-3.2-1B-Instruct",
+                        help="Model name as listed by 'tune ls' (e.g., 'Llama-3.2-1B-Instruct', 'Llama-3.2-3B-Instruct')")
+    parser.add_argument("--model_checkpoint", type=str, default=None,
+                        help="Model directory name within models_dir (defaults to torchtune_model_name if not provided)")
+
     return parser
 
 
@@ -275,6 +299,30 @@ def main():
     for key, value in vars(args).items():
         if key in SLURM_ONLY:
             continue
+        # Model config - apply torchtune-specific settings
+        elif key == "torchtune_model_name":
+            if value not in MODEL_CONFIGS:
+                raise ValueError(
+                    f"Unknown model: '{value}'. "
+                    f"Supported models: {', '.join(MODEL_CONFIGS.keys())}"
+                )
+            model_config = MODEL_CONFIGS[value]
+
+            # Model directory: use model_checkpoint if provided, otherwise torchtune_model_name
+            model_dir = args.model_checkpoint if args.model_checkpoint else value
+
+            # Set model component
+            config["model"]["_component_"] = model_config["component"]
+
+            # Set tokenizer path
+            config["tokenizer"]["path"] = f"${{models_dir}}/{model_dir}/original/tokenizer.model"
+
+            # Set checkpointer config
+            config["checkpointer"]["checkpoint_dir"] = f"${{models_dir}}/{model_dir}/"
+            config["checkpointer"]["model_type"] = model_config["model_type"]
+            config["checkpointer"]["checkpoint_files"] = model_config["checkpoint_files"]
+        elif key == "model_checkpoint":
+            continue  # Handled in torchtune_model_name
         # Special cases first
         elif key == "my_wandb_run_name":
             config["my_wandb_run_name"] = model_run_name

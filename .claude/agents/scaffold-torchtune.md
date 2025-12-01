@@ -152,7 +152,8 @@ dataset_label: {extracted from dataset filename, e.g., "words_4L_80P_300"}
 dataset_ext: {extracted from dataset filename, e.g., ".json"}
 
 # Model Configuration
-model_checkpoint: {from experiment_summary.md Resources → Models}
+torchtune_model_name: {from experiment_summary.md Resources → Models, e.g., "Llama-3.2-1B-Instruct"}
+# model_checkpoint: {optional - only if directory name differs from torchtune_model_name}
 
 # Hyperparameters (run-specific)
 lora_rank: {from run table}
