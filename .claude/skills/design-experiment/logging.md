@@ -56,6 +56,56 @@ Marks the beginning of experiment design.
 
 ---
 
+### CONSULT_PRIOR_EXPERIMENT
+
+Examine previous experiment results to inform design decisions.
+
+```json
+{
+  "timestamp": "2025-10-22T14:30:00.500Z",
+  "action": "CONSULT_PRIOR_EXPERIMENT",
+  "result": "success",
+  "experiment_path": "/scratch/gpfs/MSALGANIK/niznik/prior_cap_experiment",
+  "files_examined": [
+    "experiment_summary.yaml",
+    "run_001/results.json",
+    "run_001/slurm-12345.out"
+  ],
+  "insights": {
+    "successful_approach": "LoRA rank 4 achieved 95% accuracy on capitalization task",
+    "training_time": "~2 minutes per epoch on same hardware",
+    "issues_encountered": "None"
+  },
+  "influence_on_design": "Using same dataset and model size; testing higher ranks to explore capacity limits",
+  "duration_ms": 456
+}
+```
+
+---
+
+### CONSULT_DOCUMENTATION
+
+Read research papers, documentation, or reference material.
+
+```json
+{
+  "timestamp": "2025-10-22T14:30:00.800Z",
+  "action": "CONSULT_DOCUMENTATION",
+  "result": "success",
+  "source_type": "research_paper",
+  "source": "QLoRA: Efficient Finetuning of Quantized LLMs (Dettmers et al., 2023)",
+  "section": "Optimal LoRA rank selection",
+  "key_findings": [
+    "Ranks 4-16 sufficient for most tasks",
+    "Higher ranks add minimal performance gains but increase memory",
+    "Rank 8 good default for 1B parameter models"
+  ],
+  "influence_on_design": "Constraining rank search space to 4-16 range based on model size"
+}
+```
+
+---
+
 ### VERIFY_MODEL
 
 Check that a model directory exists and get its size.
@@ -230,6 +280,100 @@ Estimate disk space required for all checkpoints.
   "total_gb": 5.0
 }
 ```
+
+---
+
+### USER_QUESTION
+
+Ask the user for input during design.
+
+```json
+{
+  "timestamp": "2025-10-22T14:30:06.000Z",
+  "action": "USER_QUESTION",
+  "result": "success",
+  "question_type": "hyperparameter_selection",
+  "question": "What LoRA ranks should we compare in this experiment?",
+  "context": "Prior experiments used rank 4 successfully. Literature suggests ranks 4-16 are effective for models this size.",
+  "options_provided": [
+    "4, 8 (quick comparison)",
+    "4, 8, 16 (comprehensive)",
+    "8, 16, 32 (higher capacity focus)"
+  ]
+}
+```
+
+**Common question_type values:**
+- `hyperparameter_selection`
+- `dataset_choice`
+- `evaluation_task_selection`
+- `resource_allocation`
+- `experimental_design`
+
+---
+
+### USER_RESPONSE
+
+Capture user input and design decisions.
+
+```json
+{
+  "timestamp": "2025-10-22T14:30:06.345Z",
+  "action": "USER_RESPONSE",
+  "result": "success",
+  "question_type": "hyperparameter_selection",
+  "user_input": "Let's use ranks 4 and 8 to keep it quick",
+  "decision": {
+    "lora_rank": [4, 8]
+  },
+  "rationale": "User prioritized faster iteration over comprehensive comparison"
+}
+```
+
+---
+
+### DESIGN_DECISION
+
+Record key design choices with explicit rationale.
+
+```json
+{
+  "timestamp": "2025-10-22T14:30:06.500Z",
+  "action": "DESIGN_DECISION",
+  "result": "success",
+  "decision_type": "variable_selection",
+  "decision": {
+    "independent_variable": "lora_rank",
+    "values": [4, 8]
+  },
+  "alternatives_considered": [
+    {
+      "option": "lora_rank: [4, 8, 16]",
+      "pros": "More comprehensive comparison of capacity",
+      "cons": "50% more training time and disk space required"
+    },
+    {
+      "option": "lora_rank: [8, 16]",
+      "pros": "Test higher capacity models",
+      "cons": "No baseline comparison to prior work at rank 4"
+    }
+  ],
+  "rationale": "Balancing scientific rigor with computational efficiency; maintaining comparability with prior experiments",
+  "evidence_basis": [
+    "prior_experiment_results",
+    "user_preference",
+    "resource_constraints",
+    "literature_review"
+  ]
+}
+```
+
+**Common decision_type values:**
+- `variable_selection`
+- `control_run_design`
+- `dataset_selection`
+- `evaluation_strategy`
+- `resource_allocation`
 
 ---
 
