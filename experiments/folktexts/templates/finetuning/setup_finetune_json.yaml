@@ -1,0 +1,29 @@
+# Wandb Configuration
+my_wandb_project: folktexts
+my_wandb_run_name: acs_income
+
+# Directory Configuration
+input_dir_base: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/data/green/acs/
+input_formatting: ''
+
+# Dataset Configuration
+dataset_label: acs_income
+dataset_ext: '.json'
+
+# System Prompt
+system_prompt: ''
+
+# Training Parameters
+batch_size: 1
+epochs: 1
+log_every_n_steps: 1
+run_val_every_n_steps: 0
+
+# Checkpoint Options
+stash_adapter_weights: 'true'
+
+# Environment Configuration
+conda_env: cruijff
+
+# Custom Recipe
+custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable
