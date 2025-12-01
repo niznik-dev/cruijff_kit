@@ -230,9 +230,32 @@ Organize evaluations within run directories:
     └── {task_name}_base.slurm
 ```
 
+### Model-Aware Resource Allocation
+
+Different model sizes require different SLURM resources for evaluation. Parse the model name from experiment_summary.md and set resources accordingly:
+
+| Model Size | Memory | GPUs | Constraint | CPUs | Time |
+|------------|--------|------|------------|------|------|
+| 1B (Llama-3.2-1B-Instruct) | 32G | 1 | - | 4 | 0:30:00 |
+| 3B (Llama-3.2-3B-Instruct) | 64G | 1 | gpu80 | 4 | 0:30:00 |
+| 8B (Llama-3.1-8B-Instruct, etc.) | 96G | 1 | gpu80 | 8 | 0:30:00 |
+| 70B (Llama-3.3-70B-Instruct, etc.) | 256G | 4 | gpu80 | 8 | 0:30:00 |
+
+**Detection logic:**
+1. Parse model name from experiment_summary.md Resources → Models section
+2. Look for size indicator in model name: "1B", "3B", "8B", "70B"
+3. Apply corresponding resource configuration
+4. Default to 1B settings if model size cannot be determined
+
+**Example parsing:**
+- `Llama-3.2-1B-Instruct` → 1B resources
+- `Llama-3.2-3B-Instruct` → 3B resources
+- `Llama-3.1-8B-Instruct` → 8B resources
+- `Llama-3.3-70B-Instruct` → 70B resources
+
 ### SLURM Script Template
 
-Generate a SLURM script for each evaluation:
+Generate a SLURM script for each evaluation with model-appropriate resources:
 
 ```bash
 #!/bin/bash
@@ -240,12 +263,12 @@ Generate a SLURM script for each evaluation:
 #SBATCH --output=slurm-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=32G
+#SBATCH --cpus-per-task={cpus_from_model_size}
+#SBATCH --mem={mem_from_model_size}
 #SBATCH --time=0:30:00
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:{gpus_from_model_size}
 {optional: #SBATCH --account={account}}
-{optional: #SBATCH --constraint=gpu80}
+{if 3B or larger: #SBATCH --constraint=gpu80}
 
 # Load environment
 module load anaconda3/2025.6
@@ -279,9 +302,9 @@ echo "Evaluation complete"
 
 **SLURM parameters:**
 - Time: Default to 30 minutes (adjust based on experiment estimates if available)
-- GPUs: 1 (evaluation is typically single-GPU)
-- Memory: 32G (adjust based on model size if known)
-- Account/constraint: Use from claude.local.md if specified
+- GPUs/Memory/CPUs: Set based on model size (see Model-Aware Resource Allocation table above)
+- Constraint: gpu80 required for 3B+ models
+- Account: Use from claude.local.md if specified
 
 **Model paths:**
 - Fine-tuned: `{output_dir_base}/ck-out-{run_name}/epoch_{N}`
