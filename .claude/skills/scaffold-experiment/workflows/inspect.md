@@ -107,7 +107,19 @@ for run in base_runs:
 Total: 9 evaluations
 ```
 
-### 4. Create Evaluation Directories
+### 4. Create eval_config.yaml for Base/Control Models
+
+**Purpose:** Base/control runs don't undergo fine-tuning, so they won't have `setup_finetune.yaml`. Create `eval_config.yaml` for these runs to provide evaluation configuration.
+
+**For each base/control run identified in step 1:**
+1. Create run directory: `mkdir -p {experiment_dir}/{run_name}`
+2. Generate `eval_config.yaml` with dataset path, system prompt, and format info extracted from experiment_summary.md
+3. Handle multiple base runs with different system prompts (create separate configs per run)
+4. Log the creation
+
+**Full specification:** See `.claude/agents/scaffold-inspect.md` → "Creating Evaluation Config Files for Base Models" for YAML structure, field extraction details, and logging format.
+
+### 5. Create Evaluation Directories
 
 **For each run directory:**
 
@@ -123,11 +135,11 @@ mkdir -p {experiment_dir}/{run_directory}_base/eval
 mkdir -p {experiment_dir}/{run_directory}_base/eval/logs
 ```
 
-### 5. Generate SLURM Scripts
+### 6. Generate SLURM Scripts
 
 **For each evaluation in the matrix:**
 
-#### 5.1 Determine Evaluation Scenario
+#### 6.1 Determine Evaluation Scenario
 
 ```python
 if eval['type'] == 'fine-tuned':
@@ -139,7 +151,7 @@ elif eval['type'] == 'base':
     scenario = 'base_model'
 ```
 
-#### 5.2 Build Model Path
+#### 6.2 Build Model Path
 
 **CRITICAL: All paths must be absolute (start with /), never relative (../file). SLURM working directories are unpredictable.**
 
@@ -149,10 +161,10 @@ if scenario == 'fine_tuned_with_config':
     config_path = f"{experiment_dir}/{run_dir}/setup_finetune.yaml"  # absolute path required
 elif scenario == 'base_model':
     model_path = base_model_path  # From experiment_summary.md
-    config_path = f"{experiment_dir}/{run_dir}/setup_finetune.yaml"  # absolute path required
+    config_path = f"{experiment_dir}/{run_dir}/eval_config.yaml"  # absolute path required
 ```
 
-#### 5.3 Generate SLURM Script
+#### 6.3 Generate SLURM Script
 
 **Script name:**
 - Fine-tuned: `{run_dir}/eval/{task_name}_epoch{N}.slurm`
@@ -208,13 +220,13 @@ inspect eval {task_script_path}@{task_name} \\
 echo "Evaluation complete"
 ```
 
-#### 5.4 Make Script Executable
+#### 6.4 Make Script Executable
 
 ```bash
 chmod +x {experiment_dir}/{run_dir}/eval/{task_name}_epoch{N}.slurm
 ```
 
-### 6. Log Results
+### 7. Log Results
 
 **Create scaffold.log entries:**
 
@@ -234,6 +246,10 @@ Result: Task '{task_name}' found and verified
 [YYYY-MM-DD HH:MM:SS] DETERMINE_EVAL_MATRIX
 Details: {N_runs} runs × {N_tasks} tasks × {N_epochs} epochs
 Result: Will create {total} evaluation scripts
+
+[YYYY-MM-DD HH:MM:SS] CREATE_EVAL_CONFIG
+Details: Generated eval_config.yaml for {N} base/control runs
+Result: Config files created for base model evaluations
 
 [YYYY-MM-DD HH:MM:SS] CREATE_EVAL_DIRS
 Details: Creating eval/ and logs/ in {N} run directories
@@ -312,8 +328,9 @@ Fine-tuned model paths reference output directories that **don't exist yet**:
 ### Config Integration
 
 **Preferred approach:** Use `config_path` parameter
-- Task reads dataset path and system prompt from `setup_finetune.yaml`
-- Ensures configuration consistency for both fine-tuned and base models
+- Fine-tuned models: Task reads dataset path and system prompt from `setup_finetune.yaml`
+- Base/control models: Task reads dataset path and system prompt from `eval_config.yaml` (created in step 4)
+- Ensures configuration consistency between training and evaluation
 - Simpler command (fewer parameters)
 
 **Fallback approach:** Use explicit parameters

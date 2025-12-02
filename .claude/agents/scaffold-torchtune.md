@@ -169,6 +169,7 @@ stash_adapter_weights: 'true'  # From template default
 
 # Output configuration
 output_dir_base: {from claude.local.md}
+experiment_name: {from experiment_summary.md title/line 1}
 conda_env: {from claude.local.md}
 
 # SLURM configuration (optional - only if specified in claude.local.md)
@@ -178,7 +179,7 @@ account: {from claude.local.md SLURM Defaults, if present}
 system_prompt: {from experiment_summary.md Configuration, often empty string ""}
 
 # Custom Recipe
-custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_v1}
+custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable}
 ```
 
 4. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
@@ -187,6 +188,7 @@ custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.
 - Use absolute paths for robustness (e.g., `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/...`) rather than relative paths
 - WandB project: Prefer using `my_wandb_project` from `claude.local.md` for consistency
 - Learning rate format: Keep scientific notation format from experiment summary (1e-5, 5e-5, etc.)
+- Experiment name: This groups outputs under `{output_dir_base}{experiment_name}/ck-out-{run_name}/` for better organization. Without it, outputs go directly to `{output_dir_base}ck-out-{run_name}/`
 
 ### Running setup_finetune.py
 
