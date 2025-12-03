@@ -10,6 +10,9 @@ input_formatting: ''
 dataset_label: words_5L_80P_1000_parquet
 dataset_ext: '.parquet'
 
+# Model Configuration
+torchtune_model_name: Llama-3.2-1B-Instruct
+
 # System Prompt
 system_prompt: 'Capitalize the given word'
 

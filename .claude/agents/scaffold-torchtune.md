@@ -35,6 +35,27 @@ When invoked:
 
 **CRITICAL: You must execute setup_finetune.py automatically. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.**
 
+## Model-Aware SLURM Resources
+
+The `setup_finetune.py` script automatically sets SLURM resources based on model size (RAM=VRAM rule):
+
+| Model | Memory | Partition | Constraint | CPUs |
+|-------|--------|-----------|------------|------|
+| 1B | 40G | nomig | - | 4 |
+| 3B | 80G | - | gpu80 | 4 |
+| 8B | 80G | - | gpu80 | 8 |
+| 70B | 320G | - | gpu80 | 8 |
+
+### MIG Support for 1B Models
+
+**MIG is configured during design-experiment, not here.** If the user opted into MIG during experiment design, the run will have `mig: true` in experiment_summary.md.
+
+**When parsing experiment_summary.md:**
+- If `mig: true` is present for a run: Set `partition: ""` and `mem: 16G` in setup_finetune.yaml
+- If `mig` is not present (default): Do nothing - setup_finetune.py defaults to `partition: nomig` and `mem: 40G`
+
+**Do NOT ask the user about MIG during scaffolding.** This decision is made during experiment design.
+
 ## Input Format 
 
 ### Finding the Experiment
@@ -152,7 +173,8 @@ dataset_label: {extracted from dataset filename, e.g., "words_4L_80P_300"}
 dataset_ext: {extracted from dataset filename, e.g., ".json"}
 
 # Model Configuration
-model_checkpoint: {from experiment_summary.md Resources → Models}
+torchtune_model_name: {from experiment_summary.md Resources → Models, e.g., "Llama-3.2-1B-Instruct"}
+# model_checkpoint: {optional - only if directory name differs from torchtune_model_name}
 
 # Hyperparameters (run-specific)
 lora_rank: {from run table}

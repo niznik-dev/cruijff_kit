@@ -3,12 +3,20 @@
 #SBATCH --output=slurm-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=32G
+#SBATCH --cpus-per-task={cpus_from_model_size}
+#SBATCH --mem={mem_from_model_size}
 #SBATCH --time=0:30:00
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:{gpus_from_model_size}
 # Optional: #SBATCH --account={account}
-# Optional: #SBATCH --constraint=gpu80
+# Conditional: #SBATCH --constraint=gpu80 (required for 3B+ models)
+#
+# Model-aware resource allocation:
+# | Model Size | Memory | GPUs | Constraint | CPUs |
+# |------------|--------|------|------------|------|
+# | 1B         | 32G    | 1    | -          | 4    |
+# | 3B         | 64G    | 1    | gpu80      | 4    |
+# | 8B         | 96G    | 1    | gpu80      | 8    |
+# | 70B        | 256G   | 4    | gpu80      | 8    |
 
 # Load environment
 module load anaconda3/2025.6

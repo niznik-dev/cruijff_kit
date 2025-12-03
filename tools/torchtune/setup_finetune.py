@@ -10,7 +10,40 @@ from cruijff_kit.utils import run_names
 script_dir = Path(__file__).parent
 
 # Skip these when writing the yaml file
-SLURM_ONLY = ['time', 'gpus', 'conda_env', 'account', 'partition', 'constraint']
+SLURM_ONLY = ['time', 'gpus', 'conda_env', 'account', 'partition', 'constraint', 'mem']
+
+# Model-specific configurations
+# Keys are model directory names (e.g., "Llama-3.2-3B-Instruct")
+# SLURM resources follow RAM=VRAM rule to ensure checkpoint saving doesn't OOM
+MODEL_CONFIGS = {
+    "Llama-3.2-1B-Instruct": {
+        "component": "torchtune.models.llama3_2.lora_llama3_2_1b",
+        "checkpoint_files": ["model.safetensors"],
+        "model_type": "LLAMA3_2",
+        "slurm": {
+            "mem": "40G",
+            "partition": "nomig",  # Avoid MIG partitions by default
+            "constraint": None,
+            "cpus": 4,
+            "gpus": 1,
+        },
+    },
+    "Llama-3.2-3B-Instruct": {
+        "component": "torchtune.models.llama3_2.lora_llama3_2_3b",
+        "checkpoint_files": {
+            "filename_format": "model-{}-of-{}.safetensors",
+            "max_filename": "00002",
+        },
+        "model_type": "LLAMA3_2",
+        "slurm": {
+            "mem": "80G",
+            "partition": None,
+            "constraint": "gpu80",
+            "cpus": 4,
+            "gpus": 1,
+        },
+    },
+}
 
 # Used for epochs_to_save to allow for all/none options
 def parse_epochs(value):
@@ -230,9 +263,16 @@ def create_parser():
 
     parser.add_argument("--account", type=str, help="Slurm account to use")
     parser.add_argument("--partition", type=str, help="Slurm partition to use")
+    parser.add_argument("--mem", type=str, help="Slurm memory allocation (e.g., '40G', '16G')")
     parser.add_argument("--constraint", type=str, help="Slurm constraint to use")
 
     parser.add_argument("--custom_recipe", type=str, help="Full name of a custom recipe file in the repo's custom_recipes folder to use for fine-tuning")
+
+    # ------ Model Selection -----
+    parser.add_argument("--torchtune_model_name", type=str, default="Llama-3.2-1B-Instruct",
+                        help="Model name as listed by 'tune ls' (e.g., 'Llama-3.2-1B-Instruct', 'Llama-3.2-3B-Instruct')")
+    parser.add_argument("--model_checkpoint", type=str, default=None,
+                        help="Model directory name within models_dir (defaults to torchtune_model_name if not provided)")
 
     return parser
 
@@ -268,6 +308,14 @@ def main():
     model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
     username = os.environ.get("USER")
 
+    # Get model config early (needed for both YAML and SLURM generation)
+    if args.torchtune_model_name not in MODEL_CONFIGS:
+        raise ValueError(
+            f"Unknown model: '{args.torchtune_model_name}'. "
+            f"Supported models: {', '.join(MODEL_CONFIGS.keys())}"
+        )
+    model_config = MODEL_CONFIGS[args.torchtune_model_name]
+
     # First edit the yaml template
     with open(f"{script_dir}/templates/finetune_template.yaml", "r") as f:
         config = yaml.safe_load(f)
@@ -275,6 +323,23 @@ def main():
     for key, value in vars(args).items():
         if key in SLURM_ONLY:
             continue
+        # Model config - apply torchtune-specific settings
+        elif key == "torchtune_model_name":
+            # Model directory: use model_checkpoint if provided, otherwise torchtune_model_name
+            model_dir = args.model_checkpoint if args.model_checkpoint else value
+
+            # Set model component
+            config["model"]["_component_"] = model_config["component"]
+
+            # Set tokenizer path
+            config["tokenizer"]["path"] = f"${{models_dir}}/{model_dir}/original/tokenizer.model"
+
+            # Set checkpointer config
+            config["checkpointer"]["checkpoint_dir"] = f"${{models_dir}}/{model_dir}/"
+            config["checkpointer"]["model_type"] = model_config["model_type"]
+            config["checkpointer"]["checkpoint_files"] = model_config["checkpoint_files"]
+        elif key == "model_checkpoint":
+            continue  # Handled in torchtune_model_name
         # Special cases first
         elif key == "my_wandb_run_name":
             config["my_wandb_run_name"] = model_run_name
@@ -337,20 +402,36 @@ def main():
         slurm_script = f.read()
 
     slurm_script = slurm_script.replace("<JOBNAME>", model_run_name)
-    # TODO - lookup reasonable memory/time values based on model choice (create a table somewhere)
     slurm_script = slurm_script.replace("00:15:00", args.time)
     slurm_script = slurm_script.replace("<NETID>", username)
 
+    # Apply model-aware SLURM resources (RAM=VRAM rule)
+    # User-specified mem overrides model defaults (for MIG support)
+    slurm_config = model_config.get("slurm", {})
+    mem = args.mem if args.mem else slurm_config.get("mem", "32G")
+    slurm_script = slurm_script.replace("<MEM>", mem)
+
+    # CPUs: use model config, but allow multi-GPU override
+    cpus = slurm_config.get("cpus", 4)
     if args.gpus > 1:
-        slurm_script = slurm_script.replace("#SBATCH --cpus-per-task=1", "#SBATCH --cpus-per-task=" + str(args.gpus))
+        cpus = args.gpus  # Override for multi-GPU
         slurm_script = slurm_script.replace("#SBATCH --gres=gpu:1", "#SBATCH --gres=gpu:" + str(args.gpus))
         slurm_script = slurm_script.replace("lora_finetune_single_device", "--nproc_per_node=" + str(args.gpus) + " lora_finetune_distributed")
+    slurm_script = slurm_script.replace("#SBATCH --cpus-per-task=1", "#SBATCH --cpus-per-task=" + str(cpus))
+
     if args.account:
         slurm_script = slurm_script.replace("##SBATCH --account=<ACT>", "#SBATCH --account=" + args.account)
-    if args.partition:
-        slurm_script = slurm_script.replace("##SBATCH --partition=<PART>", "#SBATCH --partition=" + args.partition)
-    if args.constraint:
-        slurm_script = slurm_script.replace("##SBATCH --constraint=<CONST>", "#SBATCH --constraint=" + args.constraint)
+
+    # Partition: CLI/yaml overrides model config
+    # Use 'is not None' check because empty string is valid (MIG support)
+    partition = args.partition if args.partition is not None else slurm_config.get("partition")
+    if partition is not None and partition != "":
+        slurm_script = slurm_script.replace("##SBATCH --partition=<PART>", "#SBATCH --partition=" + partition)
+
+    # Constraint: CLI overrides model config
+    constraint = args.constraint if args.constraint else slurm_config.get("constraint")
+    if constraint:
+        slurm_script = slurm_script.replace("##SBATCH --constraint=<CONST>", "#SBATCH --constraint=" + constraint)
     if args.custom_recipe:
         if args.gpus == 1:
             slurm_script = slurm_script.replace("lora_finetune_single_device", args.custom_recipe + '.__main__')
