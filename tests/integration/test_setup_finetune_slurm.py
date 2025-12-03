@@ -101,6 +101,22 @@ class TestModelAwareSlurmResources:
         # (it uses constraint=gpu80 instead)
         assert "#SBATCH --partition=nomig" not in slurm
 
+    def test_8b_default_memory(self, temp_run_dir):
+        """8B model defaults to 80G memory."""
+        slurm = run_setup_finetune(temp_run_dir, "Llama-3.1-8B-Instruct")
+        assert "#SBATCH --mem=80G" in slurm
+
+    def test_8b_gpu80_constraint(self, temp_run_dir):
+        """8B model requires gpu80 constraint."""
+        slurm = run_setup_finetune(temp_run_dir, "Llama-3.1-8B-Instruct")
+        assert "#SBATCH --constraint=gpu80" in slurm
+
+    def test_8b_single_gpu(self, temp_run_dir):
+        """8B model uses single GPU."""
+        slurm = run_setup_finetune(temp_run_dir, "Llama-3.1-8B-Instruct")
+        assert "#SBATCH --gres=gpu:1" in slurm
+        assert "lora_finetune_single_device" in slurm
+
     def test_70b_default_memory(self, temp_run_dir):
         """70B model defaults to 320G memory (4 GPUs × 80GB)."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
@@ -207,6 +223,11 @@ class TestCpuAllocation:
     def test_3b_default_cpus(self, temp_run_dir):
         """3B model defaults to 4 CPUs."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-3B-Instruct")
+        assert "#SBATCH --cpus-per-task=4" in slurm
+
+    def test_8b_default_cpus(self, temp_run_dir):
+        """8B model defaults to 4 CPUs."""
+        slurm = run_setup_finetune(temp_run_dir, "Llama-3.1-8B-Instruct")
         assert "#SBATCH --cpus-per-task=4" in slurm
 
     def test_70b_default_cpus(self, temp_run_dir):

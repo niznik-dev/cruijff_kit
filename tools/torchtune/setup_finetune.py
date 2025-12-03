@@ -43,6 +43,21 @@ MODEL_CONFIGS = {
             "gpus": 1,
         },
     },
+    "Llama-3.1-8B-Instruct": {
+        "component": "torchtune.models.llama3_1.lora_llama3_1_8b",
+        "checkpoint_files": {
+            "filename_format": "model-{}-of-{}.safetensors",
+            "max_filename": "00004",
+        },
+        "model_type": "LLAMA3",
+        "slurm": {
+            "mem": "80G",
+            "partition": None,
+            "constraint": "gpu80",
+            "cpus": 4,
+            "gpus": 1,
+        },
+    },
     "Llama-3.3-70B-Instruct": {
         "component": "torchtune.models.llama3_3.lora_llama3_3_70b",
         "checkpoint_files": {
@@ -285,7 +300,7 @@ def create_parser():
 
     # ------ Model Selection -----
     parser.add_argument("--torchtune_model_name", type=str, default="Llama-3.2-1B-Instruct",
-                        help="Model name as listed by 'tune ls' (e.g., 'Llama-3.2-1B-Instruct', 'Llama-3.2-3B-Instruct', 'Llama-3.3-70B-Instruct')")
+                        help="Model name as listed by 'tune ls' (e.g., 'Llama-3.2-1B-Instruct', 'Llama-3.2-3B-Instruct', 'Llama-3.1-8B-Instruct', 'Llama-3.3-70B-Instruct')")
     parser.add_argument("--model_checkpoint", type=str, default=None,
                         help="Model directory name within models_dir (defaults to torchtune_model_name if not provided)")
 
