@@ -43,6 +43,21 @@ MODEL_CONFIGS = {
             "gpus": 1,
         },
     },
+    "Llama-3.3-70B-Instruct": {
+        "component": "torchtune.models.llama3_3.lora_llama3_3_70b",
+        "checkpoint_files": {
+            "filename_format": "model-{}-of-{}.safetensors",
+            "max_filename": "00030",
+        },
+        "model_type": "LLAMA3",
+        "slurm": {
+            "mem": "320G",
+            "partition": None,
+            "constraint": "gpu80",
+            "cpus": 16,
+            "gpus": 4,
+        },
+    },
 }
 
 # Used for epochs_to_save to allow for all/none options
@@ -270,7 +285,7 @@ def create_parser():
 
     # ------ Model Selection -----
     parser.add_argument("--torchtune_model_name", type=str, default="Llama-3.2-1B-Instruct",
-                        help="Model name as listed by 'tune ls' (e.g., 'Llama-3.2-1B-Instruct', 'Llama-3.2-3B-Instruct')")
+                        help="Model name as listed by 'tune ls' (e.g., 'Llama-3.2-1B-Instruct', 'Llama-3.2-3B-Instruct', 'Llama-3.3-70B-Instruct')")
     parser.add_argument("--model_checkpoint", type=str, default=None,
                         help="Model directory name within models_dir (defaults to torchtune_model_name if not provided)")
 
@@ -411,12 +426,18 @@ def main():
     mem = args.mem if args.mem else slurm_config.get("mem", "32G")
     slurm_script = slurm_script.replace("<MEM>", mem)
 
-    # CPUs: use model config, but allow multi-GPU override
+    # GPUs: CLI overrides model config default
+    # Check if user explicitly set --gpus (compare to parser default of 1)
+    model_gpus = slurm_config.get("gpus", 1)
+    gpus = args.gpus if args.gpus != 1 else model_gpus
+
+    # CPUs: use model config value
     cpus = slurm_config.get("cpus", 4)
-    if args.gpus > 1:
-        cpus = args.gpus  # Override for multi-GPU
-        slurm_script = slurm_script.replace("#SBATCH --gres=gpu:1", "#SBATCH --gres=gpu:" + str(args.gpus))
-        slurm_script = slurm_script.replace("lora_finetune_single_device", "--nproc_per_node=" + str(args.gpus) + " lora_finetune_distributed")
+
+    # Multi-GPU setup: update SLURM and use distributed training
+    if gpus > 1:
+        slurm_script = slurm_script.replace("#SBATCH --gres=gpu:1", "#SBATCH --gres=gpu:" + str(gpus))
+        slurm_script = slurm_script.replace("lora_finetune_single_device", "--nproc_per_node=" + str(gpus) + " lora_finetune_distributed")
     slurm_script = slurm_script.replace("#SBATCH --cpus-per-task=1", "#SBATCH --cpus-per-task=" + str(cpus))
 
     if args.account:
@@ -433,7 +454,7 @@ def main():
     if constraint:
         slurm_script = slurm_script.replace("##SBATCH --constraint=<CONST>", "#SBATCH --constraint=" + constraint)
     if args.custom_recipe:
-        if args.gpus == 1:
+        if gpus == 1:
             slurm_script = slurm_script.replace("lora_finetune_single_device", args.custom_recipe + '.__main__')
         else:
             slurm_script = slurm_script.replace("lora_finetune_distributed", args.custom_recipe + '.__main__')
