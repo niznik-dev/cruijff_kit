@@ -64,9 +64,9 @@ mkdir -p {experiment_dir}/{run_directory_name}
 ```python
 dataset_path = experiment_summary['dataset_path']
 if dataset_path.endswith('.json'):
-    template = 'experiments/capitalization/templates/finetuning/setup_finetune_json.yaml'
+    template = 'experiments/capitalization/setup_finetune.yaml'  # default
 elif dataset_path.endswith('.parquet'):
-    template = 'experiments/capitalization/templates/finetuning/setup_finetune_parquet.yaml'
+    template = 'experiments/capitalization/yaml_examples/setup_finetune_parquet.yaml'
 else:
     raise ValueError(f"Unknown dataset format: {dataset_path}")
 ```

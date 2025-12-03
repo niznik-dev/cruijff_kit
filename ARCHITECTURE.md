@@ -384,7 +384,7 @@ cruijff_kit supports two workflows:
 **For single runs:**
 
 1. Navigate to experiment directory: `cd experiments/capitalization/`
-2. Copy and edit config: `cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml`
+2. Edit config: `setup_finetune.yaml` (or copy from `yaml_examples/` for alternative formats)
 3. Generate scripts: `python ../../tools/torchtune/setup_finetune.py`
 4. Submit job: `sbatch finetune.slurm`
 5. Evaluate: `python ../../tools/inspect/setup_inspect.py --finetune_epoch_dir /path/to/epoch_0/`
