@@ -101,6 +101,32 @@ class TestModelAwareSlurmResources:
         # (it uses constraint=gpu80 instead)
         assert "#SBATCH --partition=nomig" not in slurm
 
+    def test_70b_default_memory(self, temp_run_dir):
+        """70B model defaults to 320G memory (4 GPUs × 80GB)."""
+        slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
+        assert "#SBATCH --mem=320G" in slurm
+
+    def test_70b_gpu80_constraint(self, temp_run_dir):
+        """70B model requires gpu80 constraint."""
+        slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
+        assert "#SBATCH --constraint=gpu80" in slurm
+
+    def test_70b_no_partition(self, temp_run_dir):
+        """70B model should not set a partition (uses constraint instead)."""
+        slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
+        assert "#SBATCH --partition=nomig" not in slurm
+
+    def test_70b_multi_gpu(self, temp_run_dir):
+        """70B model defaults to 4 GPUs."""
+        slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
+        assert "#SBATCH --gres=gpu:4" in slurm
+
+    def test_70b_distributed_training(self, temp_run_dir):
+        """70B model uses distributed training recipe."""
+        slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
+        assert "lora_finetune_distributed" in slurm
+        assert "--nproc_per_node=4" in slurm
+
 
 class TestMigSupport:
     """Test MIG (Multi-Instance GPU) support for 1B models."""
@@ -182,3 +208,8 @@ class TestCpuAllocation:
         """3B model defaults to 4 CPUs."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-3B-Instruct")
         assert "#SBATCH --cpus-per-task=4" in slurm
+
+    def test_70b_default_cpus(self, temp_run_dir):
+        """70B model defaults to 16 CPUs (4 per GPU × 4 GPUs)."""
+        slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
+        assert "#SBATCH --cpus-per-task=16" in slurm
