@@ -4,42 +4,59 @@ After user approves the plan, create the output files and suggest next steps.
 
 ## Files to Create
 
-### 1. experiment_summary.md
+### 1. experiment_summary.yaml
 
-Create comprehensive documentation in `{experiment_dir}/experiment_summary.md` using the template structure from `templates/experiment_summary.md`.
+Create structured configuration in `{experiment_dir}/experiment_summary.yaml` using the template structure from `templates/experiment_summary.yaml`.
 
-**Required sections (in order):**
-1. **Overview** - Experiment type, total runs, scientific question, created date
-2. **Tools** - Which preparation and evaluation tools are used
-3. **Variables** - Table of factors and levels being tested
-4. **All Runs** - Complete table with run names, configurations, estimated time
-5. **Resources** - Verified paths to models, datasets, eval scripts
-6. **Evaluation Plan** - Which tasks, which runs, which epochs
-7. **Configuration** - Recipe, epochs, batch sizes, hyperparameters, system prompt
-8. **Compute Estimates** - Training time, eval time, disk space, GPU hours
-9. **Naming Conventions** - How runs are named and organized
-10. **Quick Reference** - Paths, common commands, next steps
+**Required sections:**
+- `experiment`: name, type, question, date, hypothesis (optional), purpose (optional), directory
+- `tools`: preparation, evaluation (for scaffold routing)
+- `variables`: parameters that vary across runs (optional if only controls)
+- `controls`: parameters held constant across all runs
+- `models`: base model(s) with paths and sizes
+- `data`: training dataset with splits
+- `output`: checkpoint directories and naming patterns
+- `runs`: complete list of fine-tuned + control runs
+- `evaluation`: system prompt, temperature, scorer, tasks, matrix
 
 **Important notes:**
 - Use actual paths from `claude.local.md`, not placeholders
-- **System prompt consistency is critical** - must match between training and evaluation for inspect-ai
-- **Epochs are 0-indexed** - epoch_0, epoch_1, etc.
-- Base models evaluate once (no epoch suffix), fine-tuned models evaluate per specified epoch
+- **System prompt consistency is critical** - `evaluation.system_prompt` must match `controls.system_prompt` for inspect-ai
+- **Epochs are 0-indexed** - Use `[0, 1, 2]` in evaluation matrix for epochs 0, 1, 2
+- Control runs: Set `epochs: null` in evaluation matrix (no epoch suffix)
+- Fine-tuned runs: Specify epoch list `epochs: [0, 1]` for which epochs to evaluate
 
-For complete template structure and examples, see `templates/experiment_summary.md`.
+**YAML formatting:**
+- Use standard YAML syntax (2-space indentation)
+- Add helpful comments for clarity (e.g., `# Control run - no training`)
+- Ensure proper list syntax: `[item1, item2]` or multi-line with `-`
+- Quote strings with special characters or colons
 
-### 2. design-experiment.log
+For complete schema and examples, see `templates/experiment_summary.yaml`.
 
-Create detailed audit trail in `{experiment_dir}/design-experiment.log` that records all verification steps, calculations, and decisions.
+### 2. design-experiment.jsonl
 
-For log format and examples, see `logging.md`.
+Create machine-readable audit trail in `{experiment_dir}/design-experiment.jsonl` that records all verification steps, calculations, and decisions in JSON Lines format.
+
+For log format specification and examples, see `logging.md`.
 
 **Key logging points:**
-- Resource verification commands and results
-- Prior run searches and data extraction
-- All calculations (time estimates, batch sizes, disk space)
-- Decisions made (naming, recipe selection, configuration)
-- File creation
+- `START_DESIGN`: Mark beginning of experiment design
+- `VERIFY_MODEL`, `VERIFY_DATASET`, `VERIFY_EVAL_TASK`: Resource verification
+- `SEARCH_PRIOR_RUNS`, `EXTRACT_TRAINING_SPEED`: Prior run analysis
+- `CALCULATE_TRAINING_TIME`, `CALCULATE_DISK_USAGE`: Compute estimates
+- `CHECK_DISK_SPACE`: Disk availability
+- `GENERATE_RUNS`: Run generation from variables
+- `GENERATE_EVAL_MATRIX`: Evaluation matrix creation
+- `CREATE_YAML`: Write experiment_summary.yaml
+- `CREATE_LOG`: Write design-experiment.jsonl (self-reference)
+- `COMPLETE_DESIGN`: Mark end of experiment design
+
+**JSONL formatting:**
+- Each line is a single JSON object (no pretty-printing)
+- Use ISO 8601 timestamps: `"2025-10-22T14:30:00.000Z"`
+- Include `result: "success|failure|warning"` for all actions
+- Add error fields for failures: `error_type`, `error_message`
 
 ---
 
@@ -48,9 +65,9 @@ For log format and examples, see `logging.md`.
 ### 1. Confirm Files Created
 
 ```
-I've created the experiment plan at `{experiment_dir}/experiment_summary.md`.
+I've created the experiment plan at `{experiment_dir}/experiment_summary.yaml`.
 
-All verification steps and calculations have been logged in `{experiment_dir}/design-experiment.log`.
+All verification steps and calculations have been logged in `{experiment_dir}/design-experiment.jsonl`.
 ```
 
 ### 2. Ask About Next Steps
@@ -72,7 +89,7 @@ Would you like me to proceed with scaffolding? I can run `scaffold-experiment` t
 
 **Manual workflow (if needed):**
 - User can manually create directories and configs
-- Follow the experiment plan as documented in experiment_summary.md
+- Follow the experiment plan as documented in experiment_summary.yaml
 
 ---
 
@@ -80,8 +97,8 @@ Would you like me to proceed with scaffolding? I can run `scaffold-experiment` t
 
 ```
 Perfect! I've created:
-- experiment_summary.md with the complete plan
-- design-experiment.log with all verification steps and calculations
+- experiment_summary.yaml with the complete plan
+- design-experiment.jsonl with all verification steps and calculations
 
 Would you like me to proceed with scaffolding? I can run `scaffold-experiment` to generate all the configs and SLURM scripts for you.
 ```

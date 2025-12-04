@@ -41,15 +41,7 @@ Expected files:
 - Check SLURM output for errors
 - Mark as validation failure
 
-### 4. experiment_summary.md Updated
-
-Verify status table contains:
-- Job IDs for all runs
-- Current status for all jobs
-- Timestamps (Started, Completed)
-- Elapsed times for completed jobs
-
-### 5. Log File Created
+### 4. Log File Created
 
 Verify `run-torchtune.log` exists with:
 - All job submissions logged
@@ -86,7 +78,6 @@ Verify `run-torchtune.log` exists with:
 ✓ All jobs submitted (8/8)
 ✓ All jobs completed (7 COMPLETED, 1 FAILED)
 ✓ Model checkpoints verified (7/7 successful runs)
-✓ experiment_summary.md updated
 ✓ Log file created: run-torchtune.log
 
 **Warnings:**

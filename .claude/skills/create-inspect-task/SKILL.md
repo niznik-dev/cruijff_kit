@@ -16,14 +16,14 @@ Guide the user through designing and implementing a custom inspect-ai evaluation
 This skill supports two modes:
 
 ### Mode 1: Experiment-Guided (Recommended)
-When an `experiment_summary.md` file exists (created by `design-experiment` skill), extract configuration to pre-populate:
+When an `experiment_summary.yaml` file exists (created by `design-experiment` skill), extract configuration to pre-populate:
 - Dataset path and format
 - Model information
 - Evaluation objectives
 - System prompts
 - Common parameters
 
-**Usage:** Run skill from experiment directory or provide path to experiment_summary.md
+**Usage:** Run skill from experiment directory or provide path to experiment_summary.yaml
 
 ### Mode 2: Standalone
 Create evaluation tasks from scratch without experiment context. User provides all configuration manually.
@@ -35,14 +35,14 @@ Create evaluation tasks from scratch without experiment context. User provides a
 ### Initial Setup (Both Modes)
 
 1. **Check for experiment context**
-   - Look for `experiment_summary.md` in current directory
+   - Look for `experiment_summary.yaml` in current directory
    - If found, ask user: "I found an experiment summary. Would you like me to use it to configure the evaluation task?"
    - If user says yes, proceed with Mode 1
    - If no or not found, proceed with Mode 2
 
 ### Mode 1: Experiment-Guided Workflow
 
-1. **Read experiment_summary.md** - Extract configuration
+1. **Read experiment_summary.yaml** - Extract configuration
 2. **Confirm extracted info** - Show user what was found (dataset, models, etc.)
 3. **Understand evaluation objective** - What specific aspect to evaluate?
 4. **Configure task-specific details** - Solver chain, scorers (guided by experiment context)
@@ -64,119 +64,111 @@ Create evaluation tasks from scratch without experiment context. User provides a
 8. **Create log** - Document all decisions in `create-inspect-task.log`
 9. **Provide usage guidance** - Show user how to run the task
 
-## Extracting Information from experiment_summary.md (Mode 1)
+## Extracting Information from experiment_summary.yaml (Mode 1)
 
-When operating in experiment-guided mode, extract the following information:
+When operating in experiment-guided mode, extract the following information from the YAML structure:
 
-### Required Sections to Parse
+### YAML Structure Overview
 
-#### 1. Overview Section
-```markdown
-## Overview
-- **Type:** {design_type}
-- **Total Runs:** {count}
-- **Scientific Question:** {research_question}
-- **Created:** {timestamp}
+```yaml
+experiment:
+  name: string
+  type: string
+  question: string
+
+data:
+  training:
+    path: string
+    label: string
+    format: string
+    splits:
+      train: int
+      validation: int
+      test: int
+
+models:
+  base:
+    - name: string
+      path: string
+
+evaluation:
+  system_prompt: string
+  temperature: float
+
+runs:
+  - name: string
+    type: string  # "fine-tuned" or "control"
+    model: string
 ```
 
-**Extract:**
-- Research question/objective → Informs evaluation goal
-- Experiment type → Helps understand what's being compared
-
-#### 2. Resources Section
-```markdown
-## Resources
-
-### Models
-- **Location:** `{models_dir}`
-- **Models Used:**
-  - {model1}: `{full_path}` ✓ verified
-
-### Dataset
-- **Path:** `{dataset_path}` ✓ verified
-- **Size:** {file_size}
-- **Splits:** train ({count}), validation ({count}), test ({count})
-
-### Evaluation Tasks
-| Task Name | Script | Dataset | Description |
-|-----------|--------|---------|-------------|
-| {task1} | `{path}` | `{dataset}` | {desc} |
-```
-
-**Extract:**
-- Dataset path → Use for evaluation
-- Dataset format → Infer from extension (.json, .parquet)
-- Dataset splits → Use "test" split for evaluation
-- Model paths → For showing usage examples
-- Existing evaluation tasks → Check if task already exists
-
-#### 3. Configuration Section
-```markdown
-## Configuration
-- **Recipe:** `{recipe_path}`
-- **Epochs:** {count}
-- **Batch sizes:** {details}
-- **System prompt:** "{prompt}"
-- **Validation during training:** {yes/no}
-```
-
-**Extract:**
-- System prompt → Use same prompt for evaluation consistency
-- Epochs → Know which epochs to evaluate
-- Training configuration → Context for evaluation design
-
-#### 4. All Runs Table
-```markdown
-| Run Name | Model | LoRA Rank | Batch Size | Type | Est. Time |
-|----------|-------|-----------|------------|------|-----------|
-| {run1} | {model} | {rank} | {batch} | Fine-tuned | {time} |
-| {run1_base} | {model} | - | - | Control | N/A |
-```
-
-**Extract:**
-- Run names → For documentation examples
-- Model names → For showing evaluation commands
-- Control runs → Know which runs need evaluation
-
-### Parsing Algorithm
+### Extraction Algorithm
 
 ```python
-# Pseudocode for extraction
+import yaml
+from pathlib import Path
+
 def extract_from_experiment_summary(path):
-    with open(path) as f:
-        content = f.read()
+    """Extract configuration from experiment_summary.yaml"""
+    with open(path, 'r') as f:
+        config = yaml.safe_load(f)
 
-    # Extract dataset path
-    # Look for: "**Path:** `{path}` ✓ verified"
-    dataset_match = re.search(r'\*\*Path:\*\* `([^`]+)` ✓', content)
-    dataset_path = dataset_match.group(1) if dataset_match else None
+    # Extract dataset configuration
+    dataset_path = config['data']['training']['path']
+    dataset_format = config['data']['training']['format']
+    dataset_splits = config['data']['training']['splits']
 
-    # Extract dataset format
-    dataset_ext = Path(dataset_path).suffix if dataset_path else None
-
-    # Extract system prompt
-    # Look for: "**System prompt:** "{prompt}""
-    prompt_match = re.search(r'\*\*System prompt:\*\* "([^"]*)"', content)
-    system_prompt = prompt_match.group(1) if prompt_match else ""
+    # Extract system prompt from evaluation section
+    system_prompt = config['evaluation']['system_prompt']
 
     # Extract research question
-    question_match = re.search(r'\*\*Scientific Question:\*\* (.+)', content)
-    research_question = question_match.group(1) if question_match else None
+    research_question = config['experiment']['question']
+    experiment_type = config['experiment']['type']
 
-    # Extract model paths (first model listed)
-    model_match = re.search(r'- (.+): `([^`]+)` ✓', content)
-    model_name = model_match.group(1) if model_match else None
-    model_path = model_match.group(2) if model_match else None
+    # Extract model information (first base model)
+    base_models = config['models']['base']
+    model_name = base_models[0]['name'] if base_models else None
+    model_path = base_models[0]['path'] if base_models else None
+
+    # Extract run names for documentation examples
+    run_names = [run['name'] for run in config['runs']]
+    control_runs = [run['name'] for run in config['runs'] if run['type'] == 'control']
 
     return {
         'dataset_path': dataset_path,
-        'dataset_ext': dataset_ext,
+        'dataset_format': dataset_format,
+        'dataset_splits': dataset_splits,
         'system_prompt': system_prompt,
         'research_question': research_question,
+        'experiment_type': experiment_type,
         'model_name': model_name,
-        'model_path': model_path
+        'model_path': model_path,
+        'run_names': run_names,
+        'control_runs': control_runs
     }
 ```
+
+### Key Fields to Extract
+
+**From `experiment` section:**
+- `question` → Research question/objective (informs evaluation goal)
+- `type` → Experiment type (helps understand what's being compared)
+
+**From `data.training` section:**
+- `path` → Dataset path for evaluation
+- `format` → Dataset format (json, parquet)
+- `splits` → Sample counts (use test split for evaluation)
+
+**From `models.base[]` section:**
+- `name` → Model identifier
+- `path` → Full path to base model (for usage examples)
+
+**From `evaluation` section:**
+- `system_prompt` → Use same prompt for consistency
+- `temperature` → Default temperature setting
+
+**From `runs[]` section:**
+- `name` → Run identifiers (for documentation)
+- `type` → Filter for "control" runs that need evaluation
 
 ### Presenting Extracted Information
 
@@ -249,11 +241,11 @@ Result: {outcome}
 
 ```
 [2025-10-24 14:30:00] MODE_SELECTION: Experiment-guided mode
-Details: Found experiment_summary.md at /scratch/gpfs/MSALGANIK/mjs3/cap_4L_lora_lr_sweep/experiment_summary.md
+Details: Found experiment_summary.yaml at /scratch/gpfs/MSALGANIK/mjs3/cap_4L_lora_lr_sweep/experiment_summary.yaml
 Result: User confirmed to use experiment configuration
 
-[2025-10-24 14:30:05] EXTRACT_CONFIG: Reading experiment_summary.md
-Details: Parsing sections: Overview, Resources, Configuration
+[2025-10-24 14:30:05] EXTRACT_CONFIG: Reading experiment_summary.yaml
+Details: Parsing YAML structure: experiment, data, models, evaluation sections
 Result: Successfully extracted configuration
 
 [2025-10-24 14:30:10] EXTRACTED_DATASET: Dataset configuration
@@ -789,7 +781,7 @@ When creating tasks for an experiment:
    # Invoke create-inspect-task skill
    ```
 
-2. **Skill automatically extracts from experiment_summary.md:**
+2. **Skill automatically extracts from experiment_summary.yaml:**
    - Dataset path and format
    - System prompt (ensures eval matches training)
    - Model information
@@ -907,7 +899,7 @@ Before finishing, verify:
 ### Mode 1 Specific Validation
 
 Additional checks for experiment-guided mode:
-- ✓ experiment_summary.md was successfully parsed
+- ✓ experiment_summary.yaml was successfully parsed
 - ✓ Extracted dataset path exists and format matches
 - ✓ System prompt matches training configuration
 - ✓ Task supports both `config_dir` and `dataset_path` parameters
@@ -961,7 +953,7 @@ After creating the task, guide user:
 
 ### Experiment Integration
 - **Prefer Mode 1 (experiment-guided)** when working with designed experiments
-- Always check for experiment_summary.md before starting
+- Always check for experiment_summary.yaml before starting
 - Extract and validate all configuration before proceeding
 - **System prompt consistency is critical** - eval must match training
 - Generated tasks should work for both fine-tuned and base models

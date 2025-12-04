@@ -8,7 +8,7 @@ Each evaluator tool should follow this four-stage pattern for job execution:
 
 ### Stage 1: INPUT PROCESSING
 **File:** `parsing.md`
-**Purpose:** Extract structured data from experiment_summary.md and scan for evaluation scripts
+**Purpose:** Extract structured data from experiment_summary.yaml and scan for evaluation scripts
 **Outputs:** List of evaluations to execute, job metadata
 
 ### Stage 2: PLANNING / SELECTION
@@ -68,8 +68,6 @@ Execute evaluation jobs using inspect-ai framework.
 **Dependency Awareness:** Evaluations MUST NOT run before fine-tuning completes. Always check dependencies first.
 
 **Resumability:** Selection logic ensures already-completed evaluations aren't resubmitted
-
-**Status Tracking:** Monitoring continuously updates experiment_summary.md with evaluation status
 
 **Progressive Disclosure:** SKILL.md links to main.md, which links to specific stage files
 

@@ -4,7 +4,7 @@ This document describes the detailed step-by-step process for executing torchtun
 
 ## Prerequisites
 
-- experiment_summary.md exists
+- experiment_summary.yaml exists
 - Fine-tuning scaffolding complete (finetune.slurm files exist)
 - SLURM cluster access
 
@@ -30,7 +30,6 @@ done
 For each directory with finetune.slurm, collect:
 - Run directory name (e.g., `r8_lr1e-5`)
 - Path to SLURM script
-- Current status (if exists in experiment_summary.md)
 
 **Technical details:** See [optimizers/torchtune/parsing.md](../optimizers/torchtune/parsing.md)
 
@@ -64,7 +63,6 @@ job_id=$(sbatch finetune.slurm | awk '{print $4}')
 **Record submission:**
 - Capture job ID
 - Record timestamp
-- Update experiment_summary.md with job metadata
 
 **Stagger submissions:**
 ```bash
@@ -94,9 +92,6 @@ sacct -j {job_id} --format=JobID,State,Start,End,Elapsed
 - RUNNING → COMPLETED: Record completion timestamp and elapsed time
 - RUNNING → FAILED: Record failure and note to check logs
 
-**Update experiment_summary.md:**
-Update Fine-tuning status table with current state, timestamps, elapsed times.
-
 **Continue until all terminal:**
 Stop monitoring when all jobs reach: COMPLETED, FAILED, CANCELLED, or TIMEOUT
 
@@ -118,9 +113,6 @@ ls {output_dir_base}/ck-out-{run_name}/epoch_{N}/
 For each COMPLETED job, verify checkpoint directory exists with:
 - Weight files (adapter_model.bin or similar)
 - Config files (adapter_config.json)
-
-**Check experiment_summary.md updated:**
-Verify status table populated with job IDs, states, timestamps.
 
 **Check log file created:**
 Verify detailed execution log exists.
@@ -163,7 +155,6 @@ Create detailed log at `{experiment_dir}/run-torchtune.log` (or similar name bas
 - ✓ All jobs submitted successfully
 - ✓ All jobs reached terminal states
 - ✓ Model checkpoints exist for COMPLETED jobs
-- ✓ experiment_summary.md fully updated
 - ✓ Log file complete
 
 ## Important Notes

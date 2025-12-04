@@ -12,7 +12,6 @@ Decide which evaluations need to be submitted.
 
 **Skip if:**
 - Model checkpoint missing (from dependency_checking.md skip list)
-- Job ID already exists in experiment_summary.md and job is running
 - Evaluation log file exists in `eval/logs/*.eval` (already completed)
 
 ## Check Current Status

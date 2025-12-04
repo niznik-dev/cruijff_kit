@@ -2,16 +2,45 @@
 
 Extract experiment information and identify evaluations to execute.
 
-## Parse experiment_summary.md
+## Parse experiment_summary.yaml
 
 ### Required Information
 
-1. **Experiment name** - From title (line 1)
-2. **All runs** - From "All Runs" table
-3. **Evaluation plan** - From "Evaluations" status table:
-   - Which run/task/epoch combinations to evaluate
-   - Which evaluations are already completed
-4. **Output directories** - Where fine-tuned models were saved
+Load the YAML file and extract:
+
+1. **Experiment name** - `experiment.name`
+2. **Evaluation matrix** - `evaluation.matrix[]` (run/task/epoch combinations)
+3. **Output directory** - `output.base_directory` (where checkpoints are saved)
+
+### Example YAML Parsing
+
+```python
+import yaml
+
+with open('experiment_summary.yaml', 'r') as f:
+    config = yaml.safe_load(f)
+
+experiment_name = config['experiment']['name']
+eval_matrix = config['evaluation']['matrix']
+output_base = config['output']['base_directory']
+
+for entry in eval_matrix:
+    run_name = entry['run']
+    tasks = entry['tasks']  # List of task names
+    epochs = entry['epochs']  # List of epoch numbers (or None for control runs)
+
+    # For control runs, epochs will be None
+    if epochs is None:
+        # Base model evaluation - no checkpoint path
+        for task in tasks:
+            print(f"Eval: {run_name} / {task} / base")
+    else:
+        # Fine-tuned model evaluation - checkpoint paths
+        for task in tasks:
+            for epoch in epochs:
+                checkpoint_path = f"{output_base}/ck-out-{run_name}/epoch_{epoch}/"
+                print(f"Eval: {run_name} / {task} / epoch {epoch}")
+```
 
 ## Scan for Evaluation Jobs
 
@@ -31,15 +60,15 @@ done
 
 ## Build Evaluation List
 
-For each `eval/*.slurm` file found:
+For each entry in evaluation matrix:
 
 **Collect:**
-- Run directory name (e.g., `r8_lr1e-5`)
-- Task name (extracted from filename, e.g., `capitalization`)
-- Epoch number (extracted from filename, e.g., `0`)
-- Path to SLURM script (`{run_dir}/eval/{task}_epoch{N}.slurm`)
-- Expected model checkpoint path (`{output_dir_base}/ck-out-{run_name}/epoch_{N}/`)
-- Current status from experiment_summary.md (if exists)
+- Run name from YAML (`evaluation.matrix[].run`)
+- Task list from YAML (`evaluation.matrix[].tasks`)
+- Epoch list from YAML (`evaluation.matrix[].epochs`)
+- Path to SLURM script (`{run_name}/eval/{task}_epoch{N}.slurm` or `{run_name}/eval/{task}_base.slurm`)
+- Expected model checkpoint path (if fine-tuned run)
+- Verify directories exist
 
 **Output:** List of all potential evaluations to execute
 

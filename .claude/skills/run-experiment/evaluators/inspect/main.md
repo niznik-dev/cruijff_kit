@@ -6,14 +6,14 @@ Executes inspect-ai evaluation jobs for all runs in an experiment.
 
 ## Prerequisites
 
-- experiment_summary.md exists
+- experiment_summary.yaml exists
 - Evaluation scaffolding complete (eval/*.slurm files exist)
 - Fine-tuning complete (model checkpoints exist)
 - SLURM cluster access
 
 ## Submodules
 
-- **[parsing.md](parsing.md)** - Parse experiment_summary.md and scan for eval/*.slurm files
+- **[parsing.md](parsing.md)** - Parse experiment_summary.yaml and scan for eval/*.slurm files
 - **[dependency_checking.md](dependency_checking.md)** - **CRITICAL:** Verify fine-tuning complete, checkpoints exist
 - **[evaluation_selection.md](evaluation_selection.md)** - Decide which evaluations to submit (skip completed, skip missing checkpoints)
 - **[job_submission.md](job_submission.md)** - Submit SLURM jobs, capture IDs
@@ -31,6 +31,5 @@ Executes inspect-ai evaluation jobs for all runs in an experiment.
 
 ## Output
 
-- Updates experiment_summary.md evaluations status table
 - Creates run-inspect.log with detailed execution history
 - Evaluation logs in `{run_dir}/eval/logs/*.eval`
