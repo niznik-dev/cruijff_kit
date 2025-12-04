@@ -6,8 +6,8 @@ This module handles generating setup_finetune.yaml files for each run.
 
 Select appropriate template based on dataset format:
 - Check dataset path extension in experiment_summary.md
-- If `.json` → use `experiments/capitalization/templates/finetuning/setup_finetune_json.yaml`
-- If `.parquet` → use `experiments/capitalization/templates/finetuning/setup_finetune_parquet.yaml`
+- If `.json` → use `experiments/capitalization/setup_finetune.yaml` (default)
+- If `.parquet` → use `experiments/capitalization/yaml_examples/setup_finetune_parquet.yaml`
 
 ## setup_finetune.yaml Structure
 

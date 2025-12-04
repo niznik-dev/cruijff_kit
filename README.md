@@ -216,13 +216,13 @@ For a complete example with detailed instructions, see `experiments/capitalizati
 
 ### Single Run Example (Twin Dataset)
 
-1. **Prepare your configuration file**
+1. **Create configuration file**
 
-Create a `setup_finetune.yaml` file in your experiment directory. You can copy from a template:
+Copy a config template from the experiment's `yaml_examples/` folder:
 
 ```bash
 cd experiments/your_experiment/
-cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml
+cp yaml_examples/setup_finetune_json.yaml setup_finetune.yaml
 ```
 
 2. **Edit the configuration**

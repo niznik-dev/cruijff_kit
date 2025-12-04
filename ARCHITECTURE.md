@@ -29,7 +29,7 @@ cruijff_kit/
 │   ├── capitalization/ # Generalization test with word capitalization
 │   │   ├── cap_task.py # Inspect-ai evaluation task
 │   │   ├── input/      # Dataset generation
-│   │   └── templates/  # Fine-tuning configs
+│   │   └── yaml_examples/  # Fine-tuning config examples
 │   └── synthetic_twins/# Social science twin prediction experiment
 │       ├── inspect_task_twins.py # Inspect-ai evaluation task
 │       └── ...
@@ -197,7 +197,7 @@ Real research experiment types with scientific questions:
 Each experiment typically includes:
 - `README.md` - Experiment-specific instructions
 - `setup_finetune.yaml` - Configuration template
-- `templates/` - YAML templates for different dataset formats
+- `yaml_examples/` - Example YAML configs for different dataset formats
 - `input/` - Data generation or preprocessing scripts
 - `utils/` - Experiment-specific helper functions
 - `{name}_inspect_task.py` - Inspect-ai evaluation task (e.g., `inspect_task_capitalization.py`)
@@ -384,7 +384,7 @@ cruijff_kit supports two workflows:
 **For single runs:**
 
 1. Navigate to experiment directory: `cd experiments/capitalization/`
-2. Copy and edit config: `cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml`
+2. Edit config: `setup_finetune.yaml` (or copy from `yaml_examples/` for alternative formats)
 3. Generate scripts: `python ../../tools/torchtune/setup_finetune.py`
 4. Submit job: `sbatch finetune.slurm`
 5. Evaluate: `python ../../tools/inspect/setup_inspect.py --finetune_epoch_dir /path/to/epoch_0/`
