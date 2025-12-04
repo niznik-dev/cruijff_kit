@@ -29,7 +29,7 @@ cruijff_kit/
 │   ├── capitalization/ # Generalization test with word capitalization
 │   │   ├── cap_task.py # Inspect-ai evaluation task
 │   │   ├── input/      # Dataset generation
-│   │   └── templates/  # Fine-tuning configs
+│   │   └── yaml_examples/  # Fine-tuning config examples
 │   └── synthetic_twins/# Social science twin prediction experiment
 │       ├── inspect_task_twins.py # Inspect-ai evaluation task
 │       └── ...
@@ -197,7 +197,7 @@ Real research experiment types with scientific questions:
 Each experiment typically includes:
 - `README.md` - Experiment-specific instructions
 - `setup_finetune.yaml` - Configuration template
-- `templates/` - YAML templates for different dataset formats
+- `yaml_examples/` - Example YAML configs for different dataset formats
 - `input/` - Data generation or preprocessing scripts
 - `utils/` - Experiment-specific helper functions
 - `{name}_inspect_task.py` - Inspect-ai evaluation task (e.g., `inspect_task_capitalization.py`)
