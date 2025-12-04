@@ -334,8 +334,8 @@ def get_next_tokens(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[st
     return generated_tokens
 
 
-def get_embeddings(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str], 
-                    preprompt: str = '', sys_prompt: str = '',
+def get_embeddings(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str],
+                    preprompt: str = '', sysprompt: str = '',
                     use_chat_template = True, pool = "last_non_padding",
                     batch_size = 4, return_mask = False, last_layer_only = True,
                     **kwargs) -> tuple[torch.Tensor, torch.Tensor | None]:
@@ -391,8 +391,8 @@ def get_embeddings(model: nn.Module, tokenizer: AutoTokenizer, prompts: list[str
 
     # Set up dataloader
     dataset = PromptDataset(prompts)
-    collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt, 
-                      sys_prompt = sys_prompt, use_chat_template = use_chat_template)
+    collate = partial(collate_fn, tokenizer = tokenizer, preprompt = preprompt,
+                      sysprompt = sysprompt, use_chat_template = use_chat_template)
     loader = torch.utils.data.DataLoader(dataset, batch_size = batch_size, collate_fn = collate, pin_memory = True)
     
     with torch.no_grad(), torch.amp.autocast("cuda"):

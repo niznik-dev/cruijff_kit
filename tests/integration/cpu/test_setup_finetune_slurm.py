@@ -3,16 +3,13 @@
 Tests the model-aware SLURM resource allocation and MIG support.
 """
 
-import os
 import subprocess
-import tempfile
-import shutil
 import pytest
 from pathlib import Path
 
 
 # Get repo root relative to this test file
-REPO_ROOT = Path(__file__).parent.parent.parent
+REPO_ROOT = Path(__file__).parent.parent.parent.parent
 SCRIPT_PATH = REPO_ROOT / "tools/torchtune/setup_finetune.py"
 TEMPLATES_PATH = REPO_ROOT / "tools/torchtune/templates"
 
@@ -44,15 +41,11 @@ def run_setup_finetune(run_dir, model_name="Llama-3.2-1B-Instruct", extra_args=N
     if extra_args:
         cmd.extend(extra_args)
 
-    env = os.environ.copy()
-    env["PYTHONPATH"] = str(REPO_ROOT)
-
     result = subprocess.run(
         cmd,
         cwd=run_dir,
         capture_output=True,
         text=True,
-        env=env
     )
 
     if result.returncode != 0:
