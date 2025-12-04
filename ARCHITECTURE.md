@@ -45,7 +45,10 @@ cruijff_kit/
 │   ├── check_if_model_is_finetuned.py  # Model state inspection
 │   └── convert_*.py    # Dataset format conversion utilities
 │
-├── misc/               # Experimental/legacy code
+├── tests/              # Test suite (pytest)
+│   ├── unit/           # Unit tests (no GPU required)
+│   └── integration/    # Integration tests (GPU/cluster required)
+│
 ├── logs/               # Experiment outputs and logs
 │
 └── data/               # Tiered data access system

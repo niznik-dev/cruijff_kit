@@ -24,7 +24,7 @@ logger = setup_logger(__name__)
 '''
 Notes:
     - **kwargs functionality built into get_logits(), get_next_tokens(), and get_embeddings() methods for forward passes.
-    - Example usage in 'test-utils.py' / 'test-utils.slurm'.
+    - See tests/integration/test_llm_utils.py for usage examples.
 '''
 
 '''
