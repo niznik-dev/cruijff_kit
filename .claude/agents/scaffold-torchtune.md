@@ -35,6 +35,27 @@ When invoked:
 
 **CRITICAL: You must execute setup_finetune.py automatically. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.**
 
+## Model-Aware SLURM Resources
+
+The `setup_finetune.py` script automatically sets SLURM resources based on model size (RAM=VRAM rule):
+
+| Model | Memory | Partition | Constraint | CPUs |
+|-------|--------|-----------|------------|------|
+| 1B | 40G | nomig | - | 4 |
+| 3B | 80G | - | gpu80 | 4 |
+| 8B | 80G | - | gpu80 | 8 |
+| 70B | 320G | - | gpu80 | 8 |
+
+### MIG Support for 1B Models
+
+**MIG is configured during design-experiment, not here.** If the user opted into MIG during experiment design, the run will have `mig: true` in experiment_summary.md.
+
+**When parsing experiment_summary.md:**
+- If `mig: true` is present for a run: Set `partition: ""` and `mem: 16G` in setup_finetune.yaml
+- If `mig` is not present (default): Do nothing - setup_finetune.py defaults to `partition: nomig` and `mem: 40G`
+
+**Do NOT ask the user about MIG during scaffolding.** This decision is made during experiment design.
+
 ## Input Format 
 
 ### Finding the Experiment
@@ -127,8 +148,8 @@ For each run, create a `setup_finetune.yaml` file by:
 
 1. **Select appropriate template** based on dataset format:
    - Check dataset path extension in experiment_summary.md
-   - If `.json` → use `experiments/capitalization/templates/finetuning/setup_finetune_json.yaml`
-   - If `.parquet` → use `experiments/capitalization/templates/finetuning/setup_finetune_parquet.yaml`
+   - If `.json` → use `experiments/capitalization/setup_finetune.yaml` (default)
+   - If `.parquet` → use `experiments/capitalization/yaml_examples/setup_finetune_parquet.yaml`
 
 2. **Extract dataset information from experiment_summary.md:**
    - Dataset path from Resources → Dataset → Path
@@ -152,7 +173,8 @@ dataset_label: {extracted from dataset filename, e.g., "words_4L_80P_300"}
 dataset_ext: {extracted from dataset filename, e.g., ".json"}
 
 # Model Configuration
-model_checkpoint: {from experiment_summary.md Resources → Models}
+torchtune_model_name: {from experiment_summary.md Resources → Models, e.g., "Llama-3.2-1B-Instruct"}
+# model_checkpoint: {optional - only if directory name differs from torchtune_model_name}
 
 # Hyperparameters (run-specific)
 lora_rank: {from run table}
@@ -318,7 +340,7 @@ Details: mkdir /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/ra
 Result: Directory created successfully
 
 [2025-10-24 16:30:12] GENERATE_YAML: rank8_lr1e-5/setup_finetune.yaml
-Details: Template: experiments/capitalization/templates/finetuning/setup_finetune_json.yaml
+Details: Template: experiments/capitalization/setup_finetune.yaml
 Parameters: rank=8, lr=1e-5, batch_size=4, epochs=1
 Result: File created (237 bytes)
 

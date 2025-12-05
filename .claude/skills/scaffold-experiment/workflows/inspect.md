@@ -139,6 +139,23 @@ mkdir -p {experiment_dir}/{run_directory}_base/eval/logs
 
 **For each evaluation in the matrix:**
 
+#### 6.0 Determine Model-Aware Resources
+
+Different model sizes require different SLURM resources. Parse the model name from experiment_summary.md and set resources accordingly:
+
+| Model Size | Memory | GPUs | Constraint | CPUs |
+|------------|--------|------|------------|------|
+| 1B | 32G | 1 | - | 4 |
+| 3B | 64G | 1 | gpu80 | 4 |
+| 8B | 96G | 1 | gpu80 | 8 |
+| 70B | 256G | 4 | gpu80 | 8 |
+
+**Detection logic:**
+1. Parse model name from experiment_summary.md Resources → Models section
+2. Look for size indicator: "1B", "3B", "8B", "70B"
+3. Apply corresponding resource configuration
+4. Default to 1B settings if model size cannot be determined
+
 #### 6.1 Determine Evaluation Scenario
 
 ```python
@@ -178,11 +195,12 @@ elif scenario == 'base_model':
 #SBATCH --output=slurm-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=32G
+#SBATCH --cpus-per-task={cpus_from_model_size}
+#SBATCH --mem={mem_from_model_size}
 #SBATCH --time=0:30:00
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:{gpus_from_model_size}
 {if account specified: #SBATCH --account={account}}
+{if 3B or larger: #SBATCH --constraint=gpu80}
 
 # Load environment
 module load anaconda3/2025.6

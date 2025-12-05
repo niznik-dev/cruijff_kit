@@ -65,10 +65,11 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 - **design-experiment** ✅ - Plan a series of runs that collectively make up an experiment
 - **scaffold-experiment** ✅ - Create organized directory structures, configs, and SLURM scripts for all runs
 - **run-experiment** ✅ - Submit jobs to SLURM and monitor their progress until completion
+- **summarize-experiment** ✅ - Generate summary.md with key metrics (loss, accuracy) after experiment completion
 - **create-inspect-task** ✅ - Create custom inspect-ai evaluation tasks with guided workflow (supports experiment-guided and standalone modes)
 
 ### Planned Workflows
-- **analyze-experiment**: Analyze and compare experimental results
+- **analyze-experiment**: Analyze and compare experimental results (plots, statistical tests)
 
 ### Supporting Workflows (Planned)
 - **create-claude-local-md**: Create environment-specific configuration
