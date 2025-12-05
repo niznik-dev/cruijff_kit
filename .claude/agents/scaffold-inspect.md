@@ -259,7 +259,7 @@ Generate a SLURM script for each evaluation with model-appropriate resources:
 
 ```bash
 #!/bin/bash
-#SBATCH --job-name=eval-{task_name}-{run_id}
+#SBATCH --job-name=eval-{task_name}-{run_id}-ep{N}
 #SBATCH --output=slurm-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
