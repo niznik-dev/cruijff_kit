@@ -157,12 +157,13 @@ def validate_dataset_type(dataset_type):
     """Validate dataset type.
 
     Args:
-        dataset_type: Name of the dataset type (without prefix)
+        dataset_type: Name of the dataset type
 
     Raises:
         ValueError: If dataset_type is not in the list of valid types
     """
     VALID_DATASET_TYPES = [
+        'conditional_completion',
         'instruct_dataset',
         'chat_dataset',
         'text_completion_dataset'
@@ -205,14 +206,21 @@ def configure_dataset_for_format(config, dataset_label, dataset_ext, dataset_typ
         config: The configuration dictionary to modify
         dataset_label: Name of the dataset file (without extension) or folder
         dataset_ext: Extension of the dataset file (e.g., '.json' or '.parquet')
-        dataset_type: Type of dataset ('instruct_dataset', 'chat_dataset', etc.)
+        dataset_type: Type of dataset ('conditional_completion', 'instruct_dataset', etc.)
 
     Returns:
         Modified configuration dictionary
     """
     config["dataset_label"] = dataset_label
 
-    if dataset_ext == '.parquet':
+    if dataset_type == 'conditional_completion':
+        # conditional_completion uses data_files (already in template)
+        # Just need to ensure the path includes the dataset_label
+        # Template has: "${input_dir}/${dataset_label}.json"
+        # This gets substituted by the config values, so no changes needed here
+        pass
+
+    elif dataset_ext == '.parquet':
         # For parquet, add filenames inside the folder (dataset_label is the folder name)
         config["dataset"]["data_dir"] += '/train.parquet'
         if "dataset_val" in config:
@@ -274,7 +282,10 @@ def create_parser():
     parser.add_argument("--max_steps_per_epoch", type=int, help="Maximum steps per epoch (useful for debugging)")
     parser.add_argument("--log_every_n_steps", type=int, default=5, help="How often to log (in steps)")
     parser.add_argument("--run_val_every_n_steps", type=int, default=0, help="How often to run validation (in steps)")
-    parser.add_argument("--system_prompt", type=str, default="", help="System prompt to use (if any)")
+    parser.add_argument("--prompt", type=str, default="{input}\n", help="Prompt template for conditional_completion (use {input} placeholder)")
+    parser.add_argument("--input_key", type=str, default="input", help="JSON key for input field")
+    parser.add_argument("--output_key", type=str, default="output", help="JSON key for output field")
+    parser.add_argument("--system_prompt", type=str, default="", help="System prompt (legacy, for instruct_dataset)")
     parser.add_argument("--train_on_input", type=parse_bool, default=False, help="Whether to train on the input data (true/false)")
 
     # ------ Model/Training Args -----
@@ -282,7 +293,7 @@ def create_parser():
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate for optimizer")
     parser.add_argument("--num_warmup_steps", type=int, default=100, help="Number of warmup steps for learning rate scheduler")
     parser.add_argument("--lr_scheduler", type=str, default="get_cosine_schedule_with_warmup", help="Learning rate scheduler function name (without 'torchtune.training.lr_schedulers.' prefix)")
-    parser.add_argument("--dataset_type", type=str, default="instruct_dataset", help="Dataset type function name (without 'torchtune.datasets.' prefix)")
+    parser.add_argument("--dataset_type", type=str, default="conditional_completion", help="Dataset type: 'conditional_completion' (default) or legacy 'instruct_dataset'/'chat_dataset'")
 
     # ------ Slurm Args -----
     parser.add_argument("--time", type=str, default="00:15:00", help="Time to run the job (HH:MM:SS)")
@@ -384,10 +395,14 @@ def main():
             config = configure_dataset_for_format(config, value, args.dataset_ext, args.dataset_type)
         elif key == "dataset_ext":
             pass  # Handled in dataset_label
+        elif key in ("prompt", "input_key", "output_key"):
+            pass  # Handled in dataset_type
         elif key == "system_prompt":
-            if value:
+            # Only apply for legacy instruct_dataset (conditional_completion uses 'prompt' instead)
+            if value and args.dataset_type != 'conditional_completion':
                 config["dataset"]["new_system_prompt"] = value
-                config["dataset_val"]["new_system_prompt"] = value
+                if "dataset_val" in config:
+                    config["dataset_val"]["new_system_prompt"] = value
         elif key == "train_on_input":
             # Special case: nested in dataset config
             config["dataset"]["train_on_input"] = value
@@ -403,15 +418,37 @@ def main():
             # Construct full component path
             config["lr_scheduler"]["_component_"] = f"torchtune.training.lr_schedulers.{value}"
         elif key == "dataset_type":
-            config["dataset"]["_component_"] = f"torchtune.datasets.{value}"
-            if value == 'chat_dataset':
-                config["dataset"]["conversation_column"] = "messages"
-                config["dataset"]["conversation_style"] = "openai"
-            if "dataset_val" in config:
-                config["dataset_val"]["_component_"] = f"torchtune.datasets.{value}"
+            if value == 'conditional_completion':
+                # Template already has conditional_completion config
+                # Just override the user-specified values
+                config["dataset"]["prompt"] = args.prompt
+                config["dataset"]["input_key"] = args.input_key
+                config["dataset"]["output_key"] = args.output_key
+                if "dataset_val" in config:
+                    config["dataset_val"]["prompt"] = args.prompt
+                    config["dataset_val"]["input_key"] = args.input_key
+                    config["dataset_val"]["output_key"] = args.output_key
+            else:
+                # Legacy dataset types - need to reconfigure from template
+                config["dataset"]["_component_"] = f"torchtune.datasets.{value}"
+                # Remove conditional_completion specific keys
+                for key_to_remove in ["prompt", "input_key", "output_key", "add_bos", "add_eos", "separator"]:
+                    config["dataset"].pop(key_to_remove, None)
+                # Add back keys needed for legacy types
+                config["dataset"]["data_dir"] = config["dataset"].pop("data_files").replace(".json", "")
+                config["dataset"]["split"] = config["dataset"].pop("field")
                 if value == 'chat_dataset':
-                    config["dataset_val"]["conversation_column"] = "messages"
-                    config["dataset_val"]["conversation_style"] = "openai"
+                    config["dataset"]["conversation_column"] = "messages"
+                    config["dataset"]["conversation_style"] = "openai"
+                if "dataset_val" in config:
+                    config["dataset_val"]["_component_"] = f"torchtune.datasets.{value}"
+                    for key_to_remove in ["prompt", "input_key", "output_key", "add_bos", "add_eos", "separator"]:
+                        config["dataset_val"].pop(key_to_remove, None)
+                    config["dataset_val"]["data_dir"] = config["dataset_val"].pop("data_files").replace(".json", "")
+                    config["dataset_val"]["split"] = config["dataset_val"].pop("field")
+                    if value == 'chat_dataset':
+                        config["dataset_val"]["conversation_column"] = "messages"
+                        config["dataset_val"]["conversation_style"] = "openai"
         # The rest are straightforward
         else:
             config[key] = value

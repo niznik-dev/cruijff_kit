@@ -155,6 +155,7 @@ def test_validate_lr_scheduler_invalid():
 # Tests for validate_dataset_type()
 
 @pytest.mark.parametrize("dataset_type", [
+    "conditional_completion",
     "instruct_dataset",
     "chat_dataset",
     "text_completion_dataset",
@@ -359,3 +360,34 @@ def test_configure_dataset_json_chat_without_validation():
     assert "split" not in result["dataset"]
     assert "data_dir" not in result["dataset"]
     assert "dataset_val" not in result
+
+
+def test_configure_dataset_conditional_completion():
+    """Test conditional_completion format - should not modify dataset config."""
+    config = {
+        "dataset": {
+            "data_files": "/data/my_dataset.json",
+            "field": "train",
+            "prompt": "{input}\n"
+        },
+        "dataset_val": {
+            "data_files": "/data/my_dataset.json",
+            "field": "validation",
+            "prompt": "{input}\n"
+        }
+    }
+
+    result = configure_dataset_for_format(
+        config,
+        dataset_label="my_dataset",
+        dataset_ext=".json",
+        dataset_type="conditional_completion"
+    )
+
+    # conditional_completion should pass through config unchanged (except dataset_label)
+    assert result["dataset_label"] == "my_dataset"
+    assert result["dataset"]["data_files"] == "/data/my_dataset.json"
+    assert result["dataset"]["field"] == "train"
+    assert result["dataset"]["prompt"] == "{input}\n"
+    assert result["dataset_val"]["data_files"] == "/data/my_dataset.json"
+    assert result["dataset_val"]["field"] == "validation"

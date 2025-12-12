@@ -9,11 +9,13 @@ input_formatting: ''
 # Dataset Configuration
 dataset_label: words_5L_80P_1000_parquet
 dataset_ext: '.parquet'
+# NOTE: parquet requires legacy instruct_dataset (conditional_completion only supports JSON)
+dataset_type: instruct_dataset
 
 # Model Configuration
 torchtune_model_name: Llama-3.2-1B-Instruct
 
-# System Prompt
+# System Prompt (for instruct_dataset)
 system_prompt: 'Capitalize the given word'
 
 # Training Parameters

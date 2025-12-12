@@ -66,18 +66,31 @@ gradient_accumulation_steps: 1
 compile: False
 
 dataset:
-  _component_: torchtune.datasets.instruct_dataset
-  source: "parquet"
-  data_dir: "${input_dir}/${dataset_label}"
-  split: "train"
-  packed: True
+  _component_: cruijff_kit.tools.torchtune.datasets.conditional_completion.conditional_completion_dataset
+  source: json
+  data_files: "${input_dir}/${dataset_label}.json"
+  field: train
+  prompt: "{input}\n"
+  input_key: input
+  output_key: output
+  add_bos: true
+  add_eos: true
+  train_on_input: false
+  separator: ""
 
 run_val_every_n_steps: 50
 dataset_val:
-  _component_: torchtune.datasets.instruct_dataset
-  source: "parquet"
-  data_dir: "${input_dir}/${dataset_label}"
-  split: "validation"
+  _component_: cruijff_kit.tools.torchtune.datasets.conditional_completion.conditional_completion_dataset
+  source: json
+  data_files: "${input_dir}/${dataset_label}.json"
+  field: validation
+  prompt: "{input}\n"
+  input_key: input
+  output_key: output
+  add_bos: true
+  add_eos: true
+  train_on_input: false
+  separator: ""
 
 # Logging
 metric_logger:

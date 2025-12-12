@@ -18,9 +18,7 @@ wget https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/word
 cd ../../..
 ```
 
-Next, run `python experiments/capitalization/preprocess_input_data.py --word-len 5 --num-words 1000` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` in `data/green/capitalization/` in the instruct_dataset format with top level splits (train/validation/test) which we will use in finetuning.
-
-(If you'd rather generate a chat_dataset, run `python experiments/capitalization/preprocess_input_data.py --word-len 5 --num-words 1000 --use-chat-template` instead - this will create a folder with an "_c" appended and separate files inside per split (train/validation/test.json) in `data/green/capitalization/`)
+Next, run `python experiments/capitalization/preprocess_input_data.py --word-len 5 --num-words 1000` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` in `data/green/capitalization/` with top level splits (train/validation/test) which we will use in finetuning.
 
 ### Part 2 - Finetuning
 
@@ -36,8 +34,8 @@ Then edit `setup_finetune.yaml` with the following changes:
 - Change input_dir_base to match where you cloned the repo
 - Match your data format
   - For this example, make sure dataset_label (the filename without ".json") and dataset_ext (".json") match what you generated in Part 1
-  - If you'd rather use the chat template, revisit preprocess_input_data.py to create that folder and then once again make sure dataset_label matches the directory (usually ending in "_c"); dataset_ext is still ".json"
-- Change system_prompt if necessary
+- Edit the `prompt` template if needed (e.g., `"Capitalize the given word: {input}\n"`)
+  - Note: Use a colon separator rather than newline between instruction and input for best results
 
 Then run
 
@@ -52,6 +50,8 @@ sbatch finetune.slurm
 ```
 
 #### Alternative: Using Parquet Format
+
+**Note:** Parquet format requires `dataset_type: instruct_dataset` (legacy mode) because `conditional_completion` only supports JSON files.
 
 If you prefer Parquet format instead of JSON, first convert the JSON file:
 
