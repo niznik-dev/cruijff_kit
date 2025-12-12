@@ -69,9 +69,10 @@ def cap_task(config_path: str) -> Task:
         solver=chain(
             system_message(SYSTEM_PROMPT),
             prompt_template("{prompt}"),
-            generate({
-                "temperature": 0.0,
-            }),
+            generate(
+                temperature=1e-7,
+                max_tokens=10
+            ),
         ),
         scorer=[
             match("exact", ignore_case=False),

@@ -64,9 +64,9 @@ mkdir -p {experiment_dir}/{run_directory_name}
 ```python
 dataset_path = experiment_summary['dataset_path']
 if dataset_path.endswith('.json'):
-    template = 'experiments/capitalization/templates/finetuning/setup_finetune_json.yaml'
+    template = 'experiments/capitalization/setup_finetune.yaml'  # default
 elif dataset_path.endswith('.parquet'):
-    template = 'experiments/capitalization/templates/finetuning/setup_finetune_parquet.yaml'
+    template = 'experiments/capitalization/yaml_examples/setup_finetune_parquet.yaml'
 else:
     raise ValueError(f"Unknown dataset format: {dataset_path}")
 ```
@@ -80,7 +80,7 @@ See [templates/setup_finetune_template.yaml](../templates/setup_finetune_templat
 **Populate with run-specific values:**
 - Run identification: `my_wandb_project`, `my_wandb_run_name` (directory name)
 - Dataset: `dataset_label`, `dataset_ext`, `input_dir_base` (from experiment_summary.md)
-- Model: `model_checkpoint` (from experiment_summary.md)
+- Model: `torchtune_model_name` (from experiment_summary.md, e.g., "Llama-3.2-1B-Instruct")
 - Hyperparameters: `lora_rank`, `lr`, `batch_size`, `epochs` (from run table/common config)
 - Environment: `output_dir_base`, `conda_env` (from claude.local.md)
 - Optional: `account` (only if specified in claude.local.md SLURM Defaults)

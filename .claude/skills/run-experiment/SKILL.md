@@ -196,6 +196,18 @@ Complete workflow: {total_duration}
 3. Analyze results (see experiment_summary.md for workflow)
 ```
 
+### Optional: Generate Summary
+
+After completing the experiment, offer to generate a summary:
+
+> Experiment complete! Would you like me to generate a summary.md with key metrics?
+> This will extract final loss values and evaluation accuracy for easy comparison.
+> [Y/n]
+
+**If yes:** Invoke the `summarize-experiment` skill to create summary.md
+
+**If no:** Skip summarization. User can run `summarize-experiment` manually later.
+
 ## Important Notes
 
 **Orchestration principles:**
@@ -207,7 +219,7 @@ Complete workflow: {total_duration}
 
 **Relationship to other skills:**
 - **Before:** design-experiment, scaffold-experiment
-- **After:** analyze-experiment (planned)
+- **After:** summarize-experiment (optional), analyze-experiment (planned)
 - **Standalone:** Individual tool modules can run independently
 
 **Resumability:**

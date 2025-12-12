@@ -3,7 +3,7 @@
 #SBATCH --nodes=1 # Number of nodes
 #SBATCH --ntasks=1 # Number of tasks
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G # Memory allocation
+#SBATCH --mem=<MEM> # Memory allocation (RAM=VRAM rule)
 #SBATCH --time=00:15:00 # Time limit (HH:MM:SS)
 #SBATCH --mail-type=begin # Email when job starts
 #SBATCH --mail-type=end # Email when job ends
