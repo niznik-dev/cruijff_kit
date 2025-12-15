@@ -116,31 +116,6 @@ class ConditionalCompletionDataset(Dataset):
         }
 
 
-def pad_collate(batch: list[dict[str, torch.Tensor]], pad_token_id: int):
-    """Collate function that pads sequences to max length in batch.
-
-    TODO: This function references 'input_ids' and 'attention_mask' keys,
-    but __getitem__ returns 'tokens' and 'labels' (no attention_mask).
-    Needs testing and alignment before use.
-    """
-    max_len = max(x["input_ids"].shape[0] for x in batch)
-
-    def pad1(t: torch.Tensor, pad_val: int) -> torch.Tensor:
-        n = max_len - t.shape[0]
-        if n <= 0:
-            return t
-        return torch.cat([t, torch.full((n,), pad_val, dtype=t.dtype)], dim=0)
-
-    input_ids = torch.stack([pad1(b["input_ids"], pad_token_id) for b in batch])
-    labels = torch.stack([pad1(b["labels"], -100) for b in batch])
-    attention_mask = torch.stack([pad1(b["attention_mask"], 0) for b in batch])
-
-    return {
-        "input_ids": input_ids,
-        "labels": labels,
-        "attention_mask": attention_mask,
-    }
-
 
 def conditional_completion_dataset(
     tokenizer,
