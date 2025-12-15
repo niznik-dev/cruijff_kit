@@ -7,12 +7,12 @@ ensuring training/inference parity.
 
 import json
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import torch
 from torch.utils.data import Dataset
 
-PromptSpec = Union[str, Callable[[Dict[str, Any]], str]]
+PromptSpec = Union[str, Callable[[dict[str, Any]], str]]
 
 
 @dataclass
@@ -37,8 +37,9 @@ class ConditionalCompletionDataset(Dataset):
 
     def __init__(
         self,
-        rows: List[Dict[str, Any]],
-        tokenizer,
+        rows: list[dict[str, Any]],
+        tokenizer,  # Supports both torchtune ModelTokenizer and HuggingFace tokenizers
+        *,
         cfg: ConditionalCompletionConfig,
     ):
         self.rows = rows
@@ -55,7 +56,7 @@ class ConditionalCompletionDataset(Dataset):
     def __len__(self) -> int:
         return len(self.rows)
 
-    def _encode(self, text: str) -> List[int]:
+    def _encode(self, text: str) -> list[int]:
         """Encode text without special tokens. Handles both torchtune and HF tokenizers."""
         if hasattr(self.tok, "encode"):
             # torchtune tokenizer
@@ -64,12 +65,12 @@ class ConditionalCompletionDataset(Dataset):
             # HuggingFace tokenizer
             return self.tok(text, add_special_tokens=False)["input_ids"]
 
-    def _render_prompt(self, row: Dict[str, Any]) -> str:
+    def _render_prompt(self, row: dict[str, Any]) -> str:
         if callable(self.cfg.prompt):
             return self.cfg.prompt(row)
         return self.cfg.prompt.format(**row)
 
-    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         row = self.rows[idx]
         out = row[self.cfg.output_key]
 
@@ -105,16 +106,23 @@ class ConditionalCompletionDataset(Dataset):
 
         input_ids = torch.tensor(input_ids, dtype=torch.long)
         labels = torch.tensor(labels, dtype=torch.long)
-        attention_mask = (input_ids != self.pad_id).long()
 
+        # Note: torchtune's SFTDataset returns 'tokens', 'mask', and 'labels'.
+        # We skip 'mask' because we compute labels directly rather than using
+        # a mask to derive them. Training loops only need 'tokens' and 'labels'.
         return {
             "tokens": input_ids,
             "labels": labels,
         }
 
 
-def pad_collate(batch: List[Dict[str, torch.Tensor]], pad_token_id: int):
-    """Collate function that pads sequences to max length in batch."""
+def pad_collate(batch: list[dict[str, torch.Tensor]], pad_token_id: int):
+    """Collate function that pads sequences to max length in batch.
+
+    TODO: This function references 'input_ids' and 'attention_mask' keys,
+    but __getitem__ returns 'tokens' and 'labels' (no attention_mask).
+    Needs testing and alignment before use.
+    """
     max_len = max(x["input_ids"].shape[0] for x in batch)
 
     def pad1(t: torch.Tensor, pad_val: int) -> torch.Tensor:
@@ -136,6 +144,7 @@ def pad_collate(batch: List[Dict[str, torch.Tensor]], pad_token_id: int):
 
 def conditional_completion_dataset(
     tokenizer,
+    *,
     source: str,
     data_files: str,
     prompt: str,
@@ -146,7 +155,7 @@ def conditional_completion_dataset(
     max_length: Optional[int] = None,
     train_on_input: bool = False,
     separator: str = "",
-    field: str = "train",
+    split: str = "train",
 ) -> ConditionalCompletionDataset:
     """
     Factory function for torchtune YAML instantiation.
@@ -156,7 +165,7 @@ def conditional_completion_dataset(
           _component_: cruijff_kit.tools.torchtune.datasets.conditional_completion.conditional_completion_dataset
           source: json
           data_files: /path/to/data.json
-          field: train
+          split: train
           prompt: "Capitalize: {input}\n"
           input_key: input
           output_key: output
@@ -169,12 +178,12 @@ def conditional_completion_dataset(
         data = json.load(f)
 
     # Handle both flat list and {"train": [...], "validation": [...]} formats
-    if isinstance(data, dict) and field in data:
-        rows = data[field]
+    if isinstance(data, dict) and split in data:
+        rows = data[split]
     elif isinstance(data, list):
         rows = data
     else:
-        raise ValueError(f"Unexpected JSON structure: expected list or dict with '{field}' key")
+        raise ValueError(f"Unexpected JSON structure: expected list or dict with '{split}' key")
 
     cfg = ConditionalCompletionConfig(
         prompt=prompt,
