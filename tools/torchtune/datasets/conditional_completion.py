@@ -96,7 +96,25 @@ class ConditionalCompletionDataset(Dataset):
         if self.cfg.train_on_input:
             labels = input_ids.copy()
         else:
-            # target_only: mask input tokens with -100
+            # Mask prompt tokens so loss is only computed on output + EOS.
+            #
+            # Example with prompt="Capitalize: {input}\n", input="hello", output="HELLO":
+            #   prefix = "Capitalize: hello\n"
+            #   full_text = "Capitalize: hello\nHELLO"
+            #
+            # After tokenization (hypothetical token IDs):
+            #   bos = [1]
+            #   prefix_ids = [10, 20, 30, 40]       # "Capitalize: hello\n"
+            #   full_ids = [10, 20, 30, 40, 50, 60] # "Capitalize: hello\nHELLO"
+            #   eos = [2]
+            #
+            # Result:
+            #   input_ids: [1,    10,   20,   30,   40,   50, 60, 2]
+            #   labels:    [-100, -100, -100, -100, -100, 50, 60, 2]
+            #              ←───── ignored by loss ─────→ ←─trained─→
+            #
+            # The -100 is PyTorch CrossEntropyLoss's ignore_index, so we only
+            # compute loss on the output tokens and EOS.
             prefix_len = len(bos) + len(prefix_ids)
             labels = [-100] * prefix_len + full_ids[len(prefix_ids) :] + eos
 
