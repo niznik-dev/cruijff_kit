@@ -119,7 +119,13 @@ my_wandb_project: 'bit_sequences_2025-10-28'
 my_wandb_run_name: 'parity_run'
 dataset_label: 'parity'          # Base name without extension
 dataset_ext: '.json'             # Extension
-train_on_input: 'true'           # Learn from both input and output
+
+# Prompt template - CRITICAL for train/eval parity
+# MUST include {input} to show the bit sequence to the model
+# The inspect-ai eval reads this field to match training format
+prompt: "{input}\n"
+
+train_on_input: 'false'          # Only learn to predict output
 batch_size: 1
 epochs: 10
 log_every_n_steps: 1

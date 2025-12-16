@@ -70,6 +70,9 @@ dataset:
   source: json
   data_files: "${input_dir}/${dataset_label}.json"
   split: train
+  # prompt: Formats input for training. MUST include {input} placeholder.
+  # This value should match what's in setup_finetune.yaml for train/eval parity.
+  # The inspect-ai eval reads prompt from setup_finetune.yaml and applies same formatting.
   prompt: "{input}\n"
   input_key: input
   output_key: output

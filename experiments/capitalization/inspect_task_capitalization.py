@@ -17,6 +17,9 @@ def cap_task(config_path: str) -> Task:
         USE_JSON_FORMAT = setup_finetune['dataset_ext'] == '.json'
         DATA_PATH = setup_finetune['input_dir_base'] + setup_finetune['dataset_label'] + ('.json' if (setup_finetune['dataset_ext'] == '.json' and not USE_CHAT_TEMPLATE) else '/test.json')
         SYSTEM_PROMPT = setup_finetune.get('system_prompt', '')
+        # For conditional_completion datasets: wrap input with training prompt to match format
+        # Falls back to '{input}' (no wrapping) if not specified
+        EVAL_PROMPT = setup_finetune.get('prompt', '{input}')
     except KeyError as e:
         raise KeyError(f"Missing required key in setup_finetune.yaml: {e}")
 
@@ -39,9 +42,15 @@ def cap_task(config_path: str) -> Task:
                 record_to_sample
             )
         else:
-            def record_to_sample(record):
+            def record_to_sample(record, prompt_template=EVAL_PROMPT):
+                # Wrap input with training prompt to match fine-tuning format
+                if '{input}' in prompt_template:
+                    formatted_input = prompt_template.replace('{input}', record["input"])
+                else:
+                    # Append input if no placeholder (matches how finetune.yaml adds {input}\n)
+                    formatted_input = prompt_template + record["input"]
                 return Sample(
-                    input=record["input"],
+                    input=formatted_input,
                     target=record["output"]
                 )
             

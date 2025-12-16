@@ -91,12 +91,16 @@ def twins_zygosity(
             if not system_prompt:
                 system_prompt = config.get('system_prompt', '')
 
+            # Get prompt template for input wrapping (matches training format)
+            eval_prompt = config.get('prompt', '{input}')
+
         except KeyError as e:
             raise KeyError(f"Missing required key in setup_finetune.yaml: {e}")
 
     elif dataset_path:
         # Mode 2: Direct dataset path
         data_path = dataset_path
+        eval_prompt = '{input}'  # No wrapping in standalone mode
 
         if not Path(data_path).exists():
             raise FileNotFoundError(f"Dataset file not found: {data_path}")
@@ -113,10 +117,16 @@ def twins_zygosity(
     if isinstance(system_prompt, Sequence) and not isinstance(system_prompt, str):
         system_prompt = ",".join(system_prompt)
 
-    # Define record to sample conversion
-    def record_to_sample(record):
+    # Define record to sample conversion with prompt wrapping
+    def record_to_sample(record, prompt_template=eval_prompt):
+        # Wrap input with training prompt to match fine-tuning format
+        if '{input}' in prompt_template:
+            formatted_input = prompt_template.replace('{input}', record["input"])
+        else:
+            # Append input if no placeholder (matches how finetune.yaml adds {input}\n)
+            formatted_input = prompt_template + record["input"]
         return Sample(
-            input=record["input"],
+            input=formatted_input,
             target=record["output"]
         )
 
