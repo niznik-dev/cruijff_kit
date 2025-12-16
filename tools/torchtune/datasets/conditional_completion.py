@@ -189,4 +189,4 @@ def conditional_completion_dataset(
         separator=separator,
     )
 
-    return ConditionalCompletionDataset(rows, tokenizer, cfg)
+    return ConditionalCompletionDataset(rows, tokenizer, cfg=cfg)
