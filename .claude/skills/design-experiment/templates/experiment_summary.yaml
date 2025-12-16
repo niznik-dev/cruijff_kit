@@ -9,7 +9,6 @@
 
 experiment:
   name: string                     # REQUIRED: Experiment identifier (e.g., "cap_4L_lora_rank_comparison")
-  type: string                     # REQUIRED: "sanity_check" or "experiment"
   question: string                 # REQUIRED: Scientific question being addressed
   date: string                     # REQUIRED: YYYY-MM-DD format
   hypothesis: string               # OPTIONAL: Expected outcome
@@ -37,15 +36,14 @@ variables:
   # batch_size: [2, 4, 8]
 
 controls:
-  # REQUIRED: Parameters held constant across all runs
   base_recipe: string              # Torchtune recipe name (e.g., "lora_finetune_single_device")
+                                   # TORCHTUNE RECIPES NOT IMPLEMENTED YET
+  # OPTIONAL: Experimental hyperparameters for setup_finetune.py
   epochs: int                      # Number of training epochs
   batch_size: int                  # Batch size (if not varied)
   system_prompt: string            # Training system prompt ("" for blank)
   validation_during_training: bool # Whether to run validation during training
-  gpus: int                        # Number of GPUs per run
-  lora_alpha: int                  # LoRA alpha parameter (if not varied)
-  # Add any other constant parameters as needed
+  # Add any other constant hyperparameters as needed
 
 # =============================================================================
 # RESOURCES

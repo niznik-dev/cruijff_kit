@@ -4,7 +4,7 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 
 ## Workflow Overview
 
-1. **Determine experiment type and location** - Auto-detect sanity_check vs experiment
+1. **Determine experiment location** - Auto-detect sanity_check vs experiment
 2. **Understand the experiment** - What variables? What's the scientific question?
 3. **Confirm tool choices** - Which optimizer and evaluator to use
 4. **Design training runs** - Models, datasets, hyperparameters
@@ -16,7 +16,7 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 
 ---
 
-## Step 1: Determine Experiment Type and Location
+## Step 1: Determine Experiment Location
 
 ### Auto-Detect Based on Working Directory
 
@@ -51,8 +51,8 @@ experiment_dir = f"{base_dir}{experiment_name}/"
 ### Confirm with User
 
 **Are you working on a sanity check or a research experiment?**
-- Log the detected type and path for user confirmation
-- Note in experiment_summary.md that outputs will be grouped under the same name in ck-outputs/
+- Log the detected path for user confirmation
+- Note that outputs will be grouped under the same name in ck-outputs/
 
 ---
 
@@ -283,7 +283,7 @@ Before presenting the plan to the user, validate completeness using `validation.
 ### Present Complete Plan
 
 Show the user:
-- Overview (experiment type, total runs, scientific question)
+- Overview (experiment overview, total runs, scientific question)
 - Summary of runs (number of fine-tuned runs, controls, varying parameters)
 - Evaluation plan (tasks, epochs)
 

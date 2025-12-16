@@ -18,7 +18,7 @@ Follow the three-stage process:
 ### 1. Parameter Selection → `param_selection.md`
 
 Guide the user through 9 interactive steps to gather all experiment parameters:
-1. Determine experiment type and location (sanity check vs research experiment)
+1. Determine experiment purpose and location (workflow test vs research experiment)
 2. Understand the experiment (scientific question, variables)
 3. Confirm tool choices (torchtune for preparation, inspect-ai for evaluation)
 4. Design training runs (models, datasets, hyperparameters)
@@ -30,7 +30,7 @@ Guide the user through 9 interactive steps to gather all experiment parameters:
 
 **See `param_selection.md` for:**
 - Complete question flow for each step
-- Auto-detection logic for experiment type/location
+- Auto-detection logic for experiment location
 - Resource verification commands
 - Conversation patterns
 

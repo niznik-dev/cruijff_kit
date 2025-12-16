@@ -52,7 +52,7 @@ design-experiment/
 ### Stage 1: PARAM_SELECTION (param_selection.md)
 
 Interactive conversation to gather all parameters:
-1. **Determine type/location** - Auto-detect sanity_check vs experiment
+1. **Determine location** - Auto-detect sanity_check vs experiment
 2. **Understand experiment** - Scientific question, variables
 3. **Confirm tools** - torchtune (preparation), inspect-ai (evaluation)
 4. **Design training** - Models, datasets, hyperparameters

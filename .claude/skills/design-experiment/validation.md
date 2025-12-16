@@ -8,7 +8,6 @@ Run through this checklist before presenting the plan:
 
 ### Experiment Metadata Validation
 - ✓ Experiment name is descriptive
-- ✓ Experiment type is set ("sanity_check" or "experiment")
 - ✓ Scientific question is clearly stated
 - ✓ Date is in YYYY-MM-DD format
 - ✓ Experiment directory path is specified
@@ -19,7 +18,7 @@ Run through this checklist before presenting the plan:
 
 ### Variables and Controls Validation
 - ✓ Variables section lists all parameters that vary (or omitted if none)
-- ✓ Controls section lists all constant parameters
+- ✓ Controls section lists all constant hyperparameters
 - ✓ System prompt is defined in controls (even if blank "")
 - ✓ Base recipe, epochs, batch size, GPUs specified
 - ✓ LoRA parameters specified if not varied

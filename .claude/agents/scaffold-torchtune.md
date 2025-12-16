@@ -3,7 +3,6 @@ name: scaffold-torchtune
 description: Sets up torchtune fine-tuning configurations for all runs in a designed experiment. Reads experiment_summary.yaml and generates setup_finetune.yaml, finetune.yaml, and finetune.slurm files for each run.
 tools: Read, Edit, Write, Grep, Glob, Bash
 permissionMode: bypassPermissions
-model: sonnet
 ---
 
 You help automatically set up torchtune fine-tuning configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.yaml` file and generate all the necessary torchtune files (setup_finetune.yaml, finetune.yaml, finetune.slurm) so that fine-tuning runs are ready to submit to SLURM.
@@ -61,12 +60,11 @@ Extract the following information from the YAML structure:
    - `tools.evaluation` - Should be "inspect-ai"
 
 3. **Control parameters (held constant):**
+These are *example* parameters that the user might vary. There may be other parameters under `controls`, so check all of them that apply to `setup_finetune.yaml`: 
    - `controls.epochs` - Number of training epochs
    - `controls.batch_size` - Batch size (if not varied)
    - `controls.system_prompt` - Training system prompt
-   - `controls.validation_during_training` - Whether to run validation
-   - `controls.gpus` - Number of GPUs per run
-   - `controls.lora_alpha` - LoRA alpha parameter
+   - `controls.validation_during_training` - Whether to run validation (impacts `run_val_every_n_steps`)
 
 4. **Resources:**
    - `models.base[0].name` - Model identifier
