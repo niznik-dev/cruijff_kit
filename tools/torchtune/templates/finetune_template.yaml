@@ -69,7 +69,7 @@ dataset:
   _component_: cruijff_kit.tools.torchtune.datasets.conditional_completion.conditional_completion_dataset
   source: json
   data_files: "${input_dir}/${dataset_label}.json"
-  field: train
+  split: train
   prompt: "{input}\n"
   input_key: input
   output_key: output
@@ -83,7 +83,7 @@ dataset_val:
   _component_: cruijff_kit.tools.torchtune.datasets.conditional_completion.conditional_completion_dataset
   source: json
   data_files: "${input_dir}/${dataset_label}.json"
-  field: validation
+  split: validation
   prompt: "{input}\n"
   input_key: input
   output_key: output
