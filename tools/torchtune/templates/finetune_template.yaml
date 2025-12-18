@@ -66,34 +66,31 @@ gradient_accumulation_steps: 1
 compile: False
 
 dataset:
-  _component_: cruijff_kit.tools.torchtune.datasets.conditional_completion.conditional_completion_dataset
+  _component_: cruijff_kit.tools.torchtune.datasets.chat_completion.chat_completion_dataset
   source: json
   data_files: "${input_dir}/${dataset_label}.json"
   split: train
+  # model_path: Required for HF tokenizer (auto-set by setup_finetune.py)
+  model_path: "${models_dir}/Llama-3.2-1B-Instruct"
   # prompt: Formats input for training. MUST include {input} placeholder.
   # This value should match what's in setup_finetune.yaml for train/eval parity.
-  # The inspect-ai eval reads prompt from setup_finetune.yaml and applies same formatting.
+  # Uses HuggingFace apply_chat_template() to match inspect-ai evaluation.
   prompt: "{input}\n"
+  system_prompt: ""
   input_key: input
   output_key: output
-  add_bos: true
-  add_eos: true
-  train_on_input: false
-  separator: ""
 
 run_val_every_n_steps: 50
 dataset_val:
-  _component_: cruijff_kit.tools.torchtune.datasets.conditional_completion.conditional_completion_dataset
+  _component_: cruijff_kit.tools.torchtune.datasets.chat_completion.chat_completion_dataset
   source: json
   data_files: "${input_dir}/${dataset_label}.json"
   split: validation
+  model_path: "${models_dir}/Llama-3.2-1B-Instruct"
   prompt: "{input}\n"
+  system_prompt: ""
   input_key: input
   output_key: output
-  add_bos: true
-  add_eos: true
-  train_on_input: false
-  separator: ""
 
 # Logging
 metric_logger:

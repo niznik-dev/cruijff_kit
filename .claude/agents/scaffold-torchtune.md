@@ -212,6 +212,7 @@ custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.
 - WandB project: Prefer using `my_wandb_project` from `claude.local.md` for consistency
 - Learning rate format: Keep scientific notation format from experiment summary (1e-5, 5e-5, etc.)
 - Experiment name: This groups outputs under `{output_dir_base}{experiment_name}/ck-out-{run_name}/` for better organization. Without it, outputs go directly to `{output_dir_base}ck-out-{run_name}/`
+- Dataset type: Defaults to `chat_completion` (uses HuggingFace chat templates for train/eval parity). Only override if using legacy `conditional_completion` (deprecated) or other formats like `instruct_dataset`
 
 ### Running setup_finetune.py
 

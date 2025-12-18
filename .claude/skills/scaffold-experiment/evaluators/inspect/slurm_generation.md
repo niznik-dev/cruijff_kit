@@ -52,7 +52,9 @@ Different model sizes require different SLURM resources for evaluation. Parse th
 
 ## SLURM Script Template
 
-Generate a SLURM script for each evaluation with model-appropriate resources:
+Generate a SLURM script for each evaluation with model-appropriate resources.
+
+**Key principle:** Extract dataset path, prompt, and system prompt from `setup_finetune.yaml` (for fine-tuned models) or experiment_summary.md (for base models) at scaffolding time, then pass them directly to inspect eval.
 
 ```bash
 #!/bin/bash
@@ -71,31 +73,27 @@ Generate a SLURM script for each evaluation with model-appropriate resources:
 module load anaconda3/2025.6
 conda activate {conda_env}
 
-# Set model and config paths
+# Model path
 {if fine-tuned:}
 MODEL_PATH="{output_dir_base}/ck-out-{run_name}/epoch_{N}"
-CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
 {if base model:}
 MODEL_PATH="{base_model_path}"
-CONFIG_PATH="{experiment_dir}/{run_dir}/eval_config.yaml"
+
+# Dataset and prompt configuration
+# (extracted from setup_finetune.yaml or experiment_summary.md at scaffolding time)
+DATA_PATH="{data_path}"
+PROMPT="{prompt}"
+SYSTEM_PROMPT="{system_prompt}"
 
 # Run inspect-ai evaluation
 cd {experiment_dir}/{run_dir}/eval
 
-{if fine-tuned with config_path:}
 inspect eval {task_script_path}@{task_name} \\
   --model hf/local \\
   -M model_path="$MODEL_PATH" \\
-  -T config_path="$CONFIG_PATH" \\
-  --log-dir ./logs \\
-  --log-level info
-
-{if base model or direct dataset path:}
-inspect eval {task_script_path}@{task_name} \\
-  --model hf/local \\
-  -M model_path="$MODEL_PATH" \\
-  -T dataset_path="{eval_dataset_path}" \\
-  -T system_prompt="{system_prompt}" \\
+  -T data_path="$DATA_PATH" \\
+  -T prompt="$PROMPT" \\
+  -T system_prompt="$SYSTEM_PROMPT" \\
   --log-dir ./logs \\
   --log-level info
 
@@ -116,12 +114,17 @@ echo "Evaluation complete"
 - **Fine-tuned**: `{output_dir_base}/ck-out-{run_name}/epoch_{N}`
 - **Base model**: Original model path from experiment_summary.md
 
-### Task Parameters
+### Task Parameters (passed directly to inspect eval)
 
-- `config_path`: Path to setup_finetune.yaml (for both fine-tuned and base models)
-- `dataset_path`: For base models or when explicit path needed
-- `system_prompt`: Must match training configuration
-- `temperature`: Typically 0.0 (may be task-specific)
+- `data_path`: Full path to dataset file (e.g., `/path/to/words_5L_80P_1000.json`)
+- `prompt`: The prompt template used during training (e.g., `"{input}"`)
+- `system_prompt`: System message used during training (often empty string)
+
+**Extracting values for fine-tuned models:**
+Read `setup_finetune.yaml` and compute: `data_path` = `input_dir_base` + `dataset_label` + `dataset_ext`
+
+**Extracting values for base models:**
+Use values from experiment_summary.md Configuration section.
 
 ### Output Location
 
@@ -151,7 +154,6 @@ chmod +x {experiment_dir}/{run_dir}/eval/{task_name}_epoch{N}.slurm
 - Model paths reference fine-tuning output directories that don't exist yet (created during training)
 - System prompt consistency between training and evaluation is critical
 - Evaluation logs will be written to `{run_dir}/eval/logs/` subdirectories
-- **Base/control models**: Use `eval_config.yaml` (created during scaffolding) instead of `setup_finetune.yaml`
-  - This file contains dataset path, system prompt, and format info needed for evaluation
-  - Located at `{experiment_dir}/{run_dir}/eval_config.yaml`
-  - Created automatically for runs where Type = "Control" or "Base" in the All Runs table
+- **Base/control models**: Values are extracted from experiment_summary.md and baked directly into SLURM scripts
+  - No separate config file needed - all parameters are hardcoded at scaffolding time
+  - Uses same dataset/prompt/system_prompt as fine-tuned runs for fair comparison

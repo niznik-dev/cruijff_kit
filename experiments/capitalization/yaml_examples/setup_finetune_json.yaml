@@ -9,6 +9,8 @@ input_formatting: ''
 # Dataset Configuration
 dataset_label: words_5L_80P_1000
 dataset_ext: '.json'
+# dataset_type: chat_completion  # Default - uses HF apply_chat_template for train/eval parity
+# dataset_type: conditional_completion  # DEPRECATED - only for legacy experiments
 
 # Model Configuration
 torchtune_model_name: Llama-3.2-1B-Instruct

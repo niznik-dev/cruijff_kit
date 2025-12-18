@@ -33,6 +33,11 @@ torchtune_model_name: {from experiment_summary.md Resources → Models, e.g., "L
 # WARNING: An empty prompt ('') means the input field is NEVER shown to the model!
 prompt: {from experiment_summary.md Configuration, e.g., "Capitalize the given word: {input}\n"}
 
+# Dataset Type (optional - defaults to chat_completion)
+# chat_completion: Uses HuggingFace apply_chat_template() for train/eval parity (RECOMMENDED)
+# conditional_completion: DEPRECATED - raw string concatenation, may cause eval mismatches
+# dataset_type: chat_completion  # Uncomment only if you need to override
+
 # Hyperparameters (run-specific)
 lora_rank: {from run table}
 lr: {from run table, format as 1e-5 or 5e-5}  # NOTE: parameter is 'lr' not 'learning_rate'

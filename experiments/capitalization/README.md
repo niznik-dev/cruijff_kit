@@ -22,6 +22,14 @@ Next, run `python experiments/capitalization/preprocess_input_data.py --word-len
 
 ### Part 2 - Finetuning
 
+#### Dataset Types
+
+By default, fine-tuning uses `chat_completion` which applies HuggingFace chat templates to ensure train/eval parity with inspect-ai evaluations. This is the recommended approach.
+
+**Note:** The older `conditional_completion` dataset type is deprecated. If you have existing experiments using it, they will continue to work but will emit a deprecation warning.
+
+#### Setup
+
 Copy the appropriate config from `yaml_examples/` and edit it:
 
 ```
@@ -51,7 +59,7 @@ sbatch finetune.slurm
 
 #### Alternative: Using Parquet Format
 
-**Note:** Parquet format requires `dataset_type: instruct_dataset` (legacy mode) because `conditional_completion` only supports JSON files.
+**Note:** Parquet format requires `dataset_type: instruct_dataset` (legacy mode) because `chat_completion` only supports JSON files.
 
 If you prefer Parquet format instead of JSON, first convert the JSON file:
 
