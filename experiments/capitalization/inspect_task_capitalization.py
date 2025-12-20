@@ -1,34 +1,26 @@
 """
 Eval task for capitalization with chat_completion dataset.
 
-COMPATIBILITY NOTE:
-    This eval is for models trained with dataset_type=chat_completion (the default).
-    For models trained with conditional_completion or other legacy types, use
-    inspect_task_capitalization_legacy.py instead.
-
-Clean version that assumes:
-- Training used chat_completion dataset with HuggingFace chat templates
-- Eval uses inspect-ai which also applies HuggingFace chat templates
-- Format parity: both sides use apply_chat_template()
+Reads prompt and system_prompt from setup_finetune.yaml to ensure train/eval parity.
 
 Usage:
     inspect eval inspect_task_capitalization.py --model hf/local \
         -M model_path=/path/to/checkpoint \
-        -T data_path=/path/to/words_5L_80P_1000.json \
-        -T prompt="{input}"
+        -T config_path=/path/to/setup_finetune.yaml \
+        -T data_path=/path/to/words_5L_80P_1000.json
 """
 
+import yaml
 from inspect_ai import Task, task
 from inspect_ai.dataset import hf_dataset, Sample
-from inspect_ai.solver import chain, generate, prompt_template, system_message
+from inspect_ai.solver import chain, generate, system_message
 from inspect_ai.scorer import match, includes
 
 
 @task
 def capitalization(
     data_path: str,
-    prompt: str = "{input}",
-    system_prompt: str = "",
+    config_path: str = "",
     split: str = "test",
     temperature: float = 1e-7,
     max_tokens: int = 20,
@@ -38,16 +30,20 @@ def capitalization(
 
     Args:
         data_path: Path to JSON file with {"train": [...], "validation": [...], "test": [...]}
-        prompt: Format string to wrap input (must match training prompt)
-        system_prompt: Optional system message (must match training)
+        config_path: Path to setup_finetune.yaml (reads prompt/system_prompt from it)
         split: Which split to evaluate on (default: test)
         temperature: Generation temperature
         max_tokens: Max tokens to generate
     """
-    # Handle prompt being passed as various types from CLI
-    if isinstance(prompt, dict):
-        prompt = str(prompt.get('prompt', '{input}'))
-    prompt_str = str(prompt)
+    # Read prompt config from YAML
+    prompt_str = "{input}"
+    system_prompt = ""
+
+    if config_path:
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        prompt_str = config.get('prompt', '{input}')
+        system_prompt = config.get('system_prompt', '')
 
     def record_to_sample(record):
         # Wrap input with prompt template - same as chat_completion training
@@ -69,7 +65,6 @@ def capitalization(
         dataset=dataset,
         solver=chain(
             system_message(system_prompt),
-            prompt_template("{prompt}"),
             generate(temperature=temperature, max_tokens=max_tokens),
         ),
         scorer=[
