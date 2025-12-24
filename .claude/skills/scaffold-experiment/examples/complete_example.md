@@ -73,7 +73,7 @@ done
 Generate SLURM scripts for each run using the template from [templates/slurm_template.sh](../templates/slurm_template.sh), configured with:
 - Model path: `{output_dir}/ck-out-{run_name}/epoch_0`
 - Task: capitalization
-- Config integration via `config_path` parameter
+- Dataset parameters extracted from `setup_finetune.yaml`: `data_path`, `prompt`, `system_prompt`
 
 ## Step 4: Verify Structure
 

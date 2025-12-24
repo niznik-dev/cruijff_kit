@@ -22,9 +22,14 @@
 module load anaconda3/2025.6
 conda activate {conda_env}
 
-# CRITICAL: Paths MUST be absolute (start with /), never relative (../file)
-MODEL_PATH="{output_dir_base}/ck-out-{run_name}/epoch_{N}"
-CONFIG_PATH="{experiment_dir}/{run_dir}/setup_finetune.yaml"
+# CRITICAL: All paths MUST be absolute (start with /), never relative (../file)
+MODEL_PATH="{model_path}"
+
+# Dataset and prompt configuration
+# (extracted from setup_finetune.yaml or experiment_summary.md at scaffolding time)
+DATA_PATH="{data_path}"
+PROMPT="{prompt}"
+SYSTEM_PROMPT="{system_prompt}"
 
 # Run inspect-ai evaluation
 cd {experiment_dir}/{run_dir}/eval
@@ -32,7 +37,9 @@ cd {experiment_dir}/{run_dir}/eval
 inspect eval {task_script_path}@{task_name} \
   --model hf/local \
   -M model_path="$MODEL_PATH" \
-  -T config_path="$CONFIG_PATH" \
+  -T data_path="$DATA_PATH" \
+  -T prompt="$PROMPT" \
+  -T system_prompt="$SYSTEM_PROMPT" \
   --log-dir ./logs \
   --log-level info
 

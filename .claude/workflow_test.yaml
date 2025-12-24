@@ -74,6 +74,9 @@ common_config:
 
   # Prompts
   system_prompt: "You are a helpful assistant."  # Simple, reliable prompt
+  # prompt: Formats input for BOTH training AND evaluation (train/eval parity)
+  # MUST include {input} placeholder. The inspect-ai eval reads this and applies same formatting.
+  prompt: "Capitalize the given word: {input}\n"
 
   # Optional settings
   validation_during_training: true

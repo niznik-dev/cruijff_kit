@@ -42,15 +42,13 @@ Use this to verify the task name in experiment_summary.md matches what's actuall
 ### 3. Verify task compatibility
 
 Check if the task is compatible with the experiment:
-- Can it accept `config_path` parameter? (for both fine-tuned and base models)
-- Can it accept `dataset_path` parameter? (fallback approach)
+- Does it accept `data_path` parameter? (required)
+- Does it accept `prompt` parameter? (required for chat_completion models)
+- Does it accept `system_prompt` parameter? (optional but recommended)
 - Check docstring/parameters if accessible
 
-**Preferred approach for experiments:**
-Tasks that support `config_path` can read dataset path and system prompt from `setup_finetune.yaml`, making configuration more consistent for both fine-tuned and base models.
-
-**Fallback approach:**
-Tasks that accept `dataset_path` and `system_prompt` as direct parameters work when explicit control is needed.
+**Standard parameters for chat_completion models:**
+Tasks should accept `data_path`, `prompt`, and `system_prompt` as direct parameters. scaffold-inspect extracts these from `setup_finetune.yaml` (for fine-tuned runs) or `experiment_summary.md` (for base models) and passes them directly to inspect eval.
 
 ## Handling Missing Tasks
 

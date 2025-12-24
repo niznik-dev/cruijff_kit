@@ -94,6 +94,7 @@ Reference materials for output generation:
 
 ## Important Reminders
 
+- **Dataset format terminology:** Describe JSON datasets as "JSON with input/output keys" - never invent format type names
 - **Use paths from `claude.local.md`** for models, datasets, scratch directories
 - **Always verify resources** exist before finalizing plan (log all verification)
 - **Be conservative** with estimates if no prior run data available

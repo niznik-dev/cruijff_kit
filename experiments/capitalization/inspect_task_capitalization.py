@@ -1,80 +1,74 @@
-from __future__ import annotations
-from typing import Sequence
+"""
+Eval task for capitalization with chat_completion dataset.
 
-from inspect_ai import Task, task
-from inspect_ai.dataset import json_dataset, hf_dataset, FieldSpec, Sample
-from inspect_ai.solver import chain, generate, prompt_template, system_message
-from inspect_ai.scorer import match, includes
+Reads prompt and system_prompt from setup_finetune.yaml to ensure train/eval parity.
+
+Usage:
+    inspect eval inspect_task_capitalization.py --model hf/local \
+        -M model_path=/path/to/checkpoint \
+        -T config_path=/path/to/setup_finetune.yaml \
+        -T data_path=/path/to/words_5L_80P_1000.json
+"""
+
 import yaml
+from inspect_ai import Task, task
+from inspect_ai.dataset import hf_dataset, Sample
+from inspect_ai.solver import chain, generate, system_message
+from inspect_ai.scorer import match, includes
+
 
 @task
-def cap_task(config_path: str) -> Task:
-    with open(config_path, 'r') as setup_finetune_file:
-        setup_finetune = yaml.safe_load(setup_finetune_file)
+def capitalization(
+    data_path: str,
+    config_path: str = "",
+    split: str = "test",
+    temperature: float = 1e-7,
+    max_tokens: int = 20,
+) -> Task:
+    """
+    Eval task for capitalization trained with chat_completion.
 
-    try:
-        USE_CHAT_TEMPLATE = setup_finetune.get('dataset_type', '') == 'chat_dataset'
-        USE_JSON_FORMAT = setup_finetune['dataset_ext'] == '.json'
-        DATA_PATH = setup_finetune['input_dir_base'] + setup_finetune['dataset_label'] + ('.json' if (setup_finetune['dataset_ext'] == '.json' and not USE_CHAT_TEMPLATE) else '/test.json')
-        SYSTEM_PROMPT = setup_finetune.get('system_prompt', '')
-    except KeyError as e:
-        raise KeyError(f"Missing required key in setup_finetune.yaml: {e}")
+    Args:
+        data_path: Path to JSON file with {"train": [...], "validation": [...], "test": [...]}
+        config_path: Path to setup_finetune.yaml (reads prompt/system_prompt from it)
+        split: Which split to evaluate on (default: test)
+        temperature: Generation temperature
+        max_tokens: Max tokens to generate
+    """
+    # Read prompt config from YAML
+    prompt_str = "{input}"
+    system_prompt = ""
 
-    if isinstance(SYSTEM_PROMPT, Sequence) and not isinstance(SYSTEM_PROMPT, str):
-        # CLI parsing may coerce comma-containing strings into iterables; rejoin them.
-        SYSTEM_PROMPT = ",".join(SYSTEM_PROMPT)
+    if config_path:
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        prompt_str = config.get('prompt', '{input}')
+        system_prompt = config.get('system_prompt', '')
 
-    # Determine dataset format and load accordingly
-    if USE_JSON_FORMAT:
-        # JSON format with nested structure (field parameter to access test split)
-        if USE_CHAT_TEMPLATE:
-            def record_to_sample(record):
-                return Sample(
-                    input=record["messages"][0]["content"],
-                    target=record["messages"][1]["content"]
-                )
-
-            dataset = json_dataset(
-                DATA_PATH,
-                record_to_sample
-            )
-        else:
-            def record_to_sample(record):
-                return Sample(
-                    input=record["input"],
-                    target=record["output"]
-                )
-            
-            dataset = hf_dataset(
-                path="json",
-                data_files=DATA_PATH,
-                field="test",
-                split="train", # 'train' here refers to the top-level split in JSON - don't get confused!
-                sample_fields=record_to_sample
-            )
-    else:
-        # Parquet format
-        dataset = hf_dataset(
-            path="parquet",
-            data_dir=DATA_PATH,
-            split="test",
-            sample_fields=FieldSpec(
-                input="input",
-                target="output",
-            ),
+    def record_to_sample(record):
+        # Wrap input with prompt template - same as chat_completion training
+        formatted_input = prompt_str.format(input=record["input"])
+        return Sample(
+            input=formatted_input,
+            target=record["output"]
         )
+
+    dataset = hf_dataset(
+        path="json",
+        data_files=data_path,
+        field=split,
+        split="train",  # HuggingFace quirk - always "train" here
+        sample_fields=record_to_sample,
+    )
 
     return Task(
         dataset=dataset,
         solver=chain(
-            system_message(SYSTEM_PROMPT),
-            prompt_template("{prompt}"),
-            generate({
-                "temperature": 0.0,
-            }),
+            system_message(system_prompt),
+            generate(temperature=temperature, max_tokens=max_tokens),
         ),
         scorer=[
-            match("exact", ignore_case=False),
-            includes(ignore_case=False)
+            match(location="exact", ignore_case=False),
+            includes(ignore_case=False),
         ],
     )
