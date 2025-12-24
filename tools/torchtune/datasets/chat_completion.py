@@ -23,6 +23,7 @@ class ChatCompletionConfig:
     input_key: str = "input"
     output_key: str = "output"
     max_length: Optional[int] = None
+    train_on_input: bool = False  # False = output only, True = full sequence
 
 
 class ChatCompletionDataset(Dataset):
@@ -90,9 +91,13 @@ class ChatCompletionDataset(Dataset):
                 "This suggests apply_chat_template behaves differently with/without assistant message."
             )
 
-        # 6. Create labels: mask prompt tokens, train on assistant response
-        prompt_len = len(prompt_ids)
-        labels = [-100] * prompt_len + full_ids[prompt_len:]
+        # 6. Create labels
+        if self.cfg.train_on_input:
+            labels = full_ids.copy()
+        else:
+            # Mask prompt tokens, train on assistant response only
+            prompt_len = len(prompt_ids)
+            labels = [-100] * prompt_len + full_ids[prompt_len:]
 
         # 7. Optional truncation
         if self.cfg.max_length is not None:
@@ -116,7 +121,9 @@ def chat_completion_dataset(
     input_key: str = "input",
     output_key: str = "output",
     max_length: Optional[int] = None,
+    train_on_input: bool = False,
     split: str = "train",
+    packed: bool = False,  # Accepted but not used - recipe reads this for collate_fn selection
 ) -> ChatCompletionDataset:
     """
     Factory function for torchtune YAML instantiation.
@@ -132,6 +139,7 @@ def chat_completion_dataset(
           system_prompt: ""
           input_key: input
           output_key: output
+          train_on_input: false
 
     Note: The `tokenizer` argument is ignored. This dataset loads its own
     HuggingFace tokenizer from model_path to ensure apply_chat_template()
@@ -158,6 +166,7 @@ def chat_completion_dataset(
         input_key=input_key,
         output_key=output_key,
         max_length=max_length,
+        train_on_input=train_on_input,
     )
 
     return ChatCompletionDataset(rows, tokenizer, cfg=cfg)

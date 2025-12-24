@@ -3,7 +3,6 @@ name: scaffold-inspect
 description: Sets up inspect-ai evaluation configurations for all runs in a designed experiment. Reads experiment_summary.md and generates inspect.slurm scripts for each run/evaluation combination.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
-permissionMode: bypassPermissions
 ---
 
 You help automatically set up inspect-ai evaluation configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.md` file and generate all the necessary inspect-ai files (inspect.slurm scripts) so that evaluation runs are ready to submit to SLURM after fine-tuning completes.
