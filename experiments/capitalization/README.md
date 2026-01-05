@@ -24,9 +24,7 @@ Next, run `python experiments/capitalization/preprocess_input_data.py --word-len
 
 #### Dataset Types
 
-By default, fine-tuning uses `chat_completion` which applies HuggingFace chat templates to ensure train/eval parity with inspect-ai evaluations. This is the recommended approach.
-
-**Note:** The older `conditional_completion` dataset type is deprecated. If you have existing experiments using it, they will continue to work but will emit a deprecation warning.
+By default, fine-tuning uses `chat_completion` which applies HuggingFace chat templates to ensure train/eval parity with inspect-ai evaluations.
 
 #### Setup
 
