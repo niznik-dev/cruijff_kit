@@ -15,7 +15,7 @@ This document describes the detailed step-by-step process for executing inspect-
 
 ### 1. Parse Experiment Configuration
 
-**Read experiment_summary.md:**
+**Read experiment_summary.yaml:**
 - Extract experiment name
 - Parse "All Runs" table
 - Parse "Evaluations" status table

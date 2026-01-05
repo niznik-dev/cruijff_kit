@@ -12,7 +12,7 @@ This document describes the detailed step-by-step process for executing torchtun
 
 ### 1. Parse Experiment Configuration
 
-**Read experiment_summary.md:**
+**Read experiment_summary.yaml:**
 - Extract experiment name
 - Parse "All Runs" table
 - Identify run directories

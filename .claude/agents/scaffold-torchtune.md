@@ -48,9 +48,9 @@ The `setup_finetune.py` script automatically sets SLURM resources based on model
 
 ### MIG Support for 1B Models
 
-**MIG is configured during design-experiment, not here.** If the user opted into MIG during experiment design, the run will have `mig: true` in experiment_summary.md.
+**MIG is configured during design-experiment, not here.** If the user opted into MIG during experiment design, the run will have `mig: true` in experiment_summary.yaml.
 
-**When parsing experiment_summary.md:**
+**When parsing experiment_summary.yaml:**
 - If `mig: true` is present for a run: Set `partition: ""` and `mem: 16G` in setup_finetune.yaml
 - If `mig` is not present (default): Do nothing - setup_finetune.py defaults to `partition: nomig` and `mem: 40G`
 
@@ -164,10 +164,10 @@ Parse this into two components for setup_finetune.yaml:
 
 For each run, create a `setup_finetune.yaml` file by:
 
-1. **Select appropriate template** based on dataset format:
+1. **Determine dataset extension** based on format:
    - Check `data.training.format` in experiment_summary.yaml
-   - If `json` → use `experiments/capitalization/templates/finetuning/setup_finetune_json.yaml`
-   - If `parquet` → use `experiments/capitalization/templates/finetuning/setup_finetune_parquet.yaml`
+   - If `json` → `dataset_ext: '.json'`
+   - If `parquet` → `dataset_ext: '/'`
 
 2. **Extract dataset information from experiment_summary.yaml:**
    - Dataset path from `data.training.path`

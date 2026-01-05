@@ -145,7 +145,7 @@ The experiment workflow uses an **orchestrator → worker** pattern:
 - **No (default):** Uses `partition: nomig` with 40G memory - gets a full 40GB+ A100. This is the typical choice.
 - **Yes:** Allows MIG partitions (9GB GPU slices) with 16G memory. Can reduce queue wait times but requires careful memory management.
 
-If user says "yes", add `mig: true` to the run parameters in experiment_summary.md. If "no" (default), don't add anything - setup_finetune.py already defaults to nomig.
+If user says "yes", add `mig: true` to the run parameters in experiment_summary.yaml. If "no" (default), don't add anything - setup_finetune.py already defaults to nomig.
 
 **Note:** Only ask this for 1B models. 3B+ models require gpu80 constraint and don't support MIG.
 

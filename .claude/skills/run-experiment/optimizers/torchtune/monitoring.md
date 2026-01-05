@@ -51,10 +51,10 @@ Compare current state to previous state for each job.
 
 **If state changed:**
 - Log the change with timestamp
-- Update experiment_summary.md
+- Update experiment_summary.yaml
 - Record new status
 
-### 4. Update experiment_summary.md
+### 4. Update experiment_summary.yaml
 
 Update Fine-tuning status table:
 
@@ -100,7 +100,7 @@ Result: 8 jobs found - 6 PENDING, 2 RUNNING, 0 COMPLETED
 Previous: PENDING
 Current: RUNNING
 Started: 2025-11-11 14:35:22
-Action: Updated experiment_summary.md
+Action: Updated experiment_summary.yaml
 ```
 
 ```
@@ -109,7 +109,7 @@ Previous: RUNNING
 Current: COMPLETED
 Completed: 2025-11-11 14:43:25
 Elapsed: 8m 3s
-Action: Updated experiment_summary.md
+Action: Updated experiment_summary.yaml
 ```
 
 ## Completion Detection

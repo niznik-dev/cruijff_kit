@@ -17,7 +17,7 @@
 | Action Type | Purpose |
 |-------------|---------|
 | `DISCOVER_EXPERIMENT` | Locate and validate experiment directory |
-| `PARSE_STATUS` | Read run status from experiment_summary.md |
+| `PARSE_STATUS` | Read run status from experiment_summary.yaml |
 | `EXTRACT_LOSS` | Extract final loss from SLURM stdout |
 | `EXTRACT_ACCURACY` | Extract accuracy from .eval files using parse_eval_log.py |
 | `GENERATE_SUMMARY` | Create summary.md file |
@@ -45,7 +45,7 @@ Details: Found experiment at /path/to/experiment
 Result: 4 runs identified (3 fine-tuned, 1 base model)
 
 [2025-12-05 14:00:01] PARSE_STATUS
-Details: Reading experiment_summary.md status tables
+Details: Reading experiment_summary.yaml status tables
 Result: 3 fine-tuned COMPLETED, 1 base N/A for training, 4 evaluations COMPLETED
 
 [2025-12-05 14:00:02] EXTRACT_LOSS: rank4_lr1e-5

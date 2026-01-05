@@ -53,7 +53,7 @@ Compare current state to previous state for each evaluation.
 
 **If state changed:**
 - Log the change with timestamp
-- Update experiment_summary.md
+- Update experiment_summary.yaml
 - Record new status
 
 ## Terminal States
@@ -80,7 +80,7 @@ Result: 8 jobs found - 4 PENDING, 4 RUNNING, 0 COMPLETED
 Previous: PENDING
 Current: RUNNING
 Job ID: 12345690
-Action: Updated experiment_summary.md
+Action: Updated experiment_summary.yaml
 ```
 
 ```
@@ -89,7 +89,7 @@ Previous: RUNNING
 Current: COMPLETED
 Completed: 2025-11-11 14:50:12
 Elapsed: 4m 52s
-Action: Updated experiment_summary.md
+Action: Updated experiment_summary.yaml
 Result log: r8_lr1e-5/eval/logs/
 ```
 

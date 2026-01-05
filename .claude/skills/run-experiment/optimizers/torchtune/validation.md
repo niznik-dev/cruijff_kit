@@ -55,7 +55,7 @@ Verify `run-torchtune.log` exists with:
 - ✓ All jobs submitted successfully
 - ✓ All jobs reached terminal states
 - ✓ Model checkpoints exist for COMPLETED jobs
-- ✓ experiment_summary.md fully updated
+- ✓ experiment_summary.yaml fully updated
 - ✓ Log file complete
 
 ## Failure Scenarios

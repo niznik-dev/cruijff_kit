@@ -10,7 +10,7 @@ Executes torchtune fine-tuning jobs for all runs in an experiment.
 
 ## Submodules
 
-- **[parsing.md](parsing.md)** - Parse experiment_summary.md and scan for finetune.slurm files
+- **[parsing.md](parsing.md)** - Parse experiment_summary.yaml and scan for finetune.slurm files
 - **[run_selection.md](run_selection.md)** - Decide which runs to submit (skip completed/running)
 - **[job_submission.md](job_submission.md)** - Submit SLURM jobs, capture IDs, stagger submissions
 - **[monitoring.md](monitoring.md)** - Poll squeue, track status, wait for completion

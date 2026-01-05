@@ -54,7 +54,7 @@ evaluators/
 Execute evaluation jobs using inspect-ai framework.
 
 **Workflow:**
-1. `parsing.md` - Parse experiment_summary.md, find eval/*.slurm scripts
+1. `parsing.md` - Parse experiment_summary.yaml, find eval/*.slurm scripts
 2. `dependency_checking.md` - **CRITICAL:** Verify fine-tuning complete, checkpoints exist
 3. `evaluation_selection.md` - Decide which evaluations to submit (skip completed, skip runs with missing checkpoints)
 4. `job_submission.md` - Submit jobs with sbatch, capture IDs

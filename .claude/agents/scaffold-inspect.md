@@ -166,7 +166,7 @@ For each evaluation task in the experiment:
 
 ## Handling Base/Control Models
 
-Base/control runs don't undergo fine-tuning, so they won't have a `setup_finetune.yaml` file. For these runs, scaffold-inspect extracts values directly from experiment_summary.md and bakes them into the SLURM script.
+Base/control runs don't undergo fine-tuning, so they won't have a `setup_finetune.yaml` file. For these runs, scaffold-inspect extracts values directly from experiment_summary.yaml and bakes them into the SLURM script.
 
 ### Detection Logic
 
@@ -177,7 +177,7 @@ From the `runs[]` list in experiment_summary.yaml, identify base/control runs:
 
 ### Extracting Values for Base Models
 
-Extract the following from experiment_summary.md:
+Extract the following from experiment_summary.yaml:
 - `data_path`: Full path from Resources → Dataset → Path
 - `prompt`: From Configuration → prompt (e.g., `"{input}"`)
 - `system_prompt`: From Configuration → System prompt
@@ -268,7 +268,7 @@ Organize evaluations within run directories:
 
 ### Model-Aware Resource Allocation
 
-Different model sizes require different SLURM resources for evaluation. Parse the model name from experiment_summary.md and set resources accordingly:
+Different model sizes require different SLURM resources for evaluation. Parse the model name from experiment_summary.yaml and set resources accordingly:
 
 | Model Size | Memory | GPUs | Constraint | CPUs | Time |
 |------------|--------|------|------------|------|------|
@@ -278,7 +278,7 @@ Different model sizes require different SLURM resources for evaluation. Parse th
 | 70B (Llama-3.3-70B-Instruct, etc.) | 256G | 4 | gpu80 | 8 | 0:30:00 |
 
 **Detection logic:**
-1. Parse model name from experiment_summary.md Resources → Models section
+1. Parse model name from experiment_summary.yaml Resources → Models section
 2. Look for size indicator in model name: "1B", "3B", "8B", "70B"
 3. Apply corresponding resource configuration
 4. Default to 1B settings if model size cannot be determined
@@ -293,7 +293,7 @@ Different model sizes require different SLURM resources for evaluation. Parse th
 
 Generate a SLURM script for each evaluation with model-appropriate resources.
 
-**Key principle:** Extract dataset path, prompt, and system prompt from `setup_finetune.yaml` (or experiment_summary.md for base models) at scaffolding time, then pass them directly to inspect eval. This avoids config file parsing at runtime.
+**Key principle:** Extract dataset path, prompt, and system prompt from `setup_finetune.yaml` (or experiment_summary.yaml for base models) at scaffolding time, then pass them directly to inspect eval. This avoids config file parsing at runtime.
 
 ```bash
 #!/bin/bash
@@ -367,7 +367,7 @@ Read `setup_finetune.yaml` from the run directory and extract:
 - `system_prompt` = the `system_prompt` field
 
 **Extracting values for base models:**
-Use values from experiment_summary.md Configuration section (same as fine-tuned runs use).
+Use values from experiment_summary.yaml Configuration section (same as fine-tuned runs use).
 
 **Output location:**
 - Log directory: `{run_dir}/eval/logs/`

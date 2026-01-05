@@ -6,7 +6,7 @@ Generate a `summary.md` file capturing key metrics from a completed experiment. 
 
 Create a lightweight summary of experiment results:
 
-1. Parse run status from experiment_summary.md
+1. Parse run status from experiment_summary.yaml
 2. Extract final training loss from SLURM stdout
 3. Extract accuracy from inspect-ai .eval files
 4. Generate summary.md in experiment directory
@@ -14,7 +14,7 @@ Create a lightweight summary of experiment results:
 
 ## Prerequisites
 
-- experiment_summary.md exists
+- experiment_summary.yaml exists
 - At least some runs have completed (partial results acceptable)
 - run-experiment has been executed (or manual SLURM jobs run)
 - **Conda environment activated** - The `parse_eval_log.py` script requires inspect-ai. Activate the conda environment from `claude.local.md` before running extraction commands.
@@ -24,28 +24,34 @@ Create a lightweight summary of experiment results:
 ### 1. Locate Experiment
 
 Find the experiment directory:
-- If in an experiment directory (contains experiment_summary.md): use current directory
+- If in an experiment directory (contains experiment_summary.yaml): use current directory
 - Otherwise: ask user for path
 
 ### 2. Parse Run Status
 
-Read experiment_summary.md to identify runs and their status:
+Read experiment_summary.yaml to identify runs:
 
-**From "All Runs" table:**
-- Run names
-- Run types (fine-tuned vs base/control)
-- Expected epochs
+**From `runs:` section:**
+- `name`: Run identifier
+- `type`: "fine-tuned" or "control"
+- `model`: Model name
+- `parameters`: Dict of hyperparameters (empty for control runs)
 
-**From status tables (if present):**
-- Fine-tuning status: COMPLETED, FAILED, PENDING, RUNNING
-- Evaluation status: COMPLETED, FAILED, PENDING, RUNNING
+**From `evaluation.matrix:` section:**
+- `run`: Run name
+- `tasks`: List of evaluation task names
+- `epochs`: List of epochs to evaluate (null for control runs)
+
+**Determine status by checking filesystem:**
+- Fine-tuning: Check for `{output_base}/ck-out-{run_name}/` and SLURM outputs
+- Evaluation: Check for `{run_dir}/eval/logs/*.eval` files
 
 ### 3. Extract Training Loss
 
 For each COMPLETED fine-tuning run:
 
 1. Find SLURM stdout in the **output directory**:
-   - Parse experiment_summary.md "Output" section for `output_dir_base`
+   - Parse experiment_summary.yaml "Output" section for `output_dir_base`
    - Look in: `{output_dir_base}/ck-out-{run_name}/slurm-*.out`
    - If multiple files, use most recent by modification time
 2. Extract final loss using regex: `(\d+)\|(\d+)\|Loss: ([0-9.]+)`

@@ -274,7 +274,7 @@ Result: Matches training configuration for consistency
 
 ```
 [2025-10-24 14:30:00] MODE_SELECTION: Standalone mode
-Details: No experiment_summary.md found
+Details: No experiment_summary.yaml found
 Result: User will provide all configuration manually
 
 [2025-10-24 14:30:05] EVALUATION_OBJECTIVE: User wants to evaluate sentiment classification
