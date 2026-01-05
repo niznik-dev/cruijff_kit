@@ -35,7 +35,6 @@ prompt: {from experiment_summary.md Configuration, e.g., "Capitalize the given w
 
 # Dataset Type (optional - defaults to chat_completion)
 # chat_completion: Uses HuggingFace apply_chat_template() for train/eval parity (RECOMMENDED)
-# conditional_completion: DEPRECATED - raw string concatenation, may cause eval mismatches
 # dataset_type: chat_completion  # Uncomment only if you need to override
 
 # Hyperparameters (run-specific)
