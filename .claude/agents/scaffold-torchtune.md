@@ -196,8 +196,10 @@ torchtune_model_name: {from models.base[0].name, e.g., "Llama-3.2-1B-Instruct"}
 model_checkpoint: {from models.base[0].path}
 
 # Hyperparameters (run-specific)
+# Note: experiment_summary.yaml uses 'learning_rate' (human-readable)
+#       but torchtune configs use 'lr' - translate when generating
 lora_rank: {from run.parameters.lora_rank}
-lr: {from run.parameters.learning_rate, format as 1e-5 or 5e-5}  # NOTE: parameter is 'lr' not 'learning_rate'
+lr: {from run.parameters.learning_rate, format as 1e-5 or 5e-5}
 batch_size: {from run.parameters.batch_size if varies, else from controls.batch_size}
 
 # Training configuration (common across runs)

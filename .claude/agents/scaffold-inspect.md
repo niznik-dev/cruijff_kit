@@ -183,9 +183,11 @@ Extract the following from experiment_summary.yaml:
 - `system_prompt`: From Configuration → System prompt
 - `model_path`: From Resources → Models (the base model path)
 
-1. **Create the run directory** (if it doesn't exist):
+1. **Create directories for base model evaluation:**
    ```bash
-   mkdir -p {experiment_dir}/{run_name}
+   # Example for run named "Llama-3.2-1B-Instruct_base"
+   mkdir -p {experiment_dir}/Llama-3.2-1B-Instruct_base/eval
+   mkdir -p {experiment_dir}/Llama-3.2-1B-Instruct_base/eval/logs
    ```
 
 2. **Generate eval_config.yaml** with content extracted from experiment_summary.yaml:
