@@ -17,6 +17,26 @@ dataset_ext: {extracted from dataset filename, e.g., ".json"}
 torchtune_model_name: {from experiment_summary.md Resources → Models, e.g., "Llama-3.2-1B-Instruct"}
 # model_checkpoint: {optional - only if directory name differs from torchtune_model_name}
 
+# Prompt Template - CRITICAL for train/eval parity
+# This field formats the input for BOTH training AND evaluation.
+# The inspect-ai eval task reads this field and applies the same formatting.
+#
+# Requirements:
+#   - MUST include {input} placeholder (will be replaced with the input field value)
+#   - SHOULD end with \n to separate prompt from expected output
+#
+# Examples:
+#   - "Capitalize: {input}\n"           # Instruction + input + newline
+#   - "{input}\n"                       # Raw input + newline (for tasks without instruction)
+#   - "Question: {input}\nAnswer: "    # Multi-line prompt
+#
+# WARNING: An empty prompt ('') means the input field is NEVER shown to the model!
+prompt: {from experiment_summary.md Configuration, e.g., "Capitalize the given word: {input}\n"}
+
+# Dataset Type (optional - defaults to chat_completion)
+# chat_completion: Uses HuggingFace apply_chat_template() for train/eval parity (RECOMMENDED)
+# dataset_type: chat_completion  # Uncomment only if you need to override
+
 # Hyperparameters (run-specific)
 lora_rank: {from run table}
 lr: {from run table, format as 1e-5 or 5e-5}  # NOTE: parameter is 'lr' not 'learning_rate'
@@ -36,9 +56,6 @@ conda_env: {from claude.local.md}
 
 # SLURM configuration (optional - only if specified in claude.local.md)
 account: {from claude.local.md SLURM Defaults, if present}
-
-# System prompt (if specified)
-system_prompt: {from experiment_summary.md Configuration, often empty string ""}
 
 # Custom Recipe
 custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable}

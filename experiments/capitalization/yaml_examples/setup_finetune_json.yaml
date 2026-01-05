@@ -9,15 +9,13 @@ input_formatting: ''
 # Dataset Configuration
 dataset_label: words_5L_80P_1000
 dataset_ext: '.json'
+# dataset_type: chat_completion  # Default - uses HF apply_chat_template for train/eval parity
 
 # Model Configuration
 torchtune_model_name: Llama-3.2-1B-Instruct
-# dataset_type: chat_dataset
-# conversation_column: messages
-# conversation_style: openai
 
-# System Prompt
-system_prompt: 'Capitalize the given word'
+# Prompt Template (use {input} placeholder for the input field)
+prompt: "Capitalize the given word: {input}\n"
 
 # Training Parameters
 batch_size: 1

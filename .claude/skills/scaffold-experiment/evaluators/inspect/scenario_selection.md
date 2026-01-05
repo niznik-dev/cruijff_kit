@@ -1,99 +1,72 @@
 # Evaluation Scenarios
 
-This module describes different approaches for configuring inspect-ai evaluations based on model type and task design.
+This module describes how to configure inspect-ai evaluations for chat_completion trained models.
 
-## Scenario 1: Fine-tuned Model with Config Integration
+## Standard Approach: Direct Parameters
 
-**When to use:** Task supports `config_path` parameter (preferred for experiments)
-
-**How it works:** The task reads dataset path and system prompt from `setup_finetune.yaml`
+All evaluations use the same approach - pass `data_path`, `prompt`, and `system_prompt` directly to inspect eval. scaffold-inspect extracts these values at scaffolding time and bakes them into the SLURM script.
 
 **inspect eval command:**
 ```bash
-inspect eval cap_task.py@capitalization \
+inspect eval task.py@task_name \
   --model hf/local \
-  -M model_path="/path/to/epoch_0" \
-  -T config_path="/path/to/run_dir/setup_finetune.yaml"
+  -M model_path="$MODEL_PATH" \
+  -T data_path="$DATA_PATH" \
+  -T prompt="$PROMPT" \
+  -T system_prompt="$SYSTEM_PROMPT"
 ```
 
-**Advantages:**
-- Configuration stays consistent with training
-- No need to duplicate dataset path and system prompt
-- Simpler command (fewer parameters)
-- Works for both fine-tuned and base models
+## Scenario 1: Fine-tuned Model Evaluation
 
-**Requirements:**
-- Task must accept `config_path` parameter
-- Task must read and parse `setup_finetune.yaml`
-- `setup_finetune.yaml` must exist with correct dataset configuration
+**Source of values:** `setup_finetune.yaml` in the run directory
+
+**How scaffold-inspect extracts values:**
+```python
+# Read setup_finetune.yaml
+data_path = config['input_dir_base'] + config['dataset_label'] + config['dataset_ext']
+prompt = config['prompt']
+system_prompt = config.get('system_prompt', '')
+```
+
+**Generated SLURM script variables:**
+```bash
+MODEL_PATH="/path/to/ck-out-run_name/epoch_0"
+DATA_PATH="/path/to/data/words_5L_80P_1000.json"
+PROMPT="{input}"
+SYSTEM_PROMPT=""
+```
 
 ## Scenario 2: Base Model Evaluation
 
-**When to use:** Evaluating models that weren't fine-tuned (control runs)
+**Source of values:** `experiment_summary.md` Configuration section
 
-**How it works:** Explicitly pass dataset path and system prompt as task parameters
+**How scaffold-inspect extracts values:**
+- `data_path`: From Resources → Dataset → Path
+- `prompt`: From Configuration → prompt
+- `system_prompt`: From Configuration → System prompt
+- `model_path`: From Resources → Models (base model path)
 
-**inspect eval command:**
+**Generated SLURM script variables:**
 ```bash
-inspect eval cap_task.py@capitalization \
-  --model hf/local \
-  -M model_path="/path/to/base/model" \
-  -T dataset_path="/path/to/test_data.json" \
-  -T system_prompt=""
+MODEL_PATH="/path/to/pretrained-llms/Llama-3.2-1B-Instruct"
+DATA_PATH="/path/to/data/words_5L_80P_1000.json"
+PROMPT="{input}"
+SYSTEM_PROMPT=""
 ```
-
-**Advantages:**
-- Works with any task that accepts standard parameters
-- No dependency on setup_finetune.yaml
-- Explicit configuration visible in command
-
-**Requirements:**
-- Task must accept `dataset_path` parameter
-- Task must accept `system_prompt` parameter
-- System prompt must match what fine-tuned models used (for fair comparison)
 
 ## Scenario 3: Custom Evaluation Dataset
 
 **When to use:** Fine-tuned model but evaluating on different dataset (e.g., generalization test)
 
-**How it works:** Use fine-tuned model but override dataset path
-
-**inspect eval command:**
-```bash
-inspect eval cap_task.py@capitalization \
-  --model hf/local \
-  -M model_path="/path/to/epoch_0" \
-  -T dataset_path="/path/to/generalization_test.json" \
-  -T system_prompt="{from_training_config}"
-```
-
-**Advantages:**
-- Test generalization beyond training data
-- Keep model configuration but vary evaluation data
-- Compare performance across multiple test sets
+**How it works:** Override `data_path` in the SLURM script while keeping other parameters from training config.
 
 **Requirements:**
-- Task must accept `dataset_path` parameter
-- System prompt should still match training configuration
 - Alternative dataset must be compatible with task format
+- System prompt should still match training configuration for fair comparison
 
-## Choosing the Right Scenario
+## Key Principles
 
-**Decision tree:**
-
-1. **Does the task support `config_path` parameter?**
-   - Yes → Use **Scenario 1** (config integration) — **PREFERRED** for all model types
-   - No → Continue
-
-2. **Are you testing generalization on a different dataset?**
-   - Yes → Use **Scenario 3** (custom dataset)
-   - No → Use **Scenario 2** (explicit parameters)
-
-**Note:** With the updated `config_path` approach, Scenario 1 now works for both fine-tuned and base models, making it the preferred approach in all cases where the task supports it.
-
-## Error Handling
-
-**If unclear which approach to use:**
-- Check if task file has `config_path` parameter (preferred for experiments)
-- Fall back to `dataset_path` + `system_prompt` approach
-- Log the decision
+1. **Values are baked at scaffolding time** - No config file parsing at runtime
+2. **Same parameters for all model types** - Fine-tuned and base models use identical inspect eval syntax
+3. **Training/eval parity** - `prompt` and `system_prompt` must match what was used during training
+4. **Explicit is better** - All values visible in the SLURM script for debugging

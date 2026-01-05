@@ -155,13 +155,13 @@ def test_validate_lr_scheduler_invalid():
 # Tests for validate_dataset_type()
 
 @pytest.mark.parametrize("dataset_type", [
+    "chat_completion",
     "instruct_dataset",
     "chat_dataset",
     "text_completion_dataset",
 ])
 def test_validate_dataset_type_valid(dataset_type):
     """Test that valid dataset_type names pass validation."""
-    # Should not raise any exception
     validate_dataset_type(dataset_type)
 
 
@@ -359,3 +359,39 @@ def test_configure_dataset_json_chat_without_validation():
     assert "split" not in result["dataset"]
     assert "data_dir" not in result["dataset"]
     assert "dataset_val" not in result
+
+
+def test_configure_dataset_chat_completion():
+    """Test chat_completion format - should not modify dataset config."""
+    config = {
+        "dataset": {
+            "data_files": "/data/my_dataset.json",
+            "split": "train",
+            "model_path": "/models/Llama-3.2-1B-Instruct",
+            "prompt": "{input}\n",
+            "system_prompt": ""
+        },
+        "dataset_val": {
+            "data_files": "/data/my_dataset.json",
+            "split": "validation",
+            "model_path": "/models/Llama-3.2-1B-Instruct",
+            "prompt": "{input}\n",
+            "system_prompt": ""
+        }
+    }
+
+    result = configure_dataset_for_format(
+        config,
+        dataset_label="my_dataset",
+        dataset_ext=".json",
+        dataset_type="chat_completion"
+    )
+
+    # chat_completion should pass through config unchanged (except dataset_label)
+    assert result["dataset_label"] == "my_dataset"
+    assert result["dataset"]["data_files"] == "/data/my_dataset.json"
+    assert result["dataset"]["split"] == "train"
+    assert result["dataset"]["model_path"] == "/models/Llama-3.2-1B-Instruct"
+    assert result["dataset"]["prompt"] == "{input}\n"
+    assert result["dataset_val"]["data_files"] == "/data/my_dataset.json"
+    assert result["dataset_val"]["split"] == "validation"
