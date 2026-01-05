@@ -407,10 +407,10 @@ inspect eval capitalization.py@capitalization \\
 
 ### Scenario 2: Base Model Evaluation
 
-For base/control models, scaffold-inspect extracts values from experiment_summary.md (same values used by fine-tuned runs):
+For base/control models, scaffold-inspect generates `eval_config.yaml` (see "Extracting Values for Base Models" above), then reads from it at scaffolding time:
 
 ```bash
-# Values extracted from experiment_summary.md at scaffolding time:
+# Values extracted from eval_config.yaml at scaffolding time:
 MODEL_PATH="/path/to/pretrained-llms/Llama-3.2-1B-Instruct"
 DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
 PROMPT="{input}"
@@ -427,8 +427,8 @@ inspect eval capitalization.py@capitalization \\
 
 **Key points:**
 - Base models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
-- Values come from experiment_summary.md Configuration section
-- No eval_config.yaml file needed - values are baked directly into SLURM script
+- Values come from `eval_config.yaml` (generated from experiment_summary.yaml)
+- Mirrors fine-tuned approach: config file → SLURM script for auditability
 
 ## Directory Structure Creation
 
