@@ -43,7 +43,7 @@ experiment_dir = f"{base_dir}{experiment_name}/"
 ### Directory Structure
 
 - **Experiments** (research tasks): `/scratch/gpfs/MSALGANIK/niznik/ck-experiments/{experiment_name}/`
-- **Sanity checks** (workflow validation): `/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/{sanity_check_name}/`
+- **Sanity checks** (simple fine-tuning verification): `/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/{sanity_check_name}/`
 
 **Outputs are automatically grouped:**
 - Output directory: `/scratch/gpfs/MSALGANIK/niznik/ck-outputs/{experiment_or_sanity_check_name}/ck-out-{run_name}/`
