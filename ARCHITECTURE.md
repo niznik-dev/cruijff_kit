@@ -369,7 +369,7 @@ cruijff_kit supports two workflows:
 
 **Recommended when using Claude Code:**
 
-1. **Design:** Use `design-experiment` skill to create experiment plan (`experiment_summary.md`)
+1. **Design:** Use `design-experiment` skill to create experiment plan (`experiment_summary.yaml`)
 2. **Scaffold:** Use `scaffold-experiment` skill to generate all run directories and configs (fine-tuning and evaluation)
 3. **Execute:** Use `run-experiment` skill to run fine-tuning and evaluation (includes both torchtune and inspect-ai)
 4. **Analyze:** (Planned) Use `analyze-experiment` skill to analyze results and generate reports

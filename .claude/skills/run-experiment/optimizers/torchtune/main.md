@@ -4,7 +4,7 @@ Executes torchtune fine-tuning jobs for all runs in an experiment.
 
 ## Prerequisites
 
-- experiment_summary.md exists
+- experiment_summary.yaml exists
 - Fine-tuning scaffolding complete (finetune.slurm files exist)
 - SLURM cluster access
 
@@ -26,6 +26,5 @@ Executes torchtune fine-tuning jobs for all runs in an experiment.
 
 ## Output
 
-- Updates experiment_summary.md status table
 - Creates run-torchtune.log with detailed execution history
 - Model checkpoints in `{output_dir_base}/ck-out-{run_name}/epoch_{N}/`
