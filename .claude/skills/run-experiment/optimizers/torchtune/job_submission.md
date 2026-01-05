@@ -47,7 +47,7 @@ sleep 5
 **If submission fails:**
 - Log the error with details
 - Continue with remaining jobs
-- Record failure in status table
+- Record failure in run state
 - Report all failures in final summary
 
 ## Logging

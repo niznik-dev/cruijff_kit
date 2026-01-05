@@ -54,9 +54,11 @@ Compare current state to previous state for each job.
 - Update experiment_summary.yaml
 - Record new status
 
-### 4. Update experiment_summary.yaml
+### 4. Update Run State
 
-Update Fine-tuning status table:
+**Note:** Status tracking is maintained in a separate state file (e.g., `run-experiment-state.json`), not in experiment_summary.yaml which is static configuration.
+
+Track state transitions:
 
 **PENDING → RUNNING:**
 ```markdown

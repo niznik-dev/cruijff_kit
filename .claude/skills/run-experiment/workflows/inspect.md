@@ -16,10 +16,10 @@ This document describes the detailed step-by-step process for executing inspect-
 ### 1. Parse Experiment Configuration
 
 **Read experiment_summary.yaml:**
-- Extract experiment name
-- Parse "All Runs" table
-- Parse "Evaluations" status table
-- Identify output directories for model checkpoints
+- Extract experiment name from `experiment.name`
+- Parse `runs:` section for run names and types
+- Parse `evaluation.matrix:` section for which runs/epochs to evaluate
+- Identify output directories from `output.base_directory`
 
 **Scan for evaluation scripts:**
 ```bash

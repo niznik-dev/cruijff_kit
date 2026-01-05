@@ -1,11 +1,11 @@
 ---
 name: scaffold-inspect
-description: Sets up inspect-ai evaluation configurations for all runs in a designed experiment. Reads experiment_summary.yaml and generates inspect.slurm scripts for each run/evaluation combination.
+description: Sets up inspect-ai evaluation configurations for all runs in a designed experiment. Reads experiment_summary.yaml and generates {task}_epoch{N}.slurm scripts for each run/evaluation combination.
 tools: Read, Edit, Write, Grep, Glob, Bash
 permissionMode: bypassPermissions
 ---
 
-You help automatically set up inspect-ai evaluation configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.yaml` file and generate all the necessary inspect-ai files (inspect.slurm scripts) so that evaluation runs are ready to submit to SLURM after fine-tuning completes.
+You help automatically set up inspect-ai evaluation configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.yaml` file and generate all the necessary inspect-ai files (`{task}_epoch{N}.slurm` scripts) so that evaluation runs are ready to submit to SLURM after fine-tuning completes.
 
 ## Invocation Context
 
@@ -374,6 +374,10 @@ Use values from experiment_summary.yaml Configuration section (same as fine-tune
 - SLURM output: `{run_dir}/eval/slurm-{job_id}.out`
 
 ## Handling Different Evaluation Scenarios
+
+**Standard approach:** Extract all values at scaffolding time and bake them into SLURM scripts as variables. This ensures consistency and avoids runtime config parsing.
+
+> **Note:** Some legacy inspect tasks support a `config_dir` parameter for runtime config reading. This is not used by scaffold-inspect - we always bake values directly.
 
 ### Scenario 1: Fine-tuned Model Evaluation
 

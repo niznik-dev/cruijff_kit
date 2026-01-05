@@ -400,7 +400,7 @@ Result: Will use hf_dataset with json format and custom record_to_sample functio
 - `temperature` - Enable temperature tuning
 - `dataset_path` - Support different datasets
 - `grader_model` - For model-graded scoring
-- `config_dir` - For integration with fine-tuning runs (like existing `cap_task`)
+- `config_dir` - (legacy) For runtime config reading; scaffold-inspect uses direct params instead
 
 **Benefits of parameters:**
 - Run variations without code changes
@@ -421,11 +421,10 @@ inspect eval task.py -T param_name=value
 - `inspect eval task.py --model hf/local -M model_path=/path/to/model`
 - Recommended for most cases
 
-**Option 2: Integration with fine-tuning config**
+**Option 2: Integration with fine-tuning config (legacy)**
 - Like existing `cap_task` example
-- Reads from `setup_finetune.yaml`
-- Takes `config_dir` parameter pointing to epoch directory
-- Best for evaluating fine-tuned models from experiments
+- Reads from `setup_finetune.yaml` at runtime via `config_dir` parameter
+- Note: scaffold-inspect now bakes values into SLURM instead of using this pattern
 
 **Option 3: Hard-coded in task**
 - Less flexible but simpler
@@ -787,9 +786,9 @@ When creating tasks for an experiment:
    - Model information
    - Research objectives
 
-3. **Task supports both modes:**
-   - **config_dir mode**: Reads from `setup_finetune.yaml` (for fine-tuned models)
-   - **dataset_path mode**: Direct dataset path (for base models and flexibility)
+3. **Task parameter modes:**
+   - **Direct parameters (preferred)**: `data_path`, `prompt`, `system_prompt` passed via `-T` flags. scaffold-inspect bakes these into SLURM scripts at scaffolding time.
+   - **config_dir mode (legacy)**: Reads from `setup_finetune.yaml` at runtime. Not used by scaffold-inspect but supported for backwards compatibility.
 
 ### Generated Task Pattern
 

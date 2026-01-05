@@ -12,7 +12,7 @@ Decide which fine-tuning runs need to be submitted.
 
 **Skip if:**
 - Run is "Control" type (no fine-tuning needed)
-- Job ID already exists in experiment_summary.yaml status table and job is running
+- Job ID already exists in run state tracking and job is running
 - SLURM output file exists and shows COMPLETED status
 - Model checkpoint already exists (resumability)
 
