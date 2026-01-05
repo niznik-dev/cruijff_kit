@@ -156,18 +156,13 @@ def test_validate_lr_scheduler_invalid():
 
 @pytest.mark.parametrize("dataset_type", [
     "chat_completion",
-    "conditional_completion",
     "instruct_dataset",
     "chat_dataset",
     "text_completion_dataset",
 ])
 def test_validate_dataset_type_valid(dataset_type):
     """Test that valid dataset_type names pass validation."""
-    import warnings
-    # conditional_completion emits deprecation warning, which is expected
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        validate_dataset_type(dataset_type)
+    validate_dataset_type(dataset_type)
 
 
 def test_validate_dataset_type_invalid():
@@ -176,18 +171,6 @@ def test_validate_dataset_type_invalid():
         validate_dataset_type("invalid_dataset")
     assert "Invalid dataset_type" in str(exc_info.value)
     assert "invalid_dataset" in str(exc_info.value)
-
-
-def test_validate_dataset_type_conditional_completion_deprecation_warning():
-    """Test that conditional_completion emits deprecation warning."""
-    import warnings
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        validate_dataset_type("conditional_completion")
-        assert len(w) == 1
-        assert issubclass(w[0].category, DeprecationWarning)
-        assert "deprecated" in str(w[0].message).lower()
-        assert "chat_completion" in str(w[0].message)
 
 
 # Tests for construct_output_dir()
@@ -376,37 +359,6 @@ def test_configure_dataset_json_chat_without_validation():
     assert "split" not in result["dataset"]
     assert "data_dir" not in result["dataset"]
     assert "dataset_val" not in result
-
-
-def test_configure_dataset_conditional_completion():
-    """Test conditional_completion format - should not modify dataset config."""
-    config = {
-        "dataset": {
-            "data_files": "/data/my_dataset.json",
-            "field": "train",
-            "prompt": "{input}\n"
-        },
-        "dataset_val": {
-            "data_files": "/data/my_dataset.json",
-            "field": "validation",
-            "prompt": "{input}\n"
-        }
-    }
-
-    result = configure_dataset_for_format(
-        config,
-        dataset_label="my_dataset",
-        dataset_ext=".json",
-        dataset_type="conditional_completion"
-    )
-
-    # conditional_completion should pass through config unchanged (except dataset_label)
-    assert result["dataset_label"] == "my_dataset"
-    assert result["dataset"]["data_files"] == "/data/my_dataset.json"
-    assert result["dataset"]["field"] == "train"
-    assert result["dataset"]["prompt"] == "{input}\n"
-    assert result["dataset_val"]["data_files"] == "/data/my_dataset.json"
-    assert result["dataset_val"]["field"] == "validation"
 
 
 def test_configure_dataset_chat_completion():
