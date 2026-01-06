@@ -364,7 +364,9 @@ def main():
         config = yaml.safe_load(f)
 
     # Derive model_dir early (needed for chat_completion's model_path)
-    model_dir = args.model_checkpoint if args.model_checkpoint else args.torchtune_model_name
+    # Extract basename in case model_checkpoint is an absolute path
+    raw_checkpoint = args.model_checkpoint or args.torchtune_model_name
+    model_dir = os.path.basename(raw_checkpoint.rstrip('/'))
 
     for key, value in vars(args).items():
         if key in SLURM_ONLY:
@@ -372,7 +374,9 @@ def main():
         # Model config - apply torchtune-specific settings
         elif key == "torchtune_model_name":
             # Model directory: use model_checkpoint if provided, otherwise torchtune_model_name
-            model_dir = args.model_checkpoint if args.model_checkpoint else value
+            # Extract basename in case it's an absolute path
+            raw_checkpoint = args.model_checkpoint or value
+            model_dir = os.path.basename(raw_checkpoint.rstrip('/'))
 
             # Set model component
             config["model"]["_component_"] = model_config["component"]
