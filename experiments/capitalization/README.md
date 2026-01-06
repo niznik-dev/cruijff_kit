@@ -18,24 +18,30 @@ wget https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/word
 cd ../../..
 ```
 
-Next, run `python experiments/capitalization/preprocess_input_data.py --word-len 5 --num-words 1000` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` in `data/green/capitalization/` in the instruct_dataset format with top level splits (train/validation/test) which we will use in finetuning.
-
-(If you'd rather generate a chat_dataset, run `python experiments/capitalization/preprocess_input_data.py --word-len 5 --num-words 1000 --use-chat-template` instead - this will create a folder with an "_c" appended and separate files inside per split (train/validation/test.json) in `data/green/capitalization/`)
+Next, run `python experiments/capitalization/preprocess_input_data.py --word-len 5 --num-words 1000` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` in `data/green/capitalization/` with top level splits (train/validation/test) which we will use in finetuning.
 
 ### Part 2 - Finetuning
 
-You can run finetuning using either JSON format or parquet format. Choose one of the options below:
+#### Dataset Types
 
-#### Option 1: Using JSON Format (Current Method)
+By default, fine-tuning uses `chat_completion` which applies HuggingFace chat templates to ensure train/eval parity with inspect-ai evaluations.
 
-First, copy `setup_finetune_json.yaml` from the capitalization task templates/finetuning folder one level up to the capitalization task folder - we'll be running things from here going forward. Next, rename it to `setup_finetune.yaml`. Then open the file and consider the following changes:
+#### Setup
+
+Copy the appropriate config from `yaml_examples/` and edit it:
+
+```
+cp yaml_examples/setup_finetune_json.yaml setup_finetune.yaml
+```
+
+Then edit `setup_finetune.yaml` with the following changes:
 
 - Change the run name to something unique (datestamp? number your system prompts?)
 - Change input_dir_base to match where you cloned the repo
 - Match your data format
-  - For this example, make sure dataset_label (the filename without ".json") and dataset_ext (".json") match what you generated in Part 1 
-  - If you'd rather use the chat template, revisit preprocess_input_data.py to create that folder and then once again make sure dataset_label matches the directory (usually ending in "_c"); dataset_ext is still ".json"
-- Change system_prompt if necessary
+  - For this example, make sure dataset_label (the filename without ".json") and dataset_ext (".json") match what you generated in Part 1
+- Edit the `prompt` template if needed (e.g., `"Capitalize the given word: {input}\n"`)
+  - Note: Use a colon separator rather than newline between instruction and input for best results
 
 Then run
 
@@ -49,9 +55,11 @@ Finally, run
 sbatch finetune.slurm
 ```
 
-#### Option 2: Using Parquet Format
+#### Alternative: Using Parquet Format
 
-First, convert the JSON file to Parquet format:
+**Note:** Parquet format requires `dataset_type: instruct_dataset` (legacy mode) because `chat_completion` only supports JSON files.
+
+If you prefer Parquet format instead of JSON, first convert the JSON file:
 
 ```
 python utils/convert_json_to_parquet.py \
@@ -61,7 +69,13 @@ python utils/convert_json_to_parquet.py \
 
 This will create Parquet files (train.parquet, validation.parquet, test.parquet) in the output directory.
 
-Next, copy `setup_finetune_parquet.yaml` from the capitalization task templates/finetuning folder one level up to the capitalization task folder - we'll be running things from here going forward. Next, rename it to `setup_finetune.yaml`. Then open the file and consider the following changes:
+Then overwrite the default config with the Parquet example:
+
+```
+cp yaml_examples/setup_finetune_parquet.yaml setup_finetune.yaml
+```
+
+Edit `setup_finetune.yaml` with the following changes:
 
 - Change the run name to something unique (datestamp? number your system prompts?)
 - Change input_dir_base to match where you cloned the repo
@@ -69,17 +83,7 @@ Next, copy `setup_finetune_parquet.yaml` from the capitalization task templates/
   - The dataset_label should be the parquet folder and dataset_ext should be ".parquet"
 - Change system_prompt if necessary
 
-Then run
-
-```
-python ../../tools/torchtune/setup_finetune.py
-```
-
-Finally, run
-
-```
-sbatch finetune.slurm
-```
+Then run `python ../../tools/torchtune/setup_finetune.py` and `sbatch finetune.slurm` as above.
 
 ### (Optional) Part 3 - Upload to Weights & Biases
 

@@ -18,7 +18,7 @@ Follow the three-stage process:
 ### 1. Parameter Selection → `param_selection.md`
 
 Guide the user through 9 interactive steps to gather all experiment parameters:
-1. Determine experiment purpose and location (workflow test vs research experiment)
+1. Determine experiment purpose and location (sanity check vs research experiment)
 2. Understand the experiment (scientific question, variables)
 3. Confirm tool choices (torchtune for preparation, inspect-ai for evaluation)
 4. Design training runs (models, datasets, hyperparameters)
@@ -94,6 +94,7 @@ Reference materials for output generation:
 
 ## Important Reminders
 
+- **Dataset format terminology:** Describe JSON datasets as "JSON with input/output keys" - never invent format type names
 - **Use paths from `claude.local.md`** for models, datasets, scratch directories
 - **Always verify resources** exist before finalizing plan (log all verification)
 - **System prompt consistency is critical** - must match between training and evaluation for inspect-ai

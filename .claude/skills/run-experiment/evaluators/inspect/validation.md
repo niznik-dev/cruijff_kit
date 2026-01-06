@@ -62,7 +62,7 @@ Verify `run-inspect.log` exists with:
 - ✓ All evaluations submitted successfully
 - ✓ All jobs reached terminal states
 - ✓ Evaluation logs exist for COMPLETED jobs
-- ✓ experiment_summary.md fully updated
+- ✓ experiment_summary.yaml fully updated
 - ✓ Log file complete
 
 ## Failure Scenarios

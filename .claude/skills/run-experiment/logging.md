@@ -48,7 +48,7 @@ Both created during job execution to record job submissions, status changes, and
 ## When to Log
 
 ### During Parsing
-- Which experiment_summary.md is being read
+- Which experiment_summary.yaml is being read
 - Extracted run/evaluation information
 
 ### During Selection

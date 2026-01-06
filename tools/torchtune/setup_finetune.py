@@ -10,7 +10,70 @@ from cruijff_kit.utils import run_names
 script_dir = Path(__file__).parent
 
 # Skip these when writing the yaml file
-SLURM_ONLY = ['time', 'gpus', 'conda_env', 'account', 'partition', 'constraint']
+SLURM_ONLY = ['time', 'gpus', 'conda_env', 'account', 'partition', 'constraint', 'mem']
+
+# Model-specific configurations
+# Keys are model directory names (e.g., "Llama-3.2-3B-Instruct")
+# SLURM resources follow RAM=VRAM rule to ensure checkpoint saving doesn't OOM
+MODEL_CONFIGS = {
+    "Llama-3.2-1B-Instruct": {
+        "component": "torchtune.models.llama3_2.lora_llama3_2_1b",
+        "checkpoint_files": ["model.safetensors"],
+        "model_type": "LLAMA3_2",
+        "slurm": {
+            "mem": "40G",
+            "partition": "nomig",  # Avoid MIG partitions by default
+            "constraint": None,
+            "cpus": 4,
+            "gpus": 1,
+        },
+    },
+    "Llama-3.2-3B-Instruct": {
+        "component": "torchtune.models.llama3_2.lora_llama3_2_3b",
+        "checkpoint_files": {
+            "filename_format": "model-{}-of-{}.safetensors",
+            "max_filename": "00002",
+        },
+        "model_type": "LLAMA3_2",
+        "slurm": {
+            "mem": "80G",
+            "partition": None,
+            "constraint": "gpu80",
+            "cpus": 4,
+            "gpus": 1,
+        },
+    },
+    "Llama-3.1-8B-Instruct": {
+        "component": "torchtune.models.llama3_1.lora_llama3_1_8b",
+        "checkpoint_files": {
+            "filename_format": "model-{}-of-{}.safetensors",
+            "max_filename": "00004",
+        },
+        "model_type": "LLAMA3",
+        "slurm": {
+            "mem": "80G",
+            "partition": None,
+            "constraint": "gpu80",
+            "cpus": 4,
+            "gpus": 1,
+        },
+    },
+    "Llama-3.3-70B-Instruct": {
+        "component": "torchtune.models.llama3_3.lora_llama3_3_70b",
+        "checkpoint_files": {
+            "filename_format": "model-{}-of-{}.safetensors",
+            "max_filename": "00030",
+        },
+        "model_type": "LLAMA3",
+        "slurm": {
+            "mem": "320G",
+            "partition": None,
+            "constraint": "gpu80",
+            "cpus": 16,
+            "gpus": 4,
+        },
+    },
+}
 
 # Used for epochs_to_save to allow for all/none options
 def parse_epochs(value):
@@ -94,12 +157,13 @@ def validate_dataset_type(dataset_type):
     """Validate dataset type.
 
     Args:
-        dataset_type: Name of the dataset type (without prefix)
+        dataset_type: Name of the dataset type
 
     Raises:
         ValueError: If dataset_type is not in the list of valid types
     """
     VALID_DATASET_TYPES = [
+        'chat_completion',  # Default - uses HF apply_chat_template for train/eval parity
         'instruct_dataset',
         'chat_dataset',
         'text_completion_dataset'
@@ -142,14 +206,21 @@ def configure_dataset_for_format(config, dataset_label, dataset_ext, dataset_typ
         config: The configuration dictionary to modify
         dataset_label: Name of the dataset file (without extension) or folder
         dataset_ext: Extension of the dataset file (e.g., '.json' or '.parquet')
-        dataset_type: Type of dataset ('instruct_dataset', 'chat_dataset', etc.)
+        dataset_type: Type of dataset ('chat_completion', 'instruct_dataset', etc.)
 
     Returns:
         Modified configuration dictionary
     """
     config["dataset_label"] = dataset_label
 
-    if dataset_ext == '.parquet':
+    if dataset_type == 'chat_completion':
+        # Uses data_files directly (already in template)
+        # Just need to ensure the path includes the dataset_label
+        # Template has: "${input_dir}/${dataset_label}.json"
+        # This gets substituted by the config values, so no changes needed here
+        pass
+
+    elif dataset_ext == '.parquet':
         # For parquet, add filenames inside the folder (dataset_label is the folder name)
         config["dataset"]["data_dir"] += '/train.parquet'
         if "dataset_val" in config:
@@ -211,7 +282,10 @@ def create_parser():
     parser.add_argument("--max_steps_per_epoch", type=int, help="Maximum steps per epoch (useful for debugging)")
     parser.add_argument("--log_every_n_steps", type=int, default=5, help="How often to log (in steps)")
     parser.add_argument("--run_val_every_n_steps", type=int, default=0, help="How often to run validation (in steps)")
-    parser.add_argument("--system_prompt", type=str, default="", help="System prompt to use (if any)")
+    parser.add_argument("--prompt", type=str, default="{input}\n", help="Prompt template (use {input} placeholder)")
+    parser.add_argument("--input_key", type=str, default="input", help="JSON key for input field")
+    parser.add_argument("--output_key", type=str, default="output", help="JSON key for output field")
+    parser.add_argument("--system_prompt", type=str, default="", help="System prompt (legacy, for instruct_dataset)")
     parser.add_argument("--train_on_input", type=parse_bool, default=False, help="Whether to train on the input data (true/false)")
 
     # ------ Model/Training Args -----
@@ -219,7 +293,9 @@ def create_parser():
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate for optimizer")
     parser.add_argument("--num_warmup_steps", type=int, default=100, help="Number of warmup steps for learning rate scheduler")
     parser.add_argument("--lr_scheduler", type=str, default="get_cosine_schedule_with_warmup", help="Learning rate scheduler function name (without 'torchtune.training.lr_schedulers.' prefix)")
-    parser.add_argument("--dataset_type", type=str, default="instruct_dataset", help="Dataset type function name (without 'torchtune.datasets.' prefix)")
+    parser.add_argument("--dataset_type", type=str, default="chat_completion", help="Dataset type: 'chat_completion' (default, uses HF chat templates for train/eval parity) or legacy 'instruct_dataset'/'chat_dataset'")
+    parser.add_argument("--packed", type=parse_bool, default=False, help="Whether to use packed sequences (true/false). Should be False for custom datasets.")
+    parser.add_argument("--max_seq_len", type=int, default=2048, help="Maximum sequence length for tokenizer")
 
     # ------ Slurm Args -----
     parser.add_argument("--time", type=str, default="00:15:00", help="Time to run the job (HH:MM:SS)")
@@ -230,9 +306,16 @@ def create_parser():
 
     parser.add_argument("--account", type=str, help="Slurm account to use")
     parser.add_argument("--partition", type=str, help="Slurm partition to use")
+    parser.add_argument("--mem", type=str, help="Slurm memory allocation (e.g., '40G', '16G')")
     parser.add_argument("--constraint", type=str, help="Slurm constraint to use")
 
     parser.add_argument("--custom_recipe", type=str, help="Full name of a custom recipe file in the repo's custom_recipes folder to use for fine-tuning")
+
+    # ------ Model Selection -----
+    parser.add_argument("--torchtune_model_name", type=str, default="Llama-3.2-1B-Instruct",
+                        help="Model name as listed by 'tune ls' (e.g., 'Llama-3.2-1B-Instruct', 'Llama-3.2-3B-Instruct', 'Llama-3.1-8B-Instruct', 'Llama-3.3-70B-Instruct')")
+    parser.add_argument("--model_checkpoint", type=str, default=None,
+                        help="Model directory name within models_dir (defaults to torchtune_model_name if not provided)")
 
     return parser
 
@@ -268,13 +351,45 @@ def main():
     model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
     username = os.environ.get("USER")
 
+    # Get model config early (needed for both YAML and SLURM generation)
+    if args.torchtune_model_name not in MODEL_CONFIGS:
+        raise ValueError(
+            f"Unknown model: '{args.torchtune_model_name}'. "
+            f"Supported models: {', '.join(MODEL_CONFIGS.keys())}"
+        )
+    model_config = MODEL_CONFIGS[args.torchtune_model_name]
+
     # First edit the yaml template
     with open(f"{script_dir}/templates/finetune_template.yaml", "r") as f:
         config = yaml.safe_load(f)
 
+    # Derive model_dir early (needed for chat_completion's model_path)
+    # Extract basename in case model_checkpoint is an absolute path
+    raw_checkpoint = args.model_checkpoint or args.torchtune_model_name
+    model_dir = os.path.basename(raw_checkpoint.rstrip('/'))
+
     for key, value in vars(args).items():
         if key in SLURM_ONLY:
             continue
+        # Model config - apply torchtune-specific settings
+        elif key == "torchtune_model_name":
+            # Model directory: use model_checkpoint if provided, otherwise torchtune_model_name
+            # Extract basename in case it's an absolute path
+            raw_checkpoint = args.model_checkpoint or value
+            model_dir = os.path.basename(raw_checkpoint.rstrip('/'))
+
+            # Set model component
+            config["model"]["_component_"] = model_config["component"]
+
+            # Set tokenizer path
+            config["tokenizer"]["path"] = f"${{models_dir}}/{model_dir}/original/tokenizer.model"
+
+            # Set checkpointer config
+            config["checkpointer"]["checkpoint_dir"] = f"${{models_dir}}/{model_dir}/"
+            config["checkpointer"]["model_type"] = model_config["model_type"]
+            config["checkpointer"]["checkpoint_files"] = model_config["checkpoint_files"]
+        elif key == "model_checkpoint":
+            continue  # Handled in torchtune_model_name
         # Special cases first
         elif key == "my_wandb_run_name":
             config["my_wandb_run_name"] = model_run_name
@@ -289,13 +404,18 @@ def main():
             config = configure_dataset_for_format(config, value, args.dataset_ext, args.dataset_type)
         elif key == "dataset_ext":
             pass  # Handled in dataset_label
+        elif key in ("prompt", "input_key", "output_key"):
+            pass  # Handled in dataset_type
         elif key == "system_prompt":
-            if value:
+            # chat_completion handles system_prompt in dataset_type switch
+            # Only apply new_system_prompt for legacy instruct_dataset
+            if value and args.dataset_type != 'chat_completion':
                 config["dataset"]["new_system_prompt"] = value
-                config["dataset_val"]["new_system_prompt"] = value
+                if "dataset_val" in config:
+                    config["dataset_val"]["new_system_prompt"] = value
         elif key == "train_on_input":
-            # Special case: nested in dataset config
-            config["dataset"]["train_on_input"] = value
+            # Handled in dataset_type switch for chat_completion
+            pass
         elif key == "lora_rank":
             # Set both rank and alpha (alpha = 2 * rank)
             config["model"]["lora_rank"] = value
@@ -308,15 +428,51 @@ def main():
             # Construct full component path
             config["lr_scheduler"]["_component_"] = f"torchtune.training.lr_schedulers.{value}"
         elif key == "dataset_type":
-            config["dataset"]["_component_"] = f"torchtune.datasets.{value}"
-            if value == 'chat_dataset':
-                config["dataset"]["conversation_column"] = "messages"
-                config["dataset"]["conversation_style"] = "openai"
-            if "dataset_val" in config:
-                config["dataset_val"]["_component_"] = f"torchtune.datasets.{value}"
+            if value == 'chat_completion':
+                # Template already has chat_completion config
+                # Just override the user-specified values and set model_path
+                config["dataset"]["model_path"] = f"${{models_dir}}/{model_dir}"
+                config["dataset"]["prompt"] = args.prompt
+                config["dataset"]["system_prompt"] = args.system_prompt
+                config["dataset"]["input_key"] = args.input_key
+                config["dataset"]["output_key"] = args.output_key
+                config["dataset"]["train_on_input"] = args.train_on_input
+                if "dataset_val" in config:
+                    config["dataset_val"]["model_path"] = f"${{models_dir}}/{model_dir}"
+                    config["dataset_val"]["prompt"] = args.prompt
+                    config["dataset_val"]["system_prompt"] = args.system_prompt
+                    config["dataset_val"]["input_key"] = args.input_key
+                    config["dataset_val"]["output_key"] = args.output_key
+                    config["dataset_val"]["train_on_input"] = args.train_on_input
+            else:
+                # Legacy dataset types - need to reconfigure from template
+                config["dataset"]["_component_"] = f"torchtune.datasets.{value}"
+                # Remove chat_completion specific keys
+                for key_to_remove in ["prompt", "input_key", "output_key", "model_path", "system_prompt"]:
+                    config["dataset"].pop(key_to_remove, None)
+                # Add back keys needed for legacy types
+                config["dataset"]["data_dir"] = config["dataset"].pop("data_files").replace(".json", "")
+                config["dataset"]["split"] = config["dataset"].pop("field")
                 if value == 'chat_dataset':
-                    config["dataset_val"]["conversation_column"] = "messages"
-                    config["dataset_val"]["conversation_style"] = "openai"
+                    config["dataset"]["conversation_column"] = "messages"
+                    config["dataset"]["conversation_style"] = "openai"
+                if "dataset_val" in config:
+                    config["dataset_val"]["_component_"] = f"torchtune.datasets.{value}"
+                    for key_to_remove in ["prompt", "input_key", "output_key", "model_path", "system_prompt"]:
+                        config["dataset_val"].pop(key_to_remove, None)
+                    config["dataset_val"]["data_dir"] = config["dataset_val"].pop("data_files").replace(".json", "")
+                    config["dataset_val"]["split"] = config["dataset_val"].pop("field")
+                    if value == 'chat_dataset':
+                        config["dataset_val"]["conversation_column"] = "messages"
+                        config["dataset_val"]["conversation_style"] = "openai"
+        elif key == "packed":
+            # Add packed to dataset config (recipes read this to select collate_fn)
+            config["dataset"]["packed"] = value
+            if "dataset_val" in config:
+                config["dataset_val"]["packed"] = value
+        elif key == "max_seq_len":
+            # Update tokenizer's max_seq_len
+            config["tokenizer"]["max_seq_len"] = value
         # The rest are straightforward
         else:
             config[key] = value
@@ -337,22 +493,44 @@ def main():
         slurm_script = f.read()
 
     slurm_script = slurm_script.replace("<JOBNAME>", model_run_name)
-    # TODO - lookup reasonable memory/time values based on model choice (create a table somewhere)
     slurm_script = slurm_script.replace("00:15:00", args.time)
     slurm_script = slurm_script.replace("<NETID>", username)
 
-    if args.gpus > 1:
-        slurm_script = slurm_script.replace("#SBATCH --cpus-per-task=1", "#SBATCH --cpus-per-task=" + str(args.gpus))
-        slurm_script = slurm_script.replace("#SBATCH --gres=gpu:1", "#SBATCH --gres=gpu:" + str(args.gpus))
-        slurm_script = slurm_script.replace("lora_finetune_single_device", "--nproc_per_node=" + str(args.gpus) + " lora_finetune_distributed")
+    # Apply model-aware SLURM resources (RAM=VRAM rule)
+    # User-specified mem overrides model defaults (for MIG support)
+    slurm_config = model_config.get("slurm", {})
+    mem = args.mem if args.mem else slurm_config.get("mem", "32G")
+    slurm_script = slurm_script.replace("<MEM>", mem)
+
+    # GPUs: CLI overrides model config default
+    # Check if user explicitly set --gpus (compare to parser default of 1)
+    model_gpus = slurm_config.get("gpus", 1)
+    gpus = args.gpus if args.gpus != 1 else model_gpus
+
+    # CPUs: use model config value
+    cpus = slurm_config.get("cpus", 4)
+
+    # Multi-GPU setup: update SLURM and use distributed training
+    if gpus > 1:
+        slurm_script = slurm_script.replace("#SBATCH --gres=gpu:1", "#SBATCH --gres=gpu:" + str(gpus))
+        slurm_script = slurm_script.replace("lora_finetune_single_device", "--nproc_per_node=" + str(gpus) + " lora_finetune_distributed")
+    slurm_script = slurm_script.replace("#SBATCH --cpus-per-task=1", "#SBATCH --cpus-per-task=" + str(cpus))
+
     if args.account:
         slurm_script = slurm_script.replace("##SBATCH --account=<ACT>", "#SBATCH --account=" + args.account)
-    if args.partition:
-        slurm_script = slurm_script.replace("##SBATCH --partition=<PART>", "#SBATCH --partition=" + args.partition)
-    if args.constraint:
-        slurm_script = slurm_script.replace("##SBATCH --constraint=<CONST>", "#SBATCH --constraint=" + args.constraint)
+
+    # Partition: CLI/yaml overrides model config
+    # Use 'is not None' check because empty string is valid (MIG support)
+    partition = args.partition if args.partition is not None else slurm_config.get("partition")
+    if partition is not None and partition != "":
+        slurm_script = slurm_script.replace("##SBATCH --partition=<PART>", "#SBATCH --partition=" + partition)
+
+    # Constraint: CLI overrides model config
+    constraint = args.constraint if args.constraint else slurm_config.get("constraint")
+    if constraint:
+        slurm_script = slurm_script.replace("##SBATCH --constraint=<CONST>", "#SBATCH --constraint=" + constraint)
     if args.custom_recipe:
-        if args.gpus == 1:
+        if gpus == 1:
             slurm_script = slurm_script.replace("lora_finetune_single_device", args.custom_recipe + '.__main__')
         else:
             slurm_script = slurm_script.replace("lora_finetune_distributed", args.custom_recipe + '.__main__')

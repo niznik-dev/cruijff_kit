@@ -81,6 +81,8 @@ Run through this checklist before presenting the plan:
 **Impact:** inspect-ai evaluations may fail or give invalid results
 **Fix:** Ensure `evaluation.system_prompt` exactly matches `controls.system_prompt`
 
+**How it works:** scaffold-inspect generates eval scripts that set `CONFIG_PATH` to point at `setup_finetune.yaml`. The inspect-ai task reads the system prompt from this config, ensuring train/eval parity automatically. However, the experiment_summary.yaml must still document both for validation purposes.
+
 ### 1-Indexed Epochs
 **Problem:** Documenting epochs as [1, 2, 3] instead of [0, 1, 2]
 **Impact:** Evaluation scripts will fail or evaluate wrong checkpoints

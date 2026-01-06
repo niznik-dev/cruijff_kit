@@ -216,13 +216,13 @@ For a complete example with detailed instructions, see `experiments/capitalizati
 
 ### Single Run Example (Twin Dataset)
 
-1. **Prepare your configuration file**
+1. **Create configuration file**
 
-Create a `setup_finetune.yaml` file in your experiment directory. You can copy from a template:
+Copy a config template from the experiment's `yaml_examples/` folder:
 
 ```bash
 cd experiments/your_experiment/
-cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml
+cp yaml_examples/setup_finetune_json.yaml setup_finetune.yaml
 ```
 
 2. **Edit the configuration**
@@ -232,7 +232,7 @@ Key settings to verify:
 * `input_formatting` - Subfolder name (usually empty string `''`)
 * `dataset_label` - Dataset filename without extension
 * `conda_env` - Your conda environment name (e.g., `cruijff`)
-* `model_checkpoint` - Path to pretrained model
+* `torchtune_model_name` - Model name as listed by `tune ls` (e.g., `Llama-3.2-1B-Instruct`)
 * `output_dir_base` - Where to save model checkpoints
 * `lora_rank` - LoRA adapter rank (e.g., 8, 16, 32, 64)
 * `learning_rate` - Learning rate (e.g., 1e-5, 5e-5)

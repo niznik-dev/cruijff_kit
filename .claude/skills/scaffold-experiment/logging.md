@@ -14,6 +14,10 @@ This log records the high-level orchestration process. Individual subagents crea
 - `{experiment_dir}/scaffold-torchtune.log` (created by scaffold-torchtune subagent)
 - `{experiment_dir}/scaffold-inspect.log` (created by scaffold-inspect subagent)
 
+**Note on log formats across skills:**
+- `.jsonl` (JSON Lines) - Used by design-experiment for structured audit trails (machine-readable, reproducibility)
+- `.log` (text) - Used by all other skills for human-readable progress tracking
+
 ---
 
 ## Log Format

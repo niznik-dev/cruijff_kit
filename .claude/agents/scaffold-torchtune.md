@@ -35,6 +35,27 @@ When invoked:
 
 **CRITICAL: You must execute setup_finetune.py automatically. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.**
 
+## Model-Aware SLURM Resources
+
+The `setup_finetune.py` script automatically sets SLURM resources based on model size (RAM=VRAM rule):
+
+| Model | Memory | Partition | Constraint | CPUs |
+|-------|--------|-----------|------------|------|
+| 1B | 40G | nomig | - | 4 |
+| 3B | 80G | - | gpu80 | 4 |
+| 8B | 80G | - | gpu80 | 8 |
+| 70B | 320G | - | gpu80 | 8 |
+
+### MIG Support for 1B Models
+
+**MIG is configured during design-experiment, not here.** If the user opted into MIG during experiment design, the run will have `mig: true` in experiment_summary.yaml.
+
+**When parsing experiment_summary.yaml:**
+- If `mig: true` is present for a run: Set `partition: ""` and `mem: 16G` in setup_finetune.yaml
+- If `mig` is not present (default): Do nothing - setup_finetune.py defaults to `partition: nomig` and `mem: 40G`
+
+**Do NOT ask the user about MIG during scaffolding.** This decision is made during experiment design.
+
 ## Input Format 
 
 ### Finding the Experiment
@@ -143,10 +164,10 @@ Parse this into two components for setup_finetune.yaml:
 
 For each run, create a `setup_finetune.yaml` file by:
 
-1. **Select appropriate template** based on dataset format:
+1. **Determine dataset extension** based on format:
    - Check `data.training.format` in experiment_summary.yaml
-   - If `json` → use `experiments/capitalization/templates/finetuning/setup_finetune_json.yaml`
-   - If `parquet` → use `experiments/capitalization/templates/finetuning/setup_finetune_parquet.yaml`
+   - If `json` → `dataset_ext: '.json'`
+   - If `parquet` → `dataset_ext: '/'`
 
 2. **Extract dataset information from experiment_summary.yaml:**
    - Dataset path from `data.training.path`
@@ -171,11 +192,14 @@ dataset_label: {from data.training.label, e.g., "words_4L_80P_300"}
 dataset_ext: {from data.training.format, convert: "json" → ".json", "parquet" → "/"}
 
 # Model Configuration
+torchtune_model_name: {from models.base[0].name, e.g., "Llama-3.2-1B-Instruct"}
 model_checkpoint: {from models.base[0].path}
 
 # Hyperparameters (run-specific)
+# Note: experiment_summary.yaml uses 'learning_rate' (human-readable)
+#       but torchtune configs use 'lr' - translate when generating
 lora_rank: {from run.parameters.lora_rank}
-lr: {from run.parameters.learning_rate, format as 1e-5 or 5e-5}  # NOTE: parameter is 'lr' not 'learning_rate'
+lr: {from run.parameters.learning_rate, format as 1e-5 or 5e-5}
 batch_size: {from run.parameters.batch_size if varies, else from controls.batch_size}
 
 # Training configuration (common across runs)
@@ -337,7 +361,7 @@ Details: mkdir /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/ra
 Result: Directory created successfully
 
 [2025-10-24 16:30:12] GENERATE_YAML: rank8_lr1e-5/setup_finetune.yaml
-Details: Template: experiments/capitalization/templates/finetuning/setup_finetune_json.yaml
+Details: Template: experiments/capitalization/setup_finetune.yaml
 Parameters: rank=8, lr=1e-5, batch_size=4, epochs=1
 Result: File created (237 bytes)
 
