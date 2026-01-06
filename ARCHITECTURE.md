@@ -91,27 +91,64 @@ This prevents accidental commits of sensitive or large data files while maintain
 
 ### 1. Fine-tuning Workflow
 
-**Entry point:** `tools/torchtune/setup_finetune.py`
+**Architecture:** Modular two-stage configuration system with recipe-based and template-based approaches
 
-**Configuration:** Task-specific `setup_finetune.yaml` files
-
-**Process:**
+**Recipe-Based Process (when using torchtune recipes):**
 ```
-setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
-                                              ↓
-                                          sbatch finetune.slurm
-                                              ↓
-                                      torchtune recipe execution
-                                              ↓
-                                      output model checkpoints
+experiment_summary.yaml → merge_recipe_params.py → finetune.yaml
+                                                      ↓
+                                              generate_finetune_slurm.py
+                                                      ↓
+                                                finetune.slurm
+                                                      ↓
+                                              sbatch finetune.slurm
+                                                      ↓
+                                          torchtune recipe execution
+                                                      ↓
+                                          output model checkpoints
+```
+
+**Template-Based Process (no recipe specified):**
+```
+experiment_summary.yaml → generate_finetune_yaml.py → finetune.yaml
+                                                         ↓
+                                                generate_finetune_slurm.py
+                                                         ↓
+                                                   finetune.slurm
+                                                         ↓
+                                                 sbatch finetune.slurm
+                                                         ↓
+                                             torchtune recipe execution
+                                                         ↓
+                                             output model checkpoints
 ```
 
 **Key files:**
-- `tools/torchtune/setup_finetune.py` - Main orchestration script
-  - Reads `setup_finetune.yaml` (user-friendly config)
-  - Generates `finetune.yaml` (torchtune recipe config)
-  - Generates `finetune.slurm` (SLURM batch script)
-  - Handles path resolution, validation, defaults
+- `tools/torchtune/config_utils.py` - Shared utilities (parsing, validation, path construction)
+
+- `tools/torchtune/dataset_config.py` - Dataset section construction
+  - Builds complete dataset configuration for torchtune
+  - Handles json/parquet formats and instruct/chat dataset types
+  - Used by both recipe-based and template-based workflows
+
+- `tools/torchtune/merge_recipe_params.py` - Recipe-based YAML generation
+  - Extracts defaults from torchtune recipes via `recipe_config_loader.py`
+  - Merges: recipe → experiment controls → run parameters
+  - Replaces dataset section with local file configuration
+  - Generates complete `finetune.yaml`
+
+- `tools/torchtune/generate_finetune_yaml.py` - Template-based YAML generation
+  - Uses template from `tools/torchtune/templates/finetune_template.yaml`
+  - Applies parameters with special case handling
+  - Generates complete `finetune.yaml`
+
+- `tools/torchtune/generate_finetune_slurm.py` - SLURM script generation
+  - Works with finetune.yaml from either approach
+  - Generates `finetune.slurm`
+
+- `tools/torchtune/recipe_config_loader.py` - Recipe extraction utilities
+  - Extracts configuration from torchtune recipes via `tune cp`
+  - Handles parameter merging with precedence tracking
 
 - `tools/torchtune/templates/finetune_template.yaml` - Base template for torchtune configs
 
