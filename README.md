@@ -189,7 +189,7 @@ cruijff_kit supports two workflows for running experiments:
 If you have access to Claude Code, you can use skills to automate the entire experiment workflow:
 
 ### Step 1: Design the Experiment
-Use the `design-experiment` skill to plan your experiment. This creates an `experiment_summary.md` file documenting all runs, parameters, and resources.
+Use the `design-experiment` skill to plan your experiment. This creates an `experiment_summary.yaml` file documenting all runs, parameters, and resources.
 
 ### Step 2: Scaffold the Experiment
 Use the `scaffold-experiment` skill to automatically:
@@ -199,12 +199,13 @@ Use the `scaffold-experiment` skill to automatically:
 
 ### Step 3: Run the Experiment
 Use the `run-experiment` skill to:
-- Submit all jobs to SLURM
-- Monitor their progress
+- Submit fine-tuning jobs to SLURM
+- Monitor their progress until completion
+- Run evaluations on the fine-tuned models
 - Update the experiment status automatically
 
-### Step 4: Evaluate Results
-(Planned) Use the `evaluate-experiment` skill to generate and run evaluations.
+### Step 4: Summarize and Analyze
+Use `summarize-experiment` to generate a summary with key metrics (loss, accuracy) after completion. A more robust `analyze-experiment` skill for plots and statistical comparisons is planned.
 
 See `.claude/skills/*/SKILL.md` files for detailed documentation.
 
