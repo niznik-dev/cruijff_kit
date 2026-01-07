@@ -18,8 +18,14 @@ cruijff_kit is a research toolkit for fine-tuning and evaluating LLMs on social 
 cruijff_kit/
 ├── tools/              # Core workflow orchestration scripts
 │   ├── torchtune/      # Fine-tuning setup and custom recipes
+│   │   ├── setup_finetune.py  # Generate fine-tuning configs and SLURM scripts
+│   │   ├── datasets/          # Custom dataset classes
+│   │   │   └── chat_completion.py  # Chat template-based dataset
+│   │   ├── custom_recipes/    # Modified torchtune recipes
+│   │   └── templates/         # YAML/SLURM templates
 │   └── inspect/        # Evaluation setup and analysis
-│       ├── setup_inspect.py   # Generate evaluation SLURM scripts
+│       ├── setup_inspect.py   # (Legacy) Generate evaluation SLURM scripts
+│       ├── parse_eval_log.py  # Parse inspect-ai evaluation logs
 │       └── heterogeneity/     # Group-level fairness analysis
 │           ├── heterogeneity_eval.py    # Inspect-ai task wrapper
 │           ├── heterogeneity_report.py  # Standalone analysis script
@@ -27,12 +33,14 @@ cruijff_kit/
 │
 ├── experiments/        # Research experiment types
 │   ├── capitalization/ # Generalization test with word capitalization
-│   │   ├── cap_task.py # Inspect-ai evaluation task
+│   │   ├── inspect_task_capitalization.py # Inspect-ai evaluation task
 │   │   ├── input/      # Dataset generation
 │   │   └── templates/finetuning/  # Fine-tuning config templates
-│   └── synthetic_twins/# Social science twin prediction experiment
-│       ├── inspect_task_twins.py # Inspect-ai evaluation task
-│       └── ...
+│   ├── synthetic_twins/# Social science twin prediction experiment
+│   │   ├── inspect_task_twins.py # Inspect-ai evaluation task
+│   │   └── ...
+│   ├── folktexts/      # Demographic prediction from text
+│   └── inspect_task_general.py # General-purpose evaluation task
 │
 ├── sanity_checks/      # Synthetic validation sanity checks for testing workflows and learning
 │   ├── bit_sequences/  # Bit parity sanity checks for testing memorization
@@ -43,6 +51,8 @@ cruijff_kit/
 │   ├── run_names.py    # Random name generation for experiments
 │   ├── finetune_custom_metrics.py  # Custom metrics for torchtune
 │   ├── check_if_model_is_finetuned.py  # Model state inspection
+│   ├── logger.py       # Structured logging utilities
+│   ├── spot_check.py   # Quick model inference testing
 │   └── convert_*.py    # Dataset format conversion utilities
 │
 ├── tests/              # Test suite (pytest)
@@ -225,6 +235,7 @@ from cruijff_kit.utils import llm_utils
 **Packaged modules** (defined in `pyproject.toml`):
 - `cruijff_kit.utils` - Shared utilities
 - `cruijff_kit.tools.torchtune.custom_recipes` - Custom torchtune recipes
+- `cruijff_kit.tools.torchtune.datasets` - Custom dataset classes (e.g., `chat_completion`)
 
 **Not packaged but executed as scripts:**
 - `tools/torchtune/setup_finetune.py`
@@ -367,14 +378,15 @@ User-provided paths are resolved relative to current working directory (the task
 
 cruijff_kit supports two workflows:
 
-#### Skills-Based Workflow (with Claude Code)
+#### Skills-Based Workflow (Recommended)
 
-**Recommended when using Claude Code:**
+Use Claude Code skills to automate multi-run experiments. Skills generate all configurations directly from `experiment_summary.yaml` - they do **not** use the `templates/finetuning/` directories.
 
 1. **Design:** Use `design-experiment` skill to create experiment plan (`experiment_summary.yaml`)
-2. **Scaffold:** Use `scaffold-experiment` skill to generate all run directories and configs (fine-tuning and evaluation)
-3. **Execute:** Use `run-experiment` skill to run fine-tuning and evaluation (includes both torchtune and inspect-ai)
-4. **Analyze:** (Planned) Use `analyze-experiment` skill to analyze results and generate reports
+2. **Scaffold:** Use `scaffold-experiment` skill to generate all run directories and configs
+3. **Execute:** Use `run-experiment` skill to run fine-tuning and evaluation
+4. **Summarize:** Use `summarize-experiment` skill to generate results summary
+5. **Analyze:** (Planned) Use `analyze-experiment` skill for detailed analysis and comparison
 
 **Benefits:**
 - Automated setup for multi-run experiments
@@ -382,18 +394,20 @@ cruijff_kit supports two workflows:
 - Progress tracking and status updates
 - Built-in safety (stagger delays prevent cache collisions)
 
-**Implementation Note:** The workflow skills above are orchestrators that delegate to specialized worker skills: `scaffold-experiment` calls `scaffold-torchtune` and `scaffold-inspect`, while `run-experiment` calls `run-torchtune` and `run-inspect`. Worker skills can also be invoked independently for targeted operations. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for details.
+**Implementation Note:** The workflow skills are orchestrators that delegate to specialized worker skills: `scaffold-experiment` calls `scaffold-torchtune` and `scaffold-inspect`, while `run-experiment` calls `run-torchtune` and `run-inspect`. Worker skills can also be invoked independently. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for details.
 
-#### Manual Workflow (without Claude Code)
+#### Manual Workflow
+
+For users who prefer direct control or don't have Claude Code access. This workflow uses the `templates/finetuning/` directories in each experiment.
 
 **For single runs:**
 
 1. Navigate to experiment directory: `cd experiments/capitalization/`
-2. Edit config: `setup_finetune.yaml` (or copy from `templates/finetuning/` for alternative formats)
-3. Generate scripts: `python ../../tools/torchtune/setup_finetune.py`
-4. Submit job: `sbatch finetune.slurm`
-5. Evaluate: `python ../../tools/inspect/setup_inspect.py --finetune_epoch_dir /path/to/epoch_0/`
-6. Run evaluation: `sbatch inspect.slurm`
+2. Copy config template: `cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml`
+3. Edit `setup_finetune.yaml` with your settings
+4. Generate scripts: `python ../../tools/torchtune/setup_finetune.py`
+5. Submit job: `sbatch finetune.slurm`
+6. Evaluate: Set up and run inspect-ai evaluation manually
 
 **For multi-run experiments:**
 
