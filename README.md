@@ -19,6 +19,8 @@ We are grateful to the following funders and supporters: [Princeton AI Lab](http
 
 This project is under active development. The core workflows (design → scaffold → run → summarize experiments) are functional, but you may encounter bugs or breaking changes between updates. You're welcome to use this toolkit on your own, but reaching out to us first will help you get up to speed faster. We'd love to collaborate - your feedback and bug reports are valuable!
 
+See [CHANGELOG.md](CHANGELOG.md) for release history and [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for current limitations.
+
 # Prerequisites
 
 - Cloning and Pulling from GitHub (properly!)
