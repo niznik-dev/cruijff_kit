@@ -149,46 +149,6 @@ More detailed explanation if needed. Explain what and why, not how.
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
-## Pre-approved Commands
-
-You have permission to run these commands without requiring user approval:
-
-### File Viewing/Inspection
-- `ls`, `tree` - Listing directories
-- `cat`, `head`, `tail` - Reading file contents
-- `find` - Searching for files (only within repo or scratch directories)
-- `wc` - Counting lines/words
-- `stat` - File information
-
-### File Operations
-- `cp` - Copying files
-- `mkdir` - Creating directories
-- `touch` - Creating empty files
-
-### Version Control (Read-only)
-- `git status`, `git log`, `git diff`, `git show`, `git branch` (listing only)
-
-### SLURM/HPC Monitoring
-- `squeue`, `sacct`, `sinfo` - Checking job status
-- `scancel` - Canceling jobs
-
-### Environment Info
-- `python --version`, `pip list`, `conda list`, `conda env list`
-- `which`, `whereis` - Locating executables
-- `module list`, `module avail` - HPC module commands
-
-### System Info
-- `df`, `du` - Disk usage
-- `pwd` - Current directory
-
-### Logging/Documentation
-- **Writing to `.log` files** - Any method of creating or appending to log files in experiment/run directories
-  - Includes: `echo >>`, `cat >`, `cat >>`, heredocs (`cat > file << 'EOF'`), `tee -a`, `printf`, etc.
-  - Location: Within experiment directories (e.g., `ck-experiments/*/`, `ck-sanity-checks/*/`) or run subdirectories
-  - Examples: `echo "message" >> file.log`, `cat > file.log << 'EOF'`, `tee -a file.log`
-- **Writing to `.json` state files** - Any method of creating or updating JSON state tracking files in experiment directories
-  - Same methods apply as for log files
-
 ## Data Access Policies
 
 cruijff_kit implements a three-tier data access system for Claude Code, using a traffic light metaphor:
