@@ -1,5 +1,15 @@
 # cruijff_kit
 
+<p align="center">
+  <img src="assets/cruijff_kit_logo.png" alt="cruijff_kit logo" width="250">
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+"></a>
+  <a href="#️-alpha-release-️"><img src="https://img.shields.io/badge/status-alpha-orange.svg" alt="Status: Alpha"></a>
+</p>
+
 cruijff_kit is a toolkit for doing research with social data and LLMs. We are building workflows for:
 
 - fine-tuning LLMs
