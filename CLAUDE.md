@@ -71,12 +71,6 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 ### Planned Workflows
 - **analyze-experiment**: Analyze and compare experimental results (plots, statistical tests)
 
-### Supporting Workflows (Planned)
-- **create-claude-local-md**: Create environment-specific configuration
-- **create-conda-env**: Create conda environment for this project
-- **download-model-from-hf**: Download models from HuggingFace
-- **download-dataset-from-hf**: Download datasets from HuggingFace
-
 **Note**: All skills are optional convenience tools. Users can perform the same operations manually by running the underlying Python scripts and shell commands directly.
 
 **Architecture**: The primary workflow skills (scaffold-experiment, run-experiment) are orchestrators that delegate to specialized worker skills (scaffold-torchtune, scaffold-inspect, run-torchtune, run-inspect) which handle tool-specific operations. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for the complete skills architecture.
