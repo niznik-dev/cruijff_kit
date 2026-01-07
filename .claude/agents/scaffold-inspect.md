@@ -332,7 +332,8 @@ SYSTEM_PROMPT="{system_prompt}"
 cd {experiment_dir}/{run_dir}/eval
 
 inspect eval {task_script_path}@{task_name} \\
-  --model hf/local \\
+  {if fine-tuned:}--model hf/{run_name}_epoch_{N} \\
+  {if base model:}--model hf/{run_name}_base \\
   -M model_path="$MODEL_PATH" \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
@@ -398,7 +399,7 @@ PROMPT="{input}"
 SYSTEM_PROMPT=""
 
 inspect eval capitalization.py@capitalization \\
-  --model hf/local \\
+  --model hf/{run_name}_epoch_0 \\
   -M model_path="$MODEL_PATH" \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
@@ -407,6 +408,7 @@ inspect eval capitalization.py@capitalization \\
 ```
 
 **Key points:**
+- The `--model` argument uses a descriptive name (`hf/{run_name}_epoch_{N}`) that gets recorded in the `.eval` file for identification
 - Values are extracted from `setup_finetune.yaml` **at scaffolding time** and baked into the SLURM script
 - No config file parsing happens at eval runtime
 - Ensures exact match between training and evaluation parameters
@@ -423,7 +425,7 @@ PROMPT="{input}"
 SYSTEM_PROMPT=""
 
 inspect eval capitalization.py@capitalization \\
-  --model hf/local \\
+  --model hf/{run_name}_base \\
   -M model_path="$MODEL_PATH" \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
@@ -432,6 +434,7 @@ inspect eval capitalization.py@capitalization \\
 ```
 
 **Key points:**
+- The `--model` argument uses a descriptive name (`hf/{run_name}_base`) that gets recorded in the `.eval` file for identification
 - Base models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
 - Values come from `eval_config.yaml` (generated from experiment_summary.yaml)
 - Mirrors fine-tuned approach: config file → SLURM script for auditability
