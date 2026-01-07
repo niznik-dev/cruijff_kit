@@ -246,7 +246,7 @@ Each tier directory contains a `CLAUDE.md` file with detailed access rules. See:
 
 ## Project Status
 
-**Pre-Alpha**: Breaking changes may occur without notice. The toolkit is under active development.
+**Alpha**: Core workflows are functional, but breaking changes may still occur. The toolkit is under active development.
 
 **HPC Environment**: Designed for SLURM-based HPC clusters. Configure your specific cluster settings in `claude.local.md`.
 

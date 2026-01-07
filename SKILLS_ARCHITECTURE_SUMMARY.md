@@ -335,7 +335,7 @@ experiments/                             # Research experiment types
 ├── capitalization/
 │   ├── cap_task.py                     # Inspect-ai evaluation task
 │   ├── input/                          # Dataset generation
-│   └── yaml_examples/                  # Fine-tuning config examples
+│   └── templates/finetuning/           # Fine-tuning config templates
 └── synthetic_twins/
     ├── inspect_task_twins.py           # Inspect-ai evaluation task
     └── ...
