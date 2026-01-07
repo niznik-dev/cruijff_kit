@@ -35,6 +35,9 @@ This project is under active development. The core workflows (design → scaffol
 - [Getting a HuggingFace Account and Token](https://huggingface.co/docs/hub/en/security-tokens)
 - Basic Slurm Knowledge
   - We recommend the [Princeton Research Computing](https://researchcomputing.princeton.edu/support/knowledge-base/slurm) primer
+- Recommended: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) for skills-based workflows
+  - The toolkit's automated workflows (design, scaffold, run experiments) use Claude Code
+  - Manual workflows are available if you don't have Claude Code access
 - Optional: Experience with Python coding for reading the codebase and/or adding functionality
   - [Programming with Python](https://swcarpentry.github.io/python-novice-inflammation/) from Software Carpentries
 

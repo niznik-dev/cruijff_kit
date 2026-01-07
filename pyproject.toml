@@ -5,7 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cruijff_kit"
 version = "0.1.0"
+description = "A toolkit for research with social data and LLMs"
+readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.13"
+authors = [
+    {name = "Mattie Niznik"},
+    {name = "Matthew Salganik"},
+    {name = "Sarah Pedersen"},
+    {name = "Daniel Rigobon"},
+    {name = "Alessandra Rister Portinari Maranca"},
+    {name = "Donggyu Ban"},
+]
 dependencies = [
     "torch",
     "torchtune",
