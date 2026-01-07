@@ -28,10 +28,10 @@ By default, fine-tuning uses `chat_completion` which applies HuggingFace chat te
 
 #### Setup
 
-Copy the appropriate config from `yaml_examples/` and edit it:
+Copy the appropriate config from `templates/finetuning/` and edit it:
 
 ```
-cp yaml_examples/setup_finetune_json.yaml setup_finetune.yaml
+cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml
 ```
 
 Then edit `setup_finetune.yaml` with the following changes:
@@ -72,7 +72,7 @@ This will create Parquet files (train.parquet, validation.parquet, test.parquet)
 Then overwrite the default config with the Parquet example:
 
 ```
-cp yaml_examples/setup_finetune_parquet.yaml setup_finetune.yaml
+cp templates/finetuning/setup_finetune_parquet.yaml setup_finetune.yaml
 ```
 
 Edit `setup_finetune.yaml` with the following changes:

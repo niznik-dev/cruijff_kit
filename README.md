@@ -15,9 +15,9 @@ cruijff_kit is named after Dutch footballer and philosopher [Johan Cruijff](http
 
 We are grateful to the following funders and supporters: [Princeton AI Lab](https://ai.princeton.edu/ai-lab), [Princeton Precision Health](https://pph.princeton.edu/), [Princeton Research Computing](https://researchcomputing.princeton.edu/), and the [Center for Information Technology Policy](https://citp.princeton.edu/) at Princeton University.
 
-# ⚠️ Pre-Alpha Warning ⚠️
+# ⚠️ Alpha Release ⚠️
 
-This project is in early development and things may break without notice; you may encounter bugs or changes between updates. If you would like to use this toolkit, please let us know and reach out for assistance - we'd love to collaborate! Your feedback and bug reports are valuable for development.
+This project is under active development. The core workflows (design → scaffold → run → summarize experiments) are functional, but you may encounter bugs or breaking changes between updates. You're welcome to use this toolkit on your own, but reaching out to us first will help you get up to speed faster. We'd love to collaborate - your feedback and bug reports are valuable!
 
 # Prerequisites
 
@@ -218,11 +218,11 @@ For a complete example with detailed instructions, see `experiments/capitalizati
 
 1. **Create configuration file**
 
-Copy a config template from the experiment's `yaml_examples/` folder:
+Copy a config template from the experiment's `templates/finetuning/` folder:
 
 ```bash
 cd experiments/your_experiment/
-cp yaml_examples/setup_finetune_json.yaml setup_finetune.yaml
+cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml
 ```
 
 2. **Edit the configuration**

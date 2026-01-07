@@ -29,7 +29,7 @@ cruijff_kit/
 │   ├── capitalization/ # Generalization test with word capitalization
 │   │   ├── cap_task.py # Inspect-ai evaluation task
 │   │   ├── input/      # Dataset generation
-│   │   └── yaml_examples/  # Fine-tuning config examples
+│   │   └── templates/finetuning/  # Fine-tuning config templates
 │   └── synthetic_twins/# Social science twin prediction experiment
 │       ├── inspect_task_twins.py # Inspect-ai evaluation task
 │       └── ...
@@ -132,7 +132,9 @@ setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
 
 ### 2. Evaluation Workflow
 
-**Entry point:** `tools/inspect/setup_inspect.py`
+> **Note:** The `scaffold-inspect` agent (invoked via `scaffold-experiment` skill) is now the recommended way to set up evaluations. It generates SLURM scripts directly from `experiment_summary.yaml`. The legacy `setup_inspect.py` script below is retained for reference but may be out of date.
+
+**Entry point (legacy):** `tools/inspect/setup_inspect.py`
 
 **Process:**
 ```
@@ -146,7 +148,7 @@ Finetuned model checkpoint → setup_inspect.py → inspect.slurm
 ```
 
 **Key files:**
-- `tools/inspect/setup_inspect.py` - Generates SLURM script for evaluation
+- `tools/inspect/setup_inspect.py` - **(Legacy, may be out of date)** Generates SLURM script for evaluation
   - Reuses SLURM parameters from `finetune.slurm`
   - Can evaluate base model or finetuned model
   - Points to task-specific inspect task files
@@ -200,7 +202,7 @@ Real research experiment types with scientific questions:
 Each experiment typically includes:
 - `README.md` - Experiment-specific instructions
 - `setup_finetune.yaml` - Configuration template
-- `yaml_examples/` - Example YAML configs for different dataset formats
+- `templates/finetuning/` - Template YAML configs for different dataset formats
 - `input/` - Data generation or preprocessing scripts
 - `utils/` - Experiment-specific helper functions
 - `{name}_inspect_task.py` - Inspect-ai evaluation task (e.g., `inspect_task_capitalization.py`)
@@ -387,7 +389,7 @@ cruijff_kit supports two workflows:
 **For single runs:**
 
 1. Navigate to experiment directory: `cd experiments/capitalization/`
-2. Edit config: `setup_finetune.yaml` (or copy from `yaml_examples/` for alternative formats)
+2. Edit config: `setup_finetune.yaml` (or copy from `templates/finetuning/` for alternative formats)
 3. Generate scripts: `python ../../tools/torchtune/setup_finetune.py`
 4. Submit job: `sbatch finetune.slurm`
 5. Evaluate: `python ../../tools/inspect/setup_inspect.py --finetune_epoch_dir /path/to/epoch_0/`
