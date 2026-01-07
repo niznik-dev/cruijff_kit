@@ -73,7 +73,7 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 
 **Note**: All skills are optional convenience tools. Users can perform the same operations manually by running the underlying Python scripts and shell commands directly.
 
-**Architecture**: The primary workflow skills (scaffold-experiment, run-experiment) are orchestrators that delegate to specialized worker skills (scaffold-torchtune, scaffold-inspect, run-torchtune, run-inspect) which handle tool-specific operations. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for the complete skills architecture.
+**Architecture**: The primary workflow skills (scaffold-experiment, run-experiment) use modular documentation with `optimizers/` and `evaluators/` subdirectories for tool-specific logic. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for the complete skills architecture.
 
 ## Workflow Testing
 
