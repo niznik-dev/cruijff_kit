@@ -2,6 +2,14 @@
 
 All notable changes to cruijff_kit will be documented in this file.
 
+## [Unreleased]
+
+## [0.1.1] - 2026-01-08
+
+### Changed
+
+- **Descriptive model names in eval**: Evaluation scripts now use descriptive model names (e.g., `hf/1B_normal_epoch_4`, `hf/3B_base`) instead of generic `hf/local` (#251)
+
 ## [0.1.0] - 2026-01-07
 
 Initial alpha release.
