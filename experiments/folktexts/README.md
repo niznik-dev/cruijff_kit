@@ -72,16 +72,83 @@ Potential experiments using this data:
 
 4. **Calibration impact of fine-tuning**: Does fine-tuning improve or harm model calibration?
 
-## Efficient Training Settings
+## Training Parameters (80GB GPU)
 
-Based on optimization experiments (see `3B_condensed_efficient/NOTES.md`):
+Recommended batch sizes and sequence lengths for fine-tuning on della (A100 80GB):
 
-| Model | Batch Size | Seq Len | Memory | Time (50K samples) |
-|-------|------------|---------|--------|-------------------|
+### Condensed Format (recommended for fine-tuning)
+
+| Model Size | batch_size | max_seq_len | GPU Memory | Time (50K samples) |
+|------------|------------|-------------|------------|-------------------|
 | 1B | 192 | 512 | ~72 GB | ~7 min |
 | 3B | 96 | 512 | ~60 GB | ~15 min |
+| 8B | 32 | 512 | ~75 GB | ~35 min |
 
-Requires 80GB GPU (e.g., A100-80GB with `--constraint=gpu80`).
+### Terse Format
+
+| Model Size | batch_size | max_seq_len | GPU Memory |
+|------------|------------|-------------|------------|
+| 1B | 256 | 384 | ~70 GB |
+| 3B | 128 | 384 | ~65 GB |
+| 8B | 48 | 384 | ~75 GB |
+
+### Verbose Format
+
+| Model Size | batch_size | max_seq_len | GPU Memory |
+|------------|------------|-------------|------------|
+| 1B | 48 | 1024 | ~75 GB |
+| 3B | 24 | 1024 | ~70 GB |
+| 8B | 8 | 1024 | ~78 GB |
+
+**Notes**:
+- Condensed format offers the best balance of context and efficiency
+- Terse format is fastest but may lose semantic clarity
+- Verbose format preserves full context but requires more memory
+- Times are approximate for 1 epoch on 50K training samples
+- Requires 80GB GPU (e.g., A100-80GB with `--constraint=gpu80`)
+
+## Data Preparation Scripts
+
+Scripts for generating ACS datasets from HuggingFace:
+
+### extract_acs_verbose.py
+
+Extracts verbose-format datasets from HuggingFace for all 5 ACS tasks.
+
+```bash
+# Extract 50K samples for employment task
+python experiments/folktexts/extract_acs_verbose.py \
+    --task ACSEmployment \
+    --output acs_employment_verbose_50000_80P.json \
+    --train-size 40000 --val-size 5000 --test-size 5000
+```
+
+Supported tasks: `ACSIncome`, `ACSEmployment`, `ACSMobility`, `ACSPublicCoverage`, `ACSTravelTime`
+
+### convert_acs_formats.py
+
+Converts verbose datasets to condensed and terse formats. Auto-detects task from filename.
+
+```bash
+# Convert to condensed + terse formats
+python experiments/folktexts/convert_acs_formats.py \
+    --input acs_employment_verbose_50000_80P.json \
+    --output-dir data/green/acs/
+```
+
+Outputs: `acs_{task}_condensed_*.json` and `acs_{task}_terse_*.json`
+
+### Task-Specific Fields
+
+Fields vary by task. Common fields: age, sex, race, marital status, education, relationship.
+
+| Task | Additional Fields |
+|------|-------------------|
+| Income | worker class, occupation, birthplace, hours/week |
+| Employment | disability, citizenship, military, ancestry, nativity, hearing/vision/cognition |
+| Mobility | employment status, commute time, yearly income |
+| PublicCoverage | employment status, yearly income, resident state |
+| TravelTime | occupation, transportation mode, PUMA codes, poverty ratio |
 
 ## References
 
