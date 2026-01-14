@@ -139,6 +139,32 @@ The experiment workflow uses an **orchestrator → worker** pattern:
 - Should validation run during training? (default: yes)
 - System prompt for training and evaluation? (default: "")
 
+### Available Hyperparameters for Torchtune
+
+When designing experiments, you can vary any of these parameters. Add varied parameters to `variables` and constant parameters to `controls` in experiment_summary.yaml.
+
+**Recipe Configuration (optional):**
+- `base_recipe` - Torchtune recipe name for default values (e.g., "llama3_2/1B_lora_single_device"). When specified, recipe defaults are used for parameters not explicitly set. Use `tune ls` to list available recipes.
+
+**Core Training Parameters:**
+| Parameter | Description | Typical Values |
+|-----------|-------------|----------------|
+| `lora_rank` | LoRA adapter rank (higher = more capacity, more memory) | 4, 8, 16, 32, 64 |
+| `lr` | Learning rate | 1e-5, 5e-5, 1e-4, 3e-4 |
+| `batch_size` | Batch size per GPU | 1, 2, 4, 8 |
+| `epochs` | Number of training epochs | 1, 2, 3 |
+
+**Additional Training Parameters:**
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `gradient_accumulation_steps` | Effective batch = batch_size × this | 1 (or 8 from recipes) |
+| `weight_decay` | Optimizer regularization | 0.01 |
+| `lora_dropout` | Dropout for LoRA layers | 0.0 |
+| `num_warmup_steps` | LR scheduler warmup steps | 100 |
+| `max_seq_len` | Maximum sequence length | 2048 |
+
+**Note:** If `base_recipe` is specified, unset parameters inherit from the recipe. This reduces the need to specify every parameter explicitly.
+
 **1B Model GPU Allocation (only for 1B models):**
 > "Allow use of MIG partitions? (uncommon, say 'no' if unsure)"
 
