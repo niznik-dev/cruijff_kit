@@ -15,9 +15,11 @@ def main():
                    help="Compute dtype for loading before merge")
     p.add_argument("--device", default="auto",
                    help="e.g. 'cuda:0', 'cpu', or 'auto' (lets HF place on available GPU)")
+    p.add_argument("--output_dir", default="inspect_merged_model",
+                   help="Directory to save merged model (default: inspect_merged_model)")
     args = p.parse_args()
 
-    OUTPUT_DIR = "inspect_merged_model"
+    OUTPUT_DIR = args.output_dir
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
