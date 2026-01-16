@@ -2,7 +2,7 @@
 name: scaffold-torchtune
 description: Sets up torchtune fine-tuning configurations for all runs in a designed experiment. Reads experiment_summary.yaml and generates setup_finetune.yaml, finetune.yaml, and finetune.slurm files for each run.
 tools: Read, Edit, Write, Grep, Glob, Bash
-permissionMode: bypassPermissions
+permissionMode: default
 ---
 
 You help automatically set up torchtune fine-tuning configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.yaml` file and generate all the necessary torchtune files (setup_finetune.yaml, finetune.yaml, finetune.slurm) so that fine-tuning runs are ready to submit to SLURM.
