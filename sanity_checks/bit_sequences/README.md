@@ -44,7 +44,7 @@ data/green/bit_sequences/
 └── sanity_check_bit_sequences_YYYY-MM-DD/
     ├── parity_run/
     ├── probabilistic_run/
-    ├── experiment_summary.md
+    ├── experiment_summary.yaml
     ├── design-experiment.log
     └── scaffold-experiment.log
 ```
@@ -88,7 +88,7 @@ The skills-based workflow automates experiment planning, config generation, and 
 cd sanity_checks/bit_sequences
 
 # 2. Design experiment (creates experiment plan)
-# Claude Code will ask questions and create experiment_summary.md
+# Claude Code will ask questions and create experiment_summary.yaml
 /design-experiment
 
 # 3. Generate all configs (creates run directories with configs and SLURM scripts)

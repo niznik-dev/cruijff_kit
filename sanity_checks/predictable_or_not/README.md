@@ -66,7 +66,7 @@ data/green/predictable_or_not/
     ├── up_input_and_output/
     ├── uu_output_only/
     ├── uu_input_and_output/
-    ├── experiment_summary.md
+    ├── experiment_summary.yaml
     ├── design-experiment.log
     └── scaffold-experiment.log
 ```
@@ -105,7 +105,7 @@ The skills-based workflow automates experiment planning, config generation, and 
 cd sanity_checks/predictable_or_not
 
 # 2. Design experiment (creates experiment plan with all 8 runs)
-# Claude Code will ask questions and create experiment_summary.md
+# Claude Code will ask questions and create experiment_summary.yaml
 /design-experiment
 
 # 3. Generate all configs (creates 8 run directories with configs and SLURM scripts)

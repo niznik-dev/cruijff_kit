@@ -215,7 +215,7 @@ Each experiment typically includes:
 - `templates/finetuning/` - Template YAML configs for different dataset formats
 - `input/` - Data generation or preprocessing scripts
 - `utils/` - Experiment-specific helper functions
-- `{name}_inspect_task.py` - Inspect-ai evaluation task (e.g., `inspect_task_capitalization.py`)
+- `inspect_task_{name}.py` - Inspect-ai evaluation task (e.g., `inspect_task_capitalization.py`)
 
 ### Sanity Checks (`sanity_checks/`)
 Synthetic validation sanity checks for workflow testing and learning:
@@ -424,7 +424,7 @@ For users who prefer direct control or don't have Claude Code access. This workf
 2. Add `README.md` with experiment description
 3. Create `setup_finetune.yaml` from template
 4. Add data generation scripts to `input/`
-5. Create inspect-ai evaluation task (e.g., `{name}_task.py`) using `create-inspect-task` skill
+5. Create inspect-ai evaluation task (e.g., `inspect_task_{name}.py`) using `create-inspect-task` skill
 6. Document the workflow in experiment README
 
 ### Using Utilities
@@ -450,8 +450,8 @@ Common utilities in `utils/`:
 ### Environment Assumptions
 
 - **Conda environment** with torchtune, torch, inspect-ai
-- **Shared storage** for models (`/scratch/gpfs/MSALGANIK/pretrained-llms/`)
-- **User scratch space** for outputs (`/scratch/gpfs/MSALGANIK/$USER/`)
+- **Shared storage** for models (configure path in `claude.local.md`)
+- **User scratch space** for outputs (configure path in `claude.local.md`)
 
 ## Extension Points
 

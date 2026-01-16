@@ -1,5 +1,15 @@
 # cruijff_kit
 
+<p align="center">
+  <img src="assets/cruijff_kit_logo.png" alt="cruijff_kit logo" width="250">
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+"></a>
+  <a href="#️-alpha-release-️"><img src="https://img.shields.io/badge/status-alpha-orange.svg" alt="Status: Alpha"></a>
+</p>
+
 cruijff_kit is a toolkit for doing research with social data and LLMs. We are building workflows for:
 
 - fine-tuning LLMs
@@ -19,6 +29,8 @@ We are grateful to the following funders and supporters: [Princeton AI Lab](http
 
 This project is under active development. The core workflows (design → scaffold → run → summarize experiments) are functional, but you may encounter bugs or breaking changes between updates. You're welcome to use this toolkit on your own, but reaching out to us first will help you get up to speed faster. We'd love to collaborate - your feedback and bug reports are valuable!
 
+See [CHANGELOG.md](CHANGELOG.md) for release history and [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for current limitations.
+
 # Prerequisites
 
 - Cloning and Pulling from GitHub (properly!)
@@ -35,6 +47,9 @@ This project is under active development. The core workflows (design → scaffol
 - [Getting a HuggingFace Account and Token](https://huggingface.co/docs/hub/en/security-tokens)
 - Basic Slurm Knowledge
   - We recommend the [Princeton Research Computing](https://researchcomputing.princeton.edu/support/knowledge-base/slurm) primer
+- Recommended: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) for skills-based workflows
+  - The toolkit's automated workflows (design, scaffold, run experiments) use Claude Code
+  - Manual workflows are available if you don't have Claude Code access
 - Optional: Experience with Python coding for reading the codebase and/or adding functionality
   - [Programming with Python](https://swcarpentry.github.io/python-novice-inflammation/) from Software Carpentries
 
@@ -189,7 +204,7 @@ cruijff_kit supports two workflows for running experiments:
 If you have access to Claude Code, you can use skills to automate the entire experiment workflow:
 
 ### Step 1: Design the Experiment
-Use the `design-experiment` skill to plan your experiment. This creates an `experiment_summary.md` file documenting all runs, parameters, and resources.
+Use the `design-experiment` skill to plan your experiment. This creates an `experiment_summary.yaml` file documenting all runs, parameters, and resources.
 
 ### Step 2: Scaffold the Experiment
 Use the `scaffold-experiment` skill to automatically:
@@ -199,12 +214,13 @@ Use the `scaffold-experiment` skill to automatically:
 
 ### Step 3: Run the Experiment
 Use the `run-experiment` skill to:
-- Submit all jobs to SLURM
-- Monitor their progress
+- Submit fine-tuning jobs to SLURM
+- Monitor their progress until completion
+- Run evaluations on the fine-tuned models
 - Update the experiment status automatically
 
-### Step 4: Evaluate Results
-(Planned) Use the `evaluate-experiment` skill to generate and run evaluations.
+### Step 4: Summarize and Analyze
+Use `summarize-experiment` to generate a summary with key metrics (loss, accuracy) after completion. A more robust `analyze-experiment` skill for plots and statistical comparisons is planned.
 
 See `.claude/skills/*/SKILL.md` files for detailed documentation.
 
