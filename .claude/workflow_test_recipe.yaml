@@ -1,0 +1,137 @@
+# Workflow Integration Test Specification - Base Recipe
+#
+# This file tests the base_recipe functionality where hyperparameters are
+# inherited from a torchtune recipe and overridden by experiment controls/variables.
+#
+# Invocation: When user says "test the recipe workflow" or similar, read this spec
+# and execute all three skills in sequence.
+
+metadata:
+  name_pattern: "workflow_test_recipe_{date}"
+  type: "sanity_check"  # Goes in ck-sanity-checks/
+  scientific_question: >-
+    Verify that base_recipe correctly provides default hyperparameters from
+    torchtune recipes, with proper override precedence for experiment parameters.
+  purpose: >-
+    Integration test to validate base_recipe functionality: recipe defaults are
+    extracted via tune CLI and merged with user-specified controls/variables.
+
+tools:
+  optimizer: "torchtune"
+  evaluator: "inspect-ai"
+
+models:
+  - name: "Llama-3.2-1B-Instruct"
+    purpose: "Fast training for integration testing"
+
+dataset:
+  task: "capitalization"
+  path: "data/green/capitalization/words_5L_80P_1000.json"
+  format: "json"
+  description: "5-letter words, 80% train split, 1000 samples"
+  splits:
+    train: 800
+    validation: 100
+    test: 100
+
+training_runs:
+  # Two runs varying only LoRA rank - other params come from recipe
+  - run_name: "Llama-3.2-1B-Instruct_rank4"
+    model: "Llama-3.2-1B-Instruct"
+    lora_rank: 4  # Override recipe default (64)
+    type: "fine-tuned"
+
+  - run_name: "Llama-3.2-1B-Instruct_rank16"
+    model: "Llama-3.2-1B-Instruct"
+    lora_rank: 16  # Override recipe default (64)
+    type: "fine-tuned"
+
+evaluation:
+  tasks:
+    - name: "capitalization"
+      script: "experiments/capitalization/inspect_task_capitalization.py"
+      dataset: "same"
+      description: "Tests word capitalization accuracy"
+
+  epochs_to_evaluate: ["last"]  # Just final epoch (epoch_0 after 1 epoch)
+
+  runs_to_evaluate: "all"
+
+common_config:
+  # Base recipe - provides defaults for lr, batch_size, gradient_accumulation_steps, etc.
+  base_recipe: "llama3_2/1B_lora_single_device"
+
+  # Explicitly override these from recipe defaults
+  epochs: 1  # Recipe may have different default
+  batch_size: 4  # Override recipe default
+
+  # These will use recipe defaults (not specified here):
+  # - lr (recipe default: 3e-4)
+  # - gradient_accumulation_steps (recipe default: 8)
+  # - weight_decay (recipe default: 0.01)
+  # - num_warmup_steps (recipe default: 100)
+
+  # System resources
+  gpus: 1
+
+  # Prompts
+  system_prompt: "You are a helpful assistant."
+  prompt: "Capitalize the given word: {input}\n"
+
+  # Optional settings
+  validation_during_training: true
+
+expected_outputs:
+  directories:
+    - "Llama-3.2-1B-Instruct_rank4/"
+    - "Llama-3.2-1B-Instruct_rank16/"
+
+  configs_per_run:
+    - "setup_finetune.yaml"
+    - "finetune.yaml"
+    - "finetune.slurm"
+    - "eval/capitalization_epoch0.slurm"
+
+  logs_per_run:
+    - "slurm-*.out"
+    - "eval/logs/*.eval"
+
+estimated_time:
+  training: "~10 minutes"
+  evaluation: "~2 minutes"
+  total: "~12 minutes"
+
+validation_checks:
+  # Standard checks
+  - "All run directories created"
+  - "Training jobs complete successfully"
+  - "Checkpoint directories exist (epoch_0/)"
+  - "Evaluation jobs complete successfully"
+  - "Evaluation logs contain results"
+
+  # Recipe-specific checks
+  - "setup_finetune.yaml contains base_recipe field"
+  - "finetune.yaml lora_rank matches directory name (4 or 16, not recipe default 64)"
+  - "finetune.yaml lr uses recipe default (3e-4) since not overridden"
+  - "finetune.yaml gradient_accumulation_steps uses recipe default (8)"
+  - "finetune.yaml batch_size uses override value (4) not recipe default"
+  - "Console output shows 'Loaded defaults from recipe: llama3_2/1B_lora_single_device'"
+
+parameter_precedence_test:
+  # This test validates the 4-level precedence:
+  # 1. CLI args (not used in this test)
+  # 2. setup_finetune.yaml values (from controls + run parameters)
+  # 3. Recipe defaults (from base_recipe)
+  # 4. Argparse defaults (fallback)
+
+  expected_sources:
+    lora_rank: "run parameters"  # 4 or 16, overrides recipe's 64
+    lr: "recipe"  # 3e-4 from recipe (not specified in controls)
+    batch_size: "controls"  # 4 from common_config, overrides recipe
+    epochs: "controls"  # 1 from common_config
+    gradient_accumulation_steps: "recipe"  # 8 from recipe (not specified)
+    weight_decay: "recipe"  # 0.01 from recipe (not specified)
+
+cleanup:
+  auto_delete: false
+  keep_logs: true

@@ -2,7 +2,7 @@
 name: scaffold-torchtune
 description: Sets up torchtune fine-tuning configurations for all runs in a designed experiment. Reads experiment_summary.yaml and generates setup_finetune.yaml, finetune.yaml, and finetune.slurm files for each run.
 tools: Read, Edit, Write, Grep, Glob, Bash
-permissionMode: bypassPermissions
+permissionMode: default
 ---
 
 You help automatically set up torchtune fine-tuning configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.yaml` file and generate all the necessary torchtune files (setup_finetune.yaml, finetune.yaml, finetune.slurm) so that fine-tuning runs are ready to submit to SLURM.
@@ -81,11 +81,16 @@ Extract the following information from the YAML structure:
    - `tools.evaluation` - Should be "inspect-ai"
 
 3. **Control parameters (held constant):**
-These are *example* parameters that the user might vary. There may be other parameters under `controls`, so check all of them that apply to `setup_finetune.yaml`: 
+These are *example* parameters that the user might vary. There may be other parameters under `controls`, so check all of them that apply to `setup_finetune.yaml`:
+   - `controls.base_recipe` - Torchtune recipe name for defaults (optional, e.g., "llama3_2/1B_lora_single_device")
    - `controls.epochs` - Number of training epochs
    - `controls.batch_size` - Batch size (if not varied)
    - `controls.system_prompt` - Training system prompt
+   - `controls.prompt` - Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
    - `controls.validation_during_training` - Whether to run validation (impacts `run_val_every_n_steps`)
+   - `controls.gradient_accumulation_steps` - Gradient accumulation
+   - `controls.weight_decay` - Optimizer weight decay
+   - `controls.lora_dropout` - LoRA dropout
 
 4. **Resources:**
    - `models.base[0].name` - Model identifier
@@ -101,7 +106,7 @@ These are *example* parameters that the user might vary. There may be other para
      - `name` - Run identifier (used as directory name)
      - `type` - "fine-tuned" or "control"
      - `model` - Model name
-     - `parameters` - Dict of parameter values (lora_rank, learning_rate, etc.)
+     - `parameters` - Dict of parameter values (lora_rank, lr, etc.)
 
 ### Filtering Fine-tuned Runs
 
@@ -179,6 +184,10 @@ For each run, create a `setup_finetune.yaml` file by:
 3. **Populate template with run-specific values:**
 
 ```yaml
+# Recipe Configuration (optional - provides default values for hyperparameters)
+# Only include if controls.base_recipe is specified in experiment_summary.yaml
+base_recipe: {from controls.base_recipe, e.g., "llama3_2/1B_lora_single_device"}
+
 # Run identification
 my_wandb_project: {from claude.local.md, or use experiment-level project name}
 my_wandb_run_name: {directory_name, e.g., "rank8_lr1e-5"}
@@ -196,11 +205,14 @@ torchtune_model_name: {from models.base[0].name, e.g., "Llama-3.2-1B-Instruct"}
 model_checkpoint: {from models.base[0].path}
 
 # Hyperparameters (run-specific)
-# Note: experiment_summary.yaml uses 'learning_rate' (human-readable)
-#       but torchtune configs use 'lr' - translate when generating
 lora_rank: {from run.parameters.lora_rank}
-lr: {from run.parameters.learning_rate, format as 1e-5 or 5e-5}
+lr: {from run.parameters.lr, format as 1e-5 or 5e-5}
 batch_size: {from run.parameters.batch_size if varies, else from controls.batch_size}
+
+# Additional hyperparameters (optional - only include if specified in controls)
+gradient_accumulation_steps: {from controls.gradient_accumulation_steps, if present}
+weight_decay: {from controls.weight_decay, if present}
+lora_dropout: {from controls.lora_dropout, if present}
 
 # Training configuration (common across runs)
 epochs: {from controls.epochs}
@@ -221,9 +233,14 @@ account: {from claude.local.md SLURM Defaults, if present}
 # System prompt (if specified)
 system_prompt: {from controls.system_prompt, often empty string ""}
 
+# Prompt template (if specified)
+prompt: {from controls.prompt, e.g., "Capitalize the given word: {input}\n"}
+
 # Custom Recipe
 custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable}
 ```
+
+**Note:** If `controls.base_recipe` is not specified in experiment_summary.yaml, omit the `base_recipe` field from setup_finetune.yaml entirely. This preserves backwards compatibility.
 
 4. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
 

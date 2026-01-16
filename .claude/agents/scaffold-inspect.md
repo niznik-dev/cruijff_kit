@@ -2,7 +2,7 @@
 name: scaffold-inspect
 description: Sets up inspect-ai evaluation configurations for all runs in a designed experiment. Reads experiment_summary.yaml and generates {task}_epoch{N}.slurm scripts for each run/evaluation combination.
 tools: Read, Edit, Write, Grep, Glob, Bash
-permissionMode: bypassPermissions
+permissionMode: default
 ---
 
 You help automatically set up inspect-ai evaluation configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.yaml` file and generate all the necessary inspect-ai files (`{task}_epoch{N}.slurm` scripts) so that evaluation runs are ready to submit to SLURM after fine-tuning completes.

@@ -5,12 +5,49 @@ import yaml
 from pathlib import Path
 
 from cruijff_kit.utils import run_names
+from cruijff_kit.tools.torchtune import config_recipe_loader
 
 # Calculate paths relative to this script
 script_dir = Path(__file__).parent
 
 # Skip these when writing the yaml file
 SLURM_ONLY = ['time', 'gpus', 'conda_env', 'account', 'partition', 'constraint', 'mem']
+
+# Maps torchtune recipe config paths to setup_finetune.py argument names
+RECIPE_PARAM_MAPPING = {
+    'model.lora_rank': 'lora_rank',
+    'model.lora_dropout': 'lora_dropout',
+    'optimizer.lr': 'lr',
+    'optimizer.weight_decay': 'weight_decay',
+    'batch_size': 'batch_size',
+    'epochs': 'epochs',
+    'gradient_accumulation_steps': 'gradient_accumulation_steps',
+    'lr_scheduler.num_warmup_steps': 'num_warmup_steps',
+    'tokenizer.max_seq_len': 'max_seq_len',
+}
+
+
+def extract_flat_params(recipe_config: dict, mapping: dict) -> dict:
+    """Extract parameters from nested recipe config using mapping.
+
+    Args:
+        recipe_config: Nested dictionary from torchtune recipe YAML
+        mapping: Dict mapping recipe paths (e.g., 'model.lora_rank') to arg names
+
+    Returns:
+        Flat dictionary of {arg_name: value} for parameters found in recipe
+    """
+    flat = {}
+    for recipe_path, arg_name in mapping.items():
+        parts = recipe_path.split('.')
+        value = recipe_config
+        try:
+            for part in parts:
+                value = value[part]
+            flat[arg_name] = value
+        except (KeyError, TypeError):
+            continue  # Parameter not in recipe
+    return flat
 
 # Model-specific configurations
 # Keys are model directory names (e.g., "Llama-3.2-3B-Instruct")
@@ -296,6 +333,12 @@ def create_parser():
     parser.add_argument("--dataset_type", type=str, default="chat_completion", help="Dataset type: 'chat_completion' (default, uses HF chat templates for train/eval parity) or legacy 'instruct_dataset'/'chat_dataset'")
     parser.add_argument("--packed", type=parse_bool, default=False, help="Whether to use packed sequences (true/false). Should be False for custom datasets.")
     parser.add_argument("--max_seq_len", type=int, default=2048, help="Maximum sequence length for tokenizer")
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=1,
+                        help="Gradient accumulation steps (effective batch = batch_size * this)")
+    parser.add_argument("--weight_decay", type=float, default=0.01,
+                        help="Weight decay for optimizer")
+    parser.add_argument("--lora_dropout", type=float, default=0.0,
+                        help="Dropout for LoRA layers")
 
     # ------ Slurm Args -----
     parser.add_argument("--time", type=str, default="00:15:00", help="Time to run the job (HH:MM:SS)")
@@ -310,6 +353,8 @@ def create_parser():
     parser.add_argument("--constraint", type=str, help="Slurm constraint to use")
 
     parser.add_argument("--custom_recipe", type=str, help="Full name of a custom recipe file in the repo's custom_recipes folder to use for fine-tuning")
+    parser.add_argument("--base_recipe", type=str, default=None,
+                        help="Torchtune recipe name to use as base config (e.g., 'llama3_2/1B_lora_single_device'). Recipe defaults are used for parameters not explicitly set.")
 
     # ------ Model Selection -----
     parser.add_argument("--torchtune_model_name", type=str, default="Llama-3.2-1B-Instruct",
@@ -327,22 +372,42 @@ def main():
 
     RANDOM_MODEL_RUN_NAME = run_names.generate_model_run_name()[0]
 
-    # Load config file if it exists and merge with CLI arguments
+    # Load config file if it exists
     config_data = {}
     if args.config_file and os.path.exists(args.config_file):
         with open(args.config_file, "r") as f:
             config_data = yaml.safe_load(f) or {}
 
-        # For each argument, use CLI value if provided, otherwise use config file value
-        for key, value in config_data.items():
-            # Only use config value if the argument wasn't explicitly provided on CLI
-            # We check if it's still at its default value
-            if hasattr(args, key):
-                default_value = parser.get_default(key)
-                current_value = getattr(args, key)
-                # If current value equals default, use config file value
-                if current_value == default_value:
-                    setattr(args, key, value)
+    # Load recipe defaults if base_recipe is specified
+    recipe_defaults = {}
+    recipe_config = None
+    base_recipe = args.base_recipe or config_data.get('base_recipe')
+    if base_recipe:
+        try:
+            recipe_config = config_recipe_loader.get_recipe_config(base_recipe)
+            recipe_defaults = extract_flat_params(recipe_config, RECIPE_PARAM_MAPPING)
+        except config_recipe_loader.RecipeConfigError as e:
+            print(f"Warning: Could not load recipe '{base_recipe}': {e}. Using built-in defaults.")
+
+    # Apply recipe defaults (only if at argparse default AND not overridden in config_file)
+    # Precedence: CLI > config_file > recipe > argparse_default
+    for key, value in recipe_defaults.items():
+        if hasattr(args, key) and key not in config_data:
+            default_value = parser.get_default(key)
+            current_value = getattr(args, key)
+            if current_value == default_value:
+                setattr(args, key, value)
+
+    # Apply config file values (higher priority than recipe)
+    for key, value in config_data.items():
+        # Only use config value if the argument wasn't explicitly provided on CLI
+        # We check if it's still at its default value
+        if hasattr(args, key):
+            default_value = parser.get_default(key)
+            current_value = getattr(args, key)
+            # If current value equals default, use config file value
+            if current_value == default_value:
+                setattr(args, key, value)
 
     # Validate lr_scheduler and dataset_type (after config file has been loaded and merged)
     validate_lr_scheduler(args.lr_scheduler)
@@ -420,8 +485,16 @@ def main():
             # Set both rank and alpha (alpha = 2 * rank)
             config["model"]["lora_rank"] = value
             config["model"]["lora_alpha"] = calculate_lora_alpha(value)
+        elif key == "lora_dropout":
+            config["model"]["lora_dropout"] = value
         elif key == "lr":
             config["optimizer"]["lr"] = value
+        elif key == "weight_decay":
+            config["optimizer"]["weight_decay"] = value
+        elif key == "gradient_accumulation_steps":
+            config["gradient_accumulation_steps"] = value
+        elif key == "base_recipe":
+            pass  # Not a config parameter, used for loading recipe defaults
         elif key == "num_warmup_steps":
             config["lr_scheduler"]["num_warmup_steps"] = value
         elif key == "lr_scheduler":

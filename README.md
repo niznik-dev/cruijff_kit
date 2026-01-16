@@ -251,7 +251,7 @@ Key settings to verify:
 * `torchtune_model_name` - Model name as listed by `tune ls` (e.g., `Llama-3.2-1B-Instruct`)
 * `output_dir_base` - Where to save model checkpoints
 * `lora_rank` - LoRA adapter rank (e.g., 8, 16, 32, 64)
-* `learning_rate` - Learning rate (e.g., 1e-5, 5e-5)
+* `lr` - Learning rate (e.g., 1e-5, 5e-5)
 
 3. **Generate SLURM scripts**
 
