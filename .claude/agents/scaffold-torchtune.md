@@ -86,6 +86,7 @@ These are *example* parameters that the user might vary. There may be other para
    - `controls.epochs` - Number of training epochs
    - `controls.batch_size` - Batch size (if not varied)
    - `controls.system_prompt` - Training system prompt
+   - `controls.prompt` - Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
    - `controls.validation_during_training` - Whether to run validation (impacts `run_val_every_n_steps`)
    - `controls.gradient_accumulation_steps` - Gradient accumulation
    - `controls.weight_decay` - Optimizer weight decay
@@ -231,6 +232,9 @@ account: {from claude.local.md SLURM Defaults, if present}
 
 # System prompt (if specified)
 system_prompt: {from controls.system_prompt, often empty string ""}
+
+# Prompt template (if specified)
+prompt: {from controls.prompt, e.g., "Capitalize the given word: {input}\n"}
 
 # Custom Recipe
 custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable}
