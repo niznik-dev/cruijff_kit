@@ -127,7 +127,7 @@ evaluation:
                                    # Use null for control runs (no epochs)
 
 # =============================================================================
-# CUSTOM VERIFICATION (OPTIONAL)
+# CUSTOM SCAFFOLDING VERIFICATION (OPTIONAL)
 # =============================================================================
 
 verification:
