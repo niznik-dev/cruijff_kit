@@ -32,9 +32,8 @@ This ensures the entire experiment is ready to execute from training through eva
 4. **Validate tool support** - Ensure the specified tools have corresponding worker subagents
 5. **Launch preparation and evaluation subagents in parallel** - Use Task tool to launch both simultaneously
 6. **Wait for both subagents to complete** - Each will report back when done
-7. **Run custom verification checks** - Execute any user-defined checks from experiment_summary.yaml (optional)
-8. **Create orchestration log** - Document the scaffolding process in `scaffold-experiment.log`
-9. **Report combined summary** - Show user complete status of both scaffolding phases
+7. **Create orchestration log** - Document the scaffolding process in `scaffold-experiment.log`
+8. **Report combined summary** - Show user complete status of both scaffolding phases
 
 ## Finding the Experiment
 
@@ -170,77 +169,6 @@ Launch the subagent using the Task tool with the prompt template from the agent 
    - Identify path to scaffold-inspect.log
 3. Verify both subagents completed successfully or note failures
 
-### Step 4: Run Custom Verification Checks
-
-After both subagents complete, run any custom verification checks defined in experiment_summary.yaml.
-
-**Reading verification checks:**
-
-Parse the optional `verification.checks` section from experiment_summary.yaml:
-
-```yaml
-verification:
-  checks:
-    - type: "exists"
-      path: "/path/to/file"
-      description: "Check description"
-    - type: "command"
-      command: "which tune"
-      description: "Verify torchtune installed"
-    - type: "contains"
-      path: "{run_dir}/setup_finetune.yaml"
-      pattern: "epochs:"
-      description: "Verify epochs configured"
-```
-
-If `verification` section is missing or `checks` is empty, skip this step and proceed to logging.
-
-**Variable expansion:**
-
-Before running checks, expand these variables in `path` and `command` fields:
-- `{experiment_dir}` → actual experiment directory path
-- `{output_base}` → value from `output.base_directory`
-- `{run_dir}` → expands to each run directory (runs check once per fine-tuned run)
-
-**Executing checks:**
-
-All checks produce warnings only - they never block scaffolding completion.
-
-**For `exists` type:**
-```bash
-if [ -e "{expanded_path}" ]; then
-  echo "✓ PASS: {description}"
-else
-  echo "⚠ WARN: {description} - path not found: {expanded_path}"
-fi
-```
-
-**For `command` type:**
-```bash
-if {command} >/dev/null 2>&1; then
-  echo "✓ PASS: {description}"
-else
-  echo "⚠ WARN: {description} - command failed"
-fi
-```
-
-**For `contains` type:**
-```bash
-if grep -q "{pattern}" "{expanded_path}" 2>/dev/null; then
-  echo "✓ PASS: {description}"
-else
-  echo "⚠ WARN: {description} - pattern not found in {expanded_path}"
-fi
-```
-
-**Handling {run_dir} expansion:**
-
-When a check uses `{run_dir}`, run it once for each fine-tuned run directory:
-1. Get list of fine-tuned runs from experiment_summary.yaml (where `type: "fine-tuned"`)
-2. For each run, substitute `{run_dir}` with `{experiment_dir}/{run.name}`
-3. Execute the check and collect results
-4. Report per-run results in the summary
-
 ## Logging
 
 Create an orchestration log at `{experiment_dir}/scaffold-experiment.log` that records the high-level scaffolding process.
@@ -253,31 +181,6 @@ Create an orchestration log at `{experiment_dir}/scaffold-experiment.log` that r
 - Error handling patterns
 
 **Key principle:** The orchestration log tracks coordination and timing. Detailed implementation goes in subagent logs (scaffold-torchtune.log, scaffold-inspect.log).
-
-### Logging Custom Verification Results
-
-If custom verification checks are defined, add entries to scaffold-experiment.log:
-
-```
-[YYYY-MM-DD HH:MM:SS] CUSTOM_VERIFICATION: Running user-defined checks
-Details: Found N verification checks in experiment_summary.yaml
-Result: Starting verification
-
-[YYYY-MM-DD HH:MM:SS] CHECK_EXISTS: {description}
-Details: path={expanded_path}
-Result: PASS | WARN (path not found)
-
-[YYYY-MM-DD HH:MM:SS] CHECK_COMMAND: {description}
-Details: command={command}
-Result: PASS | WARN (exit code: N)
-
-[YYYY-MM-DD HH:MM:SS] CHECK_CONTAINS: {description}
-Details: path={expanded_path}, pattern={pattern}
-Result: PASS | WARN (pattern not found)
-
-[YYYY-MM-DD HH:MM:SS] VERIFICATION_COMPLETE: Custom checks finished
-Summary: N passed, M warnings
-```
 
 ## Error Handling
 
@@ -350,14 +253,6 @@ Successfully scaffolded experiment:
 - `scaffold-torchtune.log` - Fine-tuning scaffolding details
 - `scaffold-inspect.log` - Evaluation scaffolding details
 
-### Custom Verification Results (if checks defined)
-
-✓ 3 checks passed
-⚠ 1 warning:
-  - Verify CUDA available: command failed (exit code 1)
-
-*Note: Verification warnings do not block scaffolding. Review and address as needed.*
-
 ### Next Steps
 
 **Recommended workflow:**
@@ -376,12 +271,9 @@ Before reporting success, verify:
 - ✓ Both subagent log files exist (i.e., scaffold-torchtune.log, scaffold-inspect.log)
 - ✓ Run directories exist with expected structure (check 1-2 examples)
 - ✓ Evaluation directories exist with expected structure (check 1-2 examples)
-- ✓ Custom verification checks executed (if defined in experiment_summary.yaml)
 - ✓ Orchestration log was created
 
 **Note:** You don't need to verify every file - the subagents have already done detailed verification. Just spot-check a few directories to confirm the structure is correct.
-
-**Note on verification checks:** Custom verification checks always produce warnings, never failures. The scaffolding is considered successful even if some verification checks warn. Include any warnings in the output summary for user review.
 
 ## Important Notes
 

@@ -415,40 +415,6 @@ Generate the evaluation matrix (which runs × tasks × epochs).
 
 ---
 
-### DEFINE_VERIFICATION_CHECKS
-
-Record custom scaffolding verification checks defined by user (optional).
-
-```json
-{
-  "timestamp": "2025-10-22T14:30:07.500Z",
-  "action": "DEFINE_VERIFICATION_CHECKS",
-  "result": "success",
-  "user_requested": true,
-  "num_checks": 3,
-  "checks": [
-    {
-      "type": "exists",
-      "path": "{experiment_dir}/Llama-3.2-1B-Instruct_rank4/finetune.yaml",
-      "description": "Verify rank4 config generated"
-    },
-    {
-      "type": "command",
-      "command": "which tune",
-      "description": "Verify torchtune installed"
-    },
-    {
-      "type": "contains",
-      "path": "{run_dir}/setup_finetune.yaml",
-      "pattern": "epochs:",
-      "description": "Verify epochs configured in each run"
-    }
-  ]
-}
-```
-
----
-
 ### CREATE_YAML
 
 Write the experiment_summary.yaml file.

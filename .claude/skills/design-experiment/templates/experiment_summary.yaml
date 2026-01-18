@@ -125,38 +125,3 @@ evaluation:
       tasks: [string]              # REQUIRED: List of task names
       epochs: [int]                # REQUIRED: List of epoch numbers (0-indexed)
                                    # Use null for control runs (no epochs)
-
-# =============================================================================
-# CUSTOM SCAFFOLDING VERIFICATION (OPTIONAL)
-# =============================================================================
-
-verification:
-  # OPTIONAL: Custom checks to run after scaffolding completes
-  # All checks produce warnings only (scaffolding is not blocked)
-  #
-  # Supported check types:
-  #   - exists: Verify file or directory exists
-  #   - command: Run shell command, pass if exit code 0
-  #   - contains: Check file contains regex pattern
-  #
-  # Supported variables in path/command fields:
-  #   - {experiment_dir}: Full path to experiment directory
-  #   - {run_dir}: Expands to each run directory (check runs per-run)
-  #   - {output_base}: Value from output.base_directory
-
-  checks:
-    # Example: File existence check
-    # - type: "exists"
-    #   path: "{experiment_dir}/Llama-3.2-1B-Instruct_rank4/finetune.yaml"
-    #   description: "Verify rank4 config generated"
-
-    # Example: Shell command check
-    # - type: "command"
-    #   command: "which tune"
-    #   description: "Verify torchtune installed"
-
-    # Example: Content validation check
-    # - type: "contains"
-    #   path: "{run_dir}/setup_finetune.yaml"
-    #   pattern: "epochs:"
-    #   description: "Verify epochs configured in each run"

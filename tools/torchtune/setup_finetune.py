@@ -603,10 +603,17 @@ def main():
     if constraint:
         slurm_script = slurm_script.replace("##SBATCH --constraint=<CONST>", "#SBATCH --constraint=" + constraint)
     if args.custom_recipe:
+        custom_recipe = args.custom_recipe
+        # Auto-switch between single_device and distributed based on GPU count (patch for custom recipes)
+        if gpus > 1 and "single_device" in custom_recipe:
+            custom_recipe = custom_recipe.replace("single_device", "distributed")
+        elif gpus == 1 and "distributed" in custom_recipe:
+            custom_recipe = custom_recipe.replace("distributed", "single_device")
+
         if gpus == 1:
-            slurm_script = slurm_script.replace("lora_finetune_single_device", args.custom_recipe + '.__main__')
+            slurm_script = slurm_script.replace("lora_finetune_single_device", custom_recipe + '.__main__')
         else:
-            slurm_script = slurm_script.replace("lora_finetune_distributed", args.custom_recipe + '.__main__')
+            slurm_script = slurm_script.replace("lora_finetune_distributed", custom_recipe + '.__main__')
 
     slurm_script = slurm_script.replace("<CONDA_ENV>", args.conda_env)
     if args.venv:

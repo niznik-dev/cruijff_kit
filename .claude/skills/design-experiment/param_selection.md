@@ -349,63 +349,7 @@ Based on user feedback:
 - Change evaluation strategy
 
 ### After Approval
-
-Before proceeding to file generation, ask about optional custom verification:
-
-**"Would you like to add custom verification checks for scaffolding?"**
-
-If user says **no** (default): Skip and proceed to `experiment_generation.md`.
-
-If user says **yes**: Collect verification checks using the format below.
-
-### Custom Verification Checks (Optional)
-
-Custom verification checks run after scaffolding completes and produce warnings (never block scaffolding). These help catch common issues early.
-
-**Ask user which checks they want to add:**
-
-```
-What verification checks would you like? Available types:
-
-1. **exists** - Check file/directory exists
-   Example: Verify model checkpoint directory exists
-
-2. **command** - Run shell command, pass if exit code 0
-   Example: Verify torchtune is installed (`which tune`)
-
-3. **contains** - Check file contains pattern
-   Example: Verify setup_finetune.yaml contains expected epochs
-
-You can use these variables in paths:
-- {experiment_dir} - Full experiment directory path
-- {run_dir} - Expands to each fine-tuned run directory
-- {output_base} - Output base directory
-```
-
-**Collect checks in this format:**
-
-```yaml
-verification:
-  checks:
-    - type: "exists"
-      path: "{experiment_dir}/Llama-3.2-1B-Instruct_rank4/finetune.yaml"
-      description: "Verify rank4 config generated"
-
-    - type: "command"
-      command: "which tune"
-      description: "Verify torchtune installed"
-
-    - type: "contains"
-      path: "{run_dir}/setup_finetune.yaml"
-      pattern: "epochs:"
-      description: "Verify epochs configured in each run"
-```
-
-**Log the checks:** Add `DEFINE_VERIFICATION_CHECKS` entry to design-experiment.jsonl (see `logging.md`).
-
-**Pass to generation:** Include collected checks in experiment_summary.yaml via `experiment_generation.md`.
-
----
+Proceed to `experiment_generation.md` to create the files.
 
 ## Conversation Patterns
 
