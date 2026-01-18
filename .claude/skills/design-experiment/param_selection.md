@@ -155,6 +155,7 @@ Use `tune ls` to see all available recipes if needed.
 - How many GPUs per job? (default: 1)
 - Should validation run during training? (default: yes)
 - System prompt for training and evaluation? (default: "")
+- Prompt with {input} placeholder (default: "{input}\n"; e.g., "Capitalize: {input}\n")
 
 ### Available Hyperparameters for Torchtune
 

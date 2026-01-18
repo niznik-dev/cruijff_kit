@@ -37,6 +37,8 @@ variables:
   # batch_size: [2, 4, 8]
 
 controls:
+  system_prompt: string            # Training system prompt ("" for blank)
+  prompt: string                   # Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
   # OPTIONAL: Torchtune recipe for default hyperparameters
   base_recipe: string              # e.g., "llama3_2/1B_lora_single_device"
                                    # When specified, recipe defaults are used for params not set
@@ -44,8 +46,6 @@ controls:
   # Common hyperparameters (see param_selection.md for full list)
   epochs: int                      # Number of training epochs
   batch_size: int                  # Batch size (if not varied)
-  system_prompt: string            # Training system prompt ("" for blank)
-  prompt: string                   # Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
   validation_during_training: bool # Whether to run validation during training
   # Additional parameters can be added as needed (lora_rank, lr, weight_decay, etc.)
 
