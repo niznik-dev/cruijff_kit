@@ -20,6 +20,7 @@ Run through this checklist before presenting the plan:
 - ✓ Variables section lists all parameters that vary (or omitted if none)
 - ✓ Controls section lists all constant hyperparameters
 - ✓ System prompt is defined in controls (even if blank "")
+- ✓ Prompt is defined in controls with {input} placeholder
 - ✓ Base recipe, epochs, batch size, GPUs specified
 - ✓ LoRA parameters specified if not varied
 

@@ -1,3 +1,8 @@
+---
+name: summarize-experiment
+description: Create a lightweight summary of experiment results from a completed (fine-tuned and evaluated) experiment. Use after run-experiment to capture key metrics from the experiment in textual form.   
+---
+
 # Summarize Experiment
 
 Generate a `summary.md` file capturing key metrics from a completed experiment. Think R's `summary()` for experiment results.

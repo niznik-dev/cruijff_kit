@@ -91,8 +91,9 @@ To validate that the complete workflow (design, scaffold, run) is functioning co
 |--------|-----------|------|----------|-------|
 | **LoRA Comparison** | `.claude/workflow_test.yaml` | 2 fine-tuned (rank4, rank8) | ~12 min | Parameter variations |
 | **Base vs Fine-tuned** | `.claude/workflow_test_base.yaml` | 1 base + 1 fine-tuned (rank4) | ~12 min | Base model evaluation |
+| **Recipe Defaults** | `.claude/workflow_test_recipe.yaml` | 2 fine-tuned (rank4, rank16) | ~12 min | base_recipe inheritance |
 
-Both use Llama-3.2-1B-Instruct with words_5L_80P_1000.json in `ck-sanity-checks/`
+All use Llama-3.2-1B-Instruct with words_5L_80P_1000.json in `ck-sanity-checks/`
 
 **Purpose:** Catch regressions in skills, ensure documentation changes don't break workflows, validate end-to-end integration.
 
