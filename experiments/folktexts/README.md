@@ -23,28 +23,40 @@ All tasks use the same 10 demographic features but predict different outcomes:
 
 See `data/green/acs/README.md` for full dataset documentation.
 
-## Evaluation Tasks
+## Evaluation Task
 
-Each task has a corresponding inspect-ai evaluation script:
+All ACS tasks use a single unified inspect-ai script with task-specific aliases:
 
-| Task | Script |
-|------|--------|
-| ACSIncome | `experiments/folktexts/inspect_task_acs_income.py` |
-| ACSEmployment | `experiments/folktexts/inspect_task_acs_employment.py` |
-| ACSMobility | `experiments/folktexts/inspect_task_acs_mobility.py` |
-| ACSPublicCoverage | `experiments/folktexts/inspect_task_acs_publiccoverage.py` |
-| ACSTravelTime | `experiments/folktexts/inspect_task_acs_traveltime.py` |
+**Script:** `experiments/folktexts/inspect_task_acs.py`
+
+**Available aliases:**
+- `@acs_income` - Income prediction (>$50k)
+- `@acs_employment` - Employment prediction
+- `@acs_mobility` - Mobility prediction (moved in last year)
+- `@acs_publiccoverage` - Public health coverage prediction
+- `@acs_traveltime` - Travel time prediction (>20 min commute)
 
 ### Usage
 
 Evaluate a fine-tuned model:
 ```bash
-inspect eval experiments/folktexts/inspect_task_acs_income.py@acs_income \
+inspect eval experiments/folktexts/inspect_task_acs.py@acs_income \
     --model hf/model_name \
     -M model_path=/path/to/checkpoint/epoch_0 \
     -T data_path=/path/to/acs_income_condensed_50000_80P.json \
     -T config_path=/path/to/setup_finetune.yaml
 ```
+
+Evaluate a base model (no fine-tuning):
+```bash
+inspect eval experiments/folktexts/inspect_task_acs.py@acs_employment \
+    --model hf/Llama-3.2-1B-Instruct \
+    -M model_path=/path/to/pretrained/Llama-3.2-1B-Instruct \
+    -T data_path=/path/to/acs_employment_condensed_50000_80P.json \
+    -T config_path=/path/to/eval_config.yaml
+```
+
+**Note:** The `config_path` provides `system_prompt` and `prompt` settings. For base models without a setup_finetune.yaml, create a simple YAML with these fields.
 
 ### Task Parameters
 
