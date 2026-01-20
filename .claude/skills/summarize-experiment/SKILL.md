@@ -82,7 +82,8 @@ For each COMPLETED evaluation:
    ```
 3. Parse JSON output for accuracy
 4. **Map to epoch using SLURM job names** (see below)
-5. Record: run_name, task, epoch, accuracy, samples
+5. For binary tasks, also run `summary_binary.py` to get balanced accuracy and F1
+6. Record: run_name, task, epoch, accuracy, balanced_accuracy, f1, samples
 
 **Script output format:**
 ```json
@@ -136,6 +137,36 @@ This approach is reliable because:
 - Record "ERROR" for accuracy
 - Continue with other evaluations
 
+#### Computing Balanced Accuracy and F1 (Binary Classification)
+
+For binary classification tasks (0/1 targets), use `summary_binary.py` to compute additional metrics:
+
+```bash
+python tools/inspect/summary_binary.py {path_to_eval_file} --json
+```
+
+**JSON output format:**
+```json
+{
+  "status": "success",
+  "path": "/path/to/file.eval",
+  "samples": 100,
+  "accuracy": 0.85,
+  "balanced_accuracy": 0.83,
+  "f1": 0.82,
+  "precision_1": 0.80,
+  "recall_1": 0.84,
+  "recall_0": 0.82,
+  "confusion_matrix": {"tp": 42, "tn": 43, "fp": 7, "fn": 8, "other": 0}
+}
+```
+
+**Why these metrics matter for imbalanced data:**
+- **Balanced Accuracy** = (Recall_0 + Recall_1) / 2 — not inflated by majority class
+- **F1 Score** = harmonic mean of precision and recall — penalizes class imbalance
+
+**Note:** For non-binary tasks, only accuracy is reported (Bal. Acc and F1 shown as "-").
+
 ### 5. Generate summary.md
 
 Create `{experiment_dir}/summary.md` with the following structure:
@@ -166,15 +197,15 @@ Create `{experiment_dir}/summary.md` with the following structure:
 
 ## Evaluation Results
 
-| Run | Task | Epoch | Accuracy | Samples |
-|-----|------|-------|----------|---------|
-| rank4_lr1e-5 | capitalization | 0 | 0.85 | 100 |
-| rank4_lr1e-5 | capitalization | 1 | 0.88 | 100 |
-| rank8_lr1e-5 | capitalization | 0 | 0.82 | 100 |
-| rank8_lr1e-5 | capitalization | 1 | 0.91 | 100 |
-| base_model | capitalization | - | 0.45 | 100 |
+| Run | Task | Epoch | Accuracy | Bal. Acc | F1 | Samples |
+|-----|------|-------|----------|----------|------|---------|
+| rank4_lr1e-5 | capitalization | 0 | 0.85 | 0.83 | 0.82 | 100 |
+| rank4_lr1e-5 | capitalization | 1 | 0.88 | 0.86 | 0.85 | 100 |
+| rank8_lr1e-5 | capitalization | 0 | 0.82 | 0.80 | 0.78 | 100 |
+| rank8_lr1e-5 | capitalization | 1 | 0.91 | 0.89 | 0.88 | 100 |
+| base_model | capitalization | - | 0.45 | 0.50 | 0.31 | 100 |
 
-**Best performing:** rank8_lr1e-5 (epoch 1) with 91% accuracy
+**Best performing:** rank8_lr1e-5 (epoch 1) with 89% balanced accuracy
 
 ## Incomplete Runs
 
