@@ -22,9 +22,11 @@ Create structured configuration in `{experiment_dir}/experiment_summary.yaml` us
 **Important notes:**
 - Use actual paths from `claude.local.md`, not placeholders
 - **System prompt consistency is critical** - `evaluation.system_prompt` must match `controls.system_prompt` for inspect-ai
+- **Prompt with {input} placeholder is critical**
 - **Epochs are 0-indexed** - Use `[0, 1, 2]` in evaluation matrix for epochs 0, 1, 2
 - Control runs: Set `epochs: null` in evaluation matrix (no epoch suffix)
 - Fine-tuned runs: Specify epoch list `epochs: [0, 1]` for which epochs to evaluate
+- Verify whether the user wants to use the torchtune base recipe or other defaults before specifying **base_recipe**.  
 
 **YAML formatting:**
 - Use standard YAML syntax (2-space indentation)
