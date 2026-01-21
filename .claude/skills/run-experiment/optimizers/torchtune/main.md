@@ -4,13 +4,13 @@ Executes torchtune fine-tuning jobs for all runs in an experiment.
 
 ## Prerequisites
 
-- experiment_summary.md exists
+- experiment_summary.yaml exists
 - Fine-tuning scaffolding complete (finetune.slurm files exist)
 - SLURM cluster access
 
 ## Submodules
 
-- **[parsing.md](parsing.md)** - Parse experiment_summary.md and scan for finetune.slurm files
+- **[parsing.md](parsing.md)** - Parse experiment_summary.yaml and scan for finetune.slurm files
 - **[run_selection.md](run_selection.md)** - Decide which runs to submit (skip completed/running)
 - **[job_submission.md](job_submission.md)** - Submit SLURM jobs, capture IDs, stagger submissions
 - **[monitoring.md](monitoring.md)** - Poll squeue, track status, wait for completion
@@ -26,6 +26,5 @@ Executes torchtune fine-tuning jobs for all runs in an experiment.
 
 ## Output
 
-- Updates experiment_summary.md status table
 - Creates run-torchtune.log with detailed execution history
 - Model checkpoints in `{output_dir_base}/ck-out-{run_name}/epoch_{N}/`

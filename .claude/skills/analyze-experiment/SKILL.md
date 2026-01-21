@@ -9,7 +9,7 @@ You will help users interpret and compare experimental results by analyzing trai
 Read experiment results from:
 - Fine-tuning SLURM logs (training metrics)
 - inspect-ai evaluation logs (.eval files)
-- experiment_summary.md (experiment design)
+- experiment_summary.yaml (experiment design)
 
 Then generate:
 - Comparison tables across runs
@@ -20,7 +20,7 @@ Then generate:
 ## Workflow (Planned)
 
 1. **Locate experiment** - Find the experiment directory
-2. **Read experiment_summary.md** - Understand experimental design
+2. **Read experiment_summary.yaml** - Understand experimental design
 3. **Extract training metrics** - Parse SLURM logs for:
    - Training loss curves
    - Validation loss (if available)
@@ -78,7 +78,7 @@ Then generate:
 
 ### Experimental Design
 
-**Source:** experiment_summary.md
+**Source:** experiment_summary.yaml
 
 **Extract:**
 - Variables being tested (LoRA rank, learning rate, etc.)
@@ -280,7 +280,7 @@ fig.savefig("plots/training_loss.png", dpi=300)
 
 **Input from:**
 - run-experiment (completion trigger)
-- experiment_summary.md (design context)
+- experiment_summary.yaml (design context)
 - SLURM logs (training metrics)
 - inspect-ai logs (evaluation metrics)
 

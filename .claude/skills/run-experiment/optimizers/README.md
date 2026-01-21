@@ -8,7 +8,7 @@ Each optimizer tool should follow this four-stage pattern for job execution:
 
 ### Stage 1: INPUT PROCESSING
 **File:** `parsing.md`
-**Purpose:** Extract structured data from experiment_summary.md and scan for job scripts
+**Purpose:** Extract structured data from experiment_summary.yaml and scan for job scripts
 **Outputs:** List of runs to execute, job metadata
 
 ### Stage 2: PLANNING / SELECTION
@@ -51,7 +51,7 @@ optimizers/
 Execute fine-tuning jobs using torchtune framework.
 
 **Workflow:**
-1. `parsing.md` - Parse experiment_summary.md, find finetune.slurm scripts
+1. `parsing.md` - Parse experiment_summary.yaml, find finetune.slurm scripts
 2. `run_selection.md` - Decide which runs to submit (skip completed)
 3. `job_submission.md` - Submit jobs with sbatch, capture IDs, stagger submissions
 4. `monitoring.md` - Poll squeue every minute, update status
@@ -63,7 +63,7 @@ Execute fine-tuning jobs using torchtune framework.
 
 **Resumability:** Selection logic ensures already-completed jobs aren't resubmitted
 
-**Status Tracking:** Monitoring continuously updates experiment_summary.md with job status
+**Status Tracking:** Monitoring continuously updates experiment_summary.yaml with job status
 
 **Progressive Disclosure:** SKILL.md links to main.md, which links to specific stage files
 

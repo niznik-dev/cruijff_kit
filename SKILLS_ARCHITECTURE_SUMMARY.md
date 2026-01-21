@@ -37,7 +37,7 @@ Skills that coordinate other skills and track high-level workflow:
 1. **design-experiment**
    - Plans experiments (variables, resources, estimates)
    - Documents full pipeline (torchtune + inspect-ai)
-   - Creates experiment_summary.md
+   - Creates experiment_summary.yaml
    - Status: ✅ Updated
 
 2. **scaffold-experiment**
@@ -75,7 +75,7 @@ Skills that handle torchtune-specific operations:
 1. **run-torchtune**
    - Submits finetune.slurm jobs to SLURM
    - Monitors jobs until completion (1-min polling)
-   - Updates experiment_summary.md status table
+   - Updates experiment_summary.yaml status table
    - Creates run-torchtune.log
    - Status: ✅ Created (extracted from run-experiment)
 
@@ -86,7 +86,7 @@ Skills that handle inspect-ai-specific operations:
    - Verifies fine-tuning complete and checkpoints exist
    - Submits evaluation SLURM jobs
    - Monitors jobs until completion (1-min polling)
-   - Updates experiment_summary.md evaluation status table
+   - Updates experiment_summary.yaml evaluation status table
    - Creates run-inspect.log
    - Status: ✅ Created (new)
 
@@ -95,7 +95,7 @@ Skills that create reusable evaluation tasks:
 
 1. **create-inspect-task**
    - Creates custom inspect-ai evaluation tasks
-   - Can read from experiment_summary.md (experiment-guided mode)
+   - Can read from experiment_summary.yaml (experiment-guided mode)
    - Can run standalone (for general task creation)
    - Status: ⚠️ Existing (not modified in this refactor)
 
@@ -145,7 +145,7 @@ design-experiment documents which tools are used:
 
 ```
 experiment_name/
-├── experiment_summary.md         # Design (from design-experiment)
+├── experiment_summary.yaml         # Design (from design-experiment)
 ├── design-experiment.log         # Planning log
 ├── scaffold.log                  # Scaffolding log (from scaffold-experiment)
 ├── run-experiment.log            # Execution orchestration log
@@ -186,7 +186,7 @@ experiment_name/
 ### What Actually Happens (Worker Skills)
 ```bash
 # design-experiment
-#   → Creates experiment_summary.md with full pipeline docs
+#   → Creates experiment_summary.yaml with full pipeline docs
 
 # scaffold-experiment
 #   → Executes torchtune scaffolding (optimizers/torchtune.md)
@@ -277,7 +277,7 @@ experiment_name/
 **User impact:**
 - Orchestrator skill names unchanged (scaffold-experiment, run-experiment)
 - Output structure unchanged (same directories, same files)
-- experiment_summary.md format enhanced but compatible
+- experiment_summary.yaml format enhanced but compatible
 
 **Developer impact:**
 - Must understand modular documentation pattern
@@ -312,7 +312,7 @@ Before deploying to production:
 3. Verify log files are created correctly at all levels
 4. Check that sequential execution works (run-torchtune → run-inspect)
 5. Test error handling (what happens if fine-tuning fails?)
-6. Verify experiment_summary.md updates correctly
+6. Verify experiment_summary.yaml updates correctly
 
 ## Terminology Clarification: Experiments vs Tasks
 
@@ -322,7 +322,7 @@ Before deploying to production:
 The word "task" was overloaded with three different meanings:
 1. `tasks/` folder = Research domains (capitalization, twins, etc.)
 2. Inspect-ai tasks = Evaluation scripts (`.py` files)
-3. Skills refer to "tasks" in experiment_summary.md
+3. Skills refer to "tasks" in experiment_summary.yaml
 
 ### The Solution
 Renamed `tasks/` → `experiments/` to clarify:
@@ -335,7 +335,7 @@ experiments/                             # Research experiment types
 ├── capitalization/
 │   ├── cap_task.py                     # Inspect-ai evaluation task
 │   ├── input/                          # Dataset generation
-│   └── templates/                      # Fine-tuning configs
+│   └── templates/finetuning/           # Fine-tuning config templates
 └── synthetic_twins/
     ├── inspect_task_twins.py           # Inspect-ai evaluation task
     └── ...

@@ -31,17 +31,7 @@ Track:
 - Submission timestamp
 - Initial status (PENDING)
 
-### 4. Update experiment_summary.md
-
-Update Evaluations status table:
-
-```markdown
-| Run Name | Task | Epoch | Status | Job ID | Completed | Notes |
-|----------|------|-------|--------|--------|-----------|-------|
-| r8_lr1e-5 | capitalization | 0 | PENDING | 12345690 | - | - |
-```
-
-### 5. Submission Timing
+### 4. Submission Timing
 
 **No stagger delay needed** for evaluations.
 
@@ -59,7 +49,7 @@ sleep 1
 **If submission fails:**
 - Log the error with details
 - Continue with remaining evaluations
-- Record failure in status table
+- Record failure in run state
 - Report all failures in final summary
 
 ## Logging
@@ -92,7 +82,6 @@ Job IDs: 12345690-12345697
 ## Output
 
 - All evaluations submitted with captured job IDs
-- experiment_summary.md updated with job metadata
 - Detailed log of submissions
 
 ## Next Stage

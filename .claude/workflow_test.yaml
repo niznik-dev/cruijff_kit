@@ -67,13 +67,16 @@ common_config:
   # Training parameters
   epochs: 1
   batch_size: 4  # Small batch size works on 40GB GPUs (no constraint needed)
-  learning_rate: "1e-4"  # Standard default
+  lr: "1e-4"  # Standard default
 
   # System resources
   gpus: 1
 
   # Prompts
   system_prompt: "You are a helpful assistant."  # Simple, reliable prompt
+  # prompt: Formats input for BOTH training AND evaluation (train/eval parity)
+  # MUST include {input} placeholder. The inspect-ai eval reads this and applies same formatting.
+  prompt: "Capitalize the given word: {input}\n"
 
   # Optional settings
   validation_during_training: true

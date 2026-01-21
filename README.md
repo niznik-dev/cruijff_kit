@@ -1,5 +1,15 @@
 # cruijff_kit
 
+<p align="center">
+  <img src="assets/cruijff_kit_logo.png" alt="cruijff_kit logo" width="250">
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+"></a>
+  <a href="#️-alpha-release-️"><img src="https://img.shields.io/badge/status-alpha-orange.svg" alt="Status: Alpha"></a>
+</p>
+
 cruijff_kit is a toolkit for doing research with social data and LLMs. We are building workflows for:
 
 - fine-tuning LLMs
@@ -15,9 +25,11 @@ cruijff_kit is named after Dutch footballer and philosopher [Johan Cruijff](http
 
 We are grateful to the following funders and supporters: [Princeton AI Lab](https://ai.princeton.edu/ai-lab), [Princeton Precision Health](https://pph.princeton.edu/), [Princeton Research Computing](https://researchcomputing.princeton.edu/), and the [Center for Information Technology Policy](https://citp.princeton.edu/) at Princeton University.
 
-# ⚠️ Pre-Alpha Warning ⚠️
+# ⚠️ Alpha Release ⚠️
 
-This project is in early development and things may break without notice; you may encounter bugs or changes between updates. If you would like to use this toolkit, please let us know and reach out for assistance - we'd love to collaborate! Your feedback and bug reports are valuable for development.
+This project is under active development. The core workflows (design → scaffold → run → summarize experiments) are functional, but you may encounter bugs or breaking changes between updates. You're welcome to use this toolkit on your own, but reaching out to us first will help you get up to speed faster. We'd love to collaborate - your feedback and bug reports are valuable!
+
+See [CHANGELOG.md](CHANGELOG.md) for release history and [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for current limitations.
 
 # Prerequisites
 
@@ -35,6 +47,9 @@ This project is in early development and things may break without notice; you ma
 - [Getting a HuggingFace Account and Token](https://huggingface.co/docs/hub/en/security-tokens)
 - Basic Slurm Knowledge
   - We recommend the [Princeton Research Computing](https://researchcomputing.princeton.edu/support/knowledge-base/slurm) primer
+- Recommended: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) for skills-based workflows
+  - The toolkit's automated workflows (design, scaffold, run experiments) use Claude Code
+  - Manual workflows are available if you don't have Claude Code access
 - Optional: Experience with Python coding for reading the codebase and/or adding functionality
   - [Programming with Python](https://swcarpentry.github.io/python-novice-inflammation/) from Software Carpentries
 
@@ -129,7 +144,40 @@ python -c "import cruijff_kit; print('cruijff_kit installed successfully')"
 ## Troubleshooting
 
 **Issue**: Import errors for cruijff_kit
-**Solution**: Ensure you ran `pip install -e .` from the repository root directory
+**Solution**: Ensure you ran `make install` (or `make install-dev` for contributors) from the repository root directory
+
+## Claude Code (Optional)
+
+[Claude Code](https://claude.ai/download) is an AI coding assistant that powers the skills-based workflows in this toolkit. If you want to use the automated experiment workflows (`/design-experiment`, `/scaffold-experiment`, `/run-experiment`), you'll need Claude Code installed.
+
+**Installation (Linux/macOS):**
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+**Installation (Windows PowerShell):**
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+**First run:**
+```bash
+claude
+```
+
+This will open a browser window to authenticate with your Anthropic account.
+
+**Verify installation:**
+```bash
+claude --version
+```
+
+**Troubleshooting:**
+```bash
+claude doctor
+```
+
+See the [Claude Code documentation](https://code.claude.com/docs/en/setup) for more details.
 
 # Downloading a model
 
@@ -189,7 +237,7 @@ cruijff_kit supports two workflows for running experiments:
 If you have access to Claude Code, you can use skills to automate the entire experiment workflow:
 
 ### Step 1: Design the Experiment
-Use the `design-experiment` skill to plan your experiment. This creates an `experiment_summary.md` file documenting all runs, parameters, and resources.
+Use the `design-experiment` skill to plan your experiment. This creates an `experiment_summary.yaml` file documenting all runs, parameters, and resources.
 
 ### Step 2: Scaffold the Experiment
 Use the `scaffold-experiment` skill to automatically:
@@ -199,12 +247,13 @@ Use the `scaffold-experiment` skill to automatically:
 
 ### Step 3: Run the Experiment
 Use the `run-experiment` skill to:
-- Submit all jobs to SLURM
-- Monitor their progress
+- Submit fine-tuning jobs to SLURM
+- Monitor their progress until completion
+- Run evaluations on the fine-tuned models
 - Update the experiment status automatically
 
-### Step 4: Evaluate Results
-(Planned) Use the `evaluate-experiment` skill to generate and run evaluations.
+### Step 4: Summarize and Analyze
+Use `summarize-experiment` to generate a summary with key metrics (loss, accuracy) after completion. A more robust `analyze-experiment` skill for plots and statistical comparisons is planned.
 
 See `.claude/skills/*/SKILL.md` files for detailed documentation.
 
@@ -216,9 +265,9 @@ For a complete example with detailed instructions, see `experiments/capitalizati
 
 ### Single Run Example (Twin Dataset)
 
-1. **Prepare your configuration file**
+1. **Create configuration file**
 
-Create a `setup_finetune.yaml` file in your experiment directory. You can copy from a template:
+Copy a config template from the experiment's `templates/finetuning/` folder:
 
 ```bash
 cd experiments/your_experiment/
@@ -232,10 +281,10 @@ Key settings to verify:
 * `input_formatting` - Subfolder name (usually empty string `''`)
 * `dataset_label` - Dataset filename without extension
 * `conda_env` - Your conda environment name (e.g., `cruijff`)
-* `model_checkpoint` - Path to pretrained model
+* `torchtune_model_name` - Model name as listed by `tune ls` (e.g., `Llama-3.2-1B-Instruct`)
 * `output_dir_base` - Where to save model checkpoints
 * `lora_rank` - LoRA adapter rank (e.g., 8, 16, 32, 64)
-* `learning_rate` - Learning rate (e.g., 1e-5, 5e-5)
+* `lr` - Learning rate (e.g., 1e-5, 5e-5)
 
 3. **Generate SLURM scripts**
 

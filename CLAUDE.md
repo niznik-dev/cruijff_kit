@@ -65,20 +65,15 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 - **design-experiment** ✅ - Plan a series of runs that collectively make up an experiment
 - **scaffold-experiment** ✅ - Create organized directory structures, configs, and SLURM scripts for all runs
 - **run-experiment** ✅ - Submit jobs to SLURM and monitor their progress until completion
+- **summarize-experiment** ✅ - Generate summary.md with key metrics (loss, accuracy) after experiment completion
 - **create-inspect-task** ✅ - Create custom inspect-ai evaluation tasks with guided workflow (supports experiment-guided and standalone modes)
 
 ### Planned Workflows
-- **analyze-experiment**: Analyze and compare experimental results
-
-### Supporting Workflows (Planned)
-- **create-claude-local-md**: Create environment-specific configuration
-- **create-conda-env**: Create conda environment for this project
-- **download-model-from-hf**: Download models from HuggingFace
-- **download-dataset-from-hf**: Download datasets from HuggingFace
+- **analyze-experiment**: Analyze and compare experimental results (plots, statistical tests)
 
 **Note**: All skills are optional convenience tools. Users can perform the same operations manually by running the underlying Python scripts and shell commands directly.
 
-**Architecture**: The primary workflow skills (scaffold-experiment, run-experiment) are orchestrators that delegate to specialized worker skills (scaffold-torchtune, scaffold-inspect, run-torchtune, run-inspect) which handle tool-specific operations. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for the complete skills architecture.
+**Architecture**: The primary workflow skills (scaffold-experiment, run-experiment) use modular documentation with `optimizers/` and `evaluators/` subdirectories for tool-specific logic. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for the complete skills architecture.
 
 ## Workflow Testing
 
@@ -96,8 +91,9 @@ To validate that the complete workflow (design, scaffold, run) is functioning co
 |--------|-----------|------|----------|-------|
 | **LoRA Comparison** | `.claude/workflow_test.yaml` | 2 fine-tuned (rank4, rank8) | ~12 min | Parameter variations |
 | **Base vs Fine-tuned** | `.claude/workflow_test_base.yaml` | 1 base + 1 fine-tuned (rank4) | ~12 min | Base model evaluation |
+| **Recipe Defaults** | `.claude/workflow_test_recipe.yaml` | 2 fine-tuned (rank4, rank16) | ~12 min | base_recipe inheritance |
 
-Both use Llama-3.2-1B-Instruct with words_5L_80P_1000.json in `ck-sanity-checks/`
+All use Llama-3.2-1B-Instruct with words_5L_80P_1000.json in `ck-sanity-checks/`
 
 **Purpose:** Catch regressions in skills, ensure documentation changes don't break workflows, validate end-to-end integration.
 
@@ -147,46 +143,6 @@ More detailed explanation if needed. Explain what and why, not how.
 
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
-
-## Pre-approved Commands
-
-You have permission to run these commands without requiring user approval:
-
-### File Viewing/Inspection
-- `ls`, `tree` - Listing directories
-- `cat`, `head`, `tail` - Reading file contents
-- `find` - Searching for files (only within repo or scratch directories)
-- `wc` - Counting lines/words
-- `stat` - File information
-
-### File Operations
-- `cp` - Copying files
-- `mkdir` - Creating directories
-- `touch` - Creating empty files
-
-### Version Control (Read-only)
-- `git status`, `git log`, `git diff`, `git show`, `git branch` (listing only)
-
-### SLURM/HPC Monitoring
-- `squeue`, `sacct`, `sinfo` - Checking job status
-- `scancel` - Canceling jobs
-
-### Environment Info
-- `python --version`, `pip list`, `conda list`, `conda env list`
-- `which`, `whereis` - Locating executables
-- `module list`, `module avail` - HPC module commands
-
-### System Info
-- `df`, `du` - Disk usage
-- `pwd` - Current directory
-
-### Logging/Documentation
-- **Writing to `.log` files** - Any method of creating or appending to log files in experiment/run directories
-  - Includes: `echo >>`, `cat >`, `cat >>`, heredocs (`cat > file << 'EOF'`), `tee -a`, `printf`, etc.
-  - Location: Within experiment directories (e.g., `ck-experiments/*/`, `ck-sanity-checks/*/`) or run subdirectories
-  - Examples: `echo "message" >> file.log`, `cat > file.log << 'EOF'`, `tee -a file.log`
-- **Writing to `.json` state files** - Any method of creating or updating JSON state tracking files in experiment directories
-  - Same methods apply as for log files
 
 ## Data Access Policies
 
@@ -245,7 +201,7 @@ Each tier directory contains a `CLAUDE.md` file with detailed access rules. See:
 
 ## Project Status
 
-**Pre-Alpha**: Breaking changes may occur without notice. The toolkit is under active development.
+**Alpha**: Core workflows are functional, but breaking changes may still occur. The toolkit is under active development.
 
 **HPC Environment**: Designed for SLURM-based HPC clusters. Configure your specific cluster settings in `claude.local.md`.
 

@@ -1,11 +1,11 @@
 ---
 name: scaffold-torchtune
-description: Sets up torchtune fine-tuning configurations for all runs in a designed experiment. Reads experiment_summary.md and generates setup_finetune.yaml, finetune.yaml, and finetune.slurm files for each run.
+description: Sets up torchtune fine-tuning configurations for all runs in a designed experiment. Reads experiment_summary.yaml and generates setup_finetune.yaml, finetune.yaml, and finetune.slurm files for each run.
 tools: Read, Edit, Write, Grep, Glob, Bash
-model: sonnet
+permissionMode: default
 ---
 
-You help automatically set up torchtune fine-tuning configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.md` file and generate all the necessary torchtune files (setup_finetune.yaml, finetune.yaml, finetune.slurm) so that fine-tuning runs are ready to submit to SLURM.
+You help automatically set up torchtune fine-tuning configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.yaml` file and generate all the necessary torchtune files (setup_finetune.yaml, finetune.yaml, finetune.slurm) so that fine-tuning runs are ready to submit to SLURM.
 
 ## Invocation Context
 
@@ -21,11 +21,11 @@ This subagent can be invoked in two ways:
 
 When invoked:
 1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
-2. **Read experiment_summary.md** - Parse the experiment plan to extract run configurations
+2. **Read experiment_summary.yaml** - Parse the experiment plan to extract run configurations
 3. **Read claude.local.md** - Get environment-specific settings (conda env, output dirs, etc.)
 4. **Identify varying parameters** - Determine which parameters change across runs (for directory naming)
 5. **For each fine-tuning run:**
-   - Create run directory with descriptive name
+   - Create run directory with name from experiment configuration
    - Generate `setup_finetune.yaml` from appropriate template
    - **EXECUTE `setup_finetune.py` AUTOMATICALLY using conda run** - This generates `finetune.yaml` and `finetune.slurm`
    - Verify outputs exist (finetune.yaml and finetune.slurm must be present)
@@ -35,89 +35,133 @@ When invoked:
 
 **CRITICAL: You must execute setup_finetune.py automatically. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.**
 
+## Model-Aware SLURM Resources
+
+The `setup_finetune.py` script automatically sets SLURM resources based on model size (RAM=VRAM rule):
+
+| Model | Memory | Partition | Constraint | CPUs |
+|-------|--------|-----------|------------|------|
+| 1B | 40G | nomig | - | 4 |
+| 3B | 80G | - | gpu80 | 4 |
+| 8B | 80G | - | gpu80 | 8 |
+| 70B | 320G | - | gpu80 | 8 |
+
+### MIG Support for 1B Models
+
+**MIG is configured during design-experiment, not here.** If the user opted into MIG during experiment design, the run will have `mig: true` in experiment_summary.yaml.
+
+**When parsing experiment_summary.yaml:**
+- If `mig: true` is present for a run: Set `partition: ""` and `mem: 16G` in setup_finetune.yaml
+- If `mig` is not present (default): Do nothing - setup_finetune.py defaults to `partition: nomig` and `mem: 40G`
+
+**Do NOT ask the user about MIG during scaffolding.** This decision is made during experiment design.
+
 ## Input Format 
 
 ### Finding the Experiment
 
 **If user runs skill without arguments:**
-- Check if current directory contains `experiment_summary.md`
+- Check if current directory contains `experiment_summary.yaml`
 - If not, ask user for the experiment directory path
 
 **If user provides a path:**
 - Use that path as the experiment directory
 
-### Parsing experiment_summary.md
+### Parsing experiment_summary.yaml
 
-Extract the following information:
+Extract the following information from the YAML structure:
 
-1. **Experiment name** - From the title (line 1)
-2. **Experiment directory** - From Quick Reference → Paths → Experiment
-3. **All runs table** - Extract run names and their parameters
-4. **Model path** - From Resources → Models
-5. **Dataset path** - From Resources → Dataset
-6. **Common configuration:**
-   - Epochs (from Configuration section)
-   - GPUs (from Configuration section)
-   - Batch size (from Configuration section or run table)
-   - LoRA ranks (from run table)
-   - Learning rates (from run table if present)
-   - System prompt (from Configuration section)
-   - Validation during training (from Configuration section)
+1. **Experiment metadata:**
+   - `experiment.name` - Experiment identifier
+   - `experiment.directory` - Full path to experiment directory
+   - `experiment.date` - Experiment date
 
-### Parsing the "All Runs" Table
+2. **Tool configuration:**
+   - `tools.preparation` - Should be "torchtune"
+   - `tools.evaluation` - Should be "inspect-ai"
 
-The table format looks like:
-```markdown
-| Run Name | Model | LoRA Rank | Learning Rate | Batch Size | Type | Est. Time |
-|----------|-------|-----------|---------------|------------|------|-----------|
-| Llama-3.2-1B-Instruct_rank8_lr1e-5 | Llama-3.2-1B-Instruct | 8 | 1e-5 | 4 | Fine-tuned | ~10s |
-| Llama-3.2-1B-Instruct_base | Llama-3.2-1B-Instruct | - | - | - | Control | N/A |
-```
+3. **Control parameters (held constant):**
+These are *example* parameters that the user might vary. There may be other parameters under `controls`, so check all of them that apply to `setup_finetune.yaml`:
+   - `controls.base_recipe` - Torchtune recipe name for defaults (optional, e.g., "llama3_2/1B_lora_single_device")
+   - `controls.epochs` - Number of training epochs
+   - `controls.batch_size` - Batch size (if not varied)
+   - `controls.system_prompt` - Training system prompt
+   - `controls.prompt` - Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
+   - `controls.validation_during_training` - Whether to run validation (impacts `run_val_every_n_steps`)
+   - `controls.gradient_accumulation_steps` - Gradient accumulation
+   - `controls.weight_decay` - Optimizer weight decay
+   - `controls.lora_dropout` - LoRA dropout
+
+4. **Resources:**
+   - `models.base[0].name` - Model identifier
+   - `models.base[0].path` - Full path to model directory
+   - `data.training.path` - Full path to training dataset
+   - `data.training.format` - "json" or "parquet"
+   - `output.base_directory` - Where checkpoints are saved
+   - `output.wandb_project` - Weights & Biases project name
+
+5. **Runs list:**
+   - `runs[]` - List of all runs (fine-tuned + control)
+   - For each run:
+     - `name` - Run identifier (used as directory name)
+     - `type` - "fine-tuned" or "control"
+     - `model` - Model name
+     - `parameters` - Dict of parameter values (lora_rank, lr, etc.)
+
+### Filtering Fine-tuned Runs
 
 **Important:**
-- Only process runs where `Type` = "Fine-tuned" (skip control runs)
-- Extract parameters from table columns
-- Parameters with `-` are not applicable (like control runs)
+- Only process runs where `type: "fine-tuned"` (skip control runs)
+- Control runs have `type: "control"` and empty `parameters: {}`
+- Fine-tuned runs have `parameters` dict with values like `lora_rank: 4`
 
 ### Determining Directory Names
 
-**Goal:** Directory names should only include parameters that vary across runs.
+**IMPORTANT:** Use the `name` field from `experiment_summary.yaml` directly as the directory name. Do NOT create shortened or transformed names.
 
 **Algorithm:**
-1. For each parameter in the table (LoRA Rank, Learning Rate, Batch Size, etc.), check if it has different values across runs
-2. Include only varying parameters in directory names
-3. Use a consistent naming pattern: `{param1}{value1}_{param2}{value2}`
+```python
+for run in config['runs']:
+    if run['type'] == 'fine-tuned':
+        run_dir_name = run['name']  # Use name as-is
+```
 
 **Examples:**
 
-Experiment varying LoRA rank and learning rate:
-- `rank8_lr1e-5/`
-- `rank16_lr5e-5/`
-- `rank32_lr1e-5/`
+If experiment_summary.yaml has:
+```yaml
+runs:
+  - name: "Llama-3.2-1B-Instruct_rank4"
+    type: "fine-tuned"
+    model: "Llama-3.2-1B-Instruct"
+    parameters:
+      lora_rank: 4
+```
 
-Experiment varying only LoRA rank:
-- `rank8/`
-- `rank16/`
-- `rank32/`
-
-Experiment varying model and LoRA rank:
-- `Llama-3.2-1B_rank8/`
-- `Llama-3.2-3B_rank16/`
-
-**Parameter name abbreviations:**
-- LoRA Rank → `rank`
-- Learning Rate → `lr`
-- Batch Size → `bs`
-- Model → use short model name (e.g., `Llama-3.2-1B`)
+Then create directory:
+- `Llama-3.2-1B-Instruct_rank4/`
 
 ### Reading claude.local.md
 
 Extract environment-specific settings:
 - `conda_env` - Which conda environment to use
-- `output_dir_base` - Where to write model checkpoints
 - `my_wandb_project` - WandB project name
-- `scratch_dir` - User's scratch directory
 - `account` - SLURM account to use (under "SLURM Defaults" section) - **OPTIONAL**: only needed if user has multiple accounts and cluster requires explicit specification. If not found in claude.local.md, skip this field.
+
+### Parsing Output Directory from experiment_summary.yaml
+
+**IMPORTANT:** Read `output.base_directory` from experiment_summary.yaml (NOT from claude.local.md).
+
+The base_directory contains the full path: `{output_base}/ck-outputs/{experiment_name}`
+- Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-outputs/workflow_test_2025-11-28`
+
+Parse this into two components for setup_finetune.yaml:
+- `output_dir_base` = everything up to and including the last directory before experiment name
+  - Extract by splitting on `/` and taking all but the last component, then rejoining with `/` and adding trailing `/`
+  - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-outputs/`
+- `experiment_name` = the final directory component
+  - Extract by splitting on `/` and taking the last non-empty component
+  - Example: `workflow_test_2025-11-28`
 
 ## Output Information
 
@@ -125,42 +169,53 @@ Extract environment-specific settings:
 
 For each run, create a `setup_finetune.yaml` file by:
 
-1. **Select appropriate template** based on dataset format:
-   - Check dataset path extension in experiment_summary.md
-   - If `.json` → use `experiments/capitalization/templates/finetuning/setup_finetune_json.yaml`
-   - If `.parquet` → use `experiments/capitalization/templates/finetuning/setup_finetune_parquet.yaml`
+1. **Determine dataset extension** based on format:
+   - Check `data.training.format` in experiment_summary.yaml
+   - If `json` → `dataset_ext: '.json'`
+   - If `parquet` → `dataset_ext: '/'`
 
-2. **Extract dataset information from experiment_summary.md:**
-   - Dataset path from Resources → Dataset → Path
-   - Extract `dataset_label` from filename (e.g., `words_4L_80P_300.json` → `words_4L_80P_300`)
-   - Extract `dataset_ext` from filename (e.g., `.json` or `.parquet`)
-   - Dataset location: use `input_dir_base` from template, set `input_formatting: ''` (empty string)
+2. **Extract dataset information from experiment_summary.yaml:**
+   - Dataset path from `data.training.path`
+   - Extract `dataset_label` from `data.training.label`
+   - Dataset format from `data.training.format`
+   - Convert format to extension: `json` → `.json`, `parquet` → `/`
+   - Dataset location: use parent directory of dataset path as `input_dir_base`, set `input_formatting: ''` (empty string)
 
 3. **Populate template with run-specific values:**
 
 ```yaml
+# Recipe Configuration (optional - provides default values for hyperparameters)
+# Only include if controls.base_recipe is specified in experiment_summary.yaml
+base_recipe: {from controls.base_recipe, e.g., "llama3_2/1B_lora_single_device"}
+
 # Run identification
 my_wandb_project: {from claude.local.md, or use experiment-level project name}
 my_wandb_run_name: {directory_name, e.g., "rank8_lr1e-5"}
 
 # Directory Configuration (for dataset path construction)
-input_dir_base: {parent directory of dataset from experiment_summary}
+input_dir_base: {parent directory of data.training.path}
 input_formatting: ''  # Usually empty string
 
 # Dataset Configuration
-dataset_label: {extracted from dataset filename, e.g., "words_4L_80P_300"}
-dataset_ext: {extracted from dataset filename, e.g., ".json"}
+dataset_label: {from data.training.label, e.g., "words_4L_80P_300"}
+dataset_ext: {from data.training.format, convert: "json" → ".json", "parquet" → "/"}
 
 # Model Configuration
-model_checkpoint: {from experiment_summary.md Resources → Models}
+torchtune_model_name: {from models.base[0].name, e.g., "Llama-3.2-1B-Instruct"}
+model_checkpoint: {from models.base[0].path}
 
 # Hyperparameters (run-specific)
-lora_rank: {from run table}
-lr: {from run table, format as 1e-5 or 5e-5}  # NOTE: parameter is 'lr' not 'learning_rate'
-batch_size: {from run table or common config}
+lora_rank: {from run.parameters.lora_rank}
+lr: {from run.parameters.lr, format as 1e-5 or 5e-5}
+batch_size: {from run.parameters.batch_size if varies, else from controls.batch_size}
+
+# Additional hyperparameters (optional - only include if specified in controls)
+gradient_accumulation_steps: {from controls.gradient_accumulation_steps, if present}
+weight_decay: {from controls.weight_decay, if present}
+lora_dropout: {from controls.lora_dropout, if present}
 
 # Training configuration (common across runs)
-epochs: {from experiment_summary.md Configuration}
+epochs: {from controls.epochs}
 log_every_n_steps: {use template default, typically 1}
 run_val_every_n_steps: {use template default, typically 0}
 
@@ -168,19 +223,24 @@ run_val_every_n_steps: {use template default, typically 0}
 stash_adapter_weights: 'true'  # From template default
 
 # Output configuration
-output_dir_base: {from claude.local.md}
-experiment_name: {from experiment_summary.md title/line 1}
+output_dir_base: {parsed from output.base_directory}
+experiment_name: {parsed from output.base_directory}
 conda_env: {from claude.local.md}
 
 # SLURM configuration (optional - only if specified in claude.local.md)
 account: {from claude.local.md SLURM Defaults, if present}
 
 # System prompt (if specified)
-system_prompt: {from experiment_summary.md Configuration, often empty string ""}
+system_prompt: {from controls.system_prompt, often empty string ""}
+
+# Prompt template (if specified)
+prompt: {from controls.prompt, e.g., "Capitalize the given word: {input}\n"}
 
 # Custom Recipe
 custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable}
 ```
+
+**Note:** If `controls.base_recipe` is not specified in experiment_summary.yaml, omit the `base_recipe` field from setup_finetune.yaml entirely. This preserves backwards compatibility.
 
 4. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
 
@@ -188,7 +248,7 @@ custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.
 - Use absolute paths for robustness (e.g., `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/...`) rather than relative paths
 - WandB project: Prefer using `my_wandb_project` from `claude.local.md` for consistency
 - Learning rate format: Keep scientific notation format from experiment summary (1e-5, 5e-5, etc.)
-- Experiment name: This groups outputs under `{output_dir_base}{experiment_name}/ck-out-{run_name}/` for better organization. Without it, outputs go directly to `{output_dir_base}ck-out-{run_name}/`
+- Output directory: Parse `output.base_directory` from experiment_summary.yaml to extract both `output_dir_base` and `experiment_name` components
 
 ### Running setup_finetune.py
 
@@ -254,13 +314,13 @@ For each run directory:
 
 ## Error Handling
 
-**If experiment_summary.md not found:**
+**If experiment_summary.yaml not found:**
 - Ask user for experiment directory path
 - Verify file exists before proceeding
 
-**If required information missing from experiment_summary.md:**
-- Report specific missing fields
-- Ask user to provide missing information
+**If required information missing from experiment_summary.yaml:**
+- Report specific missing fields (e.g., "controls.epochs not found")
+- Ask user to provide missing information or regenerate the YAML
 - Do not proceed with incomplete data
 
 **If template not found:**
@@ -293,8 +353,8 @@ Result: {outcome}
 ### What to Log
 
 - Experiment discovery and validation
-- Parsing experiment_summary.md
-- Parameter analysis (which parameters vary)
+- Parsing experiment_summary.yaml
+- Run identification (fine-tuned vs control)
 - Directory creation for each run
 - setup_finetune.yaml generation for each run
 - setup_finetune.py execution and results
@@ -305,20 +365,20 @@ Result: {outcome}
 
 ```
 [2025-10-24 16:30:00] DISCOVER_EXPERIMENT: Found experiment
-Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/experiment_summary.md
+Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/experiment_summary.yaml
 Result: Successfully read experiment plan (8 fine-tuned runs)
 
-[2025-10-24 16:30:05] ANALYZE_PARAMETERS: Identifying varying parameters
-Details: Checked LoRA Rank, Learning Rate, Batch Size, Model
-Result: Varying parameters: LoRA Rank (8,16,32,64), Learning Rate (1e-5, 5e-5)
-Directory naming pattern: rank{N}_lr{LR}
+[2025-10-24 16:30:05] PARSE_YAML: Parsing experiment configuration
+Details: Read experiment_summary.yaml structure
+Result: Found 8 fine-tuned runs, 1 control run
+Configuration: epochs=1, batch_size=4, system_prompt=""
 
 [2025-10-24 16:30:10] CREATE_RUN_DIR: rank8_lr1e-5
 Details: mkdir /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/rank8_lr1e-5
 Result: Directory created successfully
 
 [2025-10-24 16:30:12] GENERATE_YAML: rank8_lr1e-5/setup_finetune.yaml
-Details: Template: experiments/capitalization/templates/finetuning/setup_finetune_json.yaml
+Details: Template: experiments/capitalization/setup_finetune.yaml
 Parameters: rank=8, lr=1e-5, batch_size=4, epochs=1
 Result: File created (237 bytes)
 
@@ -328,7 +388,6 @@ Result: Success - generated finetune.yaml and finetune.slurm
 
 [2025-10-24 16:31:00] COMPLETE: All runs scaffolded
 Summary: 8 runs created successfully, 0 failures
-Next: See experiment_summary.md for workflow next steps
 ```
 
 ## Output Summary
@@ -427,9 +486,9 @@ done
 ## Important Notes
 
 - This subagent only scaffolds "Fine-tuned" runs, not "Control" runs (controls don't need fine-tuning)
-- Directory names should be concise and descriptive (only varying parameters)
-- Use paths from `claude.local.md` for environment-specific settings
-- Preserve all configuration from experiment_summary.md
+- Directory names come directly from `runs[].name` in experiment_summary.yaml
+- Use paths from `claude.local.md` for environment-specific SLURM settings
+- Preserve all configuration from experiment_summary.yaml
 - If a run fails, continue with others and report all failures at end
 - Always create a log file for auditing and debugging
 - Paths should work whether skill is run from experiment dir or elsewhere

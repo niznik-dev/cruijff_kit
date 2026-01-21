@@ -1,11 +1,11 @@
 ---
 name: scaffold-inspect
-description: Sets up inspect-ai evaluation configurations for all runs in a designed experiment. Reads experiment_summary.md and generates inspect.slurm scripts for each run/evaluation combination.
+description: Sets up inspect-ai evaluation configurations for all runs in a designed experiment. Reads experiment_summary.yaml and generates {task}_epoch{N}.slurm scripts for each run/evaluation combination.
 tools: Read, Edit, Write, Grep, Glob, Bash
-model: sonnet
+permissionMode: default
 ---
 
-You help automatically set up inspect-ai evaluation configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.md` file and generate all the necessary inspect-ai files (inspect.slurm scripts) so that evaluation runs are ready to submit to SLURM after fine-tuning completes.
+You help automatically set up inspect-ai evaluation configurations for all runs in a designed experiment. Your task is to read an `experiment_summary.yaml` file and generate all the necessary inspect-ai files (`{task}_epoch{N}.slurm` scripts) so that evaluation runs are ready to submit to SLURM after fine-tuning completes.
 
 ## Invocation Context
 
@@ -20,7 +20,7 @@ This subagent can be invoked in two ways:
 ## Core Responsibilities Workflow
 
 1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
-2. **Read experiment_summary.md** - Parse the experiment plan to extract evaluation configuration
+2. **Read experiment_summary.yaml** - Parse the experiment plan to extract evaluation configuration
 3. **Read claude.local.md** - Get environment-specific settings (conda env, etc.)
 4. **Verify inspect-ai tasks exist** - Check if evaluation task scripts are available
 5. **For each run and evaluation combination:**
@@ -30,60 +30,101 @@ This subagent can be invoked in two ways:
 6. **Create scaffold log** - Document all actions taken in `scaffold-inspect.log`
 7. **Report summary** - Show user what was created and any issues
 
-## Input Format 
+## Input Format
 
 ### Finding the Experiment
 
 **If user invokes subagent without arguments:**
-- Check if current directory contains `experiment_summary.md`
+- Check if current directory contains `experiment_summary.yaml`
 - If not, ask user for the experiment directory path
 
 **If user provides a path:**
 - Use that path as the experiment directory
 
-### Parsing experiment_summary.md
+### Parsing experiment_summary.yaml
 
-Extract the following information:
+Extract the following information from the YAML structure:
 
-1. **Experiment name** - From the title (line 1)
-2. **Experiment directory** - From Quick Reference → Paths → Experiment
-3. **All runs table** - Extract run names and their configurations
-4. **Model paths** - From Resources → Models
-5. **Evaluation tasks** - From Resources → Evaluation Tasks table
-6. **Evaluation plan** - From Evaluation Plan section:
-   - Which epochs to evaluate
-   - Which runs get which evaluations
-   - Evaluation datasets (if different from training)
-7. **System prompt** - From Configuration section (must match training)
-8. **Output directory base** - Where fine-tuned models will be saved
+1. **Experiment metadata:**
+   - `experiment.name` - Experiment identifier
+   - `experiment.directory` - Full path to experiment directory
 
-#### Parsing the "Evaluation Tasks" Table
+2. **Models:**
+   - `models.base[0].name` - Model identifier
+   - `models.base[0].path` - Full path to model directory
 
-```markdown
-| Task Name | Script | Dataset | Description |
-|-----------|--------|---------|-------------|
-| capitalization | `path/to/cap_task.py` | `path/to/test.json` | Tests capitalization |
+3. **Dataset:**
+   - `data.training.path` - Full path to training dataset
+   - `data.training.label` - Dataset filename without extension
+   - `data.training.format` - "json" or "parquet"
+
+4. **Output configuration:**
+   - `output.base_directory` - Where checkpoints are saved
+   - `controls.system_prompt` - System prompt (must match training)
+
+5. **Runs:**
+   - `runs[]` - List of all runs (fine-tuned + control)
+   - For each run: `name`, `type`, `model`, `parameters`
+
+6. **Evaluation configuration:**
+   - `evaluation.system_prompt` - Must match training
+   - `evaluation.temperature` - Evaluation temperature
+   - `evaluation.scorer` - Scorer type
+   - `evaluation.tasks[]` - List of evaluation tasks
+   - `evaluation.matrix[]` - Which runs evaluate on which tasks/epochs
+
+#### Parsing Evaluation Tasks
+
+From `evaluation.tasks[]` in YAML:
+```yaml
+tasks:
+  - name: "capitalization"
+    script: "path/to/cap_task.py"
+    dataset: "path/to/test.json"  # Optional
+    description: "Tests capitalization"
 ```
 
-Extract:
-- Task name (for naming evaluation outputs)
-- Script path (inspect-ai task file)
-- Dataset path (if specified and different from training)
-- Description (for documentation)
+Extract for each task:
+- `name` - Task identifier (for naming evaluation outputs)
+- `script` - Full path to inspect-ai task file
+- `dataset` - Path to eval dataset (optional, if different from training)
+- `description` - Human-readable description
 
-#### Parsing the "Evaluation Plan" Section
+#### Parsing Evaluation Matrix
 
-Determine:
-- **Epochs to evaluate**: "last", "all", or specific list (e.g., "0,2")
-- **Evaluation matrix**: Which runs evaluate on which tasks
-- **Base model evaluations**: Control runs that need evaluation
+From `evaluation.matrix[]` in YAML:
+```yaml
+matrix:
+  - run: "Llama-3.2-1B-Instruct_rank4"
+    tasks: ["capitalization"]
+    epochs: [0]
+  - run: "Llama-3.2-1B-Instruct_base"
+    tasks: ["capitalization"]
+    epochs: null  # null for control/base runs
+```
+
+Determine for each run:
+- Which tasks to evaluate on
+- Which epochs to evaluate (0-indexed, or null for base models)
+- Whether this is a fine-tuned or control run
 
 ### Reading claude.local.md
 
 Extract environment-specific settings:
 - `conda_env` - Which conda environment to use
-- `scratch_dir` - User's scratch directory
 - `account` - SLURM account to use (OPTIONAL)
+
+### Parsing Output Directory from experiment_summary.yaml
+
+**IMPORTANT:** Read `output.base_directory` from experiment_summary.yaml to construct model paths.
+
+The base_directory contains the full path: `{output_base}/ck-outputs/{experiment_name}`
+- Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-outputs/workflow_test_2025-11-28`
+
+For generating inspect.slurm scripts:
+- Use base_directory directly to construct OUTPUT_BASE paths
+- Fine-tuned model path: `{base_directory}/ck-out-{run_name}/epoch_{N}`
+- Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-outputs/workflow_test_2025-11-28/ck-out-rank4/epoch_0`
 
 ## Verifying Inspect-AI Tasks
 
@@ -111,7 +152,7 @@ For each evaluation task in the experiment:
      cap_task
    ```
 
-   Use this to verify the task name in experiment_summary.md matches what's actually in the file.
+   Use this to verify the task name in experiment_summary.yaml matches what's actually in the file.
 
 3. **If task doesn't exist:**
    - Note in log that task needs to be created
@@ -119,31 +160,37 @@ For each evaluation task in the experiment:
    - Continue with other tasks (don't fail completely)
 
 4. **Verify task is compatible with experiment:**
-   - Can it accept `config_path` parameter?
-   - This parameter should point to a YAML file containing dataset info and system prompt
+   - Task should accept `data_path`, `prompt`, and `system_prompt` parameters
+   - These are the standard parameters for chat_completion-trained models
    - Check docstring/parameters if accessible
 
-## Creating Evaluation Config Files for Base Models
+## Handling Base/Control Models
 
-Base/control runs don't undergo fine-tuning, so they won't have a `setup_finetune.yaml` file. scaffold-inspect must create an `eval_config.yaml` file for these runs.
+Base/control runs don't undergo fine-tuning, so they won't have a `setup_finetune.yaml` file. For these runs, scaffold-inspect extracts values directly from experiment_summary.yaml and bakes them into the SLURM script.
 
 ### Detection Logic
 
-From the "All Runs" table in experiment_summary.md, identify base/control runs:
+From the `runs[]` list in experiment_summary.yaml, identify base/control runs:
 - Look for Type column = "Control" or "Base"
 - These runs have no LoRA rank (or LoRA Rank = "-")
 - Example: `| Llama-3.2-1B-Instruct_base | Llama-3.2-1B-Instruct | - | Control | N/A |`
 
-### Creating eval_config.yaml
+### Extracting Values for Base Models
 
-For each base/control run:
+Extract the following from experiment_summary.yaml:
+- `data_path`: Full path from Resources → Dataset → Path
+- `prompt`: From Configuration → prompt (e.g., `"{input}"`)
+- `system_prompt`: From Configuration → System prompt
+- `model_path`: From Resources → Models (the base model path)
 
-1. **Create the run directory** (if it doesn't exist):
+1. **Create directories for base model evaluation:**
    ```bash
-   mkdir -p {experiment_dir}/{run_name}
+   # Example for run named "Llama-3.2-1B-Instruct_base"
+   mkdir -p {experiment_dir}/Llama-3.2-1B-Instruct_base/eval
+   mkdir -p {experiment_dir}/Llama-3.2-1B-Instruct_base/eval/logs
    ```
 
-2. **Generate eval_config.yaml** with content extracted from experiment_summary.md:
+2. **Generate eval_config.yaml** with content extracted from experiment_summary.yaml:
    ```yaml
    # Evaluation configuration for base model
    # Generated by scaffold-inspect
@@ -161,7 +208,7 @@ For each base/control run:
    system_prompt: "{system_prompt for this run}"
    ```
 
-3. **Extract values from experiment_summary.md:**
+3. **Extract values from experiment_summary.yaml:**
    - `input_dir_base`: Path portion of dataset path (e.g., `/path/to/data/capitalization/`)
    - `dataset_label`: Dataset filename without extension (e.g., `words_5L_80P_1000`)
    - `dataset_ext`: File extension (`.json` for JSON, `/` for parquet directory)
@@ -170,31 +217,22 @@ For each base/control run:
 
 ### Handling Multiple Base Runs with Different System Prompts
 
-When experiment_summary.md includes multiple base runs with different system prompts:
+When experiment_summary.yaml includes multiple base runs with different system prompts:
 
-```markdown
-| Run Name | Model | Type | System Prompt |
-|----------|-------|------|---------------|
-| Llama-3.2-1B-Instruct_base_helpful | Llama-3.2-1B-Instruct | Control | "You are helpful." |
-| Llama-3.2-1B-Instruct_base_concise | Llama-3.2-1B-Instruct | Control | "You are concise." |
+```yaml
+runs:
+  - name: "Llama-3.2-1B-Instruct_base_helpful"
+    type: "control"
+    model: "Llama-3.2-1B-Instruct"
+    parameters: {}
+    # Could have run-specific system_prompt if needed
+  - name: "Llama-3.2-1B-Instruct_base_concise"
+    type: "control"
+    model: "Llama-3.2-1B-Instruct"
+    parameters: {}
 ```
 
-Create **separate eval_config.yaml for each run** with its specific system prompt:
-- `Llama-3.2-1B-Instruct_base_helpful/eval_config.yaml` → system_prompt: "You are helpful."
-- `Llama-3.2-1B-Instruct_base_concise/eval_config.yaml` → system_prompt: "You are concise."
-
-This allows fair comparison: each base model evaluation uses the same prompt as its corresponding fine-tuned run.
-
-### Logging eval_config.yaml Creation
-
-Log each file creation:
-```
-[2025-11-20 14:30:00] CREATE_EVAL_CONFIG: Llama-3.2-1B-Instruct_base
-Details: Generated eval_config.yaml for base model run
-Dataset: words_5L_80P_1000.json
-System prompt: "You are a helpful assistant."
-Result: File created at {experiment_dir}/Llama-3.2-1B-Instruct_base/eval_config.yaml (245 bytes)
-```
+Each run's SLURM script will have its own `SYSTEM_PROMPT` variable set appropriately.
 
 ## Generating Inspect SLURM Scripts
 
@@ -207,7 +245,7 @@ For each evaluation to be performed, generate an `inspect.slurm` script.
 - Training for 1 epoch produces checkpoint at `epoch_0/`
 - Training for 2 epochs produces `epoch_0/` and `epoch_1/`
 - Evaluation script names must match: `{task_name}_epoch0.slurm`, not `epoch1`
-- When experiment_summary.md says "evaluate last epoch after 1 epoch of training", use `epoch_0`
+- When experiment_summary.yaml evaluation matrix specifies epoch 0 after 1 epoch of training, use `epoch_0`
 
 Organize evaluations within run directories:
 
@@ -230,43 +268,76 @@ Organize evaluations within run directories:
     └── {task_name}_base.slurm
 ```
 
+### Model-Aware Resource Allocation
+
+Different model sizes require different SLURM resources for evaluation. Parse the model name from experiment_summary.yaml and set resources accordingly:
+
+| Model Size | Memory | GPUs | Constraint | CPUs | Time |
+|------------|--------|------|------------|------|------|
+| 1B (Llama-3.2-1B-Instruct) | 32G | 1 | - | 4 | 0:30:00 |
+| 3B (Llama-3.2-3B-Instruct) | 64G | 1 | gpu80 | 4 | 0:30:00 |
+| 8B (Llama-3.1-8B-Instruct, etc.) | 96G | 1 | gpu80 | 8 | 0:30:00 |
+| 70B (Llama-3.3-70B-Instruct, etc.) | 256G | 4 | gpu80 | 8 | 0:30:00 |
+
+**Detection logic:**
+1. Parse model name from experiment_summary.yaml Resources → Models section
+2. Look for size indicator in model name: "1B", "3B", "8B", "70B"
+3. Apply corresponding resource configuration
+4. Default to 1B settings if model size cannot be determined
+
+**Example parsing:**
+- `Llama-3.2-1B-Instruct` → 1B resources
+- `Llama-3.2-3B-Instruct` → 3B resources
+- `Llama-3.1-8B-Instruct` → 8B resources
+- `Llama-3.3-70B-Instruct` → 70B resources
+
 ### SLURM Script Template
 
-Generate a SLURM script for each evaluation:
+Generate a SLURM script for each evaluation with model-appropriate resources.
+
+**Key principle:** Extract dataset path, prompt, and system prompt from `setup_finetune.yaml` (or experiment_summary.yaml for base models) at scaffolding time, then pass them directly to inspect eval. This avoids config file parsing at runtime.
 
 ```bash
 #!/bin/bash
-#SBATCH --job-name=eval-{task_name}-{run_id}
+#SBATCH --job-name=eval-{task_name}-{run_id}-ep{N}
 #SBATCH --output=slurm-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=32G
+#SBATCH --cpus-per-task={cpus_from_model_size}
+#SBATCH --mem={mem_from_model_size}
 #SBATCH --time=0:30:00
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:{gpus_from_model_size}
 {optional: #SBATCH --account={account}}
-{optional: #SBATCH --constraint=gpu80}
+{if 3B or larger: #SBATCH --constraint=gpu80}
 
 # Load environment
 module load anaconda3/2025.6
 conda activate {conda_env}
 
-# Set model and config paths
+# Model path
 {if fine-tuned:}
-OUTPUT_BASE="{output_dir_base}/ck-out-{run_name}"
+OUTPUT_BASE="{base_directory}/ck-out-{run_name}"
 MODEL_PATH="$OUTPUT_BASE/epoch_{N}"
 CONFIG_PATH="$OUTPUT_BASE/setup_finetune.yaml"
 {if base model:}
 MODEL_PATH="{base_model_path}"
-CONFIG_PATH="{experiment_dir}/{run_name}/eval_config.yaml"
+
+# Dataset and prompt configuration
+# (extracted from setup_finetune.yaml at scaffolding time)
+DATA_PATH="{data_path}"
+PROMPT="{prompt}"
+SYSTEM_PROMPT="{system_prompt}"
 
 # Run inspect-ai evaluation
 cd {experiment_dir}/{run_dir}/eval
 
 inspect eval {task_script_path}@{task_name} \\
-  --model hf/local \\
+  {if fine-tuned:}--model hf/{run_name}_epoch_{N} \\
+  {if base model:}--model hf/{run_name}_base \\
   -M model_path="$MODEL_PATH" \\
-  -T config_path="$CONFIG_PATH" \\
+  -T data_path="$DATA_PATH" \\
+  -T prompt="$PROMPT" \\
+  -T system_prompt="$SYSTEM_PROMPT" \\
   --log-dir ./logs \\
   --log-level info
 
@@ -279,18 +350,27 @@ echo "Evaluation complete"
 
 **SLURM parameters:**
 - Time: Default to 30 minutes (adjust based on experiment estimates if available)
-- GPUs: 1 (evaluation is typically single-GPU)
-- Memory: 32G (adjust based on model size if known)
-- Account/constraint: Use from claude.local.md if specified
+- GPUs/Memory/CPUs: Set based on model size (see Model-Aware Resource Allocation table above)
+- Constraint: gpu80 required for 3B+ models
+- Account: Use from claude.local.md if specified
 
 **Model paths:**
-- Fine-tuned: `{output_dir_base}/ck-out-{run_name}/epoch_{N}`
-- Base model: Original model path from experiment_summary.md
+- Fine-tuned: `{output.base_directory}/ck-out-{run_name}/epoch_{N}`
+- Base model: Original model path from `models.base[0].path`
 
-**Task parameters:**
-- `config_path`: Path to config file (setup_finetune.yaml for fine-tuned, eval_config.yaml for base)
-- Both config files contain: dataset path, system prompt, dataset format info
-- All evaluations use consistent config_path parameter
+**Task parameters (passed directly to inspect eval):**
+- `data_path`: Full path to dataset file (constructed from `input_dir_base` + `dataset_label` + `dataset_ext`)
+- `prompt`: The prompt template used during training (e.g., `"{input}"` or `"Capitalize: {input}"`)
+- `system_prompt`: System message used during training (often empty string)
+
+**Extracting values for fine-tuned models:**
+Read `setup_finetune.yaml` from the run directory and extract:
+- `data_path` = `input_dir_base` + `dataset_label` + `dataset_ext`
+- `prompt` = the `prompt` field
+- `system_prompt` = the `system_prompt` field
+
+**Extracting values for base models:**
+Use values from experiment_summary.yaml Configuration section (same as fine-tuned runs use).
 
 **Output location:**
 - Log directory: `{run_dir}/eval/logs/`
@@ -298,45 +378,66 @@ echo "Evaluation complete"
 
 ## Handling Different Evaluation Scenarios
 
+**Standard approach:** Extract all values at scaffolding time and bake them into SLURM scripts as variables. This ensures consistency and avoids runtime config parsing.
+
+> **Note:** Some legacy inspect tasks support a `config_dir` parameter for runtime config reading. This is not used by scaffold-inspect - we always bake values directly.
+
 ### Scenario 1: Fine-tuned Model Evaluation
 
 Fine-tuned models use `setup_finetune.yaml` from the base output directory:
 ```bash
-OUTPUT_BASE="/absolute/path/to/ck-out-{run_name}"
+OUTPUT_BASE="{base_directory}/ck-out-{run_name}"
 MODEL_PATH="$OUTPUT_BASE/epoch_0"
 CONFIG_PATH="$OUTPUT_BASE/setup_finetune.yaml"
+```
 
-inspect eval cap_task.py@cap_task \\
-  --model hf/local \\
+```bash
+# Values extracted from setup_finetune.yaml at scaffolding time:
+MODEL_PATH="/absolute/path/to/ck-out-{run_name}/epoch_0"
+DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
+PROMPT="{input}"
+SYSTEM_PROMPT=""
+
+inspect eval capitalization.py@capitalization \\
+  --model hf/{run_name}_epoch_0 \\
   -M model_path="$MODEL_PATH" \\
-  -T config_path="$CONFIG_PATH" \\
+  -T data_path="$DATA_PATH" \\
+  -T prompt="$PROMPT" \\
+  -T system_prompt="$SYSTEM_PROMPT" \\
   --log-dir ./logs
 ```
 
 **Key points:**
-- `setup_finetune.yaml` lives in the **base output directory**, not inside `epoch_N/`
-- During training, the SLURM script copies it there for reference
-- The task reads dataset path, system prompt, and format info from this file
+- The `--model` argument uses a descriptive name (`hf/{run_name}_epoch_{N}`) that gets recorded in the `.eval` file for identification
+- Values are extracted from `setup_finetune.yaml` **at scaffolding time** and baked into the SLURM script
+- No config file parsing happens at eval runtime
+- Ensures exact match between training and evaluation parameters
 
 ### Scenario 2: Base Model Evaluation
 
-Base models use `eval_config.yaml` created by scaffold-inspect:
-```bash
-MODEL_PATH="/path/to/base/model"
-CONFIG_PATH="{experiment_dir}/{run_name}/eval_config.yaml"
+For base/control models, scaffold-inspect generates `eval_config.yaml` (see "Extracting Values for Base Models" above), then reads from it at scaffolding time:
 
-inspect eval cap_task.py@cap_task \\
-  --model hf/local \\
+```bash
+# Values extracted from eval_config.yaml at scaffolding time:
+MODEL_PATH="/path/to/pretrained-llms/Llama-3.2-1B-Instruct"
+DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
+PROMPT="{input}"
+SYSTEM_PROMPT=""
+
+inspect eval capitalization.py@capitalization \\
+  --model hf/{run_name}_base \\
   -M model_path="$MODEL_PATH" \\
-  -T config_path="$CONFIG_PATH" \\
+  -T data_path="$DATA_PATH" \\
+  -T prompt="$PROMPT" \\
+  -T system_prompt="$SYSTEM_PROMPT" \\
   --log-dir ./logs
 ```
 
 **Key points:**
-- scaffold-inspect **creates** `eval_config.yaml` for base/control runs
-- This file contains the same fields as setup_finetune.yaml (dataset path, system prompt, format info)
-- File location: in the run directory (e.g., `Llama-3.2-1B-Instruct_base/eval_config.yaml`)
-- Allows consistent invocation pattern across all evaluations
+- The `--model` argument uses a descriptive name (`hf/{run_name}_base`) that gets recorded in the `.eval` file for identification
+- Base models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
+- Values come from `eval_config.yaml` (generated from experiment_summary.yaml)
+- Mirrors fine-tuned approach: config file → SLURM script for auditability
 
 ## Directory Structure Creation
 
@@ -357,13 +458,13 @@ chmod +x {experiment_dir}/{run_dir}/eval/{task_name}_epoch{N}.slurm
 
 ## Error Handling
 
-**If experiment_summary.md not found:**
+**If experiment_summary.yaml not found:**
 - Ask user for experiment directory path
 - Verify file exists before proceeding
 
 **If evaluation task information missing:**
 - Report what's missing (task script path, dataset, etc.)
-- Ask user to update experiment_summary.md
+- Ask user to update experiment_summary.yaml or regenerate with design-experiment
 - Don't proceed without complete information
 
 **If inspect-ai task script doesn't exist:**
@@ -393,7 +494,7 @@ Result: {outcome}
 ### What to Log
 
 - Experiment discovery and validation
-- Parsing experiment_summary.md evaluation sections
+- Parsing experiment_summary.yaml evaluation configuration
 - Verification of inspect-ai task scripts
 - Evaluation matrix analysis (which runs, which epochs, which tasks)
 - Directory creation
@@ -405,7 +506,7 @@ Result: {outcome}
 
 ```
 [2025-10-24 17:00:00] DISCOVER_EXPERIMENT: Found experiment
-Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/experiment_summary.md
+Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/experiment_summary.yaml
 Result: Successfully read experiment plan (8 runs, 1 evaluation task)
 
 [2025-10-24 17:00:05] PARSE_EVAL_TASKS: Extracting evaluation configuration
@@ -432,7 +533,7 @@ Result: SLURM script created (45 lines)
 
 [2025-10-24 17:01:30] COMPLETE: All evaluation configs generated
 Summary: 8 evaluation scripts created successfully, 0 failures
-Next: See experiment_summary.md for workflow next steps (evaluation requires fine-tuning to complete first)
+Note: Evaluation jobs can be submitted after fine-tuning completes
 ```
 
 ## Output Summary
@@ -470,15 +571,10 @@ Each evaluation directory contains:
 
 ### Next Steps
 
-**Refer to experiment_summary.md** for the complete workflow plan, including:
-- When to execute fine-tuning (must complete before evaluation)
-- How to execute evaluation jobs
-- Full experiment timeline and dependencies
-
-**Typical workflow** (see experiment_summary.md for specifics):
-1. Execute model preparation jobs first (evaluations require trained models)
-2. After preparation completes, execute evaluation jobs (via orchestrator or manually)
-3. View and analyze results
+After fine-tuning completes:
+1. Evaluation jobs can be submitted (via run-experiment orchestrator or manually)
+2. Results will be written to `{run_dir}/eval/logs/` directories
+3. Analysis can be performed once evaluations complete
 
 **Manual evaluation submission** (if not using orchestrator, after fine-tuning completes):
 ```bash

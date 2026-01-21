@@ -1,119 +1,199 @@
 # Logging - scaffold-experiment
 
-**See [shared/logging_spec.md](../../shared/logging_spec.md) for complete format specification and general logging guidelines.**
-
-This document covers scaffold-experiment-specific logging practices.
+This document covers scaffold-experiment-specific logging practices for the orchestration process.
 
 ---
 
-## Log File Locations
+## Log File Location
 
-Scaffold-experiment creates tool-specific logs:
+Scaffold-experiment creates an orchestration log:
 
-- **Torchtune scaffolding:** `{experiment_dir}/scaffold-torchtune.log`
-- **Inspect-ai scaffolding:** `{experiment_dir}/scaffold-inspect.log`
+- `{experiment_dir}/scaffold-experiment.log`
 
-Both created during config generation to record what files were created and validation results.
+This log records the high-level orchestration process. Individual subagents create their own detailed logs:
+- `{experiment_dir}/scaffold-torchtune.log` (created by scaffold-torchtune subagent)
+- `{experiment_dir}/scaffold-inspect.log` (created by scaffold-inspect subagent)
+
+**Note on log formats across skills:**
+- `.jsonl` (JSON Lines) - Used by design-experiment for structured audit trails (machine-readable, reproducibility)
+- `.log` (text) - Used by all other skills for human-readable progress tracking
+
+---
+
+## Log Format
+
+```
+[YYYY-MM-DD HH:MM:SS] ACTION: Description
+Details: {specifics}
+Result: {outcome}
+
+```
+
+---
+
+## What to Log
+
+### During Experiment Discovery
+- Experiment directory location
+- Presence of experiment_summary.yaml
+- Number of runs and evaluations identified
+
+### During Prerequisite Verification
+- Which files were checked (experiment_summary.yaml, claude.local.md)
+- Whether all prerequisites satisfied
+- Any missing files or invalid YAML
+
+### During Tool Specification Parsing
+- Preparation and evaluation tools specified
+- Which subagents will be launched
+- Any unsupported tools encountered
+
+### During Subagent Launch
+- Which subagent was launched (scaffold-torchtune, scaffold-inspect)
+- What role it serves (preparation/evaluation)
+- Timestamp of launch
+- Whether parallel execution is being used
+
+### During Subagent Completion
+- Which subagent completed
+- Success or failure status
+- Summary from subagent report (runs configured, evaluations created, etc.)
+- Duration of subagent execution
+- Path to detailed subagent log for more information
+
+### At Completion
+- Total duration of orchestration
+- Which subagents were launched
+- Final status (all success, partial success, failure)
+- Paths to all created log files
+- Next steps recommendation
+
+---
+
+## What NOT to Log
+
+**Orchestration log focuses on high-level flow. Details go in subagent logs:**
+
+- Detailed file contents → subagent logs
+- Individual file creation events → subagent logs
+- Parameter validation details → subagent logs
+- Bash command outputs → subagent logs
+- Config generation specifics → subagent logs
+
+**Principle:** The orchestration log tracks coordination and timing. Subagent logs contain implementation details.
 
 ---
 
 ## Action Types
 
-### Torchtune Actions
+### Orchestration Actions
 
-| Action Type | Purpose |
-|-------------|---------|
-| `SCAFFOLD_TORCHTUNE_START` | Begin fine-tuning config generation |
-| `ANALYZE_PARAMETERS` | Parse experiment_summary.md for varying parameters |
-| `CREATE_RUN_DIRS` | Create run directories |
-| `GENERATE_YAMLS` | Create setup_finetune.yaml files |
-| `RUN_SETUP_SCRIPTS` | Execute setup_finetune.py to generate configs |
-| `VALIDATE_PARAMETERS` | Verify generated configs match directory names |
-| `SCAFFOLD_TORCHTUNE_COMPLETE` | Finish fine-tuning scaffolding |
-
-### Inspect-ai Actions
-
-| Action Type | Purpose |
-|-------------|---------|
-| `SCAFFOLD_INSPECT_START` | Begin evaluation config generation |
-| `ANALYZE_EVALUATION_PLAN` | Parse experiment_summary.md for evaluation plan |
-| `CREATE_EVAL_DIRS` | Create eval/ subdirectories |
-| `VERIFY_TASK_SCRIPTS` | Check that task scripts exist |
-| `GENERATE_SLURM_SCRIPTS` | Create SLURM batch scripts for evaluations |
-| `VALIDATE_SCRIPTS` | Verify scripts reference correct checkpoints |
-| `SCAFFOLD_INSPECT_COMPLETE` | Finish evaluation scaffolding |
-
----
-
-## When to Log
-
-### During Config Parsing
-- Which file is being parsed (experiment_summary.md, claude.local.md)
-- Extracted parameters and paths
-
-### During Selection/Generation
-- Which runs/evaluations are being configured
-- Naming patterns being used
-- Each file created (with template source)
-- Any errors during generation
-
-### During Validation
-- Validation checks performed
-- Validation results (pass/fail)
-- Any mismatches found
-
----
-
-## Module Responsibilities
-
-Each module in optimizers/ and evaluators/ should log its actions:
-
-- **parsing.md:** File parsing and parameter extraction
-- **directory_generation.md / scenario_selection.md:** Which runs/evals selected
-- **yaml_generation.md / slurm_generation.md:** Each config/script file created
-- **script_execution.md:** Setup script execution
-- **validation.md:** All validation checks
+| Action Type | Purpose | When to Log |
+|-------------|---------|-------------|
+| `DISCOVER_EXPERIMENT` | Locate experiment directory | After finding experiment_summary.yaml |
+| `VERIFY_PREREQUISITES` | Check required files exist | After locating experiment |
+| `READ_TOOL_SPECS` | Parse tool specifications from YAML | After reading experiment_summary.yaml |
+| `LAUNCH_SUBAGENTS` | Launch worker subagents in parallel | When invoking Task tool for subagents |
+| `SCAFFOLD_TORCHTUNE_COMPLETE` | Preparation subagent finished | When scaffold-torchtune reports back |
+| `SCAFFOLD_INSPECT_COMPLETE` | Evaluation subagent finished | When scaffold-inspect reports back |
+| `COMPLETE` | Finish scaffolding process | At skill completion |
 
 ---
 
 ## Example Log Entries
 
-### Torchtune Scaffolding
+### Experiment Discovery
 
 ```
-[2025-11-11 10:15:30] SCAFFOLD_TORCHTUNE_START
-Details: Generating fine-tuning configs for 4 runs
-Result: Analyzing experiment_summary.md
-
-[2025-11-11 10:15:31] ANALYZE_PARAMETERS
-Details: Varying parameters: lora_rank, learning_rate
-Result: Directory naming pattern: r{rank}_lr{lr}
-
-[2025-11-11 10:15:34] RUN_SETUP_SCRIPTS
-Details: Batch execution with conda environment activated
-Result: 4 runs processed, 4 successful, 0 failures
-
-[2025-11-11 10:15:45] VALIDATE_PARAMETERS
-Details: Comparing finetune.yaml parameters against directory names
-Result: All runs validated successfully
+[2025-10-24 17:30:00] DISCOVER_EXPERIMENT: Found experiment
+Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_comparison/experiment_summary.yaml
+Result: Experiment plan ready for scaffolding (3 runs, 1 evaluation task)
 ```
 
-### Inspect-ai Scaffolding
+### Prerequisite Verification
 
 ```
-[2025-11-11 10:20:15] SCAFFOLD_INSPECT_START
-Details: Generating evaluation configs for 4 runs × 2 tasks × 2 epochs
-Result: 16 total evaluations to configure
+[2025-10-24 17:30:05] VERIFY_PREREQUISITES: Checking required files
+Details: experiment_summary.yaml exists, claude.local.md found
+Result: All prerequisites satisfied
+```
 
-[2025-11-11 10:20:18] VERIFY_TASK_SCRIPTS
-Details: Checking capitalization.py, reasoning.py
-Result: All task scripts exist
+### Tool Specification Parsing
 
-[2025-11-11 10:20:19] GENERATE_SLURM_SCRIPTS
-Details: Using inspect task prefix pattern
-Result: 16 SLURM scripts created
+```
+[2025-10-24 17:30:08] READ_TOOL_SPECS: Parsing tool specifications
+Details: Reading Tools section from experiment_summary.yaml
+Result: Preparation tool = torchtune, Evaluation tool = inspect-ai
+Explanation: Will launch scaffold-torchtune and scaffold-inspect subagents
+```
 
-[2025-11-11 10:20:20] SCAFFOLD_INSPECT_COMPLETE
-Details: Generated evaluation configs for 16 evaluations
-Duration: 5 seconds
+### Subagent Launch
+
+```
+[2025-10-24 17:30:10] LAUNCH_SUBAGENTS: Starting parallel scaffolding
+Details: Launching scaffold-torchtune and scaffold-inspect in parallel
+Result: Both subagents launched at 2025-10-24 17:30:10
+```
+
+### Preparation Subagent Completion
+
+```
+[2025-10-24 17:31:30] SCAFFOLD_TORCHTUNE_COMPLETE: Fine-tuning configs generated
+Details: 2 fine-tuned runs scaffolded successfully, 1 control run (directory only)
+Duration: 1m 20s
+Result: See scaffold-torchtune.log for detailed process
+Outputs: Llama-3.2-1B-Instruct_rank4/, Llama-3.2-1B-Instruct_rank8/, Llama-3.2-1B-Instruct_base/
+```
+
+### Evaluation Subagent Completion
+
+```
+[2025-10-24 17:31:35] SCAFFOLD_INSPECT_COMPLETE: Evaluation configs generated
+Details: 3 evaluation scripts created successfully (0 failures)
+Duration: 1m 25s
+Result: See scaffold-inspect.log for detailed process
+Outputs: {run_dir}/eval/ directories with SLURM scripts
+```
+
+### Overall Completion
+
+```
+[2025-10-24 17:31:40] COMPLETE: Experiment scaffolding finished
+Summary: All configs generated successfully
+- Fine-tuning: 2 fine-tuned runs + 1 control run ready
+- Evaluation: 3 evaluation scripts ready
+Next: User can proceed with run-experiment skill to execute workflow
+```
+
+---
+
+## Error Logging Examples
+
+### Missing Prerequisite
+
+```
+[2025-10-24 17:30:05] VERIFY_PREREQUISITES: Missing required file
+Details: experiment_summary.yaml not found in /path/to/experiment
+Result: FAILURE - Cannot proceed without experiment plan
+Action: Suggest user run design-experiment skill first
+```
+
+### Subagent Failure
+
+```
+[2025-10-24 17:31:30] SCAFFOLD_TORCHTUNE_COMPLETE: Fine-tuning scaffolding failed
+Details: scaffold-torchtune subagent reported errors
+Duration: 1m 20s
+Result: FAILURE - See scaffold-torchtune.log for error details
+Recommendation: Check experiment_summary.yaml for completeness, verify claude.local.md settings
+```
+
+### Partial Success
+
+```
+[2025-10-24 17:31:40] COMPLETE: Experiment scaffolding partially successful
+Summary: Fine-tuning configs generated, evaluation scaffolding failed
+- Fine-tuning: 2 runs ready (scaffold-torchtune succeeded)
+- Evaluation: Failed (scaffold-inspect encountered errors)
+Next: User can proceed with fine-tuning only, or fix evaluation issues and re-run scaffold-inspect
 ```

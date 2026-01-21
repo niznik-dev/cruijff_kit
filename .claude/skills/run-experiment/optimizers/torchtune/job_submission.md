@@ -29,17 +29,7 @@ Track:
 - Submission timestamp
 - Initial status (PENDING)
 
-### 4. Update experiment_summary.md
-
-Update Fine-tuning status table:
-
-```markdown
-| Run Name | Status | Job ID | Started | Completed | Notes |
-|----------|--------|--------|---------|-----------|-------|
-| r8_lr1e-5 | PENDING | 12345678 | 2025-11-11 14:30:00 | - | - |
-```
-
-### 5. Stagger Submissions
+### 4. Stagger Submissions
 
 **CRITICAL:** Wait 5 seconds before submitting next job.
 
@@ -57,7 +47,7 @@ sleep 5
 **If submission fails:**
 - Log the error with details
 - Continue with remaining jobs
-- Record failure in status table
+- Record failure in run state
 - Report all failures in final summary
 
 ## Logging
@@ -74,7 +64,6 @@ Note: 5 second stagger delay to prevent cache collision
 ## Output
 
 - All jobs submitted with captured job IDs
-- experiment_summary.md updated with job metadata
 - Detailed log of submissions
 
 ## Next Stage

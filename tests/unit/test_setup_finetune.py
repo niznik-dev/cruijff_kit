@@ -10,6 +10,8 @@ from cruijff_kit.tools.torchtune.setup_finetune import (
     validate_dataset_type,
     construct_output_dir,
     configure_dataset_for_format,
+    extract_flat_params,
+    RECIPE_PARAM_MAPPING,
 )
 
 
@@ -155,13 +157,13 @@ def test_validate_lr_scheduler_invalid():
 # Tests for validate_dataset_type()
 
 @pytest.mark.parametrize("dataset_type", [
+    "chat_completion",
     "instruct_dataset",
     "chat_dataset",
     "text_completion_dataset",
 ])
 def test_validate_dataset_type_valid(dataset_type):
     """Test that valid dataset_type names pass validation."""
-    # Should not raise any exception
     validate_dataset_type(dataset_type)
 
 
@@ -359,3 +361,205 @@ def test_configure_dataset_json_chat_without_validation():
     assert "split" not in result["dataset"]
     assert "data_dir" not in result["dataset"]
     assert "dataset_val" not in result
+
+
+def test_configure_dataset_chat_completion():
+    """Test chat_completion format - should not modify dataset config."""
+    config = {
+        "dataset": {
+            "data_files": "/data/my_dataset.json",
+            "split": "train",
+            "model_path": "/models/Llama-3.2-1B-Instruct",
+            "prompt": "{input}\n",
+            "system_prompt": ""
+        },
+        "dataset_val": {
+            "data_files": "/data/my_dataset.json",
+            "split": "validation",
+            "model_path": "/models/Llama-3.2-1B-Instruct",
+            "prompt": "{input}\n",
+            "system_prompt": ""
+        }
+    }
+
+    result = configure_dataset_for_format(
+        config,
+        dataset_label="my_dataset",
+        dataset_ext=".json",
+        dataset_type="chat_completion"
+    )
+
+    # chat_completion should pass through config unchanged (except dataset_label)
+    assert result["dataset_label"] == "my_dataset"
+    assert result["dataset"]["data_files"] == "/data/my_dataset.json"
+    assert result["dataset"]["split"] == "train"
+    assert result["dataset"]["model_path"] == "/models/Llama-3.2-1B-Instruct"
+    assert result["dataset"]["prompt"] == "{input}\n"
+    assert result["dataset_val"]["data_files"] == "/data/my_dataset.json"
+    assert result["dataset_val"]["split"] == "validation"
+
+
+# Tests for extract_flat_params()
+
+def test_extract_flat_params_basic():
+    """Test extracting flat parameters from nested recipe config."""
+    recipe_config = {
+        "model": {
+            "lora_rank": 64,
+            "lora_dropout": 0.1,
+        },
+        "optimizer": {
+            "lr": 3e-4,
+            "weight_decay": 0.01,
+        },
+        "batch_size": 4,
+        "epochs": 2,
+    }
+
+    result = extract_flat_params(recipe_config, RECIPE_PARAM_MAPPING)
+
+    assert result["lora_rank"] == 64
+    assert result["lora_dropout"] == 0.1
+    assert result["lr"] == 3e-4
+    assert result["weight_decay"] == 0.01
+    assert result["batch_size"] == 4
+    assert result["epochs"] == 2
+
+
+def test_extract_flat_params_missing_keys():
+    """Test that missing keys are silently skipped."""
+    recipe_config = {
+        "model": {
+            "lora_rank": 64,
+            # lora_dropout is missing
+        },
+        # optimizer section is missing entirely
+        "batch_size": 4,
+    }
+
+    result = extract_flat_params(recipe_config, RECIPE_PARAM_MAPPING)
+
+    assert result["lora_rank"] == 64
+    assert result["batch_size"] == 4
+    assert "lora_dropout" not in result
+    assert "lr" not in result
+    assert "weight_decay" not in result
+
+
+def test_extract_flat_params_empty_config():
+    """Test with empty recipe config."""
+    recipe_config = {}
+
+    result = extract_flat_params(recipe_config, RECIPE_PARAM_MAPPING)
+
+    assert result == {}
+
+
+def test_extract_flat_params_deeply_nested():
+    """Test extracting from deeply nested config."""
+    recipe_config = {
+        "lr_scheduler": {
+            "num_warmup_steps": 100,
+        },
+        "tokenizer": {
+            "max_seq_len": 2048,
+        },
+    }
+
+    result = extract_flat_params(recipe_config, RECIPE_PARAM_MAPPING)
+
+    assert result["num_warmup_steps"] == 100
+    assert result["max_seq_len"] == 2048
+
+
+def test_extract_flat_params_with_none_values():
+    """Test that None values are extracted correctly."""
+    recipe_config = {
+        "model": {
+            "lora_rank": None,
+        },
+        "batch_size": None,
+    }
+
+    result = extract_flat_params(recipe_config, RECIPE_PARAM_MAPPING)
+
+    assert result["lora_rank"] is None
+    assert result["batch_size"] is None
+
+
+def test_extract_flat_params_custom_mapping():
+    """Test with a custom mapping dictionary."""
+    recipe_config = {
+        "custom": {
+            "nested": {
+                "value": 42,
+            }
+        },
+        "top_level": "hello",
+    }
+
+    custom_mapping = {
+        "custom.nested.value": "my_value",
+        "top_level": "my_top",
+    }
+
+    result = extract_flat_params(recipe_config, custom_mapping)
+
+    assert result["my_value"] == 42
+    assert result["my_top"] == "hello"
+
+
+def test_extract_flat_params_all_mapped_params():
+    """Test extraction of all parameters in RECIPE_PARAM_MAPPING."""
+    # Create a recipe config that has all the mapped parameters
+    recipe_config = {
+        "model": {
+            "lora_rank": 8,
+            "lora_dropout": 0.05,
+        },
+        "optimizer": {
+            "lr": 1e-5,
+            "weight_decay": 0.02,
+        },
+        "batch_size": 2,
+        "epochs": 3,
+        "gradient_accumulation_steps": 16,
+        "lr_scheduler": {
+            "num_warmup_steps": 50,
+        },
+        "tokenizer": {
+            "max_seq_len": 4096,
+        },
+    }
+
+    result = extract_flat_params(recipe_config, RECIPE_PARAM_MAPPING)
+
+    # Verify all mapped parameters are extracted
+    assert result["lora_rank"] == 8
+    assert result["lora_dropout"] == 0.05
+    assert result["lr"] == 1e-5
+    assert result["weight_decay"] == 0.02
+    assert result["batch_size"] == 2
+    assert result["epochs"] == 3
+    assert result["gradient_accumulation_steps"] == 16
+    assert result["num_warmup_steps"] == 50
+    assert result["max_seq_len"] == 4096
+
+
+def test_recipe_param_mapping_has_expected_keys():
+    """Test that RECIPE_PARAM_MAPPING contains all expected parameter mappings."""
+    expected_mappings = {
+        "model.lora_rank": "lora_rank",
+        "model.lora_dropout": "lora_dropout",
+        "optimizer.lr": "lr",
+        "optimizer.weight_decay": "weight_decay",
+        "batch_size": "batch_size",
+        "epochs": "epochs",
+        "gradient_accumulation_steps": "gradient_accumulation_steps",
+        "lr_scheduler.num_warmup_steps": "num_warmup_steps",
+        "tokenizer.max_seq_len": "max_seq_len",
+    }
+
+    for recipe_path, arg_name in expected_mappings.items():
+        assert recipe_path in RECIPE_PARAM_MAPPING, f"Missing mapping for {recipe_path}"
+        assert RECIPE_PARAM_MAPPING[recipe_path] == arg_name

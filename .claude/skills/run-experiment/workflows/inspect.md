@@ -6,7 +6,7 @@ This document describes the detailed step-by-step process for executing inspect-
 
 ## Prerequisites
 
-- experiment_summary.md exists
+- experiment_summary.yaml exists
 - Evaluation scaffolding complete (eval/*.slurm files exist)
 - Fine-tuning complete (model checkpoints exist)
 - SLURM cluster access
@@ -15,11 +15,11 @@ This document describes the detailed step-by-step process for executing inspect-
 
 ### 1. Parse Experiment Configuration
 
-**Read experiment_summary.md:**
-- Extract experiment name
-- Parse "All Runs" table
-- Parse "Evaluations" status table
-- Identify output directories for model checkpoints
+**Read experiment_summary.yaml:**
+- Extract experiment name from `experiment.name`
+- Parse `runs:` section for run names and types
+- Parse `evaluation.matrix:` section for which runs/epochs to evaluate
+- Identify output directories from `output.base_directory`
 
 **Scan for evaluation scripts:**
 ```bash
@@ -116,7 +116,6 @@ job_id=$(sbatch {task}_epoch{N}.slurm | awk '{print $4}')
 **Record submission:**
 - Capture job ID
 - Record timestamp
-- Update experiment_summary.md evaluations table
 
 **No stagger delay needed:**
 Unlike fine-tuning, evaluations don't have cache race conditions. Can submit rapidly (optional 1-second delay for rate limiting).
@@ -139,9 +138,6 @@ sacct -j {job_id} --format=JobID,State,Start,End,Elapsed
 - PENDING → RUNNING: Record transition
 - RUNNING → COMPLETED: Record completion timestamp and elapsed time
 - RUNNING → FAILED: Record failure and note to check logs
-
-**Update experiment_summary.md:**
-Update Evaluations status table with current state, completion times, elapsed times.
 
 **Continue until all terminal:**
 Stop monitoring when all jobs reach: COMPLETED, FAILED, CANCELLED, or TIMEOUT
@@ -167,9 +163,6 @@ ls {run_dir}/eval/logs/*.eval
 ```
 
 For each COMPLETED evaluation, verify inspect-ai log file exists.
-
-**Check experiment_summary.md updated:**
-Verify evaluations status table populated.
 
 **Check log file created:**
 Verify detailed execution log exists.
@@ -223,7 +216,6 @@ Create detailed log at `{experiment_dir}/run-inspect.log` (or similar name based
 - ✓ All evaluations submitted successfully
 - ✓ All jobs reached terminal states
 - ✓ Evaluation logs exist for COMPLETED jobs
-- ✓ experiment_summary.md fully updated
 - ✓ Log file complete
 
 ## Important Notes
