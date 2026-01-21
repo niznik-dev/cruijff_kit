@@ -159,6 +159,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._tqdm_miniters = cfg.get("tqdm_miniters", 100)
 
         if self._log_peak_memory_stats and self._device.type == "cpu":
             log.info(
@@ -734,7 +735,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
             for curr_epoch in range(self.epochs_run, self.total_epochs):
-                pbar = tqdm(total=self._steps_per_epoch)
+                pbar = tqdm(total=self._steps_per_epoch, miniters=self._tqdm_miniters)
                 self._dataloader.sampler.set_epoch(curr_epoch)
                 for idx, batch in enumerate(self._dataloader):
                     # Start tracking CUDA memory for active steps for just the first epoch
@@ -776,10 +777,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self.global_step += 1
 
                         loss_to_log = running_loss.item() / num_tokens
-                        pbar.update(1)
                         pbar.set_description(
-                            f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}"
+                            f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}",
+                            refresh=False
                         )
+                        pbar.update(1)
 
                         # Log per-step metrics
                         if self.global_step % self._log_every_n_steps == 0:
