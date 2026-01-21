@@ -144,7 +144,7 @@ python -c "import cruijff_kit; print('cruijff_kit installed successfully')"
 ## Troubleshooting
 
 **Issue**: Import errors for cruijff_kit
-**Solution**: Ensure you ran `pip install -e .` from the repository root directory
+**Solution**: Ensure you ran `make install` (or `make install-dev` for contributors) from the repository root directory
 
 # Downloading a model
 
