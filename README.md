@@ -146,6 +146,39 @@ python -c "import cruijff_kit; print('cruijff_kit installed successfully')"
 **Issue**: Import errors for cruijff_kit
 **Solution**: Ensure you ran `make install` (or `make install-dev` for contributors) from the repository root directory
 
+## Claude Code (Optional)
+
+[Claude Code](https://claude.ai/download) is an AI coding assistant that powers the skills-based workflows in this toolkit. If you want to use the automated experiment workflows (`/design-experiment`, `/scaffold-experiment`, `/run-experiment`), you'll need Claude Code installed.
+
+**Installation (Linux/macOS):**
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+**Installation (Windows PowerShell):**
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+**First run:**
+```bash
+claude
+```
+
+This will open a browser window to authenticate with your Anthropic account.
+
+**Verify installation:**
+```bash
+claude --version
+```
+
+**Troubleshooting:**
+```bash
+claude doctor
+```
+
+See the [Claude Code documentation](https://code.claude.com/docs/en/setup) for more details.
+
 # Downloading a model
 
 Next you'll need a model to finetune and evaluate with. Here's how to get one *the torchtune way*:
