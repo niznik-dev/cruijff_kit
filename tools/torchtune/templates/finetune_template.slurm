@@ -18,6 +18,10 @@ module purge
 module load anaconda3/2025.6
 conda activate <CONDA_ENV>
 
+# Throttle tqdm progress bar updates to prevent log file bloat
+# (Default is 0.1s which generates ~100KB logs that choke monitoring tools)
+export TQDM_MININTERVAL=30
+
 mkdir -p <OUTPUT_DIR>logs/wandb  # wandb is picky about existing dirs
 cp finetune.slurm setup_finetune.yaml <OUTPUT_DIR>/  # Copy config to output dir for reference
 tune run lora_finetune_single_device \
