@@ -8,7 +8,7 @@ Map experimental characteristics to appropriate views:
 
 | Characteristic | View | Rationale |
 |----------------|------|-----------|
-| Multiple models being compared | `scores_by_model` | Bar chart comparing model performance |
+| Multiple models + single task | `scores_by_model` | Bar chart comparing model performance (single task only) |
 | Binary factor (yes/no, with/without) | `scores_by_factor` | Paired comparison across factor levels |
 | Multiple tasks or conditions | `scores_by_task` | Compare scores across different tasks |
 | Model × task combinations | `scores_heatmap` | Matrix visualization of all combinations |
@@ -33,11 +33,12 @@ def infer_visualizations(config, logs_df):
     # Check for binary factors
     binary_factors = [v for v in variables if v['type'] == 'binary']
 
-    # Rule 1: Multiple models → scores_by_model
-    if n_models > 1:
+    # Rule 1: Multiple models + single task → scores_by_model
+    # Note: scores_by_model requires single-task experiments
+    if n_models > 1 and n_tasks == 1:
         views.append({
             'view': 'scores_by_model',
-            'reason': f'Found {n_models} models to compare'
+            'reason': f'Found {n_models} models with single task'
         })
 
     # Rule 2: Binary factor → scores_by_factor

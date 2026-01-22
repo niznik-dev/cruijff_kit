@@ -101,7 +101,7 @@ plot = scores_by_factor(
 
 ### scores_by_model
 
-Compare models directly.
+Compare models directly. **Requires single-task experiments only.**
 
 ```python
 plot = scores_by_model(
@@ -113,6 +113,8 @@ plot = scores_by_model(
     height=200                      # Plot height in pixels
 )
 ```
+
+**Note:** This view will fail if the data contains multiple tasks. For multi-task experiments, use `scores_heatmap` or `scores_by_task` instead.
 
 ## Output File Naming
 

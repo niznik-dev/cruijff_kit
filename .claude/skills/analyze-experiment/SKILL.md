@@ -99,7 +99,9 @@ Document process in `{experiment_dir}/analyze-experiment.jsonl`
 | `scores_heatmap` | Model × task matrix | model + task columns |
 | `scores_radar_by_task` | Multiple metrics | Multiple score columns |
 | `scores_by_factor` | Binary factors | Boolean factor column |
-| `scores_by_model` | Cross-model comparison | model column |
+| `scores_by_model` | Cross-model comparison (single task only) | model column, single task |
+
+**Note:** `scores_by_model` requires a single-task experiment. For multi-task experiments, use `scores_by_task`, `scores_heatmap`, or `scores_radar_by_task` instead.
 
 ## Output Structure
 
