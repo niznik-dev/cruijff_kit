@@ -11,7 +11,6 @@ Key functions:
 """
 
 import subprocess
-import tempfile
 import yaml
 import logging
 from pathlib import Path
@@ -122,12 +121,13 @@ def extract_recipe_config(recipe_name: str, output_path: Optional[str] = None) -
     try:
         # Create output path if not provided
         if output_path is None:
-            # Create a temp file in system temp directory
-            temp_dir = Path(tempfile.gettempdir()) / "cruijff_kit_recipes"
-            temp_dir.mkdir(exist_ok=True)
+            # Create cache directory in project root (.claude/cache/recipes)
+            project_root = Path(__file__).parent.parent.parent
+            cache_dir = project_root / ".claude" / "cache" / "recipes"
+            cache_dir.mkdir(parents=True, exist_ok=True)
             # Use recipe name as filename (replace / with _)
             safe_name = recipe_name.replace('/', '_')
-            output_path = str(temp_dir / f"{safe_name}.yaml")
+            output_path = str(cache_dir / f"{safe_name}.yaml")
 
         output_file = Path(output_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
