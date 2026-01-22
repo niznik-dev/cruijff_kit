@@ -16,6 +16,9 @@ htmlcov/
 # Environment-specific configuration (users should customize from template)
 claude.local.md
 
+# User-specific cache directory (i.e., torchtune recipes)
+.claude/cache/
+
 # Data access tiers - exclude all data files but keep documentation
 data/red/*
 !data/red/CLAUDE.md
