@@ -1,0 +1,199 @@
+# Inference: Selecting Appropriate Visualizations
+
+This module describes how to infer which inspect-viz pre-built views are appropriate for a given experiment based on its variables and structure.
+
+## View Selection Logic
+
+Map experimental characteristics to appropriate views:
+
+| Characteristic | View | Rationale |
+|----------------|------|-----------|
+| Multiple models being compared | `scores_by_model` | Bar chart comparing model performance |
+| Binary factor (yes/no, with/without) | `scores_by_factor` | Paired comparison across factor levels |
+| Multiple tasks or conditions | `scores_by_task` | Compare scores across different tasks |
+| Model × task combinations | `scores_heatmap` | Matrix visualization of all combinations |
+| Multiple metrics to compare | `scores_radar_by_task` | Radar plot showing metric trade-offs |
+
+## Inference Algorithm
+
+```python
+def infer_visualizations(config, logs_df):
+    """
+    Determine which visualizations to generate based on experiment structure.
+
+    Returns list of view specifications.
+    """
+    views = []
+    variables = extract_variable_info(config)
+
+    # Count unique values in key columns
+    n_models = logs_df['model'].nunique() if 'model' in logs_df.columns else 0
+    n_tasks = logs_df['task_name'].nunique() if 'task_name' in logs_df.columns else 0
+
+    # Check for binary factors
+    binary_factors = [v for v in variables if v['type'] == 'binary']
+
+    # Rule 1: Multiple models → scores_by_model
+    if n_models > 1:
+        views.append({
+            'view': 'scores_by_model',
+            'reason': f'Found {n_models} models to compare'
+        })
+
+    # Rule 2: Binary factor → scores_by_factor
+    if binary_factors:
+        for factor in binary_factors:
+            views.append({
+                'view': 'scores_by_factor',
+                'factor': factor['name'],
+                'reason': f'Binary factor: {factor["name"]}'
+            })
+
+    # Rule 3: Multiple tasks → scores_by_task
+    if n_tasks > 1:
+        views.append({
+            'view': 'scores_by_task',
+            'reason': f'Found {n_tasks} tasks/conditions'
+        })
+
+    # Rule 4: Model × task matrix → scores_heatmap
+    if n_models > 1 and n_tasks > 1:
+        views.append({
+            'view': 'scores_heatmap',
+            'reason': f'Model × task matrix ({n_models} × {n_tasks})'
+        })
+
+    # Rule 5: Multiple score columns → scores_radar_by_task
+    score_cols = [c for c in logs_df.columns if c.startswith('score_') and c.endswith('_accuracy')]
+    if len(score_cols) > 1:
+        views.append({
+            'view': 'scores_radar_by_task',
+            'scores': score_cols,
+            'reason': f'Multiple metrics: {score_cols}'
+        })
+
+    return views
+```
+
+## Capitalization Experiment Inference
+
+For capitalization experiments, the inference is based on the experiment type:
+
+### Word Length Experiments
+
+**Characteristics:**
+- Multiple word lengths (5L, 6L, 7L, etc.)
+- Usually 1-2 models
+
+**Inferred views:**
+- `scores_by_task` - Compare accuracy across word lengths
+- `scores_heatmap` - Model × word length matrix (if multiple models)
+- `scores_radar_by_task` - Match vs. includes accuracy comparison
+
+### Model × Prompt Experiments
+
+**Characteristics:**
+- Binary factor: with_prompt vs no_prompt
+- Usually multiple models
+
+**Inferred views:**
+- `scores_by_factor` - Effect of prompt on each model
+- `scores_by_model` - Overall model comparison
+
+### Cross-Organization Experiments
+
+**Characteristics:**
+- Models from different organizations
+- Single task
+
+**Inferred views:**
+- `scores_by_model` - Direct model comparison
+
+## Variable Type Detection
+
+Detect variable types from experiment_summary.yaml:
+
+```python
+def detect_variable_type(values):
+    """Detect if variable is binary, continuous, or categorical."""
+
+    # Binary: exactly 2 values that look boolean-ish
+    if len(values) == 2:
+        bool_patterns = [True, False, 0, 1, 'yes', 'no', 'true', 'false',
+                        'with_prompt', 'no_prompt', 'enabled', 'disabled']
+        if all(str(v).lower() in [str(p).lower() for p in bool_patterns] for v in values):
+            return 'binary'
+
+    # Continuous: all numeric
+    if all(isinstance(v, (int, float)) for v in values):
+        return 'continuous'
+
+    # Default: categorical
+    return 'categorical'
+```
+
+## Column Detection
+
+Check what columns are available in the loaded dataframe:
+
+```python
+def detect_available_columns(logs_df):
+    """Detect which columns are available for visualization."""
+
+    available = {
+        'model': 'model' in logs_df.columns,
+        'task_name': 'task_name' in logs_df.columns,
+        'model_display_name': 'model_display_name' in logs_df.columns,
+    }
+
+    # Find score columns
+    available['score_columns'] = [
+        c for c in logs_df.columns
+        if c.startswith('score_') and c.endswith('_accuracy')
+    ]
+
+    # Find potential factor columns (boolean)
+    available['factor_columns'] = [
+        c for c in logs_df.columns
+        if logs_df[c].dtype == bool
+    ]
+
+    return available
+```
+
+## Handling Ambiguous Cases
+
+If inference cannot determine the appropriate view:
+
+1. **Log the ambiguity:**
+   ```json
+   {"action": "INFER", "status": "ambiguous", "message": "Could not determine view type", "available_columns": [...]}
+   ```
+
+2. **Ask user for guidance:**
+   ```
+   I found {N} models and {M} tasks but I'm not sure which visualization would be most useful.
+
+   Options:
+   1. scores_by_model - Compare models directly
+   2. scores_by_task - Compare across tasks
+   3. scores_heatmap - Show model × task matrix
+   4. All of the above
+
+   Which would you prefer?
+   ```
+
+3. **Default to safe options:**
+   - If multiple models: generate `scores_by_model`
+   - If multiple tasks: generate `scores_by_task`
+   - Always safe to generate multiple views
+
+## Logging
+
+Log inference decisions:
+
+```json
+{"action": "INFER", "timestamp": "...", "views_selected": ["scores_by_task", "scores_heatmap"], "reasons": ["Found 3 tasks", "2 models × 3 tasks matrix"], "status": "success"}
+```
+
+See `logging.md` for complete format specification.
