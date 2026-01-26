@@ -335,6 +335,10 @@ inspect eval {task_script_path}@{task_name} \\
   {if fine-tuned:}--model hf/{run_name}_epoch_{N} \\
   {if base model:}--model hf/{run_name}_base \\
   -M model_path="$MODEL_PATH" \\
+  {if fine-tuned:}-M epoch={N} \\
+  {if fine-tuned:}-M finetuned=true \\
+  {if base model:}-M finetuned=false \\
+  -M source_model="{model_name from experiment_summary.yaml}" \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
   -T system_prompt="$SYSTEM_PROMPT" \\
@@ -401,6 +405,9 @@ SYSTEM_PROMPT=""
 inspect eval capitalization.py@capitalization \\
   --model hf/{run_name}_epoch_0 \\
   -M model_path="$MODEL_PATH" \\
+  -M epoch=0 \\
+  -M finetuned=true \\
+  -M source_model="Llama-3.2-1B-Instruct" \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
   -T system_prompt="$SYSTEM_PROMPT" \\
@@ -409,6 +416,7 @@ inspect eval capitalization.py@capitalization \\
 
 **Key points:**
 - The `--model` argument uses a descriptive name (`hf/{run_name}_epoch_{N}`) that gets recorded in the `.eval` file for identification
+- Metadata flags (`-M epoch`, `-M finetuned`, `-M source_model`) enable filtering/grouping in inspect-viz
 - Values are extracted from `setup_finetune.yaml` **at scaffolding time** and baked into the SLURM script
 - No config file parsing happens at eval runtime
 - Ensures exact match between training and evaluation parameters
@@ -427,6 +435,8 @@ SYSTEM_PROMPT=""
 inspect eval capitalization.py@capitalization \\
   --model hf/{run_name}_base \\
   -M model_path="$MODEL_PATH" \\
+  -M finetuned=false \\
+  -M source_model="Llama-3.2-1B-Instruct" \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
   -T system_prompt="$SYSTEM_PROMPT" \\
@@ -435,6 +445,7 @@ inspect eval capitalization.py@capitalization \\
 
 **Key points:**
 - The `--model` argument uses a descriptive name (`hf/{run_name}_base`) that gets recorded in the `.eval` file for identification
+- Metadata flags (`-M finetuned=false`, `-M source_model`) enable filtering/grouping in inspect-viz (no `epoch` for base models)
 - Base models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
 - Values come from `eval_config.yaml` (generated from experiment_summary.yaml)
 - Mirrors fine-tuned approach: config file → SLURM script for auditability
