@@ -6,6 +6,11 @@ from pathlib import Path
 
 from cruijff_kit.utils import run_names
 from cruijff_kit.tools.torchtune import config_recipe_loader
+from cruijff_kit.tools.torchtune.model_configs import (
+    MODEL_CONFIGS,
+    configure_tokenizer,
+    VALID_TOKENIZER_PATH_TYPES,
+)
 
 # Calculate paths relative to this script
 script_dir = Path(__file__).parent
@@ -48,87 +53,6 @@ def extract_flat_params(recipe_config: dict, mapping: dict) -> dict:
         except (KeyError, TypeError):
             continue  # Parameter not in recipe
     return flat
-
-# Model-specific configurations
-# Keys are model directory names (e.g., "Llama-3.2-3B-Instruct")
-# SLURM resources follow RAM=VRAM rule to ensure checkpoint saving doesn't OOM
-MODEL_CONFIGS = {
-    "Llama-3.2-1B-Instruct": {
-        "component": "torchtune.models.llama3_2.lora_llama3_2_1b",
-        "checkpoint_files": ["model.safetensors"],
-        "model_type": "LLAMA3_2",
-        "dataset_type": "chat_completion",
-        "slurm": {
-            "mem": "40G",
-            "partition": "nomig",  # Avoid MIG partitions by default
-            "constraint": None,
-            "cpus": 4,
-            "gpus": 1,
-        },
-    },
-    "Llama-3.2-3B-Instruct": {
-        "component": "torchtune.models.llama3_2.lora_llama3_2_3b",
-        "checkpoint_files": {
-            "filename_format": "model-{}-of-{}.safetensors",
-            "max_filename": "00002",
-        },
-        "model_type": "LLAMA3_2",
-        "dataset_type": "chat_completion",
-        "slurm": {
-            "mem": "80G",
-            "partition": None,
-            "constraint": "gpu80",
-            "cpus": 4,
-            "gpus": 1,
-        },
-    },
-    "Llama-3.1-8B-Instruct": {
-        "component": "torchtune.models.llama3_1.lora_llama3_1_8b",
-        "checkpoint_files": {
-            "filename_format": "model-{}-of-{}.safetensors",
-            "max_filename": "00004",
-        },
-        "model_type": "LLAMA3",
-        "dataset_type": "chat_completion",
-        "slurm": {
-            "mem": "80G",
-            "partition": None,
-            "constraint": "gpu80",
-            "cpus": 4,
-            "gpus": 1,
-        },
-    },
-    "Llama-3.3-70B-Instruct": {
-        "component": "torchtune.models.llama3_3.lora_llama3_3_70b",
-        "checkpoint_files": {
-            "filename_format": "model-{}-of-{}.safetensors",
-            "max_filename": "00030",
-        },
-        "model_type": "LLAMA3",
-        "dataset_type": "chat_completion",
-        "slurm": {
-            "mem": "320G",
-            "partition": None,
-            "constraint": "gpu80",
-            "cpus": 16,
-            "gpus": 4,
-        },
-    },
-    # Base/Foundation models - use text_completion (simple concatenation)
-    "Llama-3.2-1B": {
-        "component": "torchtune.models.llama3_2.lora_llama3_2_1b",
-        "checkpoint_files": ["model.safetensors"],
-        "model_type": "LLAMA3_2",
-        "dataset_type": "text_completion",
-        "slurm": {
-            "mem": "40G",
-            "partition": "nomig",
-            "constraint": None,
-            "cpus": 4,
-            "gpus": 1,
-        },
-    },
-}
 
 # Used for epochs_to_save to allow for all/none options
 def parse_epochs(value):
@@ -471,8 +395,8 @@ def main():
             # Set model component
             config["model"]["_component_"] = model_config["component"]
 
-            # Set tokenizer path
-            config["tokenizer"]["path"] = f"${{models_dir}}/{model_dir}/original/tokenizer.model"
+            # Set tokenizer path based on model family
+            configure_tokenizer(config, model_config, model_dir, args.torchtune_model_name)
 
             # Set checkpointer config
             config["checkpointer"]["checkpoint_dir"] = f"${{models_dir}}/{model_dir}/"
