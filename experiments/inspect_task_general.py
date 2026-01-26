@@ -5,8 +5,11 @@ A flexible evaluation task that works with JSON datasets containing input/output
 Can be used for any experiment in experiments/ directory.
 
 Usage:
-    # Evaluate fine-tuned model (reads from setup_finetune.yaml)
+    # Evaluate fine-tuned instruct model (reads from setup_finetune.yaml)
     inspect eval experiments/inspect_task_general.py --model hf/local -M model_path=/path/to/model -T config_dir=/path/to/epoch_0
+
+    # Evaluate fine-tuned base model (text_completion):
+    inspect eval experiments/inspect_task_general.py --model hf/local -M model_path=/path/to/model -T dataset_path=/path/to/data.json -T use_chat_template=false
 
     # Standalone evaluation with direct dataset path
     inspect eval experiments/inspect_task_general.py --model hf/local -M model_path=/path/to/model -T dataset_path=/path/to/data.json
@@ -33,7 +36,8 @@ def general_eval(
     system_prompt: str = "",
     temperature: float = 0.0,
     split: str = "test",
-    max_tokens: Optional[int] = None
+    max_tokens: Optional[int] = None,
+    use_chat_template: bool = True,
 ) -> Task:
     """
     General evaluation task for input/output pair datasets.
@@ -46,6 +50,8 @@ def general_eval(
         temperature: Generation temperature (default: 0.0 for deterministic output).
         split: Which data split to use (default: "test").
         max_tokens: Maximum tokens to generate (default: None, uses model default).
+        use_chat_template: If True, use chat format with system message (instruct models).
+                          If False, use simple text (base models). Should match training.
 
     Returns:
         Task: Configured inspect-ai task
@@ -121,15 +127,26 @@ def general_eval(
         sample_fields=record_to_sample
     )
 
-    # Build solver chain
-    solver_chain = chain(
-        system_message(system_prompt),
-        prompt_template("{prompt}"),
-        generate({
-            "temperature": temperature,
-            **({"max_tokens": max_tokens} if max_tokens else {})
-        })
-    )
+    # Build solver chain based on chat template usage
+    if use_chat_template:
+        # Instruct models: use chat format with system message
+        solver_chain = chain(
+            system_message(system_prompt),
+            prompt_template("{prompt}"),
+            generate({
+                "temperature": temperature,
+                **({"max_tokens": max_tokens} if max_tokens else {})
+            })
+        )
+    else:
+        # Base models: simple text, no system message
+        solver_chain = chain(
+            prompt_template("{prompt}"),
+            generate({
+                "temperature": temperature,
+                **({"max_tokens": max_tokens} if max_tokens else {})
+            })
+        )
 
     # Configure scorers
     # Using multiple scorers to get different perspectives on accuracy

@@ -57,6 +57,7 @@ MODEL_CONFIGS = {
         "component": "torchtune.models.llama3_2.lora_llama3_2_1b",
         "checkpoint_files": ["model.safetensors"],
         "model_type": "LLAMA3_2",
+        "dataset_type": "chat_completion",
         "slurm": {
             "mem": "40G",
             "partition": "nomig",  # Avoid MIG partitions by default
@@ -72,6 +73,7 @@ MODEL_CONFIGS = {
             "max_filename": "00002",
         },
         "model_type": "LLAMA3_2",
+        "dataset_type": "chat_completion",
         "slurm": {
             "mem": "80G",
             "partition": None,
@@ -87,6 +89,7 @@ MODEL_CONFIGS = {
             "max_filename": "00004",
         },
         "model_type": "LLAMA3",
+        "dataset_type": "chat_completion",
         "slurm": {
             "mem": "80G",
             "partition": None,
@@ -102,12 +105,27 @@ MODEL_CONFIGS = {
             "max_filename": "00030",
         },
         "model_type": "LLAMA3",
+        "dataset_type": "chat_completion",
         "slurm": {
             "mem": "320G",
             "partition": None,
             "constraint": "gpu80",
             "cpus": 16,
             "gpus": 4,
+        },
+    },
+    # Base/Foundation models - use text_completion (simple concatenation)
+    "Llama-3.2-1B": {
+        "component": "torchtune.models.llama3_2.lora_llama3_2_1b",
+        "checkpoint_files": ["model.safetensors"],
+        "model_type": "LLAMA3_2",
+        "dataset_type": "text_completion",
+        "slurm": {
+            "mem": "40G",
+            "partition": "nomig",
+            "constraint": None,
+            "cpus": 4,
+            "gpus": 1,
         },
     },
 }
@@ -200,7 +218,8 @@ def validate_dataset_type(dataset_type):
         ValueError: If dataset_type is not in the list of valid types
     """
     VALID_DATASET_TYPES = [
-        'chat_completion',  # Default - uses HF apply_chat_template for train/eval parity
+        'chat_completion',  # Instruct models - uses HF apply_chat_template for train/eval parity
+        'text_completion',  # Base models - simple concatenation with HF tokenizer
         'instruct_dataset',
         'chat_dataset',
         'text_completion_dataset'
@@ -250,7 +269,7 @@ def configure_dataset_for_format(config, dataset_label, dataset_ext, dataset_typ
     """
     config["dataset_label"] = dataset_label
 
-    if dataset_type == 'chat_completion':
+    if dataset_type in ('chat_completion', 'text_completion'):
         # Uses data_files directly (already in template)
         # Just need to ensure the path includes the dataset_label
         # Template has: "${input_dir}/${dataset_label}.json"
@@ -409,9 +428,8 @@ def main():
             if current_value == default_value:
                 setattr(args, key, value)
 
-    # Validate lr_scheduler and dataset_type (after config file has been loaded and merged)
+    # Validate lr_scheduler (after config file has been loaded and merged)
     validate_lr_scheduler(args.lr_scheduler)
-    validate_dataset_type(args.dataset_type)
 
     model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
     username = os.environ.get("USER")
@@ -423,6 +441,13 @@ def main():
             f"Supported models: {', '.join(MODEL_CONFIGS.keys())}"
         )
     model_config = MODEL_CONFIGS[args.torchtune_model_name]
+
+    # Default dataset_type from MODEL_CONFIGS if not explicitly set by user or config file
+    # Priority: CLI arg > config file > MODEL_CONFIGS > argparse default
+    if args.dataset_type == parser.get_default("dataset_type"):
+        # User didn't override via CLI or config file, use model's default
+        args.dataset_type = model_config.get("dataset_type", "chat_completion")
+    validate_dataset_type(args.dataset_type)
 
     # First edit the yaml template
     with open(f"{script_dir}/templates/finetune_template.yaml", "r") as f:
@@ -517,6 +542,24 @@ def main():
                     config["dataset_val"]["input_key"] = args.input_key
                     config["dataset_val"]["output_key"] = args.output_key
                     config["dataset_val"]["train_on_input"] = args.train_on_input
+            elif value == 'text_completion':
+                # Base model dataset - simple concatenation, no chat template
+                config["dataset"]["_component_"] = "cruijff_kit.tools.torchtune.datasets.text_completion.text_completion_dataset"
+                config["dataset"]["model_path"] = f"${{models_dir}}/{model_dir}"
+                config["dataset"]["prompt"] = args.prompt
+                config["dataset"]["input_key"] = args.input_key
+                config["dataset"]["output_key"] = args.output_key
+                config["dataset"]["train_on_input"] = args.train_on_input
+                # Remove system_prompt - not used for base models
+                config["dataset"].pop("system_prompt", None)
+                if "dataset_val" in config:
+                    config["dataset_val"]["_component_"] = "cruijff_kit.tools.torchtune.datasets.text_completion.text_completion_dataset"
+                    config["dataset_val"]["model_path"] = f"${{models_dir}}/{model_dir}"
+                    config["dataset_val"]["prompt"] = args.prompt
+                    config["dataset_val"]["input_key"] = args.input_key
+                    config["dataset_val"]["output_key"] = args.output_key
+                    config["dataset_val"]["train_on_input"] = args.train_on_input
+                    config["dataset_val"].pop("system_prompt", None)
             else:
                 # Legacy dataset types - need to reconfigure from template
                 config["dataset"]["_component_"] = f"torchtune.datasets.{value}"
