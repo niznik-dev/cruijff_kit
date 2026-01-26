@@ -96,9 +96,11 @@ From `evaluation.matrix[]` in YAML:
 ```yaml
 matrix:
   - run: "Llama-3.2-1B-Instruct_rank4"
+    vis_label: "rank4"  # optional, defaults to run name
     tasks: ["capitalization"]
     epochs: [0]
   - run: "Llama-3.2-1B-Instruct_base"
+    vis_label: "1B_base"
     tasks: ["capitalization"]
     epochs: null  # null for control/base runs
 ```
@@ -107,6 +109,7 @@ Determine for each run:
 - Which tasks to evaluate on
 - Which epochs to evaluate (0-indexed, or null for base models)
 - Whether this is a fine-tuned or control run
+- The `vis_label` for visualization (defaults to `run` name if not specified)
 
 ### Reading claude.local.md
 
@@ -342,6 +345,7 @@ inspect eval {task_script_path}@{task_name} \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
   -T system_prompt="$SYSTEM_PROMPT" \\
+  -T vis_label="{matrix[].vis_label or matrix[].run}" \\
   --log-dir ./logs \\
   --log-level info
 
@@ -411,12 +415,14 @@ inspect eval capitalization.py@capitalization \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
   -T system_prompt="$SYSTEM_PROMPT" \\
+  -T vis_label="rank4" \\
   --log-dir ./logs
 ```
 
 **Key points:**
 - The `--model` argument uses a descriptive name (`hf/{run_name}_epoch_{N}`) that gets recorded in the `.eval` file for identification
 - Metadata flags (`-M epoch`, `-M finetuned`, `-M source_model`) enable filtering/grouping in inspect-viz
+- The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_rank4`) for visualization
 - Values are extracted from `setup_finetune.yaml` **at scaffolding time** and baked into the SLURM script
 - No config file parsing happens at eval runtime
 - Ensures exact match between training and evaluation parameters
@@ -440,12 +446,14 @@ inspect eval capitalization.py@capitalization \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
   -T system_prompt="$SYSTEM_PROMPT" \\
+  -T vis_label="1B_base" \\
   --log-dir ./logs
 ```
 
 **Key points:**
 - The `--model` argument uses a descriptive name (`hf/{run_name}_base`) that gets recorded in the `.eval` file for identification
 - Metadata flags (`-M finetuned=false`, `-M source_model`) enable filtering/grouping in inspect-viz (no `epoch` for base models)
+- The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_1B_base`) for visualization
 - Base models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
 - Values come from `eval_config.yaml` (generated from experiment_summary.yaml)
 - Mirrors fine-tuned approach: config file → SLURM script for auditability
