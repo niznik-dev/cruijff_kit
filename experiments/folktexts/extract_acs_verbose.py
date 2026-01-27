@@ -15,6 +15,7 @@ Supported tasks:
 Usage:
     python extract_acs.py --task ACSIncome --output acs_income.json
     python extract_acs.py --task ACSEmployment --train-size 40000 --val-size 5000 --test-size 5000
+    python extract_acs.py --task ACSIncome --balanced  # outputs acs_income_verbose_balanced.json
 """
 
 import json
@@ -41,6 +42,7 @@ def extract_acs(
     val_size: int = 500,
     test_size: int = 500,
     random_seed: int = 42,
+    balanced: bool = False,
 ):
     """
     Extract ACS data from HuggingFace and save to JSON.
@@ -52,6 +54,7 @@ def extract_acs(
         val_size: Number of validation examples to sample
         test_size: Number of test examples to sample
         random_seed: Random seed for reproducibility
+        balanced: If True, sample equal numbers from each class (50/50 split)
     """
     if task not in ACS_TASKS:
         raise ValueError(f"Unknown task: {task}. Valid tasks: {list(ACS_TASKS.keys())}")
@@ -71,10 +74,35 @@ def extract_acs(
     print(f"  Test: {len(dataset['test'])} examples")
 
     # Sample from each split
-    print(f"\nSampling data (seed={random_seed})...")
-    train_sample = dataset['train'].shuffle(seed=random_seed).select(range(train_size))
-    val_sample = dataset['validation'].shuffle(seed=random_seed).select(range(val_size))
-    test_sample = dataset['test'].shuffle(seed=random_seed).select(range(test_size))
+    print(f"\nSampling data (seed={random_seed}, balanced={balanced})...")
+
+    def sample_split(split_data, size):
+        """Sample from a split, optionally with class balancing."""
+        if not balanced:
+            return split_data.shuffle(seed=random_seed).select(range(size))
+
+        # Balanced sampling: equal numbers from each class
+        half_size = size // 2
+        class_0 = split_data.filter(lambda x: x['label'] == 0).shuffle(seed=random_seed)
+        class_1 = split_data.filter(lambda x: x['label'] == 1).shuffle(seed=random_seed)
+
+        # Check we have enough samples
+        if len(class_0) < half_size:
+            raise ValueError(f"Not enough class 0 samples: need {half_size}, have {len(class_0)}")
+        if len(class_1) < half_size:
+            raise ValueError(f"Not enough class 1 samples: need {half_size}, have {len(class_1)}")
+
+        # Sample equal from each class and concatenate
+        from datasets import concatenate_datasets
+        sampled = concatenate_datasets([
+            class_0.select(range(half_size)),
+            class_1.select(range(half_size))
+        ]).shuffle(seed=random_seed)
+        return sampled
+
+    train_sample = sample_split(dataset['train'], train_size)
+    val_sample = sample_split(dataset['validation'], val_size)
+    test_sample = sample_split(dataset['test'], test_size)
 
     # Convert to cruijff_kit format
     print("Converting to cruijff_kit JSON format...")
@@ -108,6 +136,7 @@ def extract_acs(
     print(f"\nExtraction complete!")
     print(f"  Task: {task}")
     print(f"  Question: {binary_question}")
+    print(f"  Balanced: {balanced}")
     print(f"  Train: {len(output_data['train'])} examples")
     print(f"  Validation: {len(output_data['validation'])} examples")
     print(f"  Test: {len(output_data['test'])} examples")
@@ -162,13 +191,19 @@ def main():
         default=42,
         help="Random seed for sampling (default: 42)",
     )
+    parser.add_argument(
+        "--balanced",
+        action="store_true",
+        help="Sample equal numbers from each class (50/50 split)",
+    )
 
     args = parser.parse_args()
 
     # Default output filename based on task
     if args.output is None:
         task_lower = args.task.lower().replace("acs", "acs_")
-        args.output = Path(f"{task_lower}_verbose.json")
+        suffix = "_balanced" if args.balanced else ""
+        args.output = Path(f"{task_lower}_verbose{suffix}.json")
 
     extract_acs(
         task=args.task,
@@ -177,6 +212,7 @@ def main():
         val_size=args.val_size,
         test_size=args.test_size,
         random_seed=args.seed,
+        balanced=args.balanced,
     )
 
 
