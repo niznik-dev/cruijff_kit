@@ -24,22 +24,28 @@ from inspect_ai.scorer import match, includes
 
 
 def _create_acs_task(
+    task_name: str,
     data_path: str,
     config_path: str = "",
     split: str = "test",
     temperature: float = 1e-7,
     max_tokens: int = 5,
+    vis_label: str = "",
 ) -> Task:
     """
     Create an ACS binary prediction eval task.
 
     Args:
+        task_name: Base name of the task (e.g., "acs_income")
         data_path: Path to JSON file with {"train": [...], "validation": [...], "test": [...]}
         config_path: Path to setup_finetune.yaml (reads prompt/system_prompt from it)
         split: Which split to evaluate on (default: test)
         temperature: Generation temperature
         max_tokens: Max tokens to generate
+        vis_label: Optional label for visualization (appended to task name)
     """
+    # Construct task name with optional vis_label suffix
+    full_task_name = f"{task_name}_{vis_label}" if vis_label else task_name
     # Read prompt config from YAML
     prompt_str = "{input}"
     system_prompt = ""
@@ -67,6 +73,7 @@ def _create_acs_task(
     )
 
     return Task(
+        name=full_task_name,
         dataset=dataset,
         solver=chain(
             system_message(system_prompt),
@@ -87,42 +94,43 @@ def acs_binary(
     split: str = "test",
     temperature: float = 1e-7,
     max_tokens: int = 5,
+    vis_label: str = "",
 ) -> Task:
     """Generic ACS binary prediction task. Works with any ACS dataset."""
-    return _create_acs_task(data_path, config_path, split, temperature, max_tokens)
+    return _create_acs_task("acs_binary", data_path, config_path, split, temperature, max_tokens, vis_label)
 
 
 # Task-specific aliases for clarity in eval logs
 @task
 def acs_income(data_path: str, config_path: str = "", split: str = "test",
-               temperature: float = 1e-7, max_tokens: int = 5) -> Task:
+               temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "") -> Task:
     """ACS income prediction (>$50k)."""
-    return _create_acs_task(data_path, config_path, split, temperature, max_tokens)
+    return _create_acs_task("acs_income", data_path, config_path, split, temperature, max_tokens, vis_label)
 
 
 @task
 def acs_employment(data_path: str, config_path: str = "", split: str = "test",
-                   temperature: float = 1e-7, max_tokens: int = 5) -> Task:
+                   temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "") -> Task:
     """ACS employment prediction (employed as civilian)."""
-    return _create_acs_task(data_path, config_path, split, temperature, max_tokens)
+    return _create_acs_task("acs_employment", data_path, config_path, split, temperature, max_tokens, vis_label)
 
 
 @task
 def acs_mobility(data_path: str, config_path: str = "", split: str = "test",
-                 temperature: float = 1e-7, max_tokens: int = 5) -> Task:
+                 temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "") -> Task:
     """ACS mobility prediction (moved in last year)."""
-    return _create_acs_task(data_path, config_path, split, temperature, max_tokens)
+    return _create_acs_task("acs_mobility", data_path, config_path, split, temperature, max_tokens, vis_label)
 
 
 @task
 def acs_publiccoverage(data_path: str, config_path: str = "", split: str = "test",
-                       temperature: float = 1e-7, max_tokens: int = 5) -> Task:
+                       temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "") -> Task:
     """ACS public health coverage prediction."""
-    return _create_acs_task(data_path, config_path, split, temperature, max_tokens)
+    return _create_acs_task("acs_publiccoverage", data_path, config_path, split, temperature, max_tokens, vis_label)
 
 
 @task
 def acs_traveltime(data_path: str, config_path: str = "", split: str = "test",
-                   temperature: float = 1e-7, max_tokens: int = 5) -> Task:
+                   temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "") -> Task:
     """ACS travel time prediction (>20 min commute)."""
-    return _create_acs_task(data_path, config_path, split, temperature, max_tokens)
+    return _create_acs_task("acs_traveltime", data_path, config_path, split, temperature, max_tokens, vis_label)
