@@ -37,6 +37,7 @@ def general_eval(
     temperature: float = 0.0,
     split: str = "test",
     max_tokens: Optional[int] = None,
+    vis_label: str = "",,
     use_chat_template: bool = True,
 ) -> Task:
     """
@@ -50,9 +51,8 @@ def general_eval(
         temperature: Generation temperature (default: 0.0 for deterministic output).
         split: Which data split to use (default: "test").
         max_tokens: Maximum tokens to generate (default: None, uses model default).
-        use_chat_template: If True, use chat format with system message (instruct models).
-                          If False, use simple text (base models). Should match training.
-
+        vis_label: Optional label for visualization (appended to task name).
+        use_chat_template: Whether apply_chat_template should be used for tokenization (i.e., Instruction-tuned models)
     Returns:
         Task: Configured inspect-ai task
 
@@ -60,6 +60,8 @@ def general_eval(
         ValueError: If neither config_dir nor dataset_path is provided
         FileNotFoundError: If specified files don't exist
     """
+    # Construct task name with optional vis_label suffix
+    task_name = f"general_eval_{vis_label}" if vis_label else "general_eval"
 
     # Determine configuration source
     if config_dir:
@@ -156,6 +158,7 @@ def general_eval(
     ]
 
     return Task(
+        name=task_name,
         dataset=dataset,
         solver=solver_chain,
         scorer=scorers,

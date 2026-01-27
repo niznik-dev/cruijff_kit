@@ -249,6 +249,26 @@ Generate the evaluation matrix in experiment_summary.yaml:
 - Control runs: Use `epochs: null` (no epoch suffix)
 - Tasks list should reference task names defined in `evaluation.tasks`
 
+### Visualization Labels (vis_label)
+
+**Ask the user:** "How should runs be labeled in visualizations? The default is to use the full run name (e.g., `1B_1K`), but you can specify shorter labels."
+
+Each matrix entry can include an optional `vis_label` field that controls how the run appears in inspect-viz plots. This becomes a suffix on the task name (e.g., `acs_employment_1K` instead of `acs_employment_1B_1K`).
+
+```yaml
+matrix:
+  - run: 1B_1K
+    vis_label: "1K"  # shorter label for visualization
+    tasks: [acs_employment]
+    epochs: [0, 1, 2]
+```
+
+**Default behavior:** If `vis_label` is not specified, scaffold-inspect uses the run name.
+
+**When to customize:** Use shorter labels when:
+- Run names are verbose (e.g., `Llama-3.2-1B-Instruct_rank4` → `rank4`)
+- You want to group by a specific dimension (e.g., sample size only, not model size)
+
 ---
 
 ## Step 6: Establish Naming

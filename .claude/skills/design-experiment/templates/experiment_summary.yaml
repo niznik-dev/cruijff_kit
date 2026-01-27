@@ -123,6 +123,8 @@ evaluation:
   matrix:
     # REQUIRED: Which runs evaluate on which tasks at which epochs
     - run: string                  # REQUIRED: Run name (matches runs[].name)
+      vis_label: string            # OPTIONAL: Label for visualization (defaults to run name)
+                                   # Used to set dynamic task name suffix (e.g., "rank4" -> "capitalization_rank4")
       tasks: [string]              # REQUIRED: List of task names
       epochs: [int]                # REQUIRED: List of epoch numbers (0-indexed)
                                    # Use null for control runs (no epochs)
