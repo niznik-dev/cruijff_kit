@@ -21,6 +21,8 @@ from inspect_ai import Task, task
 from inspect_ai.dataset import hf_dataset, Sample
 from inspect_ai.solver import chain, generate, system_message
 from inspect_ai.scorer import match, includes
+from inspect_ai.model import GenerateConfig
+from tools.inspect.scorers import risk_scorer
 
 
 def _create_acs_task(
@@ -82,7 +84,10 @@ def _create_acs_task(
         scorer=[
             match(location="exact", ignore_case=False),
             includes(ignore_case=False),
+            risk_scorer(option_tokens = ("0", "1"))
         ],
+        # generate log probabilities of top 20 tokens from inspect (sets output_logits=True on model generate() call)
+        config= GenerateConfig(logprobs=True, top_logprobs=20),                                                                                                                  
     )
 
 
