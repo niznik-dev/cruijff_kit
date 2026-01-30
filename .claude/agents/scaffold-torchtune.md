@@ -80,9 +80,9 @@ Extract the following information from the YAML structure:
    - `tools.preparation` - Should be "torchtune"
    - `tools.evaluation` - Should be "inspect-ai"
 
-3. **Control parameters (held constant):**
+3. **Control hyperparameters (held constant):**
 These are *example* parameters that the user might vary. There may be other parameters under `controls`, so check all of them that apply to `setup_finetune.yaml`:
-   - `controls.base_recipe` - Torchtune recipe name for defaults (optional, e.g., "llama3_2/1B_lora_single_device")
+   - `models.base[0].base_recipe` - Torchtune recipe name for defaults (optional, e.g., "llama3_2/1B_lora_single_device")
    - `controls.epochs` - Number of training epochs
    - `controls.batch_size` - Batch size (if not varied)
    - `controls.system_prompt` - Training system prompt
@@ -184,10 +184,6 @@ For each run, create a `setup_finetune.yaml` file by:
 3. **Populate template with run-specific values:**
 
 ```yaml
-# Recipe Configuration (optional - provides default values for hyperparameters)
-# Only include if controls.base_recipe is specified in experiment_summary.yaml
-base_recipe: {from controls.base_recipe, e.g., "llama3_2/1B_lora_single_device"}
-
 # Run identification
 my_wandb_project: {from claude.local.md, or use experiment-level project name}
 my_wandb_run_name: {directory_name, e.g., "rank8_lr1e-5"}
@@ -204,12 +200,16 @@ dataset_ext: {from data.training.format, convert: "json" → ".json", "parquet" 
 torchtune_model_name: {from models.base[0].name, e.g., "Llama-3.2-1B-Instruct"}
 model_checkpoint: {from models.base[0].path}
 
-# Hyperparameters (run-specific)
-lora_rank: {from run.parameters.lora_rank}
-lr: {from run.parameters.lr, format as 1e-5 or 5e-5}
-batch_size: {from run.parameters.batch_size if varies, else from controls.batch_size}
+# Base Recipe (optional - provides default hyperparameter values from a torchtune config)
+# Only include if base_recipe is specified in experiment_summary.yaml
+base_recipe: {from models.base[0].base_recipe, if present}
 
-# Additional hyperparameters (optional - only include if specified in controls)
+# Varying parameters (optional, run-specific)
+lora_rank: {from run.parameters.lora_rank, if present}
+lr: {from run.parameters.lr, format as 1e-5 or 5e-5, if present}
+batch_size: {from run.parameters.batch_size if varies, if present}
+
+# Additional hyperparameters (optional, only if specified in controls)
 gradient_accumulation_steps: {from controls.gradient_accumulation_steps, if present}
 weight_decay: {from controls.weight_decay, if present}
 lora_dropout: {from controls.lora_dropout, if present}
@@ -236,11 +236,12 @@ system_prompt: {from controls.system_prompt, often empty string ""}
 # Prompt template (if specified)
 prompt: {from controls.prompt, e.g., "Capitalize the given word: {input}\n"}
 
-# Custom Recipe
-custom_recipe: {from template, e.g., cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable}
+# Custom Recipe (REQUIRED)
+# Select based on model size:
+#   - Llama 1B, 3B, 8B models (1 GPU): lora_finetune_single_device_stable
+#   - Llama 70B models (multi-GPU): lora_finetune_distributed_stable
+custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_{single_device|distributed}_stable
 ```
-
-**Note:** If `controls.base_recipe` is not specified in experiment_summary.yaml, omit the `base_recipe` field from setup_finetune.yaml entirely. This preserves backwards compatibility.
 
 4. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
 

@@ -24,6 +24,7 @@ def capitalization(
     split: str = "test",
     temperature: float = 1e-7,
     max_tokens: int = 20,
+    vis_label: str = "",
 ) -> Task:
     """
     Eval task for capitalization trained with chat_completion.
@@ -34,7 +35,10 @@ def capitalization(
         split: Which split to evaluate on (default: test)
         temperature: Generation temperature
         max_tokens: Max tokens to generate
+        vis_label: Optional label for visualization (appended to task name)
     """
+    # Construct task name with optional vis_label suffix
+    task_name = f"capitalization_{vis_label}" if vis_label else "capitalization"
     # Read prompt config from YAML
     prompt_str = "{input}"
     system_prompt = ""
@@ -62,6 +66,7 @@ def capitalization(
     )
 
     return Task(
+        name=task_name,
         dataset=dataset,
         solver=chain(
             system_message(system_prompt),

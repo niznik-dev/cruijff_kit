@@ -33,7 +33,8 @@ def general_eval(
     system_prompt: str = "",
     temperature: float = 0.0,
     split: str = "test",
-    max_tokens: Optional[int] = None
+    max_tokens: Optional[int] = None,
+    vis_label: str = "",
 ) -> Task:
     """
     General evaluation task for input/output pair datasets.
@@ -46,6 +47,7 @@ def general_eval(
         temperature: Generation temperature (default: 0.0 for deterministic output).
         split: Which data split to use (default: "test").
         max_tokens: Maximum tokens to generate (default: None, uses model default).
+        vis_label: Optional label for visualization (appended to task name).
 
     Returns:
         Task: Configured inspect-ai task
@@ -54,6 +56,8 @@ def general_eval(
         ValueError: If neither config_dir nor dataset_path is provided
         FileNotFoundError: If specified files don't exist
     """
+    # Construct task name with optional vis_label suffix
+    task_name = f"general_eval_{vis_label}" if vis_label else "general_eval"
 
     # Determine configuration source
     if config_dir:
@@ -139,6 +143,7 @@ def general_eval(
     ]
 
     return Task(
+        name=task_name,
         dataset=dataset,
         solver=solver_chain,
         scorer=scorers,

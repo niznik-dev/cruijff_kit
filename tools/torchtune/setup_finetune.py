@@ -378,7 +378,7 @@ def main():
         with open(args.config_file, "r") as f:
             config_data = yaml.safe_load(f) or {}
 
-    # Load recipe defaults if base_recipe is specified
+    # Load torchtune recipe hyperparameter defaults if base_recipe is specified
     recipe_defaults = {}
     recipe_config = None
     base_recipe = args.base_recipe or config_data.get('base_recipe')
@@ -387,9 +387,9 @@ def main():
             recipe_config = config_recipe_loader.get_recipe_config(base_recipe)
             recipe_defaults = extract_flat_params(recipe_config, RECIPE_PARAM_MAPPING)
         except config_recipe_loader.RecipeConfigError as e:
-            print(f"Warning: Could not load recipe '{base_recipe}': {e}. Using built-in defaults.")
+            raise SystemExit(f"ERROR: Could not load recipe '{base_recipe}': {e}")
 
-    # Apply recipe defaults (only if at argparse default AND not overridden in config_file)
+    # Apply default hyperparameters (only if at argparse default AND not overridden in config_file)
     # Precedence: CLI > config_file > recipe > argparse_default
     for key, value in recipe_defaults.items():
         if hasattr(args, key) and key not in config_data:

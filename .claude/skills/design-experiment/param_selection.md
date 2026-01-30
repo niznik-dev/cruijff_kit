@@ -131,17 +131,17 @@ The experiment workflow uses an **orchestrator → worker** pattern:
 ### Should We Include Base Model Controls?
 - Controls evaluate base models without fine-tuning to measure the effect of fine-tuning
 
-### Use Recipe Defaults?
+### Use Model Torchtune Recipe Defaults?
 
-**Ask the user:** "Would you like to use torchtune recipe defaults for unspecified parameters?"
+**Ask the user:** "Would you like to use torchtune recipe defaults for this model to control unspecified hyperparameters?"
 
-Torchtune recipes include sensible defaults for most training parameters (learning rate, gradient accumulation, warmup steps, etc.). When `base_recipe` is specified in experiment_summary.yaml, any parameters not explicitly set will inherit from the recipe.
+Torchtune recipes include sensible defaults for most training parameters (learning rate, gradient accumulation, warmup steps, etc.). When `base_recipe` is specified in experiment_summary.yaml, any hyperparameters not explicitly set will inherit from the recipe.
 
 **Options:**
 - **Yes (recommended):** Specify `base_recipe` (e.g., `"llama3_2/1B_lora_single_device"`) and only set parameters you're actively varying. Reduces configuration complexity.
 - **No:** Explicitly set all training parameters. Useful if you need full control or reproducibility without recipe dependencies.
 
-**If yes:** Note the appropriate recipe name based on model selection:
+**If yes:** Note example appropriate recipe names based on model selection:
 - 1B models: `llama3_2/1B_lora_single_device`
 - 3B models: `llama3_2/3B_lora_single_device`
 - 8B models: `llama3_1/8B_lora_single_device`
@@ -162,7 +162,7 @@ Use `tune ls` to see all available recipes if needed.
 When designing experiments, you can vary any of these parameters. Add varied parameters to `variables` and constant parameters to `controls` in experiment_summary.yaml.
 
 **Recipe Configuration (if user opted to use recipe defaults):**
-- `base_recipe` - Torchtune recipe name for default values (e.g., "llama3_2/1B_lora_single_device"). When specified, recipe defaults are used for parameters not explicitly set. See "Use Recipe Defaults?" section above.
+- `base_recipe` - Torchtune recipe name for default values (e.g., "llama3_2/1B_lora_single_device"). When specified, model recipe defaults are used for parameters not explicitly set. See "Use Recipe Defaults?" section above.
 
 **Core Training Parameters:**
 | Parameter | Description | Typical Values |
@@ -248,6 +248,26 @@ Generate the evaluation matrix in experiment_summary.yaml:
 - Fine-tuned runs: Use `epochs: [0, 1]` list for which epochs to evaluate
 - Control runs: Use `epochs: null` (no epoch suffix)
 - Tasks list should reference task names defined in `evaluation.tasks`
+
+### Visualization Labels (vis_label)
+
+**Ask the user:** "How should runs be labeled in visualizations? The default is to use the full run name (e.g., `1B_1K`), but you can specify shorter labels."
+
+Each matrix entry can include an optional `vis_label` field that controls how the run appears in inspect-viz plots. This becomes a suffix on the task name (e.g., `acs_employment_1K` instead of `acs_employment_1B_1K`).
+
+```yaml
+matrix:
+  - run: 1B_1K
+    vis_label: "1K"  # shorter label for visualization
+    tasks: [acs_employment]
+    epochs: [0, 1, 2]
+```
+
+**Default behavior:** If `vis_label` is not specified, scaffold-inspect uses the run name.
+
+**When to customize:** Use shorter labels when:
+- Run names are verbose (e.g., `Llama-3.2-1B-Instruct_rank4` → `rank4`)
+- You want to group by a specific dimension (e.g., sample size only, not model size)
 
 ---
 

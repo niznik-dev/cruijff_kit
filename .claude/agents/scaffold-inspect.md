@@ -96,9 +96,11 @@ From `evaluation.matrix[]` in YAML:
 ```yaml
 matrix:
   - run: "Llama-3.2-1B-Instruct_rank4"
+    vis_label: "rank4"  # optional, defaults to run name
     tasks: ["capitalization"]
     epochs: [0]
   - run: "Llama-3.2-1B-Instruct_base"
+    vis_label: "1B_base"
     tasks: ["capitalization"]
     epochs: null  # null for control/base runs
 ```
@@ -107,6 +109,7 @@ Determine for each run:
 - Which tasks to evaluate on
 - Which epochs to evaluate (0-indexed, or null for base models)
 - Whether this is a fine-tuned or control run
+- The `vis_label` for visualization (defaults to `run` name if not specified)
 
 ### Reading claude.local.md
 
@@ -335,9 +338,14 @@ inspect eval {task_script_path}@{task_name} \\
   {if fine-tuned:}--model hf/{run_name}_epoch_{N} \\
   {if base model:}--model hf/{run_name}_base \\
   -M model_path="$MODEL_PATH" \\
+  {if fine-tuned:}--metadata epoch={N} \\
+  {if fine-tuned:}--metadata finetuned=true \\
+  {if base model:}--metadata finetuned=false \\
+  --metadata source_model="{model_name from experiment_summary.yaml}" \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
   -T system_prompt="$SYSTEM_PROMPT" \\
+  -T vis_label="{matrix[].vis_label or matrix[].run}" \\
   --log-dir ./logs \\
   --log-level info
 
@@ -376,6 +384,35 @@ Use values from experiment_summary.yaml Configuration section (same as fine-tune
 - Log directory: `{run_dir}/eval/logs/`
 - SLURM output: `{run_dir}/eval/slurm-{job_id}.out`
 
+### Required Metadata Flags
+
+**CRITICAL:** All evaluation SLURM scripts MUST include these flags for inspect-viz filtering.
+
+**Model args (`-M`) - used by HF provider:**
+| Flag | Value | Source |
+|------|-------|--------|
+| `-M model_path` | `"$MODEL_PATH"` | Variable set above |
+
+**Eval metadata (`--metadata`) - stored in .eval log for filtering:**
+
+For fine-tuned models:
+| Flag | Value | Source |
+|------|-------|--------|
+| `--metadata epoch` | `{N}` | From matrix epochs list |
+| `--metadata finetuned` | `true` | Literal |
+| `--metadata source_model` | `"{model_name}"` | From `models.base[].name` |
+
+For base/control models:
+| Flag | Value | Source |
+|------|-------|--------|
+| `--metadata finetuned` | `false` | Literal |
+| `--metadata source_model` | `"{model_name}"` | From `models.base[].name` |
+
+**Task args (`-T`) - passed to task function:**
+| Flag | Value | Source |
+|------|-------|--------|
+| `-T vis_label` | `"{vis_label}"` | From `matrix[].vis_label` or defaults to `matrix[].run` |
+
 ## Handling Different Evaluation Scenarios
 
 **Standard approach:** Extract all values at scaffolding time and bake them into SLURM scripts as variables. This ensures consistency and avoids runtime config parsing.
@@ -401,14 +438,20 @@ SYSTEM_PROMPT=""
 inspect eval capitalization.py@capitalization \\
   --model hf/{run_name}_epoch_0 \\
   -M model_path="$MODEL_PATH" \\
+  --metadata epoch=0 \\
+  --metadata finetuned=true \\
+  --metadata source_model="Llama-3.2-1B-Instruct" \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
   -T system_prompt="$SYSTEM_PROMPT" \\
+  -T vis_label="rank4" \\
   --log-dir ./logs
 ```
 
 **Key points:**
 - The `--model` argument uses a descriptive name (`hf/{run_name}_epoch_{N}`) that gets recorded in the `.eval` file for identification
+- Metadata flags (`--metadata epoch`, `--metadata finetuned`, `--metadata source_model`) are stored in `log.eval.metadata` for inspect-viz filtering/grouping
+- The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_rank4`) for visualization
 - Values are extracted from `setup_finetune.yaml` **at scaffolding time** and baked into the SLURM script
 - No config file parsing happens at eval runtime
 - Ensures exact match between training and evaluation parameters
@@ -427,14 +470,19 @@ SYSTEM_PROMPT=""
 inspect eval capitalization.py@capitalization \\
   --model hf/{run_name}_base \\
   -M model_path="$MODEL_PATH" \\
+  --metadata finetuned=false \\
+  --metadata source_model="Llama-3.2-1B-Instruct" \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
   -T system_prompt="$SYSTEM_PROMPT" \\
+  -T vis_label="1B_base" \\
   --log-dir ./logs
 ```
 
 **Key points:**
 - The `--model` argument uses a descriptive name (`hf/{run_name}_base`) that gets recorded in the `.eval` file for identification
+- Metadata flags (`--metadata finetuned=false`, `--metadata source_model`) are stored in `log.eval.metadata` for inspect-viz filtering/grouping (no `epoch` for base models)
+- The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_1B_base`) for visualization
 - Base models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
 - Values come from `eval_config.yaml` (generated from experiment_summary.yaml)
 - Mirrors fine-tuned approach: config file → SLURM script for auditability
@@ -597,6 +645,10 @@ Before reporting success, verify:
 - ✓ Scripts reference correct task scripts
 - ✓ System prompts match training configuration
 - ✓ Log directory paths are correct
+- ✓ Fine-tuned scripts include `--metadata epoch={N}` and `--metadata finetuned=true`
+- ✓ Base model scripts include `--metadata finetuned=false` (no epoch)
+- ✓ All scripts include `--metadata source_model="{model_name}"`
+- ✓ All scripts include `-T vis_label="{label}"`
 - ✓ No errors in log
 - ✓ Log file created
 
@@ -610,3 +662,6 @@ Before reporting success, verify:
 - Base model evaluations use original model paths, not fine-tuned checkpoints
 - This subagent is typically called by `scaffold-experiment` orchestrator but can be run standalone
 - Evaluation logs will be written to `{run_dir}/eval/logs/` subdirectories
+- **Metadata flags (`--metadata`) are critical for inspect-viz** - stored in `log.eval.metadata` for filtering/grouping
+- `vis_label` defaults to run name if not specified in matrix
+- `source_model` should be the human-readable model name (e.g., "Llama-3.2-1B-Instruct"), not the path

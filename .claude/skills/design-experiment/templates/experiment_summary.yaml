@@ -39,10 +39,6 @@ variables:
 controls:
   system_prompt: string            # Training system prompt ("" for blank)
   prompt: string                   # Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
-  # OPTIONAL: Torchtune recipe for default hyperparameters
-  base_recipe: string              # e.g., "llama3_2/1B_lora_single_device"
-                                   # When specified, recipe defaults are used for params not set
-                                   # Use `tune ls` to see available recipes
   # Common hyperparameters (see param_selection.md for full list)
   epochs: int                      # Number of training epochs
   batch_size: int                  # Batch size (if not varied)
@@ -58,6 +54,11 @@ models:
     - name: string                 # REQUIRED: Model identifier (e.g., "Llama-3.2-1B-Instruct")
       path: string                 # REQUIRED: Full path to model directory
       size_gb: float               # REQUIRED: Model size for disk estimates
+      base_recipe: string          # OPTIONAL: Torchtune recipe for default hyperparameters
+                                   # e.g., "llama3_2/1B_lora_single_device"
+                                   # When specified, recipe defaults are used for hyperparameters not set
+                                   # Use `tune ls` to see available recipes
+
 
 data:
   training:
@@ -122,6 +123,8 @@ evaluation:
   matrix:
     # REQUIRED: Which runs evaluate on which tasks at which epochs
     - run: string                  # REQUIRED: Run name (matches runs[].name)
+      vis_label: string            # OPTIONAL: Label for visualization (defaults to run name)
+                                   # Used to set dynamic task name suffix (e.g., "rank4" -> "capitalization_rank4")
       tasks: [string]              # REQUIRED: List of task names
       epochs: [int]                # REQUIRED: List of epoch numbers (0-indexed)
                                    # Use null for control runs (no epochs)
