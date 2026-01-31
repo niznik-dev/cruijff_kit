@@ -69,7 +69,7 @@ Extract the following information from the YAML structure:
 6. **Evaluation configuration:**
    - `evaluation.system_prompt` - Must match training
    - `evaluation.temperature` - Evaluation temperature
-   - `evaluation.scorer` - Scorer type
+   - `evaluation.scorer[]` - List of scorers with optional params (see Parsing Scorer Configuration below)
    - `evaluation.tasks[]` - List of evaluation tasks
    - `evaluation.matrix[]` - Which runs evaluate on which tasks/epochs
 
@@ -111,11 +111,32 @@ Determine for each run:
 - Whether this is a fine-tuned or control run
 - The `vis_label` for visualization (defaults to `run` name if not specified)
 
+#### Parsing Scorer Configuration
+
+From `evaluation.scorer[]` in YAML:
+```yaml
+scorer:
+  - name: "match"
+  - name: "includes"
+  - name: "risk_scorer"
+    params:
+      option_tokens: ["0", "1"]
+```
+
+Extract for each scorer:
+- `name` - Scorer identifier (e.g., "match", "includes", "risk_scorer")
+- `params` - Optional dict of parameters to pass to the scorer (e.g., `{option_tokens: ["0", "1"]}`)
+
+**Backward compatibility:** If `evaluation.scorer` is a plain string (e.g., `"match"`), treat it as a single scorer with no params: `[{name: "match"}]`.
+
+The scorer configuration is written into `eval_config.yaml` so that task files can read it at runtime and instantiate scorers dynamically.
+
 ### Reading claude.local.md
 
 Extract environment-specific settings:
 - `conda_env` - Which conda environment to use
 - `account` - SLURM account to use (OPTIONAL)
+- `working_directory` - Path to cruijff_kit repo (for PYTHONPATH export)
 
 ### Parsing Output Directory from experiment_summary.yaml
 
@@ -209,6 +230,13 @@ Extract the following from experiment_summary.yaml:
 
    # System prompt (from Configuration → Evaluation section or this run's config)
    system_prompt: "{system_prompt for this run}"
+
+   # Scorer configuration (from evaluation.scorer in experiment_summary.yaml)
+   scorer:
+     - name: "match"
+     - name: "risk_scorer"
+       params:
+         option_tokens: ["0", "1"]
    ```
 
 3. **Extract values from experiment_summary.yaml:**
@@ -317,6 +345,9 @@ Generate a SLURM script for each evaluation with model-appropriate resources.
 module load anaconda3/2025.6
 conda activate {conda_env}
 
+# Add cruijff_kit to PYTHONPATH for custom scorers/tools
+export PYTHONPATH="{working_directory}:$PYTHONPATH"
+
 # Model path
 {if fine-tuned:}
 OUTPUT_BASE="{base_directory}/ck-out-{run_name}"
@@ -377,6 +408,9 @@ Read `setup_finetune.yaml` from the run directory and extract:
 - `prompt` = the `prompt` field
 - `system_prompt` = the `system_prompt` field
 
+**Writing scorer config for all runs (fine-tuned and base):**
+When generating `eval_config.yaml`, include the `scorer` list from `evaluation.scorer` in experiment_summary.yaml. This allows task files to read scorer configuration at runtime and instantiate scorers dynamically (e.g., `risk_scorer(option_tokens=["0", "1"])`).
+
 **Extracting values for base models:**
 Use values from experiment_summary.yaml Configuration section (same as fine-tuned runs use).
 
@@ -429,6 +463,9 @@ CONFIG_PATH="$OUTPUT_BASE/setup_finetune.yaml"
 ```
 
 ```bash
+# Add cruijff_kit to PYTHONPATH for custom scorers/tools
+export PYTHONPATH="{working_directory}:$PYTHONPATH"
+
 # Values extracted from setup_finetune.yaml at scaffolding time:
 MODEL_PATH="/absolute/path/to/ck-out-{run_name}/epoch_0"
 DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
@@ -461,6 +498,9 @@ inspect eval capitalization.py@capitalization \\
 For base/control models, scaffold-inspect generates `eval_config.yaml` (see "Extracting Values for Base Models" above), then reads from it at scaffolding time:
 
 ```bash
+# Add cruijff_kit to PYTHONPATH for custom scorers/tools
+export PYTHONPATH="{working_directory}:$PYTHONPATH"
+
 # Values extracted from eval_config.yaml at scaffolding time:
 MODEL_PATH="/path/to/pretrained-llms/Llama-3.2-1B-Instruct"
 DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"

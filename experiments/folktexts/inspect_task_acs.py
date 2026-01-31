@@ -25,6 +25,44 @@ from inspect_ai.model import GenerateConfig
 from tools.inspect.scorers import risk_scorer
 
 
+# Registry of available scorers and their constructors
+SCORER_REGISTRY = {
+    "match": lambda params: match(**params) if params else match(location="exact", ignore_case=False),
+    "includes": lambda params: includes(**params) if params else includes(ignore_case=False),
+    "risk_scorer": lambda params: risk_scorer(**params) if params else risk_scorer(),
+}
+
+# Default scorers when no config is provided
+DEFAULT_SCORERS = [
+    match(location="exact", ignore_case=False),
+    includes(ignore_case=False),
+]
+
+
+def _build_scorers(config: dict) -> list:
+    """Build scorer list from eval_config.yaml scorer section.
+
+    Args:
+        config: Parsed YAML config dict. If it contains a 'scorer' key,
+                builds scorers from that list. Otherwise returns DEFAULT_SCORERS.
+
+    Returns:
+        List of instantiated scorer objects.
+    """
+    scorer_config = config.get("scorer")
+    if not scorer_config:
+        return DEFAULT_SCORERS
+
+    scorers = []
+    for entry in scorer_config:
+        name = entry["name"]
+        params = entry.get("params", {})
+        if name not in SCORER_REGISTRY:
+            raise ValueError(f"Unknown scorer '{name}'. Available: {list(SCORER_REGISTRY.keys())}")
+        scorers.append(SCORER_REGISTRY[name](params))
+    return scorers
+
+
 def _create_acs_task(
     task_name: str,
     data_path: str,
@@ -48,13 +86,14 @@ def _create_acs_task(
     """
     # Construct task name with optional vis_label suffix
     full_task_name = f"{task_name}_{vis_label}" if vis_label else task_name
-    # Read prompt config from YAML
+    # Read prompt and scorer config from YAML
     prompt_str = "{input}"
     system_prompt = ""
+    config = {}
 
     if config_path:
         with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
+            config = yaml.safe_load(f) or {}
         prompt_str = config.get('prompt', '{input}')
         system_prompt = config.get('system_prompt', '')
 
@@ -81,11 +120,7 @@ def _create_acs_task(
             system_message(system_prompt),
             generate(temperature=temperature, max_tokens=max_tokens),
         ),
-        scorer=[
-            match(location="exact", ignore_case=False),
-            includes(ignore_case=False),
-            risk_scorer(option_tokens = ("0", "1"))
-        ],
+        scorer=_build_scorers(config),
         # generate log probabilities of top 20 tokens from inspect (sets output_logits=True on model generate() call)
         config= GenerateConfig(logprobs=True, top_logprobs=20),                                                                                                                  
     )
