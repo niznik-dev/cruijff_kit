@@ -132,16 +132,52 @@ Use descriptive names that indicate the view type and content:
 "scores_radar_wordlen.html"
 ```
 
-## Generating Multiple Plots
+## Dynamic Metric Detection
 
-For experiments with multiple metrics (match accuracy, includes accuracy), generate separate plots:
+Instead of hardcoding metrics, detect them from the dataframe:
 
 ```python
+from tools.inspect.viz_helpers import detect_metrics
+
+# Automatically detect available metrics
+metrics = detect_metrics(logs_df)
+# Returns e.g., ['match', 'includes'] or ['match'] depending on data
+```
+
+## PNG Export
+
+In addition to HTML, export PNG snapshots for reports and presentations:
+
+```python
+from inspect_viz.plot import write_html, write_png
+
+# Always save HTML
+write_html(html_path, plot)
+print(f"  HTML saved: {html_path}")
+
+# Auto-detect playwright and export PNG if available
+try:
+    from playwright.sync_api import sync_playwright
+    write_png(png_path, plot)
+    print(f"  PNG saved: {png_path}")
+except ImportError:
+    print("  PNG skipped: playwright not installed (pip install playwright && playwright install chromium)")
+```
+
+**Note:** PNG export requires playwright with chromium. If not installed, PNG generation is skipped with a warning.
+
+## Generating Multiple Plots
+
+For experiments with multiple metrics, generate separate plots using dynamic detection:
+
+```python
+from tools.inspect.viz_helpers import detect_metrics
+
 def generate_all_plots(data, logs_df, output_dir, views):
     """Generate all inferred visualizations."""
 
     generated = []
-    metrics = ['match', 'includes']  # Common capitalization metrics
+    metrics = detect_metrics(logs_df)  # Dynamic detection
 
     for view_spec in views:
         view_type = view_spec['view']
@@ -203,10 +239,20 @@ def generate_all_plots(data, logs_df, output_dir, views):
                     )
                     filename = f"scores_by_factor_{metric}.html"
 
-                # Save the plot
-                filepath = os.path.join(output_dir, filename)
-                write_html(filepath, plot)
+                # Save HTML
+                html_path = os.path.join(output_dir, filename)
+                write_html(html_path, plot)
                 generated.append(filename)
+
+                # Save PNG (auto-detect playwright)
+                png_filename = filename.replace('.html', '.png')
+                png_path = os.path.join(output_dir, png_filename)
+                try:
+                    from playwright.sync_api import sync_playwright
+                    write_png(png_path, plot)
+                    generated.append(png_filename)
+                except ImportError:
+                    pass  # PNG skipped silently in batch generation
 
             except Exception as e:
                 print(f"Error generating {view_type} for {metric}: {e}")

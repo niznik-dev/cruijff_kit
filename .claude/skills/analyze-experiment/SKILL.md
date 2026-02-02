@@ -5,9 +5,7 @@ description: Generate visualizations from completed experiment evaluations using
 
 # Analyze Experiment
 
-**STATUS: Currently only supports capitalization experiments.** Future work will extend support to all cruijff_kit experiments.
-
-You help users visualize and analyze results from completed experiments by generating interactive HTML plots using inspect-viz pre-built views.
+You help users visualize and analyze results from completed experiments by generating interactive HTML and PNG plots using inspect-viz pre-built views.
 
 ## Your Task
 
@@ -25,6 +23,7 @@ Generate visualizations from evaluation results:
 - Evaluations complete (from run-experiment)
 - inspect-viz installed (`pip install inspect-viz`)
 - Conda environment activated (from claude.local.md)
+- **Optional:** playwright for PNG export (`pip install playwright && playwright install chromium`)
 
 ## Workflow
 
@@ -43,12 +42,15 @@ Find experiment directory and parse experiment_summary.yaml for:
 ### 2. Load Evaluation Logs → `data_loading.md`
 
 Use helper functions from `tools/inspect/viz_helpers.py`:
-- `load_experiment_logs()` - Load logs with metadata extraction
+- `deduplicate_eval_files()` - Remove duplicate evals (keeps most recent per model+epoch)
 - `evals_df_prep()` - Prepare eval-level dataframes
+- `parse_eval_metadata()` - Extract epoch/finetuned/source_model from JSON metadata
+- `detect_metrics()` - Dynamically detect available score columns
 
 **See `data_loading.md` for:**
+- Automatic deduplication of re-run evaluations
+- Generic metadata extraction using vis_label and JSON metadata
 - How to construct subdirs list from experiment_summary.yaml
-- Metadata extractor patterns for common experiments
 - Preparing data for each view type
 
 ### 3. Infer Visualizations → `inference.md`
@@ -74,9 +76,12 @@ Create visualizations using inspect-viz:
 1. Wrap dataframes with `Data.from_dataframe()`
 2. Call appropriate pre-built view functions
 3. Save HTML with `write_html()`
+4. Auto-export PNG with `write_png()` if playwright is available
 
 **See `generation.md` for:**
+- Dynamic metric detection
 - View function signatures and parameters
+- PNG export with playwright auto-detection
 - Output file naming conventions
 - Creating multiple plots per experiment
 
@@ -103,6 +108,26 @@ Document process in `{experiment_dir}/analyze-experiment.jsonl`
 
 **Note:** `scores_by_model` requires a single-task experiment. For multi-task experiments, use `scores_by_task`, `scores_heatmap`, or `scores_radar_by_task` instead.
 
+## User Question
+
+When `vis_label` creates multiple task variants (conditions), **always ask the user** which visualization to generate:
+
+```
+Found {N} conditions via vis_label: {list}
+
+Which visualization would you like?
+
+1. scores_by_task - Compare conditions side-by-side (Recommended)
+2. scores_heatmap - Model × condition matrix
+3. Both
+```
+
+**Smart defaults for everything else:**
+- Deduplication: Automatic (keep most recent per model+epoch)
+- Epochs: Use latest only (unless user explicitly asks for all)
+- Metrics: Plot all available (dynamically detected)
+- PNG: Auto-detect playwright; generate if available, skip with warning if not
+
 ## Output Structure
 
 After running, the experiment directory will contain:
@@ -110,9 +135,10 @@ After running, the experiment directory will contain:
 ```
 {experiment_dir}/
 ├── analysis/
-│   ├── scores_by_model.html
 │   ├── scores_by_task.html
+│   ├── scores_by_task.png      (if playwright available)
 │   ├── scores_heatmap.html
+│   ├── scores_heatmap.png      (if playwright available)
 │   └── ...
 ├── analyze-experiment.jsonl
 └── experiment_summary.yaml
@@ -197,11 +223,14 @@ design-experiment → scaffold-experiment → run-experiment → summarize-exper
 
 ## Important Notes
 
-- **Currently only supports capitalization experiments** - metadata extractors and inference logic are specific to capitalization experiment structure
+- **Metadata-driven** - uses `vis_label` metadata for task names, JSON metadata for epoch/finetuned/source_model
+- **Automatic deduplication** - when multiple evals exist for the same model+epoch, keeps only the most recent (logs skipped files)
+- **Dynamic metric detection** - plots all available score columns (no hardcoding)
 - **Must run after evaluations complete** - requires .eval files to exist
 - Visualizations are independent - one failing doesn't stop others
 - Output directory (`analysis/`) is created if it doesn't exist
 - HTML files are standalone (no external dependencies to view)
+- PNG files require playwright (skipped with warning if not installed)
 - Uses helper functions from `tools/inspect/viz_helpers.py`
 - Reference examples in `viz_examples/scripts/inspect_viz_examples.ipynb`
 
@@ -217,6 +246,6 @@ design-experiment → scaffold-experiment → run-experiment → summarize-exper
 
 ## Implementation Reference
 
-Working examples exist in `viz_examples/scripts/inspect_viz_examples.ipynb` demonstrating all supported pre-built views with capitalization experiments.
+Working examples exist in `viz_examples/scripts/inspect_viz_examples.ipynb` demonstrating all supported pre-built views.
 
 Helper functions are implemented in `tools/inspect/viz_helpers.py`.

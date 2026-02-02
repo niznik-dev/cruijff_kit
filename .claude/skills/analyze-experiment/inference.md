@@ -76,40 +76,6 @@ def infer_visualizations(config, logs_df):
     return views
 ```
 
-## Capitalization Experiment Inference
-
-For capitalization experiments, the inference is based on the experiment type:
-
-### Word Length Experiments
-
-**Characteristics:**
-- Multiple word lengths (5L, 6L, 7L, etc.)
-- Usually 1-2 models
-
-**Inferred views:**
-- `scores_by_task` - Compare accuracy across word lengths
-- `scores_heatmap` - Model × word length matrix (if multiple models)
-- `scores_radar_by_task` - Match vs. includes accuracy comparison
-
-### Model × Prompt Experiments
-
-**Characteristics:**
-- Binary factor: with_prompt vs no_prompt
-- Usually multiple models
-
-**Inferred views:**
-- `scores_by_factor` - Effect of prompt on each model
-- `scores_by_model` - Overall model comparison
-
-### Cross-Organization Experiments
-
-**Characteristics:**
-- Models from different organizations
-- Single task
-
-**Inferred views:**
-- `scores_by_model` - Direct model comparison
-
 ## Variable Type Detection
 
 Detect variable types from experiment_summary.yaml:
@@ -121,7 +87,8 @@ def detect_variable_type(values):
     # Binary: exactly 2 values that look boolean-ish
     if len(values) == 2:
         bool_patterns = [True, False, 0, 1, 'yes', 'no', 'true', 'false',
-                        'with_prompt', 'no_prompt', 'enabled', 'disabled']
+                        'with_prompt', 'no_prompt', 'enabled', 'disabled',
+                        'balanced', 'imbalanced', 'train', 'test']
         if all(str(v).lower() in [str(p).lower() for p in bool_patterns] for v in values):
             return 'binary'
 
@@ -160,6 +127,30 @@ def detect_available_columns(logs_df):
     ]
 
     return available
+```
+
+## vis_label View Selection
+
+When experiments use `vis_label` metadata (from scaffold-inspect), multiple conditions may exist. In this case, **always ask the user** which visualization to generate:
+
+```
+Found {N} conditions via vis_label: {list of vis_labels}
+
+Which visualization would you like?
+
+1. scores_by_task - Compare conditions side-by-side (Recommended)
+2. scores_heatmap - Model × condition matrix
+3. Both
+```
+
+**Detection logic:**
+```python
+# Check for vis_label variants
+if 'task_name' in logs_df.columns:
+    vis_labels = logs_df['task_name'].unique().tolist()
+    if len(vis_labels) > 1:
+        # Ask user which view to generate
+        pass
 ```
 
 ## Handling Ambiguous Cases

@@ -41,7 +41,7 @@ Logged when finding the experiment directory.
 Logged when parsing experiment_summary.yaml.
 
 ```json
-{"action": "PARSE", "timestamp": "2026-01-21T15:30:01Z", "file": "experiment_summary.yaml", "runs_found": 4, "variables": ["model_size", "word_length"], "status": "success"}
+{"action": "PARSE", "timestamp": "2026-01-21T15:30:01Z", "file": "experiment_summary.yaml", "runs_found": 4, "variables": ["model", "dataset"], "status": "success"}
 ```
 
 ```json
@@ -139,16 +139,15 @@ Logged for fatal errors that prevent completion.
 ## Example Complete Log
 
 ```jsonl
-{"action": "LOCATE", "timestamp": "2026-01-21T15:30:00Z", "experiment_dir": "/scratch/experiments/cap_wordlen_2026-01-12", "method": "current_directory", "status": "success"}
-{"action": "PARSE", "timestamp": "2026-01-21T15:30:01Z", "file": "experiment_summary.yaml", "runs_found": 2, "variables": ["model_size", "word_length"], "status": "success"}
-{"action": "LOAD", "timestamp": "2026-01-21T15:30:02Z", "experiment_path": "/scratch/experiments/cap_wordlen_2026-01-12", "subdirs": ["Llama-3.2-1B-Instruct_5L", "Llama-3.2-3B-Instruct_5L"], "logs_found": 6, "status": "success"}
-{"action": "INFER", "timestamp": "2026-01-21T15:30:03Z", "views_selected": ["scores_by_task", "scores_heatmap", "scores_radar_by_task"], "reasons": ["Found 3 tasks", "2 models × 3 tasks matrix", "Multiple metrics"], "status": "success"}
+{"action": "LOCATE", "timestamp": "2026-01-21T15:30:00Z", "experiment_dir": "/scratch/experiments/my_experiment_2026-01-12", "method": "current_directory", "status": "success"}
+{"action": "PARSE", "timestamp": "2026-01-21T15:30:01Z", "file": "experiment_summary.yaml", "runs_found": 2, "variables": ["model", "dataset"], "status": "success"}
+{"action": "LOAD", "timestamp": "2026-01-21T15:30:02Z", "experiment_path": "/scratch/experiments/my_experiment_2026-01-12", "subdirs": ["1B_balanced", "3B_balanced"], "logs_found": 6, "status": "success"}
+{"action": "INFER", "timestamp": "2026-01-21T15:30:03Z", "views_selected": ["scores_by_task", "scores_heatmap"], "reasons": ["Found 2 conditions", "2 models × 2 conditions matrix"], "status": "success"}
 {"action": "GENERATE", "timestamp": "2026-01-21T15:30:04Z", "view": "scores_by_task", "metric": "match", "output": "analysis/scores_by_task_match.html", "status": "success"}
 {"action": "GENERATE", "timestamp": "2026-01-21T15:30:05Z", "view": "scores_by_task", "metric": "includes", "output": "analysis/scores_by_task_includes.html", "status": "success"}
 {"action": "GENERATE", "timestamp": "2026-01-21T15:30:06Z", "view": "scores_heatmap", "metric": "match", "output": "analysis/scores_heatmap_match.html", "status": "success"}
 {"action": "GENERATE", "timestamp": "2026-01-21T15:30:07Z", "view": "scores_heatmap", "metric": "includes", "output": "analysis/scores_heatmap_includes.html", "status": "success"}
-{"action": "GENERATE", "timestamp": "2026-01-21T15:30:08Z", "view": "scores_radar_by_task", "metric": "combined", "output": "analysis/scores_radar.html", "status": "success"}
-{"action": "COMPLETE", "timestamp": "2026-01-21T15:30:09Z", "visualizations_generated": 5, "visualizations_failed": 0, "output_dir": "analysis/", "status": "success"}
+{"action": "COMPLETE", "timestamp": "2026-01-21T15:30:08Z", "visualizations_generated": 4, "visualizations_failed": 0, "output_dir": "analysis/", "status": "success"}
 ```
 
 ## Writing Logs
