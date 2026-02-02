@@ -32,6 +32,15 @@ os.makedirs(output_dir, exist_ok=True)
 
 ## View Function Signatures
 
+**Before using these functions**, run `help()` to verify the API hasn't changed:
+
+```python
+from inspect_viz.view.beta import scores_by_task
+help(scores_by_task)
+```
+
+The signatures below are reference examples — the actual function may have additional or renamed parameters.
+
 ### scores_by_task
 
 Compare scores across multiple tasks or conditions.
