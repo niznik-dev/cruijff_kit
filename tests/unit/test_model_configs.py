@@ -5,7 +5,7 @@ Run these tests when adding a new model to verify the configuration is correct:
 
 These tests verify:
 - All models have required tokenizer configuration
-- All tokenizer path_types are valid and handled
+- All tokenizer model_familys are valid and handled
 - configure_tokenizer() works correctly for all supported model families
 """
 
@@ -13,7 +13,7 @@ import pytest
 from cruijff_kit.tools.torchtune.model_configs import (
     MODEL_CONFIGS,
     configure_tokenizer,
-    VALID_TOKENIZER_PATH_TYPES,
+    SUPPORTED_MODEL_FAMILIES,
 )
 
 
@@ -30,7 +30,7 @@ class TestConfigureTokenizerByFamily:
         model_config = {
             "tokenizer": {
                 "component": "torchtune.models.llama3.llama3_tokenizer",
-                "path_type": "llama",
+                "model_family": "llama",
             }
         }
 
@@ -46,7 +46,7 @@ class TestConfigureTokenizerByFamily:
         model_config = {
             "tokenizer": {
                 "component": "torchtune.models.qwen2_5.qwen2_5_tokenizer",
-                "path_type": "qwen",
+                "model_family": "qwen",
             }
         }
 
@@ -60,37 +60,37 @@ class TestConfigureTokenizerByFamily:
 class TestConfigureTokenizerErrors:
     """Test error handling in configure_tokenizer()."""
 
-    def test_unknown_path_type_raises_error(self):
-        """Test that unknown path_type raises ValueError."""
+    def test_unknown_model_family_raises_error(self):
+        """Test that unknown model_family raises ValueError."""
         config = {"tokenizer": {}}
         model_config = {
             "tokenizer": {
                 "component": "torchtune.models.some.tokenizer",
-                "path_type": "unknown_type",
+                "model_family": "unknown_type",
             }
         }
 
         with pytest.raises(ValueError) as exc_info:
             configure_tokenizer(config, model_config, "SomeModel", "SomeModel")
 
-        assert "Unknown tokenizer path_type" in str(exc_info.value)
+        assert "Unknown tokenizer model_family" in str(exc_info.value)
         assert "unknown_type" in str(exc_info.value)
         assert "SomeModel" in str(exc_info.value)
 
-    def test_missing_path_type_raises_error(self):
-        """Test that missing path_type raises ValueError."""
+    def test_missing_model_family_raises_error(self):
+        """Test that missing model_family raises ValueError."""
         config = {"tokenizer": {}}
         model_config = {
             "tokenizer": {
                 "component": "torchtune.models.some.tokenizer",
-                # path_type is missing
+                # model_family is missing
             }
         }
 
         with pytest.raises(ValueError) as exc_info:
             configure_tokenizer(config, model_config, "SomeModel", "SomeModel")
 
-        assert "Unknown tokenizer path_type" in str(exc_info.value)
+        assert "Unknown tokenizer model_family" in str(exc_info.value)
         assert "None" in str(exc_info.value)
 
     def test_missing_tokenizer_config_raises_error(self):
@@ -101,7 +101,7 @@ class TestConfigureTokenizerErrors:
         with pytest.raises(ValueError) as exc_info:
             configure_tokenizer(config, model_config, "SomeModel", "SomeModel")
 
-        assert "Unknown tokenizer path_type" in str(exc_info.value)
+        assert "Unknown tokenizer model_family" in str(exc_info.value)
 
 
 class TestConfigureTokenizerBehavior:
@@ -113,7 +113,7 @@ class TestConfigureTokenizerBehavior:
         model_config = {
             "tokenizer": {
                 "component": "torchtune.models.llama3.llama3_tokenizer",
-                "path_type": "llama",
+                "model_family": "llama",
             }
         }
 
@@ -139,15 +139,15 @@ class TestModelConfigsStructure:
         for model_name, config in MODEL_CONFIGS.items():
             assert "tokenizer" in config, f"Model '{model_name}' missing tokenizer config"
             assert "component" in config["tokenizer"], f"Model '{model_name}' missing tokenizer component"
-            assert "path_type" in config["tokenizer"], f"Model '{model_name}' missing tokenizer path_type"
+            assert "model_family" in config["tokenizer"], f"Model '{model_name}' missing tokenizer model_family"
 
-    def test_all_models_have_valid_path_type(self):
-        """Test that all MODEL_CONFIGS have a valid tokenizer path_type."""
+    def test_all_models_have_valid_model_family(self):
+        """Test that all MODEL_CONFIGS have a valid tokenizer model_family."""
         for model_name, config in MODEL_CONFIGS.items():
-            path_type = config["tokenizer"]["path_type"]
-            assert path_type in VALID_TOKENIZER_PATH_TYPES, (
-                f"Model '{model_name}' has invalid path_type '{path_type}'. "
-                f"Valid types: {VALID_TOKENIZER_PATH_TYPES}"
+            model_family = config["tokenizer"]["model_family"]
+            assert model_family in SUPPORTED_MODEL_FAMILIES, (
+                f"Model '{model_name}' has invalid model_family '{model_family}'. "
+                f"Valid types: {SUPPORTED_MODEL_FAMILIES}"
             )
 
     def test_all_models_have_required_fields(self):
@@ -186,28 +186,28 @@ class TestModelConfigsIntegration:
 
 
 # =============================================================================
-# Tests for VALID_TOKENIZER_PATH_TYPES
+# Tests for SUPPORTED_MODEL_FAMILIES
 # =============================================================================
 
 class TestValidTokenizerPathTypes:
-    """Test the VALID_TOKENIZER_PATH_TYPES constant."""
+    """Test the SUPPORTED_MODEL_FAMILIES constant."""
 
     def test_contains_expected_types(self):
-        """Test that VALID_TOKENIZER_PATH_TYPES contains expected entries."""
-        assert "llama" in VALID_TOKENIZER_PATH_TYPES
-        assert "qwen" in VALID_TOKENIZER_PATH_TYPES
+        """Test that SUPPORTED_MODEL_FAMILIES contains expected entries."""
+        assert "llama" in SUPPORTED_MODEL_FAMILIES
+        assert "qwen" in SUPPORTED_MODEL_FAMILIES
 
     def test_all_types_have_handler(self):
-        """Test that all valid path_types have a handler in configure_tokenizer."""
-        for path_type in VALID_TOKENIZER_PATH_TYPES:
+        """Test that all valid model_familys have a handler in configure_tokenizer."""
+        for model_family in SUPPORTED_MODEL_FAMILIES:
             config = {"tokenizer": {}}
             model_config = {
                 "tokenizer": {
                     "component": f"torchtune.models.test.test_tokenizer",
-                    "path_type": path_type,
+                    "model_family": model_family,
                 }
             }
 
-            # Should not raise - each path_type should have a handler
+            # Should not raise - each model_family should have a handler
             result = configure_tokenizer(config, model_config, "TestModel", "TestModel")
             assert "_component_" in result["tokenizer"]

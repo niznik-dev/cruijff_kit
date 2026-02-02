@@ -494,6 +494,7 @@ inspect eval capitalization.py@capitalization \\
 
 For control (not fine-tuned) models, scaffold-inspect generates `eval_config.yaml` (see "Extracting Values for Control Models" above), then reads from it at scaffolding time:
 
+**For instruct models:**
 ```bash
 # Values extracted from eval_config.yaml at scaffolding time:
 MODEL_PATH="/path/to/pretrained-llms/Llama-3.2-1B-Instruct"
@@ -539,6 +540,7 @@ inspect eval capitalization.py@capitalization \\
 
 **Key points:**
 - The `--model` argument uses a descriptive name (`hf/{run_name}_control`) that gets recorded in the `.eval` file for identification
+- The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_1B_control`) for visualization
 - Control models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
 - Values come from `eval_config.yaml` (generated from experiment_summary.yaml)
 - Mirrors fine-tuned approach: config file → SLURM script for auditability

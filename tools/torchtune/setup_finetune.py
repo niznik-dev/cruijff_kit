@@ -8,8 +8,7 @@ from cruijff_kit.utils import run_names
 from cruijff_kit.tools.torchtune import config_recipe_loader
 from cruijff_kit.tools.torchtune.model_configs import (
     MODEL_CONFIGS,
-    configure_tokenizer,
-    VALID_TOKENIZER_PATH_TYPES,
+    configure_tokenizer
 )
 
 # Calculate paths relative to this script

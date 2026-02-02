@@ -6,21 +6,21 @@ requirements.
 
 To add a new model:
 1. Add an entry to MODEL_CONFIGS with the model directory name as the key
-2. If the model uses a new tokenizer format, add a handler in configure_tokenizer()
-   and update VALID_TOKENIZER_PATH_TYPES
+2. If the model family a new tokenizer format, add a handler in configure_tokenizer()
+   and update SUPPORTED_MODEL_FAMILIES
 """
 
-# Valid tokenizer path types - update when adding new model families
-VALID_TOKENIZER_PATH_TYPES = {"llama", "qwen"}
+# Valid model families - AKA those with supported tokenizer path types
+SUPPORTED_MODEL_FAMILIES = {"llama", "qwen"}
 
 # Model-specific configurations
 # Keys are model directory names (e.g., "Llama-3.2-3B-Instruct")
+# Base/foundation models use "text_completion"; instruct models use "chat_completion"
 # SLURM resources follow RAM=VRAM rule to ensure checkpoint saving doesn't OOM
 MODEL_CONFIGS = {
     # -------------------------------------------------------------------------
     # Llama models - use SentencePiece tokenizer (original/tokenizer.model)
     # -------------------------------------------------------------------------
-    # Base/foundation models - use text_completion
     "Llama-3.2-1B": {
         "component": "torchtune.models.llama3_2.lora_llama3_2_1b",
         "checkpoint_files": ["model.safetensors"],
@@ -28,7 +28,7 @@ MODEL_CONFIGS = {
         "dataset_type": "text_completion",
         "tokenizer": {
             "component": "torchtune.models.llama3.llama3_tokenizer",
-            "path_type": "llama",
+            "model_family": "llama",
         },
         "slurm": {
             "mem": "40G",
@@ -46,7 +46,7 @@ MODEL_CONFIGS = {
         "dataset_type": "chat_completion",
         "tokenizer": {
             "component": "torchtune.models.llama3.llama3_tokenizer",
-            "path_type": "llama",
+            "model_family": "llama",
         },
         "slurm": {
             "mem": "40G",
@@ -66,7 +66,7 @@ MODEL_CONFIGS = {
         "dataset_type": "chat_completion",
         "tokenizer": {
             "component": "torchtune.models.llama3.llama3_tokenizer",
-            "path_type": "llama",
+            "model_family": "llama",
         },
         "slurm": {
             "mem": "80G",
@@ -86,7 +86,7 @@ MODEL_CONFIGS = {
         "dataset_type": "chat_completion",
         "tokenizer": {
             "component": "torchtune.models.llama3.llama3_tokenizer",
-            "path_type": "llama",
+            "model_family": "llama",
         },
         "slurm": {
             "mem": "80G",
@@ -106,7 +106,7 @@ MODEL_CONFIGS = {
         "dataset_type": "chat_completion",
         "tokenizer": {
             "component": "torchtune.models.llama3.llama3_tokenizer",
-            "path_type": "llama",
+            "model_family": "llama",
         },
         "slurm": {
             "mem": "320G",
@@ -129,7 +129,7 @@ MODEL_CONFIGS = {
         "dataset_type": "text_completion",
         "tokenizer": {
             "component": "torchtune.models.qwen2_5.qwen2_5_tokenizer",
-            "path_type": "qwen",
+            "model_family": "qwen",
         },
         "slurm": {
             "mem": "80G",
@@ -149,7 +149,7 @@ MODEL_CONFIGS = {
         "dataset_type": "chat_completion",
         "tokenizer": {
             "component": "torchtune.models.qwen2_5.qwen2_5_tokenizer",
-            "path_type": "qwen",
+            "model_family": "qwen",
         },
         "slurm": {
             "mem": "80G",
@@ -174,24 +174,24 @@ def configure_tokenizer(config, model_config, model_dir, model_name):
         Modified configuration dictionary
 
     Raises:
-        ValueError: If tokenizer path_type is missing or unknown
+        ValueError: If tokenizer model_family is missing or unknown
     """
     tokenizer_config = model_config.get("tokenizer", {})
-    path_type = tokenizer_config.get("path_type")
+    model_family = tokenizer_config.get("model_family")
 
-    if path_type == "llama":
+    if model_family == "llama":
         # Llama models use SentencePiece tokenizer
         config["tokenizer"]["_component_"] = tokenizer_config["component"]
         config["tokenizer"]["path"] = f"${{models_dir}}/{model_dir}/original/tokenizer.model"
-    elif path_type == "qwen":
+    elif model_family == "qwen":
         # Qwen models use BPE tokenizer with vocab.json + merges.txt
         config["tokenizer"]["_component_"] = tokenizer_config["component"]
         config["tokenizer"]["path"] = f"${{models_dir}}/{model_dir}/vocab.json"
         config["tokenizer"]["merges_file"] = f"${{models_dir}}/{model_dir}/merges.txt"
     else:
         raise ValueError(
-            f"Unknown tokenizer path_type '{path_type}' for model '{model_name}'. "
-            f"Supported path_types: {sorted(VALID_TOKENIZER_PATH_TYPES)}"
+            f"Unknown tokenizer model_family '{model_family}' for model '{model_name}'. "
+            f"Supported model_familys: {sorted(SUPPORTED_MODEL_FAMILIES)}"
         )
 
     return config
