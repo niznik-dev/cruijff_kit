@@ -35,22 +35,21 @@ with open(f"{experiment_dir}/experiment_summary.yaml") as f:
 
 ```yaml
 runs:
-  - name: "Llama-3.2-1B-Instruct_5L"
-    type: "fine-tuned"
-    model: "Llama-3.2-1B-Instruct"
-    parameters:
-      word_length: 5
-  - name: "Llama-3.2-3B-Instruct_5L"
-    type: "fine-tuned"
-    model: "Llama-3.2-3B-Instruct"
-    parameters:
-      word_length: 5
+  - name: 1B_10K
+    type: fine-tuned
+    model: Llama-3.2-1B-Instruct
+    dataset: acs_employment_verbose_10000_80P
+
+  - name: 3B_10K
+    type: fine-tuned
+    model: Llama-3.2-3B-Instruct
+    dataset: acs_employment_verbose_10000_80P
 ```
 
 Extract:
-- `run['name']` → subdirectory names for `load_experiment_logs()`
+- `run['name']` → subdirectory names for loading evaluation logs
 - `run['model']` → model names for grouping
-- `run['parameters']` → experimental variables
+- `run['dataset']` → training dataset used
 
 **2. Variables section** - Experimental design:
 
@@ -59,18 +58,23 @@ The variables section supports two formats:
 **Format A: Flat dictionary (common in existing experiments)**
 ```yaml
 variables:
-  model_size: ["1B", "3B"]
-  word_length: [5, 6, 7]
+  model:
+    - Llama-3.2-1B-Instruct
+    - Llama-3.2-3B-Instruct
+  sample_size:
+    - 1000
+    - 10000
+    - 50000
 ```
 
 **Format B: Nested with independent/dependent (structured)**
 ```yaml
 variables:
   independent:
-    - name: "model_size"
-      values: ["1B", "3B"]
-    - name: "word_length"
-      values: [5, 6, 7]
+    - name: "model"
+      values: ["Llama-3.2-1B-Instruct", "Llama-3.2-3B-Instruct"]
+    - name: "sample_size"
+      values: [1000, 10000, 50000]
   dependent:
     - name: "accuracy"
       metric: "match_accuracy"
@@ -84,14 +88,20 @@ Extract:
 
 ```yaml
 evaluation:
-  task: "capitalization"
   matrix:
-    - run: "Llama-3.2-1B-Instruct_5L"
-      tasks: ["capitalization"]
+    - run: 1B_balanced
+      vis_label: "1B Balanced"
+      tasks: [acs_income]
+      epochs: [0, 1, 2]
+
+    - run: 3B_balanced
+      vis_label: "3B Balanced"
+      tasks: [acs_income]
       epochs: [0, 1, 2]
 ```
 
 Extract:
+- `vis_label` → human-readable label for visualizations (used as task name suffix)
 - Task names → for labeling plots
 - Epochs → for filtering data if needed
 
@@ -151,7 +161,7 @@ def _make_var_info(name, values):
 
 ## Building Subdirs List
 
-Construct the subdirs list for `load_experiment_logs()`:
+Construct the subdirs list for loading evaluation logs:
 
 ```python
 def get_subdirs(config):
@@ -159,22 +169,6 @@ def get_subdirs(config):
     runs = config.get('runs', [])
     return [run['name'] for run in runs]
 ```
-
-## Capitalization Experiment Patterns
-
-For capitalization experiments, common patterns include:
-
-**Word length experiments:**
-- Subdirs: `["Llama-3.2-1B-Instruct_5L", "Llama-3.2-3B-Instruct_5L"]`
-- Variable: word_length (extracted from subdir name or task_arg_data_path)
-
-**Model × prompt experiments:**
-- Subdirs: `["Llama-3.2-1B-Instruct_no_prompt", "Llama-3.2-1B-Instruct_with_prompt", ...]`
-- Variable: prompt_type (binary: with_prompt vs no_prompt)
-
-**Cross-organization experiments:**
-- Subdirs: `["Google-Gemma-2B", "Meta-Llama-3.2-1B-Instruct"]`
-- Variable: model (categorical)
 
 ## Error Handling
 
@@ -201,7 +195,7 @@ Please check the file for syntax errors.
 Log parsing actions to analyze-experiment.jsonl:
 
 ```json
-{"action": "PARSE", "timestamp": "...", "file": "experiment_summary.yaml", "status": "success", "runs_found": 4, "variables": ["model_size", "word_length"]}
+{"action": "PARSE", "timestamp": "...", "file": "experiment_summary.yaml", "status": "success", "runs_found": 4, "variables": ["model", "sample_size"]}
 ```
 
 See `logging.md` for complete format specification.
