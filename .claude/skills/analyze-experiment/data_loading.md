@@ -127,10 +127,4 @@ for subdir in subdirs:
 
 ## Logging
 
-Log data loading actions:
-
-```json
-{"action": "LOAD", "timestamp": "...", "experiment_path": "/path/to/exp", "subdirs": ["run1", "run2"], "logs_found": 12, "status": "success"}
-```
-
-See `logging.md` for complete format specification.
+Log data loading actions using `LOAD_EVALS` and `DEDUPLICATE` action types. See `logging.md` for format specification.

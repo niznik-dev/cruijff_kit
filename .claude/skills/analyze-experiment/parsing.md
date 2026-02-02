@@ -138,10 +138,4 @@ Please check the file for syntax errors.
 
 ## Logging
 
-Log parsing actions to analyze-experiment.jsonl:
-
-```json
-{"action": "PARSE", "timestamp": "...", "file": "experiment_summary.yaml", "status": "success", "runs_found": 4, "variables": ["model", "sample_size"]}
-```
-
-See `logging.md` for complete format specification.
+Log parsing actions using `LOCATE_EXPERIMENT` and `PARSE_CONFIG` action types. See `logging.md` for format specification.
