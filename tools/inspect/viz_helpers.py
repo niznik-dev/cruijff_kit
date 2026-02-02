@@ -5,26 +5,22 @@ This module provides utilities for loading experiment data and preparing it
 for visualization with inspect-viz pre-built views.
 
 Example usage:
-    from tools.inspect.viz_helpers import load_experiment_logs
+    from tools.inspect.viz_helpers import evals_df_prep, parse_eval_metadata, detect_metrics
 
-    logs_df = load_experiment_logs(
-        experiment_path="/path/to/experiment",
-        subdirs=["run1", "run2"],
-        log_viewer_url="http://localhost:8000/logs/",
-        metadata_extractors={
-            "model": lambda df: df['model'].str.extract(r'(\d+B)', expand=False)
-        }
-    )
+    # Load and prepare evaluation logs
+    logs_df = evals_df_prep(eval_files)
+    logs_df = parse_eval_metadata(logs_df)
+
+    # Detect available metrics dynamically
+    metrics = detect_metrics(logs_df)
 """
 
+import json
 import os
-from typing import Callable
 
 import pandas as pd
 from inspect_ai.log import read_eval_log
 from inspect_ai.analysis import (
-    log_viewer,
-    prepare,
     evals_df,
     EvalModel,
     EvalResults,
@@ -32,6 +28,145 @@ from inspect_ai.analysis import (
     EvalInfo,
     EvalTask,
 )
+
+
+def deduplicate_eval_files(eval_files: list[str]) -> tuple[list[str], list[str]]:
+    """
+    Keep most recent eval file per model+epoch combination.
+
+    When multiple evaluations exist for the same model and epoch (e.g., from
+    re-runs), this keeps only the most recent one based on timestamp in filename.
+
+    Args:
+        eval_files: List of paths to .eval log files
+
+    Returns:
+        Tuple of (kept_files, skipped_files) where:
+        - kept_files: List of paths to keep (most recent per model+epoch)
+        - skipped_files: List of paths that were duplicates
+
+    Example:
+        kept, skipped = deduplicate_eval_files(eval_files)
+        print(f"Kept {len(kept)} files, skipped {len(skipped)} duplicates")
+    """
+    # Read model and epoch info from each file
+    file_details = []
+    for filepath in eval_files:
+        try:
+            log = read_eval_log(filepath)
+            # Extract timestamp from filename (format: YYYYMMDDTHHMMSS_...)
+            filename = os.path.basename(filepath)
+            timestamp_str = filename.split('_')[0]
+
+            # Get epoch from metadata if available
+            metadata = {}
+            if hasattr(log.eval, 'metadata') and log.eval.metadata:
+                metadata = log.eval.metadata
+            epoch = metadata.get('epoch', 'unknown')
+
+            file_details.append({
+                'path': filepath,
+                'timestamp': timestamp_str,
+                'model': log.eval.model,
+                'epoch': epoch,
+            })
+        except Exception as e:
+            # If we can't read the file, skip it
+            print(f"Warning: Could not read {filepath}: {e}")
+            continue
+
+    # Sort by timestamp descending (most recent first)
+    file_details.sort(key=lambda x: x['timestamp'], reverse=True)
+
+    # Keep most recent per model+epoch combination
+    seen_keys = set()
+    kept = []
+    skipped = []
+
+    for fd in file_details:
+        key = (fd['model'], fd['epoch'])
+        if key not in seen_keys:
+            seen_keys.add(key)
+            kept.append(fd['path'])
+        else:
+            skipped.append(fd['path'])
+
+    return kept, skipped
+
+
+def parse_eval_metadata(logs_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Parse JSON metadata column into separate columns for epoch, finetuned, source_model.
+
+    Extracts structured metadata from the 'metadata' column (which contains JSON strings)
+    and adds them as proper DataFrame columns. Also uses task_arg_vis_label for task_name.
+
+    Args:
+        logs_df: DataFrame from evals_df() with 'metadata' and 'task_arg_vis_label' columns
+
+    Returns:
+        DataFrame with additional columns:
+        - epoch: Training epoch number (from metadata)
+        - finetuned: Boolean indicating if model was fine-tuned (from metadata)
+        - source_model: Original model name before fine-tuning (from metadata)
+        - task_name: Visualization label for the task (from task_arg_vis_label)
+
+    Example:
+        logs_df = evals_df_prep(eval_files)
+        logs_df = parse_eval_metadata(logs_df)
+        print(logs_df['epoch'].unique())  # [1, 2, 3]
+    """
+    def _parse_metadata(meta_str):
+        """Parse JSON metadata string into dict."""
+        if meta_str and isinstance(meta_str, str):
+            try:
+                return json.loads(meta_str)
+            except json.JSONDecodeError:
+                return {}
+        elif isinstance(meta_str, dict):
+            return meta_str
+        return {}
+
+    # Parse metadata columns
+    if 'metadata' in logs_df.columns:
+        logs_df['epoch'] = logs_df['metadata'].apply(
+            lambda x: _parse_metadata(x).get('epoch', None)
+        )
+        logs_df['finetuned'] = logs_df['metadata'].apply(
+            lambda x: _parse_metadata(x).get('finetuned', None)
+        )
+        logs_df['source_model'] = logs_df['metadata'].apply(
+            lambda x: _parse_metadata(x).get('source_model', None)
+        )
+
+    # Use vis_label for task_name
+    if 'task_arg_vis_label' in logs_df.columns:
+        logs_df['task_name'] = logs_df['task_arg_vis_label']
+
+    return logs_df
+
+
+def detect_metrics(logs_df: pd.DataFrame) -> list[str]:
+    """
+    Detect available metrics from score columns in the dataframe.
+
+    Args:
+        logs_df: DataFrame with score columns (e.g., score_match_accuracy)
+
+    Returns:
+        List of metric names (e.g., ['match', 'includes'])
+
+    Example:
+        metrics = detect_metrics(logs_df)
+        for metric in metrics:
+            score_col = f"score_{metric}_accuracy"
+            # ... generate plot
+    """
+    score_cols = [
+        c for c in logs_df.columns
+        if c.startswith('score_') and c.endswith('_accuracy')
+    ]
+    return [c.replace('score_', '').replace('_accuracy', '') for c in score_cols]
 
 
 def evals_df_prep(logs: list[str]) -> pd.DataFrame:
@@ -49,72 +184,3 @@ def evals_df_prep(logs: list[str]) -> pd.DataFrame:
         columns=(EvalInfo + EvalTask + EvalModel + EvalResults + EvalScores)
     )
     return logs_df
-
-
-def load_experiment_logs(
-    experiment_path: str,
-    subdirs: list[str],
-    log_viewer_url: str,
-    metadata_extractors: dict[str, Callable[[pd.DataFrame], pd.Series]],
-) -> pd.DataFrame:
-    """
-    Load evaluation logs from an experiment with multiple subdirectories.
-
-    This function collects .eval files from experiment subdirectories,
-    extracts model paths and custom metadata, and prepares the data
-    for visualization with inspect-viz.
-
-    Args:
-        experiment_path: Path to main experiment directory
-        subdirs: List of subdirectory names containing eval/logs
-        log_viewer_url: URL for log viewer (e.g., "http://localhost:8000/logs/")
-        metadata_extractors: Dict mapping column names to lambda functions that
-            extract values from the dataframe. Each function receives the full
-            dataframe and should return a Series.
-            E.g., {"model": lambda df: df['model'].str.extract(r'(\d+B)', expand=False)}
-
-    Returns:
-        Prepared DataFrame ready for visualization with inspect-viz.
-        Includes log_viewer links for interactive drill-down.
-
-    Example:
-        logs_df = load_experiment_logs(
-            experiment_path="/scratch/experiments/cap_wordlen_2026-01-12",
-            subdirs=["Llama-3.2-1B-Instruct_5L", "Llama-3.2-3B-Instruct_5L"],
-            log_viewer_url="http://localhost:8000/cap_wordlen_logs/",
-            metadata_extractors={
-                "model": lambda df: df['model'].str.extract(r'Llama-3\.2-(\d+B)', expand=False),
-                "task_name": lambda df: df['task_arg_data_path'].str.extract(r'words_(\d+L)', expand=False)
-            }
-        )
-    """
-    # Build paths and LOG_DIRS mapping
-    log_paths = [
-        os.path.join(experiment_path, subdir, "eval", "logs")
-        for subdir in subdirs
-    ]
-    log_dirs = {path: log_viewer_url for path in log_paths}
-
-    # Collect all log files
-    logs = []
-    for path in log_paths:
-        logs.extend([os.path.join(path, f) for f in os.listdir(path)])
-
-    # Extract model paths from each log
-    model_paths = [
-        read_eval_log(log).eval.model_args['model_path']
-        for log in logs
-    ]
-
-    # Read into eval-level dataframe
-    logs_df = evals_df_prep(logs)
-
-    # Add model_path column
-    logs_df['model_path'] = model_paths
-
-    # Apply custom metadata extractors
-    for col_name, extractor in metadata_extractors.items():
-        logs_df[col_name] = extractor(logs_df)
-
-    # Prepare with log viewer for interactive links
-    return prepare(logs_df, [log_viewer("eval", log_dirs)])

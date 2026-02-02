@@ -124,12 +124,12 @@ Use descriptive names that indicate the view type and content:
 # Pattern: {view_type}_{experiment_type}_{metric}.html
 
 # Examples:
-"scores_by_task_wordlen_match.html"
-"scores_by_task_wordlen_includes.html"
-"scores_heatmap_wordlen_match.html"
-"scores_by_factor_prompt_match.html"
-"scores_by_model_crossorg_match.html"
-"scores_radar_wordlen.html"
+"scores_by_task_sample_size_match.html"
+"scores_by_task_balanced_match.html"
+"scores_heatmap_sample_size_match.html"
+"scores_by_factor_balanced_match.html"
+"scores_by_model_match.html"
+"scores_radar_sample_size.html"
 ```
 
 ## Dynamic Metric Detection
