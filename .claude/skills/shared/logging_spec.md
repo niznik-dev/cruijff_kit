@@ -110,6 +110,7 @@ See:
 - `design-experiment/logging.md` - Planning-specific logging
 - `scaffold-experiment/logging.md` - Config generation logging
 - `run-experiment/logging.md` - Execution logging
+- `analyze-experiment/logging.md` - Visualization logging
 
 ---
 
@@ -123,7 +124,8 @@ Logs are always created within the experiment directory:
 ├── scaffold-torchtune.log          # Fine-tuning config generation
 ├── scaffold-inspect.log            # Evaluation config generation
 ├── run-torchtune.log               # Fine-tuning execution
-└── run-inspect.log                 # Evaluation execution
+├── run-inspect.log                 # Evaluation execution
+└── analyze-experiment.log          # Visualization generation
 ```
 
 **Note:** Most skills use plain text format. design-experiment uses JSONL for machine-readable audit trails (see `design-experiment/logging.md`).

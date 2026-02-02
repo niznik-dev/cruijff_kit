@@ -15,7 +15,7 @@ Generate visualizations from evaluation results:
 2. Load evaluation logs from run directories
 3. Infer appropriate visualization types based on experimental variables
 4. Generate interactive HTML plots using inspect-viz
-5. Log the process in analyze-experiment.jsonl
+5. Log the process in analyze-experiment.log
 
 ## Prerequisites
 
@@ -53,7 +53,7 @@ Use helper functions from `tools/inspect/viz_helpers.py`:
 - How to construct subdirs list from experiment_summary.yaml
 - Preparing data for each view type
 
-### 3. Infer Visualizations → `inference.md`
+### 3. Select Visualizations
 
 Map experimental variables to appropriate pre-built views:
 
@@ -64,11 +64,6 @@ Map experimental variables to appropriate pre-built views:
 | Multiple tasks/conditions | `scores_by_task` |
 | Model × task matrix | `scores_heatmap` |
 | Multiple metrics | `scores_radar_by_task` |
-
-**See `inference.md` for:**
-- Complete inference logic
-- How to detect variable types from experiment_summary.yaml
-- Selecting appropriate views
 
 ### 4. Generate Plots → `generation.md`
 
@@ -87,7 +82,7 @@ Create visualizations using inspect-viz:
 
 ### 5. Logging → `logging.md`
 
-Document process in `{experiment_dir}/analyze-experiment.jsonl`
+Document process in `{experiment_dir}/analyze-experiment.log`
 
 **See `logging.md` for:**
 - JSONL format specification
@@ -140,7 +135,7 @@ After running, the experiment directory will contain:
 │   ├── scores_heatmap.html
 │   ├── scores_heatmap.png      (if playwright available)
 │   └── ...
-├── analyze-experiment.jsonl
+├── analyze-experiment.log
 └── experiment_summary.yaml
 ```
 
@@ -157,7 +152,7 @@ After running, the experiment directory will contain:
 - Do not proceed
 
 **If visualization generation fails:**
-- Log error details in analyze-experiment.jsonl
+- Log error details in analyze-experiment.log
 - Continue with remaining visualizations
 - Report which visualizations failed in summary
 
@@ -173,7 +168,7 @@ Before reporting success, verify:
 - ✓ Evaluation logs were loaded successfully
 - ✓ At least one visualization was generated
 - ✓ HTML files exist in analysis/ directory
-- ✓ Log file created (analyze-experiment.jsonl)
+- ✓ Log file created (analyze-experiment.log)
 
 ## Output Summary
 
@@ -207,7 +202,7 @@ cd {experiment_dir}/analysis && python -m http.server 8080
 
 ### Log
 
-Details recorded in `analyze-experiment.jsonl`
+Details recorded in `analyze-experiment.log`
 ```
 
 ## Relationship to Other Skills
@@ -240,7 +235,6 @@ design-experiment → scaffold-experiment → run-experiment → summarize-exper
 |--------|---------|
 | parsing.md | Experiment location and YAML parsing |
 | data_loading.md | Helper functions for loading logs |
-| inference.md | View selection logic |
 | generation.md | Plot creation workflow |
 | logging.md | JSONL audit trail specification |
 
