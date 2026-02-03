@@ -1,13 +1,21 @@
 """
-Eval task for predictable_or_not with chat_completion dataset.
+Eval task for predictable_or_not.
 
 Reads prompt and system_prompt from setup_finetune.yaml to ensure train/eval parity.
 
 Usage:
+    # For instruct models (chat_completion, default):
     inspect eval inspect_task_predictable_or_not.py --model hf/local \
         -M model_path=/path/to/checkpoint \
         -T config_path=/path/to/setup_finetune.yaml \
         -T data_path=/path/to/pp.json
+
+    # For base models (text_completion):
+    inspect eval inspect_task_predictable_or_not.py --model hf/local \
+        -M model_path=/path/to/checkpoint \
+        -T config_path=/path/to/setup_finetune.yaml \
+        -T data_path=/path/to/pp.json \
+        -T use_chat_template=false
 """
 
 import yaml
@@ -24,9 +32,10 @@ def predictable_or_not(
     split: str = "validation",
     temperature: float = 1e-7,
     max_tokens: int = 10,
+    use_chat_template: bool = True,
 ) -> Task:
     """
-    Eval task for predictable_or_not trained with chat_completion.
+    Eval task for predictable_or_not.
 
     Args:
         data_path: Path to JSON file with {"train": [...], "validation": [...]}
@@ -34,6 +43,8 @@ def predictable_or_not(
         split: Which split to evaluate on (default: validation)
         temperature: Generation temperature
         max_tokens: Max tokens to generate
+        use_chat_template: If True, use chat format with system message (instruct models).
+                          If False, use simple text (base models). Should match training.
     """
     # Read prompt config from YAML
     prompt_str = "{input}"
@@ -60,12 +71,20 @@ def predictable_or_not(
         sample_fields=record_to_sample,
     )
 
-    return Task(
-        dataset=dataset,
-        solver=chain(
+    if use_chat_template:
+        # Instruct models: use chat format with system message
+        solver = chain(
             system_message(system_prompt),
             generate(temperature=temperature, max_tokens=max_tokens),
-        ),
+        )
+    else:
+        solver = chain(
+            generate(temperature=temperature, max_tokens=max_tokens),
+        )
+
+    return Task(
+        dataset=dataset,
+        solver=solver,
         scorer=[
             match(location="exact", ignore_case=False),
             includes(ignore_case=False),
