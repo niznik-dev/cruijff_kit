@@ -118,7 +118,10 @@ def parse_eval_metadata(logs_df: pd.DataFrame) -> pd.DataFrame:
     """
     def _parse_metadata(meta_str):
         """Parse JSON metadata string into dict."""
-        if meta_str and isinstance(meta_str, str):
+        # Handle pandas NA/None values
+        if pd.isna(meta_str):
+            return {}
+        if isinstance(meta_str, str):
             try:
                 return json.loads(meta_str)
             except json.JSONDecodeError:
