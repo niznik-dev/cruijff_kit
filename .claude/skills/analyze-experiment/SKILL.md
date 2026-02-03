@@ -1,368 +1,245 @@
-# Analyze Experiment (PLANNED)
+---
+name: analyze-experiment
+description: Generate visualizations from completed experiment evaluations using inspect-viz. Use after run-experiment to create interactive HTML plots from inspect-ai evaluation logs.
+---
 
-**STATUS: This skill is planned for future implementation. Documentation below describes the intended functionality.**
+# Analyze Experiment
 
-You will help users interpret and compare experimental results by analyzing training metrics, evaluation scores, and generating comparison visualizations.
+You help users visualize and analyze results from completed experiments by generating interactive HTML and PNG plots using inspect-viz pre-built views.
 
-## Your Task (Future)
+## Your Task
 
-Read experiment results from:
-- Fine-tuning SLURM logs (training metrics)
-- inspect-ai evaluation logs (.eval files)
-- experiment_summary.yaml (experiment design)
+Generate visualizations from evaluation results:
 
-Then generate:
-- Comparison tables across runs
-- Performance visualization plots
-- Statistical summaries
-- Formatted reports
+1. Read experiment_summary.yaml to understand experimental design
+2. Load evaluation logs from run directories
+3. Infer appropriate visualization types based on experimental variables
+4. Generate interactive HTML plots using inspect-viz
+5. Log the process in analyze-experiment.log
 
-## Workflow (Planned)
+## Prerequisites
 
-1. **Locate experiment** - Find the experiment directory
-2. **Read experiment_summary.yaml** - Understand experimental design
-3. **Extract training metrics** - Parse SLURM logs for:
-   - Training loss curves
-   - Validation loss (if available)
-   - Training time
-   - GPU utilization
-4. **Extract evaluation metrics** - Parse inspect-ai logs for:
-   - Accuracy scores
-   - Per-sample results
-   - Task-specific metrics
-5. **Generate comparisons** - Create:
-   - Tables comparing all runs
-   - Line plots showing metric trends
-   - Bar charts for final performance
-   - Heatmaps for parameter sweeps
-6. **Create report** - Write markdown summary with:
-   - Best performing configurations
-   - Key findings
-   - Visualizations embedded
-   - Statistical significance (if applicable)
-7. **Create log** - Document analysis process in `analyze-experiment.log`
-8. **Present findings** - Show user summary and offer to dig deeper
+- experiment_summary.yaml exists (from design-experiment)
+- Evaluations complete (from run-experiment)
+- inspect-viz installed (`pip install inspect-viz`)
+- Conda environment activated (from claude.local.md)
+- **Optional:** playwright for PNG export (`pip install playwright && playwright install chromium`)
 
-## Data Sources (Planned)
+## Workflow
 
-### Training Metrics
+### 1. Locate Experiment → `parsing.md`
 
-**Source:** SLURM logs (`rank*/slurm-*.out`)
+Find experiment directory and parse experiment_summary.yaml for:
+- Experimental variables (model, task, factors)
+- Run structure and naming conventions
+- Evaluation matrix
 
-**Extract:**
-- Loss per step/epoch
-- Learning rate schedule
-- Training time
-- GPU memory usage
-- Convergence indicators
+**See `parsing.md` for:**
+- How to find the experiment directory
+- YAML parsing logic
+- Extracting variable types for inference
 
-**Parsing approach:**
-- Search for torchtune output patterns
-- Extract numeric values with regex
-- Build time series data structures
+### 2. Load Evaluation Logs → `data_loading.md`
 
-### Evaluation Metrics
+Use helper functions from `tools/inspect/viz_helpers.py`:
+- `deduplicate_eval_files()` - Remove duplicate evals (keeps most recent per model+epoch)
+- `evals_df_prep()` - Prepare eval-level dataframes
+- `parse_eval_metadata()` - Extract epoch/finetuned/source_model from JSON metadata
+- `detect_metrics()` - Dynamically detect available score columns
 
-**Source:** inspect-ai logs (`rank*/eval/logs/*.eval`)
+**See `data_loading.md` for:**
+- Automatic deduplication of re-run evaluations
+- Generic metadata extraction using vis_label and JSON metadata
+- How to construct subdirs list from experiment_summary.yaml
+- Preparing data for each view type
 
-**Extract:**
-- Overall accuracy
-- Per-sample predictions and scores
-- Task-specific metrics
-- Evaluation time
+### 3. Select Visualizations
 
-**Parsing approach:**
-- Use inspect-ai's programmatic API
-- Load .eval files as JSON
-- Aggregate across runs
+Map experimental variables to appropriate pre-built views:
 
-### Experimental Design
+| Variable Type | View |
+|---------------|------|
+| Multiple models | `scores_by_model` |
+| Binary factor | `scores_by_factor` |
+| Multiple tasks/conditions | `scores_by_task` |
+| Model × task matrix | `scores_heatmap` |
+| Multiple metrics | `scores_radar_by_task` |
 
-**Source:** experiment_summary.yaml
+### 4. Generate Plots → `generation.md`
 
-**Extract:**
-- Variables being tested (LoRA rank, learning rate, etc.)
-- Run naming conventions
-- Scientific question being answered
-- Expected outcomes
+Create visualizations using inspect-viz:
+1. Wrap dataframes with `Data.from_dataframe()`
+2. Call appropriate pre-built view functions
+3. Save HTML with `write_html()`
+4. Auto-export PNG with `write_png()` if playwright is available
 
-## Outputs (Planned)
+**See `generation.md` for:**
+- Dynamic metric detection
+- View function signatures and parameters
+- PNG export with playwright auto-detection
+- Output file naming conventions
+- Creating multiple plots per experiment
 
-### 1. Comparison Tables
+### 5. Logging → `logging.md`
 
-**Fine-tuning comparison:**
-```markdown
-| Run Name | LoRA Rank | LR | Final Loss | Train Time | Converged |
-|----------|-----------|-----|-----------|------------|-----------|
-| rank8_lr1e-5 | 8 | 1e-5 | 0.234 | 8m | Yes |
-| rank16_lr5e-5 | 16 | 5e-5 | 0.189 | 9m | Yes |
-...
-```
+Document process in `{experiment_dir}/analyze-experiment.log`
 
-**Evaluation comparison:**
-```markdown
-| Run Name | Accuracy | Exact Match | F1 Score | Notes |
-|----------|----------|-------------|----------|-------|
-| rank8_lr1e-5 | 0.85 | 0.82 | 0.87 | Good |
-| rank16_lr5e-5 | 0.91 | 0.89 | 0.92 | Best |
-...
-```
-
-### 2. Visualization Plots
-
-**Training curves:**
-- Loss vs. step for all runs (overlaid line plot)
-- Learning rate schedule
-- GPU utilization over time
-
-**Performance comparisons:**
-- Bar chart: Final accuracy per run
-- Heatmap: Accuracy by (LoRA rank × learning rate)
-- Box plots: Score distribution across samples
-
-**File format:** PNG or SVG, embedded in markdown report
-
-### 3. Statistical Analysis
-
-**Compare runs:**
-- Mean and standard deviation
-- Best/worst performers
-- Statistical significance tests (if multiple seeds)
-- Confidence intervals
-
-**Identify patterns:**
-- Which hyperparameters matter most?
-- Diminishing returns analysis
-- Cost-benefit analysis (accuracy vs. training time)
-
-### 4. Markdown Report
-
-**Structure:**
-```markdown
-# Experiment Analysis: {experiment_name}
-
-## Overview
-- Research question
-- Variables tested
-- Number of runs
-- Date completed
-
-## Training Results
-
-### Loss Curves
-![Training loss comparison](plots/training_loss.png)
-
-### Convergence
-- 7/8 runs converged successfully
-- rank64_lr5e-5 showed oscillation
-
-### Training Time
-- Average: 10 minutes
-- Range: 8-12 minutes
-- Faster with lower rank (as expected)
-
-## Evaluation Results
-
-### Accuracy Comparison
-![Accuracy by configuration](plots/accuracy_heatmap.png)
-
-### Best Performers
-1. rank16_lr5e-5: 91% accuracy
-2. rank32_lr1e-5: 90% accuracy
-3. rank8_lr5e-5: 87% accuracy
-
-### Key Findings
-- LoRA rank 16-32 optimal for this task
-- Learning rate 5e-5 slightly better than 1e-5
-- Diminishing returns above rank 32
-
-## Statistical Summary
-
-| Metric | Mean | Std Dev | Min | Max |
-|--------|------|---------|-----|-----|
-| Accuracy | 0.88 | 0.03 | 0.85 | 0.91 |
-| F1 Score | 0.89 | 0.02 | 0.87 | 0.92 |
-
-## Recommendations
-
-1. **Production config:** rank16, lr=5e-5
-   - Best accuracy-cost tradeoff
-   - Reliable convergence
-   - 9 minute training time
-
-2. **Further exploration:**
-   - Test rank 24 (between 16 and 32)
-   - Try warmup schedule
-   - Evaluate on held-out generalization set
-
-## Next Steps
-
-1. Share these results with team
-2. Run production fine-tuning with best config
-3. Deploy model for inference testing
+**See `logging.md` for:**
+- JSONL format specification
+- Action types (LOCATE, PARSE, LOAD, INFER, GENERATE)
+- Example log entries
 
 ---
 
-*Generated by analyze-experiment skill*
-*Timestamp: 2025-10-24 01:00:00*
+## Supported Pre-built Views
+
+| View | Use Case | Required Data |
+|------|----------|---------------|
+| `scores_by_task` | Multiple tasks/conditions | task_name column |
+| `scores_heatmap` | Model × task matrix | model + task columns |
+| `scores_radar_by_task` | Multiple metrics | Multiple score columns |
+| `scores_by_factor` | Binary factors | Boolean factor column |
+| `scores_by_model` | Cross-model comparison (single task only) | model column, single task |
+
+**Note:** `scores_by_model` requires a single-task experiment. For multi-task experiments, use `scores_by_task`, `scores_heatmap`, or `scores_radar_by_task` instead.
+
+## User Question
+
+When `vis_label` creates multiple task variants (conditions), **always ask the user** which visualization to generate:
+
+```
+Found {N} conditions via vis_label: {list}
+
+Which visualization would you like?
+
+1. scores_by_task - Compare conditions side-by-side (Recommended)
+2. scores_heatmap - Model × condition matrix
+3. Both
 ```
 
-## Technical Implementation (Planned)
+**Smart defaults for everything else:**
+- Deduplication: Automatic (keep most recent per model+epoch)
+- Epochs: Use latest only (unless user explicitly asks for all)
+- Metrics: Plot all available (dynamically detected)
+- PNG: Auto-detect playwright; generate if available, skip with warning if not
 
-### Dependencies
+## Output Structure
 
-**Python libraries:**
-- pandas (data manipulation)
-- matplotlib/seaborn (plotting)
-- scipy (statistical tests)
-- inspect-ai (evaluation log parsing)
+After running, the experiment directory will contain:
 
-**Skills integration:**
-- Reads from outputs of run-torchtune and run-inspect
-- Can invoke iteratively to refine analysis
-
-### Log Parsing Strategies
-
-**SLURM logs:**
-```python
-# Extract loss values
-loss_pattern = r"Loss: ([0-9.]+)"
-losses = re.findall(loss_pattern, slurm_output)
-
-# Extract timing
-time_pattern = r"Epoch [0-9]+ completed in ([0-9.]+)s"
-times = re.findall(time_pattern, slurm_output)
+```
+{experiment_dir}/
+├── analysis/
+│   ├── scores_by_task.html
+│   ├── scores_by_task.png      (if playwright available)
+│   ├── scores_heatmap.html
+│   ├── scores_heatmap.png      (if playwright available)
+│   └── ...
+├── analyze-experiment.log
+└── experiment_summary.yaml
 ```
 
-**inspect-ai logs:**
-```python
-from inspect_ai import read_eval_log
+## Error Handling
 
-# Load evaluation results
-eval_log = read_eval_log("path/to/result.eval")
-accuracy = eval_log.results.scores["accuracy"].value
-samples = eval_log.samples
+**If experiment_summary.yaml not found:**
+- Report error to user
+- Suggest running design-experiment skill first
+- Do not proceed
+
+**If no evaluation logs found:**
+- Report error to user
+- Suggest running run-experiment skill first
+- Do not proceed
+
+**If visualization generation fails:**
+- Log error details in analyze-experiment.log
+- Continue with remaining visualizations
+- Report which visualizations failed in summary
+
+**If inference cannot determine view type:**
+- Log warning
+- Ask user which view to generate
+- Or skip and note in summary
+
+## Validation Before Completion
+
+Before reporting success, verify:
+- ✓ experiment_summary.yaml was found and parsed
+- ✓ Evaluation logs were loaded successfully
+- ✓ At least one visualization was generated
+- ✓ HTML files exist in analysis/ directory
+- ✓ Log file created (analyze-experiment.log)
+
+## Output Summary
+
+After completing analysis, provide a summary:
+
+```markdown
+## Analyze Experiment Complete
+
+Experiment: `{experiment_dir}`
+
+### Visualizations Generated
+
+✓ {N} visualizations created in `analysis/`
+
+**Created:**
+- scores_by_task.html - Task comparison (match accuracy)
+- scores_heatmap.html - Model × task matrix
+- scores_by_model.html - Model comparison
+
+### Viewing Results
+
+Open HTML files in a browser:
+```bash
+open {experiment_dir}/analysis/scores_by_task.html
 ```
 
-### Plot Generation
-
-```python
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# Training loss comparison
-fig, ax = plt.subplots(figsize=(10, 6))
-for run_name, losses in all_losses.items():
-    ax.plot(losses, label=run_name)
-ax.set_xlabel("Step")
-ax.set_ylabel("Loss")
-ax.set_title("Training Loss Comparison")
-ax.legend()
-fig.savefig("plots/training_loss.png", dpi=300)
+Or start a local server:
+```bash
+cd {experiment_dir}/analysis && python -m http.server 8080
 ```
 
-## User Interaction (Planned)
+### Log
 
-**Initial analysis:**
-- Automatically generate standard report
-- Present summary to user
+Details recorded in `analyze-experiment.log`
+```
 
-**Follow-up questions:**
-- "Would you like me to explore {specific_aspect} in more detail?"
-- "Should I generate a presentation-ready figure for {metric}?"
-- "Would you like statistical significance tests?"
+## Relationship to Other Skills
 
-**Export options:**
-- "I can export this data as CSV for further analysis"
-- "Would you like me to create a LaTeX table for your paper?"
+- **After:** run-experiment, summarize-experiment
+- **Reads:** experiment_summary.yaml, .eval files
+- **Creates:** HTML visualizations, analysis log
 
-## Integration Points (Planned)
-
-**Input from:**
-- run-experiment (completion trigger)
-- experiment_summary.yaml (design context)
-- SLURM logs (training metrics)
-- inspect-ai logs (evaluation metrics)
-
-**Output for:**
-- Research papers (formatted tables, figures)
-- Presentations (high-quality plots)
-- Team discussions (markdown reports)
-- Further experiments (insights drive next design)
-
-## Error Handling (Planned)
-
-**If logs missing:**
-- Warn user which runs have incomplete data
-- Proceed with available data
-- Note limitations in report
-
-**If parsing fails:**
-- Log which files couldn't be parsed
-- Try alternative parsing strategies
-- Ask user to check log format
-
-**If no clear winner:**
-- Report that results are similar
-- Suggest additional experiments
-- Provide confidence intervals
-
-## Future Enhancements
-
-Potential additions:
-- Interactive plots (plotly instead of matplotlib)
-- Automatic outlier detection
-- Cost analysis (GPU hours × $/hour)
-- Compare against baseline/literature
-- Export to Weights & Biases for team sharing
-- Automatic experiment retrospective generation
+**Workflow position:**
+```
+design-experiment → scaffold-experiment → run-experiment → summarize-experiment → analyze-experiment
+```
 
 ## Important Notes
 
-- This skill is **planned for future implementation**
-- Current workflow ends after run-experiment
-- Users must manually analyze results for now
-- This documentation serves as specification for future development
-- Feedback welcome on what analyses would be most valuable
+- **Metadata-driven** - uses `vis_label` metadata for task names, JSON metadata for epoch/finetuned/source_model
+- **Automatic deduplication** - when multiple evals exist for the same model+epoch, keeps only the most recent (logs skipped files)
+- **Dynamic metric detection** - plots all available score columns (no hardcoding)
+- **Must run after evaluations complete** - requires .eval files to exist
+- Visualizations are independent - one failing doesn't stop others
+- Output directory (`analysis/`) is created if it doesn't exist
+- HTML files are standalone (no external dependencies to view)
+- PNG files require playwright (skipped with warning if not installed)
+- Uses helper functions from `tools/inspect/viz_helpers.py`
+- Reference examples in `viz_examples/scripts/inspect_viz_examples.ipynb`
 
-## Workarounds Until Implementation
+## Module Organization
 
-**Manual analysis:**
-```bash
-# View evaluation results interactively
-inspect view
+| Module | Purpose |
+|--------|---------|
+| parsing.md | Experiment location and YAML parsing |
+| data_loading.md | Helper functions for loading logs |
+| generation.md | Plot creation workflow |
+| logging.md | JSONL audit trail specification |
 
-# Export evaluation data
-for dir in rank*/eval/logs; do
-  inspect log export $dir/*.eval --format csv >> results.csv
-done
+## Implementation Reference
 
-# View in spreadsheet or Jupyter notebook
-```
+Working examples exist in `viz_examples/scripts/inspect_viz_examples.ipynb` demonstrating all supported pre-built views.
 
-**Check training logs:**
-```bash
-# Find final loss values
-grep "Final loss" rank*/slurm-*.out
-
-# Compare training times
-grep "Total time" rank*/slurm-*.out
-```
-
-**Create quick comparison:**
-```python
-import pandas as pd
-from inspect_ai import read_eval_log
-from pathlib import Path
-
-# Load all eval logs
-results = []
-for eval_file in Path(".").glob("rank*/eval/logs/*.eval"):
-    log = read_eval_log(str(eval_file))
-    run_name = eval_file.parts[-3]
-    accuracy = log.results.scores["accuracy"].value
-    results.append({"run": run_name, "accuracy": accuracy})
-
-df = pd.DataFrame(results)
-print(df.sort_values("accuracy", ascending=False))
-```
+Helper functions are implemented in `tools/inspect/viz_helpers.py`.
