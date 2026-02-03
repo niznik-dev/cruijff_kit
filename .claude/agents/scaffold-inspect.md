@@ -99,15 +99,15 @@ matrix:
     vis_label: "rank4"  # optional, defaults to run name
     tasks: ["capitalization"]
     epochs: [0]
-  - run: "Llama-3.2-1B-Instruct_base"
-    vis_label: "1B_base"
+  - run: "Llama-3.2-1B-Instruct_control"
+    vis_label: "1B_control"
     tasks: ["capitalization"]
     epochs: null  # null for control/base runs
 ```
 
 Determine for each run:
 - Which tasks to evaluate on
-- Which epochs to evaluate (0-indexed, or null for base models)
+- Which epochs to evaluate (0-indexed, or null for control models)
 - Whether this is a fine-tuned or control run
 - The `vis_label` for visualization (defaults to `run` name if not specified)
 
@@ -188,30 +188,30 @@ For each evaluation task in the experiment:
    - These are the standard parameters for chat_completion-trained models
    - Check docstring/parameters if accessible
 
-## Handling Base/Control Models
+## Handling Control Model Evaluation
 
-Base/control runs don't undergo fine-tuning, so they won't have a `setup_finetune.yaml` file. For these runs, scaffold-inspect extracts values directly from experiment_summary.yaml and bakes them into the SLURM script.
+Control runs don't undergo fine-tuning, so they won't have a `setup_finetune.yaml` file. For these runs, scaffold-inspect extracts values directly from experiment_summary.yaml and bakes them into the SLURM script.
 
 ### Detection Logic
 
-From the `runs[]` list in experiment_summary.yaml, identify base/control runs:
-- Look for Type column = "Control" or "Base"
+From the `runs[]` list in experiment_summary.yaml, identify control runs:
+- Look for Type column = "Control"
 - These runs have no LoRA rank (or LoRA Rank = "-")
-- Example: `| Llama-3.2-1B-Instruct_base | Llama-3.2-1B-Instruct | - | Control | N/A |`
+- Example: `| Llama-3.2-1B-Instruct_control | Llama-3.2-1B-Instruct | - | Control | N/A |`
 
-### Extracting Values for Base Models
+### Extracting Values for Control Evaluation
 
 Extract the following from experiment_summary.yaml:
 - `data_path`: Full path from Resources → Dataset → Path
 - `prompt`: From Configuration → prompt (e.g., `"{input}"`)
 - `system_prompt`: From Configuration → System prompt
-- `model_path`: From Resources → Models (the base model path)
+- `model_path`: From Resources → Models (the control model path)
 
-1. **Create directories for base model evaluation:**
+1. **Create directories for control model evaluation:**
    ```bash
-   # Example for run named "Llama-3.2-1B-Instruct_base"
-   mkdir -p {experiment_dir}/Llama-3.2-1B-Instruct_base/eval
-   mkdir -p {experiment_dir}/Llama-3.2-1B-Instruct_base/eval/logs
+   # Example for run named "Llama-3.2-1B-Instruct_control"
+   mkdir -p {experiment_dir}/Llama-3.2-1B-Instruct_control/eval
+   mkdir -p {experiment_dir}/Llama-3.2-1B-Instruct_control/eval/logs
    ```
 
 2. **Generate eval_config.yaml** with content extracted from experiment_summary.yaml:
@@ -246,24 +246,52 @@ Extract the following from experiment_summary.yaml:
    - `dataset_type`: Usually `text_completion`, or `chat_dataset` if using chat format
    - `system_prompt`: From the run's configuration (may vary per run!)
 
-### Handling Multiple Base Runs with Different System Prompts
+### Handling Multiple Control Runs with Different System Prompts
 
 When experiment_summary.yaml includes multiple base runs with different system prompts:
 
 ```yaml
 runs:
-  - name: "Llama-3.2-1B-Instruct_base_helpful"
+  - name: "Llama-3.2-1B-Instruct_control_helpful"
     type: "control"
     model: "Llama-3.2-1B-Instruct"
     parameters: {}
     # Could have run-specific system_prompt if needed
-  - name: "Llama-3.2-1B-Instruct_base_concise"
+  - name: "Llama-3.2-1B-Instruct_control_concise"
     type: "control"
     model: "Llama-3.2-1B-Instruct"
     parameters: {}
 ```
 
 Each run's SLURM script will have its own `SYSTEM_PROMPT` variable set appropriately.
+
+### Determining Chat Template Usage
+
+When generating inspect.slurm scripts, determine whether to use chat templates based on the model type and dataset type used during training.
+
+**Detection Logic:**
+
+1. **For fine-tuned models:** Read `dataset_type` from `setup_finetune.yaml`
+   - If `dataset_type: chat_completion` → `use_chat_template=true`
+   - If `dataset_type: text_completion` → `use_chat_template=false`
+
+2. **For control models:** Check if model name ends with "-Instruct"
+   - Instruct models (e.g., `Llama-3.2-1B-Instruct`) → `use_chat_template=true`
+   - Base models (e.g., `Llama-3.2-1B`) → `use_chat_template=false`
+
+**In SLURM script generation:**
+
+```bash
+# For instruct models / chat_completion:
+USE_CHAT_TEMPLATE="true"
+
+# For base models / text_completion:
+USE_CHAT_TEMPLATE="false"
+```
+
+**Note:** When `use_chat_template=false`:
+- The `system_prompt` parameter is still passed but will be ignored by the inspect task
+- Base models receive prompts without chat formatting, matching training behavior
 
 ## Generating Inspect SLURM Scripts
 
@@ -292,9 +320,9 @@ Organize evaluations within run directories:
     └── ...
 ```
 
-**For base models (controls):**
+**For control models (not fine-tuned):**
 ```
-{experiment_dir}/{run_dir}_base/
+{experiment_dir}/{run_dir}_control/
 └── eval/
     └── {task_name}_base.slurm
 ```
@@ -326,7 +354,7 @@ Different model sizes require different SLURM resources for evaluation. Parse th
 
 Generate a SLURM script for each evaluation with model-appropriate resources.
 
-**Key principle:** Extract dataset path, prompt, and system prompt from `setup_finetune.yaml` (or experiment_summary.yaml for base models) at scaffolding time, then pass them directly to inspect eval. This avoids config file parsing at runtime.
+**Key principle:** Extract dataset path, prompt, and system prompt from `setup_finetune.yaml` (or experiment_summary.yaml for control models) at scaffolding time, then pass them directly to inspect eval. This avoids config file parsing at runtime.
 
 ```bash
 #!/bin/bash
@@ -353,30 +381,33 @@ export PYTHONPATH="{working_directory}:$PYTHONPATH"
 OUTPUT_BASE="{base_directory}/ck-out-{run_name}"
 MODEL_PATH="$OUTPUT_BASE/epoch_{N}"
 CONFIG_PATH="$OUTPUT_BASE/setup_finetune.yaml"
-{if base model:}
-MODEL_PATH="{base_model_path}"
+{if control model:}
+MODEL_PATH="{control_model_path}"
 
 # Dataset and prompt configuration
 # (extracted from setup_finetune.yaml at scaffolding time)
 DATA_PATH="{data_path}"
 PROMPT="{prompt}"
 SYSTEM_PROMPT="{system_prompt}"
+{if chat_completion or instruct model:}USE_CHAT_TEMPLATE="true"
+{if text_completion or base model:}USE_CHAT_TEMPLATE="false"
 
 # Run inspect-ai evaluation
 cd {experiment_dir}/{run_dir}/eval
 
 inspect eval {task_script_path}@{task_name} \\
   {if fine-tuned:}--model hf/{run_name}_epoch_{N} \\
-  {if base model:}--model hf/{run_name}_base \\
+  {if control model:}--model hf/{run_name}_control \\
   -M model_path="$MODEL_PATH" \\
   {if fine-tuned:}--metadata epoch={N} \\
   {if fine-tuned:}--metadata finetuned=true \\
-  {if base model:}--metadata finetuned=false \\
+  {if control model:}--metadata finetuned=false \\
   --metadata source_model="{model_name from experiment_summary.yaml}" \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
   -T system_prompt="$SYSTEM_PROMPT" \\
   -T vis_label="{matrix[].vis_label or matrix[].run}" \\
+  -T use_chat_template="$USE_CHAT_TEMPLATE" \\
   --log-dir ./logs \\
   --log-level info
 
@@ -395,7 +426,7 @@ echo "Evaluation complete"
 
 **Model paths:**
 - Fine-tuned: `{output.base_directory}/ck-out-{run_name}/epoch_{N}`
-- Base model: Original model path from `models.base[0].path`
+- Control model: Original model path from `models.base[0].path`
 
 **Task parameters (passed directly to inspect eval):**
 - `data_path`: Full path to dataset file (constructed from `input_dir_base` + `dataset_label` + `dataset_ext`)
@@ -408,10 +439,10 @@ Read `setup_finetune.yaml` from the run directory and extract:
 - `prompt` = the `prompt` field
 - `system_prompt` = the `system_prompt` field
 
-**Writing scorer config for all runs (fine-tuned and base):**
+**Writing scorer config for all runs (fine-tuned and control):**
 When generating `eval_config.yaml`, include the `scorer` list from `evaluation.scorer` in experiment_summary.yaml. This allows task files to read scorer configuration at runtime and instantiate scorers dynamically (e.g., `risk_scorer(option_tokens=["0", "1"])`).
 
-**Extracting values for base models:**
+**Extracting values for control models:**
 Use values from experiment_summary.yaml Configuration section (same as fine-tuned runs use).
 
 **Output location:**
@@ -436,7 +467,7 @@ For fine-tuned models:
 | `--metadata finetuned` | `true` | Literal |
 | `--metadata source_model` | `"{model_name}"` | From `models.base[].name` |
 
-For base/control models:
+For control models:
 | Flag | Value | Source |
 |------|-------|--------|
 | `--metadata finetuned` | `false` | Literal |
@@ -471,6 +502,7 @@ MODEL_PATH="/absolute/path/to/ck-out-{run_name}/epoch_0"
 DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
 PROMPT="{input}"
 SYSTEM_PROMPT=""
+USE_CHAT_TEMPLATE="true"  # from dataset_type: chat_completion
 
 inspect eval capitalization.py@capitalization \\
   --model hf/{run_name}_epoch_0 \\
@@ -481,6 +513,7 @@ inspect eval capitalization.py@capitalization \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
   -T system_prompt="$SYSTEM_PROMPT" \\
+  -T use_chat_template="$USE_CHAT_TEMPLATE" \\
   -T vis_label="rank4" \\
   --log-dir ./logs
 ```
@@ -490,13 +523,15 @@ inspect eval capitalization.py@capitalization \\
 - Metadata flags (`--metadata epoch`, `--metadata finetuned`, `--metadata source_model`) are stored in `log.eval.metadata` for inspect-viz filtering/grouping
 - The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_rank4`) for visualization
 - Values are extracted from `setup_finetune.yaml` **at scaffolding time** and baked into the SLURM script
+- `use_chat_template` is determined from `dataset_type` in setup_finetune.yaml
 - No config file parsing happens at eval runtime
 - Ensures exact match between training and evaluation parameters
 
-### Scenario 2: Base Model Evaluation
+### Scenario 2: Control Model Evaluation
 
-For base/control models, scaffold-inspect generates `eval_config.yaml` (see "Extracting Values for Base Models" above), then reads from it at scaffolding time:
+For control (not fine-tuned) models, scaffold-inspect generates `eval_config.yaml` (see "Extracting Values for Control Models" above), then reads from it at scaffolding time:
 
+**For instruct models:**
 ```bash
 # Add cruijff_kit to PYTHONPATH for custom scorers/tools
 export PYTHONPATH="{working_directory}:$PYTHONPATH"
@@ -506,6 +541,7 @@ MODEL_PATH="/path/to/pretrained-llms/Llama-3.2-1B-Instruct"
 DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
 PROMPT="{input}"
 SYSTEM_PROMPT=""
+USE_CHAT_TEMPLATE="true"  # Instruct model, use chat template
 
 inspect eval capitalization.py@capitalization \\
   --model hf/{run_name}_base \\
@@ -515,15 +551,37 @@ inspect eval capitalization.py@capitalization \\
   -T data_path="$DATA_PATH" \\
   -T prompt="$PROMPT" \\
   -T system_prompt="$SYSTEM_PROMPT" \\
-  -T vis_label="1B_base" \\
+  -T use_chat_template="$USE_CHAT_TEMPLATE" \\
+  -T vis_label="1B_Instruct_control" \\
+  --log-dir ./logs
+```
+
+**For base/foundation models (non-instruct):**
+```bash
+# Values for base model without instruct training:
+MODEL_PATH="/path/to/pretrained-llms/Llama-3.2-1B"
+DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
+PROMPT="{input}"
+SYSTEM_PROMPT=""
+USE_CHAT_TEMPLATE="false"  # Base model, no chat template
+
+inspect eval capitalization.py@capitalization \\
+  --model hf/{run_name}_base \\
+  -M model_path="$MODEL_PATH" \\
+  --metadata finetuned=false \\
+  --metadata source_model="Llama-3.2-1B" \\
+  -T data_path="$DATA_PATH" \\
+  -T prompt="$PROMPT" \\
+  -T system_prompt="$SYSTEM_PROMPT" \\
+  -T use_chat_template="$USE_CHAT_TEMPLATE" \\
+  -T vis_label="1B_control" \\
   --log-dir ./logs
 ```
 
 **Key points:**
-- The `--model` argument uses a descriptive name (`hf/{run_name}_base`) that gets recorded in the `.eval` file for identification
-- Metadata flags (`--metadata finetuned=false`, `--metadata source_model`) are stored in `log.eval.metadata` for inspect-viz filtering/grouping (no `epoch` for base models)
-- The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_1B_base`) for visualization
-- Base models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
+- The `--model` argument uses a descriptive name (`hf/{run_name}_control`) that gets recorded in the `.eval` file for identification
+- The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_1B_control`) for visualization
+- Control models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
 - Values come from `eval_config.yaml` (generated from experiment_summary.yaml)
 - Mirrors fine-tuned approach: config file → SLURM script for auditability
 
@@ -686,20 +744,21 @@ Before reporting success, verify:
 - ✓ System prompts match training configuration
 - ✓ Log directory paths are correct
 - ✓ Fine-tuned scripts include `--metadata epoch={N}` and `--metadata finetuned=true`
-- ✓ Base model scripts include `--metadata finetuned=false` (no epoch)
+- ✓ Control model scripts include `--metadata finetuned=false` (no epoch)
 - ✓ All scripts include `--metadata source_model="{model_name}"`
 - ✓ All scripts include `-T vis_label="{label}"`
+- ✓ All scripts set USE_CHAT_TEMPLATE
 - ✓ No errors in log
 - ✓ Log file created
 
 ## Important Notes
 
-- This subagent generates evaluation configs for both fine-tuned and base models
+- This subagent generates evaluation configs for both fine-tuned and control models
 - Evaluation scripts should not be submitted until fine-tuning completes
 - System prompt consistency between training and evaluation is critical
 - Model paths reference fine-tuning output directories that don't exist yet (created during training)
 - inspect-ai task scripts must exist before scaffolding (or note as prerequisite)
-- Base model evaluations use original model paths, not fine-tuned checkpoints
+- Control model evaluations use original model paths, not fine-tuned checkpoints
 - This subagent is typically called by `scaffold-experiment` orchestrator but can be run standalone
 - Evaluation logs will be written to `{run_dir}/eval/logs/` subdirectories
 - **Metadata flags (`--metadata`) are critical for inspect-viz** - stored in `log.eval.metadata` for filtering/grouping

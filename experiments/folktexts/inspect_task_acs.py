@@ -71,6 +71,7 @@ def _create_acs_task(
     temperature: float = 1e-7,
     max_tokens: int = 5,
     vis_label: str = "",
+    use_chat_template = True
 ) -> Task:
     """
     Create an ACS binary prediction eval task.
@@ -83,6 +84,7 @@ def _create_acs_task(
         temperature: Generation temperature
         max_tokens: Max tokens to generate
         vis_label: Optional label for visualization (appended to task name)
+        use_chat_template: Whether apply_chat_template should be used for tokenization (i.e., Instruction-tuned models)
     """
     # Construct task name with optional vis_label suffix
     full_task_name = f"{task_name}_{vis_label}" if vis_label else task_name
@@ -113,13 +115,21 @@ def _create_acs_task(
         sample_fields=record_to_sample,
     )
 
+    if use_chat_template:
+        # Instruct models: use chat format with system message
+        solver = chain(
+            system_message(system_prompt),
+            generate(temperature=temperature, max_tokens=max_tokens),
+        )
+    else:
+        solver = chain(
+            generate(temperature=temperature, max_tokens=max_tokens),
+        )
+
     return Task(
         name=full_task_name,
         dataset=dataset,
-        solver=chain(
-            system_message(system_prompt),
-            generate(temperature=temperature, max_tokens=max_tokens),
-        ),
+        solver=solver,
         scorer=_build_scorers(config),
         # generate log probabilities of top 20 tokens from inspect (sets output_logits=True on model generate() call)
         config= GenerateConfig(logprobs=True, top_logprobs=20),                                                                                                                  
@@ -135,42 +145,43 @@ def acs_binary(
     temperature: float = 1e-7,
     max_tokens: int = 5,
     vis_label: str = "",
+    use_chat_template = True
 ) -> Task:
     """Generic ACS binary prediction task. Works with any ACS dataset."""
-    return _create_acs_task("acs_binary", data_path, config_path, split, temperature, max_tokens, vis_label)
+    return _create_acs_task("acs_binary", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
 
 
 # Task-specific aliases for clarity in eval logs
 @task
 def acs_income(data_path: str, config_path: str = "", split: str = "test",
-               temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "") -> Task:
+               temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "", use_chat_template = True) -> Task:
     """ACS income prediction (>$50k)."""
-    return _create_acs_task("acs_income", data_path, config_path, split, temperature, max_tokens, vis_label)
+    return _create_acs_task("acs_income", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
 
 
 @task
 def acs_employment(data_path: str, config_path: str = "", split: str = "test",
-                   temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "") -> Task:
+                   temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "", use_chat_template = True) -> Task:
     """ACS employment prediction (employed as civilian)."""
-    return _create_acs_task("acs_employment", data_path, config_path, split, temperature, max_tokens, vis_label)
+    return _create_acs_task("acs_employment", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
 
 
 @task
 def acs_mobility(data_path: str, config_path: str = "", split: str = "test",
-                 temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "") -> Task:
+                 temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "", use_chat_template = True) -> Task:
     """ACS mobility prediction (moved in last year)."""
-    return _create_acs_task("acs_mobility", data_path, config_path, split, temperature, max_tokens, vis_label)
+    return _create_acs_task("acs_mobility", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
 
 
 @task
 def acs_publiccoverage(data_path: str, config_path: str = "", split: str = "test",
-                       temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "") -> Task:
+                       temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "", use_chat_template = True) -> Task:
     """ACS public health coverage prediction."""
-    return _create_acs_task("acs_publiccoverage", data_path, config_path, split, temperature, max_tokens, vis_label)
+    return _create_acs_task("acs_publiccoverage", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
 
 
 @task
 def acs_traveltime(data_path: str, config_path: str = "", split: str = "test",
-                   temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "") -> Task:
+                   temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "", use_chat_template = True) -> Task:
     """ACS travel time prediction (>20 min commute)."""
-    return _create_acs_task("acs_traveltime", data_path, config_path, split, temperature, max_tokens, vis_label)
+    return _create_acs_task("acs_traveltime", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
