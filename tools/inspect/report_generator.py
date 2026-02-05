@@ -549,8 +549,8 @@ def generate_report(
 
     report_lines = [
         "# Experiment Analysis Report\n",
-        f"**Experiment:** {experiment_name} | "
-        f"**Generated:** {timestamp} | "
+        f"**Experiment:** {experiment_name}  \n"
+        f"**Generated:** {timestamp}  \n"
         f"**Models:** {model_count}\n",
         "## Executive Summary\n",
         narrative + "\n",
