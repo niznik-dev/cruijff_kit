@@ -11,6 +11,47 @@ You help users plan experiments for fine-tuning and evaluating LLMs. Create a pl
 
 Guide the user through designing their experiment by asking questions, verifying resources, and creating a comprehensive `experiment_summary.yaml` file that documents the complete plan.
 
+## Prerequisites Check
+
+**Before starting the workflow**, verify the user's environment is configured:
+
+### 1. Check for claude.local.md
+
+```bash
+ls -la claude.local.md
+```
+
+**If missing**, stop and inform the user:
+
+```
+⚠️ Missing claude.local.md
+
+Before designing experiments, you need to configure your local environment:
+
+1. Copy the template:
+   cp claude.local.md.template claude.local.md
+
+2. Edit claude.local.md with your settings:
+   - HPC username and group
+   - Scratch directory paths
+   - SLURM account
+   - Conda environment name
+
+3. Run /design-experiment again
+
+See claude.local.md.template for a complete example.
+```
+
+### 2. Validate key fields (optional but recommended)
+
+If `claude.local.md` exists, check for placeholder values that haven't been replaced:
+
+```bash
+grep -E '<your_|<username>|<group>|<path_to' claude.local.md
+```
+
+If placeholders found, warn the user that some fields may need updating.
+
 ## Workflow
 
 Follow the three-stage process:
