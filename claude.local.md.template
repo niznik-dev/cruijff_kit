@@ -10,10 +10,10 @@ Copy this file to `claude.local.md` in the repository root and customize it with
 
 - **Cluster**: `<cluster_name>` (e.g., Della, Traverse)
 - **Documentation**: `<cluster_docs_url>`
-- **Username**: `<your_username>`
-- **Group**: `<your_group>` (e.g., MSALGANIK, CSES)
-- **Home directory**: `/home/<your_username>`
-- **Scratch directory**: `/scratch/gpfs/<group>/<your_username>`
+- **Username**: `<username>`
+- **Group**: `<group>` (e.g., MSALGANIK, CSES)
+- **Home directory**: `/home/<username>`
+- **Scratch directory**: `/scratch/gpfs/<group>/<username>`
 - **Working directory**: `<path_to_cruijff_kit_repo>`
 
 ### Shared Resources
@@ -60,7 +60,7 @@ conda activate cruijff
 
 **Adding issues to project**:
 ```bash
-gh project item-add <project_number> --owner <your_username> --url https://github.com/<your_username>/cruijff_kit/issues/<issue_number>
+gh project item-add <project_number> --owner niznik-dev --url https://github.com/niznik-dev/cruijff_kit/issues/<issue_number>
 ```
 
 ## Weights & Biases
@@ -69,9 +69,6 @@ gh project item-add <project_number> --owner <your_username> --url https://githu
 - **Default project**: `<default_wandb_project>`
 
 ## Common Paths
-
-### Experiments & Outputs
-- **Output base directory**: `/scratch/gpfs/<group>/<username>/ck-outputs/`
 
 ### Pretrained Models
 - **Location**: `/scratch/gpfs/<group>/pretrained-llms/`
@@ -123,16 +120,16 @@ inspect view --port=$(get_free_port)
 ### Job Management
 ```bash
 # View all your jobs
-squeue -u <your_username>
+squeue -u <username>
 
 # View recent job history
-sacct -u <your_username> -S today --format=JobID,JobName,State,ExitCode,Elapsed,MaxRSS,End -X
+sacct -u <username> -S today --format=JobID,JobName,State,ExitCode,Elapsed,MaxRSS,End -X
 
 # Cancel a job
 scancel <job_id>
 
 # Cancel all your jobs
-scancel -u <your_username>
+scancel -u <username>
 ```
 
 ## Example Configuration: Della (Princeton HPC)
@@ -143,23 +140,23 @@ Here's a complete example for Princeton's Della cluster:
 ## HPC Environment
 - **Cluster**: Della (Princeton Research Computing)
 - **Documentation**: https://researchcomputing.princeton.edu/systems/della
-- **Username**: `niznik`
-- **Group**: `MSALGANIK`
-- **Home directory**: `/home/niznik`
-- **Scratch directory**: `/scratch/gpfs/MSALGANIK/niznik`
-- **Working directory**: `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit`
+- **Username**: `<username>`
+- **Group**: `<group>`
+- **Home directory**: `/home/<username>`
+- **Scratch directory**: `/scratch/gpfs/<group>/<username>`
+- **Working directory**: `/scratch/gpfs/<group>/<username>/GitHub/cruijff_kit`
 
 ### Shared Resources
-- **Models directory**: `/scratch/gpfs/MSALGANIK/pretrained-llms`
+- **Models directory**: `/scratch/gpfs/<group>/pretrained-llms`
 
 ## Common Paths
 ### Working Directories
-- **Experiments**: `/scratch/gpfs/MSALGANIK/niznik/ck-experiments/`
-- **Sanity checks**: `/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/`
-- **Outputs**: `/scratch/gpfs/MSALGANIK/niznik/ck-outputs/`
+- **Experiments**: `/scratch/gpfs/<group>/<username>/ck-experiments/`
+- **Sanity checks**: `/scratch/gpfs/<group>/<username>/ck-sanity-checks/`
+- **Outputs**: `/scratch/gpfs/<group>/<username>/ck-outputs/`
 
 ## SLURM Defaults
-- **Account**: `cses`
+- **Account**: `<your_slurm_account>`
 - **Partition**: (leave empty)
 - **Constraint**: `gpu80`
 - **Default time**: `0:59:00`
@@ -172,11 +169,11 @@ module load anaconda3/2025.6
 ```
 
 ## GitHub Configuration
-- **Username**: `niznik-dev`
-- **Project number**: `3`
+- **Username**: `<your_github_username>`
+- **Project number**: `<project_number>`
 
 ## Weights & Biases
-- **Entity**: `niznik-dev`
+- **Entity**: `<your_wandb_entity>`
 - **Default project**: `cruijff_kit`
 ```
 
