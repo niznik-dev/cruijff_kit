@@ -18,14 +18,7 @@ We are grateful to the following funders and supporters: [Princeton AI Lab](http
 
 ## What cruijff_kit Does
 
-cruijff_kit lets you **design**, **scaffold**, **run**, and **analyze** LLM experiments on HPC clusters. A typical workflow:
-
-```mermaid
-flowchart LR
-    A[Design\nExperiment] --> B[Scaffold\nConfigs & Scripts]
-    B --> C[Run on\nSLURM Cluster]
-    C --> D[Summarize &\nAnalyze Results]
-```
+cruijff_kit lets you **design**, **scaffold**, **run**, and **analyze** LLM experiments on HPC clusters.
 
 - **Design** - Plan runs with specific models, datasets, and hyperparameters
 - **Scaffold** - Auto-generate torchtune configs, inspect-ai tasks, and SLURM scripts
