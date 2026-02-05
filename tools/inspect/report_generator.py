@@ -468,10 +468,22 @@ def _format_per_task_breakdown(metrics: list[ModelMetrics]) -> str:
     return "\n".join(lines)
 
 
-def _format_visualizations(output_path: Path) -> str:
-    """Embed any PNG visualizations found in the analysis directory."""
-    analysis_dir = output_path.parent
-    png_files = sorted(analysis_dir.glob("*.png"))
+def _format_visualizations(
+    output_path: Path, generated_pngs: Optional[list[Path]] = None
+) -> str:
+    """Embed PNG visualizations in the report.
+
+    Args:
+        output_path: Path to report.md (used to compute relative paths)
+        generated_pngs: Optional list of PNG paths to embed. If None, embeds
+            all PNGs found in the analysis directory (legacy behavior).
+    """
+    if generated_pngs is not None:
+        png_files = sorted(generated_pngs)
+    else:
+        # Legacy fallback: glob all PNGs in directory
+        analysis_dir = output_path.parent
+        png_files = sorted(analysis_dir.glob("*.png"))
 
     if not png_files:
         return ""
@@ -480,9 +492,10 @@ def _format_visualizations(output_path: Path) -> str:
 
     for png_path in png_files:
         # Use relative path from report.md location
-        rel_path = png_path.name
+        rel_path = png_path.name if isinstance(png_path, Path) else Path(png_path).name
         # Create a readable title from filename
-        title = png_path.stem.replace("_", " ").title()
+        stem = png_path.stem if isinstance(png_path, Path) else Path(png_path).stem
+        title = stem.replace("_", " ").title()
         lines.append(f"### {title}\n")
         lines.append(f"![{title}]({rel_path})\n")
 
@@ -495,6 +508,7 @@ def generate_report(
     output_path: Path,
     config: Optional[dict] = None,
     future_directions: Optional[str] = None,
+    generated_pngs: Optional[list[Path]] = None,
 ) -> str:
     """
     Generate complete markdown report from evaluation data.
@@ -505,6 +519,8 @@ def generate_report(
         output_path: Path where report will be saved
         config: Optional experiment_summary.yaml config dict
         future_directions: Optional skill-generated analysis and suggestions
+        generated_pngs: Optional list of PNG paths to embed. If None, embeds
+            all PNGs found in the analysis directory (legacy behavior).
 
     Returns:
         Generated markdown report content
@@ -514,7 +530,8 @@ def generate_report(
             df=logs_df,
             experiment_name="acs_income_2026-01-29",
             output_path=Path("experiments/acs_income/analysis/report.md"),
-            future_directions="Based on the results, consider..."
+            future_directions="Based on the results, consider...",
+            generated_pngs=[Path("analysis/scores_by_task.png")]
         )
     """
     # Extract metrics
@@ -550,7 +567,7 @@ def generate_report(
         report_lines.append(task_breakdown)
 
     # Add visualizations if PNGs exist
-    visualizations = _format_visualizations(output_path)
+    visualizations = _format_visualizations(output_path, generated_pngs)
     if visualizations:
         report_lines.append(visualizations)
 

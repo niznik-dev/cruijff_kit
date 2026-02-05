@@ -124,9 +124,24 @@ Document process in `{experiment_dir}/analyze-experiment.log`
 
 **Note:** `scores_by_model` requires a single-task experiment. For multi-task experiments, use `scores_by_task`, `scores_heatmap`, or `scores_radar_by_task` instead.
 
-## User Question
+## User Questions
 
-When `vis_label` creates multiple task variants (conditions), **always ask the user** which visualization to generate:
+### Existing Analysis Outputs
+
+If `analysis/` directory exists with files, **ask the user**:
+
+```
+Found existing analysis outputs in analysis/. What would you like to do?
+
+1. Keep existing files, add new outputs (Recommended)
+2. Clean analysis directory first
+```
+
+If user chooses option 2, delete contents of `analysis/` before generating new outputs.
+
+### Visualization Selection
+
+When `vis_label` creates multiple task variants (conditions), **ask the user** which visualization to generate:
 
 ```
 Found {N} conditions via vis_label: {list}
@@ -136,6 +151,20 @@ Which visualization would you like?
 1. scores_by_task - Compare conditions side-by-side (Recommended)
 2. scores_heatmap - Model × condition matrix
 3. Both
+```
+
+### Tracking Generated Files
+
+**Important:** Track which PNG files you generate during this run. Only pass those to `generate_report()` so the report embeds only the visualizations created in this session, not stale outputs from previous runs.
+
+```python
+generated_pngs = []
+
+# After each successful PNG export
+generated_pngs.append(png_path)
+
+# Pass to report generator
+generate_report(..., generated_pngs=generated_pngs)
 ```
 
 **Smart defaults for everything else:**

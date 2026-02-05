@@ -200,14 +200,23 @@ After generating visualizations, create a markdown report with metrics and compa
 from pathlib import Path
 from tools.inspect.report_generator import generate_report
 
+# Track PNGs generated during this run
+generated_pngs = []
+
+# After each successful PNG export:
+# generated_pngs.append(png_path)
+
 # Generate report after visualizations
 report = generate_report(
     df=logs_df,                              # DataFrame from evals_df_prep + parse_eval_metadata
     experiment_name=experiment_name,          # e.g., "acs_income_2026-01-29"
     output_path=Path(output_dir) / "report.md",
-    config=experiment_config                  # Optional: experiment_summary.yaml dict
+    config=experiment_config,                 # Optional: experiment_summary.yaml dict
+    generated_pngs=generated_pngs             # Only embed PNGs from this run
 )
 ```
+
+**Important:** Pass `generated_pngs` to ensure the report only embeds visualizations created in this session, not stale outputs from previous runs.
 
 ### Report Contents
 
