@@ -56,11 +56,11 @@ conda activate cruijff
 ## GitHub Configuration
 
 - **Username**: `<your_github_username>`
-- **cruijff_kit project number**: `<project_number>` (e.g., 3)
+- **cruijff_kit project number**: `3`
 
 **Adding issues to project**:
 ```bash
-gh project item-add <project_number> --owner niznik-dev --url https://github.com/niznik-dev/cruijff_kit/issues/<issue_number>
+gh project item-add 3 --owner niznik-dev --url https://github.com/niznik-dev/cruijff_kit/issues/<issue_number>
 ```
 
 ## Weights & Biases
@@ -132,52 +132,9 @@ scancel <job_id>
 scancel -u <username>
 ```
 
-## Example Configuration: Della (Princeton HPC)
-
-Here's a complete example for Princeton's Della cluster:
-
-```markdown
-## HPC Environment
-- **Cluster**: Della (Princeton Research Computing)
-- **Documentation**: https://researchcomputing.princeton.edu/systems/della
-- **Username**: `<username>`
-- **Group**: `<group>`
-- **Home directory**: `/home/<username>`
-- **Scratch directory**: `/scratch/gpfs/<group>/<username>`
-- **Working directory**: `/scratch/gpfs/<group>/<username>/GitHub/cruijff_kit`
-
-### Shared Resources
-- **Models directory**: `/scratch/gpfs/<group>/pretrained-llms`
-
-## Common Paths
-### Working Directories
-- **Experiments**: `/scratch/gpfs/<group>/<username>/ck-experiments/`
-- **Sanity checks**: `/scratch/gpfs/<group>/<username>/ck-sanity-checks/`
-- **Outputs**: `/scratch/gpfs/<group>/<username>/ck-outputs/`
-
-## SLURM Defaults
-- **Account**: `<your_slurm_account>`
-- **Partition**: (leave empty)
-- **Constraint**: `gpu80`
-- **Default time**: `0:59:00`
-- **Default GPUs**: `1`
-- **Default conda environment**: `cruijff`
-
-## Module System
-```bash
-module load anaconda3/2025.6
-```
-
-## GitHub Configuration
-- **Username**: `<your_github_username>`
-- **Project number**: `<project_number>`
-
-## Weights & Biases
-- **Entity**: `<your_wandb_entity>`
-- **Default project**: `cruijff_kit`
-```
-
 ## Notes
+
+For a filled-in example, see `claude.local.md.della` (configured for the MSALGANIK group on Princeton's Della cluster).
 
 - This file is ignored by git and should remain local
 - Update paths and settings as your workflow evolves
