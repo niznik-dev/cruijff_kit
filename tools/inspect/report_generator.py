@@ -454,6 +454,10 @@ def _format_per_task_breakdown(metrics: list[ModelMetrics]) -> str:
     if len(tasks) <= 1:
         return ""
 
+    # Skip if not informative (each task has only 1 model)
+    if all(len(task_metrics) == 1 for task_metrics in tasks.values()):
+        return ""
+
     lines = ["## Per-Task Breakdown\n"]
 
     for task_name, task_metrics in sorted(tasks.items()):
