@@ -42,15 +42,15 @@ Before designing experiments, you need to configure your local environment:
 See claude.local.md.template for a complete example.
 ```
 
-### 2. Validate key fields (optional but recommended)
+### 2. Validate key fields
 
 If `claude.local.md` exists, check for placeholder values that haven't been replaced:
 
 ```bash
-grep -E '<your_|<username>|<group>|<path_to' claude.local.md
+grep -n '<[^>]*>' claude.local.md
 ```
 
-If placeholders found, warn the user that some fields may need updating.
+Review any matches. Lines in example commands (Quick Commands, etc.) will legitimately contain angle brackets — ignore those. But any angle-bracketed values in the **settings sections** (HPC Environment, SLURM Defaults, Common Paths) indicate unresolved placeholders. If found, warn the user that some fields may need updating before proceeding.
 
 ## Workflow
 
