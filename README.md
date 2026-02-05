@@ -87,10 +87,7 @@ You'll need a model to fine-tune and evaluate. Here's how to get one via torchtu
 tune download meta-llama/<model_name> --output-dir <model_dir> --hf-token <hf-token>
 ```
 
-Models we've worked with:
-- Llama-3.2-1B-Instruct (most common)
-- Llama-3.1-8B-Instruct
-- Llama-3.3-70B-Instruct
+See [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md) for the full list of supported models and their resource requirements.
 
 **Never commit your HuggingFace token to a repository.**
 
@@ -119,6 +116,7 @@ See the [Workflow Guide](WORKFLOW_GUIDE.md) for step-by-step manual instructions
 
 | Document | Description |
 |----------|-------------|
+| [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md) | Supported models and resource requirements |
 | [PREREQUISITES.md](PREREQUISITES.md) | Required skills, accounts, and tutorials |
 | [WORKFLOW_GUIDE.md](WORKFLOW_GUIDE.md) | Manual workflow instructions |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, skill diagrams |
