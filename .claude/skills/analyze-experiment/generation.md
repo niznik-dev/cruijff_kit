@@ -192,6 +192,60 @@ except ImportError:
 - Skip views that require those columns
 - Report in summary
 
+## Report Generation
+
+After generating visualizations, create a markdown report with metrics and comparisons:
+
+```python
+from pathlib import Path
+from tools.inspect.report_generator import generate_report
+
+# Generate report after visualizations
+report = generate_report(
+    df=logs_df,                              # DataFrame from evals_df_prep + parse_eval_metadata
+    experiment_name=experiment_name,          # e.g., "acs_income_2026-01-29"
+    output_path=Path(output_dir) / "report.md",
+    config=experiment_config                  # Optional: experiment_summary.yaml dict
+)
+```
+
+### Report Contents
+
+The generated `report.md` includes:
+
+| Section | Description |
+|---------|-------------|
+| Executive Summary | Best performer, improvement vs baseline |
+| Model Comparison | Table with accuracy, 95% CI, sample size |
+| Improvement vs Baseline | Absolute and relative differences |
+| Per-Task Breakdown | Best model per task (if multiple tasks) |
+
+### Baseline Identification
+
+The report automatically identifies baseline models using this priority:
+
+1. `finetuned == False` in metadata
+2. `type == "control"` in experiment_summary.yaml
+3. "base" in model name (case-insensitive)
+
+### Confidence Intervals
+
+Uses Wilson score intervals (preferred over normal approximation):
+- Never produces intervals outside [0, 1]
+- Works well with small samples and extreme proportions
+
+### Error Handling
+
+**If no baseline found:**
+- Report still generates
+- Comparison section shows "No baseline identified"
+- Narrative focuses on best performer only
+
+**If metrics extraction fails:**
+- Log error
+- Report generation skipped with warning
+- Visualizations still generated
+
 ## Logging
 
-Log generation actions using `GENERATE_PLOT` action type. See `logging.md` for format specification.
+Log generation actions using `GENERATE_PLOT` and `GENERATE_REPORT` action types. See `logging.md` for format specification.

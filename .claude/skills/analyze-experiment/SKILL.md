@@ -80,7 +80,28 @@ Create visualizations using inspect-viz:
 - Output file naming conventions
 - Creating multiple plots per experiment
 
-### 5. Logging → `logging.md`
+### 5. Generate Report → `generation.md`
+
+Create markdown report with metrics and comparisons:
+1. Extract metrics from evaluation dataframe
+2. Identify baseline model (finetuned=False, type="control", or "base" in name)
+3. Compute Wilson score confidence intervals
+4. Generate narrative summary and comparison tables
+5. Write report to `analysis/report.md`
+
+Uses `tools/inspect/report_generator.py`:
+```python
+from tools.inspect.report_generator import generate_report
+
+report = generate_report(
+    df=logs_df,
+    experiment_name=experiment_name,
+    output_path=Path(experiment_dir) / "analysis" / "report.md",
+    config=experiment_config  # Optional, for baseline identification
+)
+```
+
+### 6. Logging → `logging.md`
 
 Document process in `{experiment_dir}/analyze-experiment.log`
 
@@ -130,6 +151,7 @@ After running, the experiment directory will contain:
 ```
 {experiment_dir}/
 ├── analysis/
+│   ├── report.md               # Markdown report with metrics
 │   ├── scores_by_task.html
 │   ├── scores_by_task.png      (if playwright available)
 │   ├── scores_heatmap.html
@@ -168,6 +190,7 @@ Before reporting success, verify:
 - ✓ Evaluation logs were loaded successfully
 - ✓ At least one visualization was generated
 - ✓ HTML files exist in analysis/ directory
+- ✓ report.md was generated in analysis/ directory
 - ✓ Log file created (analyze-experiment.log)
 
 ## Output Summary
@@ -178,6 +201,13 @@ After completing analysis, provide a summary:
 ## Analyze Experiment Complete
 
 Experiment: `{experiment_dir}`
+
+### Report Generated
+
+✓ Markdown report: `analysis/report.md`
+  - Executive summary with best performer
+  - Model comparison table with 95% CIs
+  - Improvement vs baseline table
 
 ### Visualizations Generated
 

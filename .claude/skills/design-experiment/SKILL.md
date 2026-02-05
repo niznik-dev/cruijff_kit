@@ -94,6 +94,8 @@ Reference materials for output generation:
 
 ## Important Reminders
 
+- **BEFORE generating experiment_summary.yaml:** You MUST read `templates/experiment_summary.yaml` first. Do not freestyle the YAML structure — use the template schema exactly.
+- **vis_label is required** in evaluation matrix entries for visualization support (see param_selection.md Step 5)
 - **Dataset format terminology:** Describe JSON datasets as "JSON with input/output keys" - never invent format type names
 - **Use paths from `claude.local.md`** for models, datasets, scratch directories
 - **Always verify resources** exist before finalizing plan (log all verification)
