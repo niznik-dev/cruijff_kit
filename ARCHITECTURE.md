@@ -201,6 +201,58 @@ Model predictions (CSV) → heterogeneity_report.py → analysis + visualization
 - Understanding which subpopulations a model serves well/poorly
 - Post-hoc analysis of any binary classification predictions with group labels
 
+## Detailed Skill Workflows
+
+The ASCII diagrams above show the core tool pipelines. The diagrams below show the higher-level skill workflows that orchestrate those tools. See `.claude/skills/*/SKILL.md` for full documentation.
+
+### scaffold-experiment
+
+```mermaid
+flowchart TD
+    A[Read experiment_summary.yaml] --> B[Parse tool specifications]
+    B --> C{Launch subagents in parallel}
+    C --> D[scaffold-torchtune]
+    C --> E[scaffold-inspect]
+    D --> D1[Generate setup_finetune.yaml per run]
+    D1 --> D2[Generate finetune.yaml + finetune.slurm per run]
+    E --> E1[Generate eval SLURM scripts per run/eval combo]
+    D2 --> F[Wait for both to complete]
+    E1 --> F
+    F --> G[Create scaffold.log]
+```
+
+### run-experiment
+
+```mermaid
+flowchart TD
+    A[Read experiment_summary.yaml] --> B[Verify scaffolding complete]
+    B --> C[Submit fine-tuning SLURM jobs with stagger delay]
+    C --> D[Poll until all fine-tuning jobs complete]
+    D --> E[Validate checkpoints exist]
+    E --> F[Submit evaluation SLURM jobs]
+    F --> G[Poll until all evaluation jobs complete]
+    G --> H[Validate eval logs exist]
+    H --> I[Create run-experiment.log]
+    I --> J[Offer to generate summary.md]
+```
+
+### create-inspect-task
+
+```mermaid
+flowchart TD
+    A[Check for experiment_summary.yaml] --> B{Experiment-guided or standalone?}
+    B -->|Guided| C[Extract config from YAML]
+    B -->|Standalone| D[Define evaluation objective]
+    C --> D
+    D --> E[Configure dataset settings]
+    E --> F[Design solver chain]
+    F --> G[Select scorers]
+    G --> H[Add task parameters]
+    H --> I[Generate task .py file]
+    I --> J[Create design .md documentation]
+    J --> K[Create log file]
+```
+
 ## Experiments vs Sanity Checks
 
 ### Experiments (`experiments/`)

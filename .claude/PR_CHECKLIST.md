@@ -8,7 +8,9 @@ Consider whether these files need updates based on your changes:
 
 ### Core Documentation
 - [ ] **README.md** - Public-facing features, installation, quick start
-- [ ] **ARCHITECTURE.md** - System design, data flow, major architectural decisions
+- [ ] **ARCHITECTURE.md** - System design, data flow, skill workflow diagrams
+- [ ] **PREREQUISITES.md** - Required skills, accounts, and tutorials
+- [ ] **WORKFLOW_GUIDE.md** - Manual workflow instructions
 - [ ] **SKILLS_ARCHITECTURE_SUMMARY.md** - Skill relationships and workflows
 - [ ] **CLAUDE.md** - Workflow instructions, terminology, git process
 
