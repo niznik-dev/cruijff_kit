@@ -11,7 +11,7 @@ To add a new model:
 """
 
 # Valid model families - AKA those with supported tokenizer path types
-SUPPORTED_MODEL_FAMILIES = {"llama", "qwen"}
+SUPPORTED_MODEL_FAMILIES = {"llama", "mistral", "qwen"}
 
 # Model-specific configurations
 # Keys are model directory names (e.g., "Llama-3.2-3B-Instruct")
@@ -117,6 +117,49 @@ MODEL_CONFIGS = {
         },
     },
     # -------------------------------------------------------------------------
+    # Mistral models - use SentencePiece tokenizer (tokenizer.model at root)
+    # -------------------------------------------------------------------------
+    "Mistral-7B-v0.1": {
+        "component": "torchtune.models.mistral.lora_mistral_7b",
+        "checkpoint_files": {
+            "filename_format": "model-{}-of-{}.safetensors",
+            "max_filename": "00002",
+        },
+        "model_type": "MISTRAL",
+        "dataset_type": "text_completion",
+        "tokenizer": {
+            "component": "torchtune.models.mistral.mistral_tokenizer",
+            "model_family": "mistral",
+        },
+        "slurm": {
+            "mem": "80G",
+            "partition": None,
+            "constraint": "gpu80",
+            "cpus": 4,
+            "gpus": 1,
+        },
+    },
+    "Mistral-7B-Instruct-v0.1": {
+        "component": "torchtune.models.mistral.lora_mistral_7b",
+        "checkpoint_files": {
+            "filename_format": "model-{}-of-{}.safetensors",
+            "max_filename": "00002",
+        },
+        "model_type": "MISTRAL",
+        "dataset_type": "chat_completion",
+        "tokenizer": {
+            "component": "torchtune.models.mistral.mistral_tokenizer",
+            "model_family": "mistral",
+        },
+        "slurm": {
+            "mem": "80G",
+            "partition": None,
+            "constraint": "gpu80",
+            "cpus": 4,
+            "gpus": 1,
+        },
+    },
+    # -------------------------------------------------------------------------
     # Qwen2.5 models - use BPE tokenizer (vocab.json + merges.txt)
     # -------------------------------------------------------------------------
     "Qwen2.5-3B": {
@@ -183,6 +226,10 @@ def configure_tokenizer(config, model_config, model_dir, model_name):
         # Llama models use SentencePiece tokenizer
         config["tokenizer"]["_component_"] = tokenizer_config["component"]
         config["tokenizer"]["path"] = f"${{models_dir}}/{model_dir}/original/tokenizer.model"
+    elif model_family == "mistral":
+        # Mistral models use SentencePiece tokenizer (at model root, not in original/)
+        config["tokenizer"]["_component_"] = tokenizer_config["component"]
+        config["tokenizer"]["path"] = f"${{models_dir}}/{model_dir}/tokenizer.model"
     elif model_family == "qwen":
         # Qwen models use BPE tokenizer with vocab.json + merges.txt
         config["tokenizer"]["_component_"] = tokenizer_config["component"]

@@ -12,7 +12,7 @@ Create tool-agnostic experiment plans that specify:
 
 **Outputs:**
 - `experiment_summary.yaml` - Structured configuration consumed by scaffold-experiment and run-experiment
-- `design-experiment.jsonl` - Machine-readable audit log for reproducibility
+- `design-experiment.log` - Human-readable audit log for reproducibility
 
 ## Meta-Pattern: param_selection → validation → generation
 
@@ -73,7 +73,7 @@ Before presenting to user (step 8), verify plan completeness:
 
 After approval, create outputs:
 - `experiment_summary.yaml` (structured configuration)
-- `design-experiment.jsonl` (machine-readable audit trail)
+- `design-experiment.log` (human-readable audit trail)
 
 After outputs are created, suggest the next step in the pipeline: scaffold-experiment.
 
@@ -81,7 +81,7 @@ After outputs are created, suggest the next step in the pipeline: scaffold-exper
 
 ### Logging (logging.md)
 
-Creates machine-readable audit log in `.jsonl` format.
+Creates human-readable audit log in `.log` format.
 
 Throughout workflow, log structured events:
 - Resource verification (models, datasets, eval tasks)
@@ -89,7 +89,7 @@ Throughout workflow, log structured events:
 - Decisions (naming, recipe, configuration)
 - File creation and validation
 
-**Format:** JSON Lines - each line is a complete JSON object with timestamp, action, result, and action-specific fields.
+**Format:** Plain text with timestamped action entries - each entry has a `[TIMESTAMP] ACTION_TYPE` header, key/value detail lines, and a result.
 
 **Not a template** - it's guidance on HOW to log. Lives at top level because it's used during multiple stages.
 
@@ -102,7 +102,7 @@ Output structure reference:
 
 1. **Tool-agnostic planning** - Plan WHAT to do, not HOW to execute
 2. **Action verb pattern** - Matches scaffold/run for consistency
-3. **Structured output** - YAML for machine parsing, JSONL for audit logs
+3. **Structured output** - YAML for machine parsing, plain text logs for audit trail
 4. **Resource verification** - Verify models, datasets, and eval tasks exist
 5. **Validation before presentation** - Ensure plan is complete
 
@@ -146,7 +146,7 @@ Output structure reference:
 ## Notes
 
 - This skill is tool-agnostic TODAY (only torchtune/inspect-ai exist) but structured to support multiple tools in the future
-- Logging is critical - design-experiment.jsonl enables debugging, reproducibility, and improvement
+- Logging is critical - design-experiment.log enables debugging, reproducibility, and improvement
 - System prompt consistency between training and evaluation is critical for inspect-ai
 - Validation before presenting ensures we don't waste user's time with incomplete plans
 - Pattern consistency with scaffold/run (action verbs) while being appropriately simpler (fewer files)
