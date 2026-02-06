@@ -136,7 +136,6 @@ The scorer configuration is written into `eval_config.yaml` so that task files c
 Extract environment-specific settings:
 - `conda_env` - Which conda environment to use
 - `account` - SLURM account to use (OPTIONAL)
-- `working_directory` - Path to cruijff_kit repo (for PYTHONPATH export)
 
 ### Parsing Output Directory from experiment_summary.yaml
 
@@ -383,9 +382,6 @@ Generate a SLURM script for each evaluation with model-appropriate resources.
 module load anaconda3/2025.6
 conda activate {conda_env}
 
-# Add cruijff_kit to PYTHONPATH for custom scorers/tools
-export PYTHONPATH="{working_directory}:$PYTHONPATH"
-
 # Model path
 {if fine-tuned:}
 OUTPUT_BASE="{base_directory}/ck-out-{run_name}"
@@ -502,9 +498,6 @@ CONFIG_PATH="{experiment_dir}/{run_dir}/eval/eval_config.yaml"
 ```
 
 ```bash
-# Add cruijff_kit to PYTHONPATH for custom scorers/tools
-export PYTHONPATH="{working_directory}:$PYTHONPATH"
-
 # Values from setup_finetune.yaml and eval_config.yaml:
 OUTPUT_BASE="/absolute/path/to/ck-out-{run_name}"
 MODEL_PATH="$OUTPUT_BASE/epoch_0"
@@ -539,9 +532,6 @@ For control (not fine-tuned) models, scaffold-inspect generates `eval_config.yam
 
 **For instruct models:**
 ```bash
-# Add cruijff_kit to PYTHONPATH for custom scorers/tools
-export PYTHONPATH="{working_directory}:$PYTHONPATH"
-
 # Control model evaluation:
 MODEL_PATH="/path/to/pretrained-llms/Llama-3.2-1B-Instruct"
 CONFIG_PATH="{experiment_dir}/{run_dir}/eval/eval_config.yaml"

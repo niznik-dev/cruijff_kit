@@ -20,47 +20,8 @@ import yaml
 from inspect_ai import Task, task
 from inspect_ai.dataset import hf_dataset, Sample
 from inspect_ai.solver import chain, generate, system_message
-from inspect_ai.scorer import match, includes
 from inspect_ai.model import GenerateConfig
-from tools.inspect.scorers import risk_scorer
-
-
-# Registry of available scorers and their constructors
-SCORER_REGISTRY = {
-    "match": lambda params: match(**params) if params else match(location="exact", ignore_case=False),
-    "includes": lambda params: includes(**params) if params else includes(ignore_case=False),
-    "risk_scorer": lambda params: risk_scorer(**params) if params else risk_scorer(),
-}
-
-# Default scorers when no config is provided
-DEFAULT_SCORERS = [
-    match(location="exact", ignore_case=False),
-    includes(ignore_case=False),
-]
-
-
-def _build_scorers(config: dict) -> list:
-    """Build scorer list from eval_config.yaml scorer section.
-
-    Args:
-        config: Parsed YAML config dict. If it contains a 'scorer' key,
-                builds scorers from that list. Otherwise returns DEFAULT_SCORERS.
-
-    Returns:
-        List of instantiated scorer objects.
-    """
-    scorer_config = config.get("scorer")
-    if not scorer_config:
-        return DEFAULT_SCORERS
-
-    scorers = []
-    for entry in scorer_config:
-        name = entry["name"]
-        params = entry.get("params", {})
-        if name not in SCORER_REGISTRY:
-            raise ValueError(f"Unknown scorer '{name}'. Available: {list(SCORER_REGISTRY.keys())}")
-        scorers.append(SCORER_REGISTRY[name](params))
-    return scorers
+from cruijff_kit.tools.inspect.scorers import build_scorers
 
 
 def _create_acs_task(
@@ -130,7 +91,7 @@ def _create_acs_task(
         name=full_task_name,
         dataset=dataset,
         solver=solver,
-        scorer=_build_scorers(config),
+        scorer=build_scorers(config),
         # generate log probabilities of top 20 tokens from inspect (sets output_logits=True on model generate() call)
         config= GenerateConfig(logprobs=True, top_logprobs=20),                                                                                                                  
     )
