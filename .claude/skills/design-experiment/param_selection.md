@@ -346,7 +346,7 @@ Record verified resources in experiment_summary.yaml:
 
 ### Log All Verification Steps
 
-All resource verification commands should be logged in `design-experiment.jsonl` (see `logging.md`).
+All resource verification commands should be logged in `design-experiment.log` (see `logging.md`).
 
 ---
 
@@ -408,7 +408,7 @@ Does this look correct? Any adjustments needed?
 ## Key Principles
 
 1. **Ask, don't assume** - Even when you can auto-detect, confirm with user
-2. **Log everything** - All verifications go in design-experiment.jsonl (see `logging.md`)
+2. **Log everything** - All verifications go in design-experiment.log (see `logging.md`)
 3. **Validate before presenting** - Use `validation.md` to ensure plan is complete
 4. **Handle missing resources gracefully** - Note as prerequisites, don't block the plan
 5. **System prompt consistency** - Critical for inspect-ai, verify it matches between training and eval

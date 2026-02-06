@@ -120,7 +120,7 @@ Logs are always created within the experiment directory:
 
 ```
 {experiment_dir}/
-├── design-experiment.jsonl         # Planning decisions (JSONL format)
+├── design-experiment.log            # Planning decisions
 ├── scaffold-torchtune.log          # Fine-tuning config generation
 ├── scaffold-inspect.log            # Evaluation config generation
 ├── run-torchtune.log               # Fine-tuning execution
@@ -128,7 +128,6 @@ Logs are always created within the experiment directory:
 └── analyze-experiment.log          # Visualization generation
 ```
 
-**Note:** Most skills use plain text format. design-experiment uses JSONL for machine-readable audit trails (see `design-experiment/logging.md`).
 
 ---
 

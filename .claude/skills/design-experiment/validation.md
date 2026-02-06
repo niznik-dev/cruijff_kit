@@ -62,7 +62,7 @@ Run through this checklist before presenting the plan:
 - ✓ Task names in matrix match tasks defined in evaluation.tasks
 
 ### Resources Validation
-- ✓ All verifications logged in design-experiment.jsonl
+- ✓ All verifications logged in design-experiment.log
 - ✓ Available disk space checked
 - ✓ Sufficient space for checkpoints
 - ✓ Warning issued if disk space is tight
