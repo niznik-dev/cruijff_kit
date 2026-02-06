@@ -40,6 +40,22 @@ class TestConfigureTokenizerByFamily:
         assert result["tokenizer"]["path"] == "${models_dir}/Llama-3.2-1B-Instruct/original/tokenizer.model"
         assert "merges_file" not in result["tokenizer"]
 
+    def test_mistral_tokenizer(self):
+        """Test Mistral tokenizer configuration (SentencePiece at root)."""
+        config = {"tokenizer": {}}
+        model_config = {
+            "tokenizer": {
+                "component": "torchtune.models.mistral.mistral_tokenizer",
+                "model_family": "mistral",
+            }
+        }
+
+        result = configure_tokenizer(config, model_config, "Mistral-7B-v0.3", "Mistral-7B-v0.3")
+
+        assert result["tokenizer"]["_component_"] == "torchtune.models.mistral.mistral_tokenizer"
+        assert result["tokenizer"]["path"] == "${models_dir}/Mistral-7B-v0.3/tokenizer.model"
+        assert "merges_file" not in result["tokenizer"]
+
     def test_qwen_tokenizer(self):
         """Test Qwen tokenizer configuration (BPE with vocab.json + merges.txt)."""
         config = {"tokenizer": {}}
@@ -195,6 +211,7 @@ class TestValidTokenizerPathTypes:
     def test_contains_expected_types(self):
         """Test that SUPPORTED_MODEL_FAMILIES contains expected entries."""
         assert "llama" in SUPPORTED_MODEL_FAMILIES
+        assert "mistral" in SUPPORTED_MODEL_FAMILIES
         assert "qwen" in SUPPORTED_MODEL_FAMILIES
 
     def test_all_types_have_handler(self):
