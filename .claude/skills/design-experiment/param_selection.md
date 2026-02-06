@@ -237,7 +237,12 @@ Create the runs list in experiment_summary.yaml:
 ### Evaluation Configuration
 - System prompt must match training for consistency
 - Temperature typically 0.0 for deterministic evaluation
-- Scorer selection (exact match, includes, model-graded, etc.)
+
+### Scorer Selection
+
+**Ask the user:** "Which scorers should be used for evaluation?"
+
+See `references/scorers.md` for the full list of available scorers, their parameters, design-time considerations, and common combinations.
 
 **Important:** Base models evaluate once per task (no epoch suffix), fine-tuned models evaluate per epoch.
 

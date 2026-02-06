@@ -20,7 +20,8 @@ import yaml
 from inspect_ai import Task, task
 from inspect_ai.dataset import hf_dataset, Sample
 from inspect_ai.solver import chain, generate, system_message
-from inspect_ai.scorer import match, includes
+from inspect_ai.model import GenerateConfig
+from cruijff_kit.tools.inspect.scorers import build_scorers
 
 
 def _create_acs_task(
@@ -48,13 +49,14 @@ def _create_acs_task(
     """
     # Construct task name with optional vis_label suffix
     full_task_name = f"{task_name}_{vis_label}" if vis_label else task_name
-    # Read prompt config from YAML
+    # Read prompt and scorer config from YAML
     prompt_str = "{input}"
     system_prompt = ""
+    config = {}
 
     if config_path:
         with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
+            config = yaml.safe_load(f) or {}
         prompt_str = config.get('prompt', '{input}')
         system_prompt = config.get('system_prompt', '')
 
@@ -89,10 +91,9 @@ def _create_acs_task(
         name=full_task_name,
         dataset=dataset,
         solver=solver,
-        scorer=[
-            match(location="exact", ignore_case=False),
-            includes(ignore_case=False),
-        ],
+        scorer=build_scorers(config),
+        # generate log probabilities of top 20 tokens from inspect (sets output_logits=True on model generate() call)
+        config= GenerateConfig(logprobs=True, top_logprobs=20),                                                                                                                  
     )
 
 
