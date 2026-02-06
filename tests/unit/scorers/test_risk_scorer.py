@@ -19,10 +19,6 @@ from inspect_ai.scorer import Score, CORRECT, INCORRECT, Target
 
 from cruijff_kit.tools.inspect.scorers.risk_scorer import risk_scorer, mean_risk_score
 
-# Reusable dummy assistant message for ChatCompletionChoice
-_DUMMY_MESSAGE = ChatMessageAssistant(content="")
-
-
 # =============================================================================
 # Helpers
 # =============================================================================
@@ -46,9 +42,13 @@ def _make_state(completion: str, token_logprobs: dict[str, float], generated_tok
         top_logprobs=top_logprobs,
     )
 
+    # Set message content = completion so ModelOutput.completion resolves
+    # correctly whether it uses the field value or the set_completion validator
+    message = ChatMessageAssistant(content=completion)
+
     logprobs = Logprobs(content=[first_token])
     choice = ChatCompletionChoice(
-        message=_DUMMY_MESSAGE,
+        message=message,
         logprobs=logprobs,
     )
     output = ModelOutput(choices=[choice], completion=completion)
@@ -276,7 +276,7 @@ class TestEdgeCases:
 
     def test_no_logprobs(self):
         """When no logprobs data is available, return INCORRECT."""
-        choice = ChatCompletionChoice(message=_DUMMY_MESSAGE, logprobs=None)
+        choice = ChatCompletionChoice(message=ChatMessageAssistant(content="0"), logprobs=None)
         output = ModelOutput(choices=[choice], completion="0")
 
         state = MagicMock()
@@ -293,7 +293,7 @@ class TestEdgeCases:
     def test_empty_logprobs_content(self):
         """When logprobs.content is empty, return INCORRECT."""
         logprobs = Logprobs(content=[])
-        choice = ChatCompletionChoice(message=_DUMMY_MESSAGE, logprobs=logprobs)
+        choice = ChatCompletionChoice(message=ChatMessageAssistant(content="0"), logprobs=logprobs)
         output = ModelOutput(choices=[choice], completion="0")
 
         state = MagicMock()
@@ -329,7 +329,7 @@ class TestEdgeCases:
         ]
         first_token = Logprob(token=" 0", logprob=math.log(0.7), top_logprobs=top_logprobs)
         logprobs = Logprobs(content=[first_token])
-        choice = ChatCompletionChoice(message=_DUMMY_MESSAGE, logprobs=logprobs)
+        choice = ChatCompletionChoice(message=ChatMessageAssistant(content="0"), logprobs=logprobs)
         output = ModelOutput(choices=[choice], completion="0")
 
         state = MagicMock()
