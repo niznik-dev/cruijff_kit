@@ -119,7 +119,7 @@ MODEL_CONFIGS = {
     # -------------------------------------------------------------------------
     # Mistral models - use SentencePiece tokenizer (tokenizer.model at root)
     # -------------------------------------------------------------------------
-    "Mistral-7B-v0.3": {
+    "Mistral-7B-v0.1": {
         "component": "torchtune.models.mistral.lora_mistral_7b",
         "checkpoint_files": {
             "filename_format": "model-{}-of-{}.safetensors",
@@ -139,7 +139,7 @@ MODEL_CONFIGS = {
             "gpus": 1,
         },
     },
-    "Mistral-7B-Instruct-v0.3": {
+    "Mistral-7B-Instruct-v0.1": {
         "component": "torchtune.models.mistral.lora_mistral_7b",
         "checkpoint_files": {
             "filename_format": "model-{}-of-{}.safetensors",
