@@ -128,3 +128,14 @@ evaluation:
       tasks: [string]              # REQUIRED: List of task names
       epochs: [int]                # REQUIRED: List of epoch numbers (0-indexed)
                                    # Use null for control runs (no epochs)
+
+  baseline:
+    # OPTIONAL: Comparison point when no control run exists in experiment
+    # Use ONE of the following approaches:
+
+    # Approach 1: Known accuracy value (e.g., random chance)
+    accuracy: float                # Known baseline accuracy (e.g., 0.5 for binary classification)
+    source: string                 # Where this value comes from (e.g., "random chance (binary)")
+
+    # Approach 2: Explicit run as baseline (alternative to type: "control")
+    # run: string                  # Run name to use as baseline (matches runs[].name)

@@ -6,6 +6,8 @@ After user approves the plan, create the output files and suggest next steps.
 
 ### 1. experiment_summary.yaml
 
+**MANDATORY:** Before writing, READ `templates/experiment_summary.yaml` to understand the required structure. Do not freestyle — use the template schema exactly.
+
 Create structured configuration in `{experiment_dir}/experiment_summary.yaml` using the template structure from `templates/experiment_summary.yaml`.
 
 **Required sections:**
