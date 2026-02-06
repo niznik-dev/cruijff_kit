@@ -50,10 +50,10 @@ class TestConfigureTokenizerByFamily:
             }
         }
 
-        result = configure_tokenizer(config, model_config, "Mistral-7B-v0.3", "Mistral-7B-v0.3")
+        result = configure_tokenizer(config, model_config, "Mistral-7B-v0.1", "Mistral-7B-v0.1")
 
         assert result["tokenizer"]["_component_"] == "torchtune.models.mistral.mistral_tokenizer"
-        assert result["tokenizer"]["path"] == "${models_dir}/Mistral-7B-v0.3/tokenizer.model"
+        assert result["tokenizer"]["path"] == "${models_dir}/Mistral-7B-v0.1/tokenizer.model"
         assert "merges_file" not in result["tokenizer"]
 
     def test_qwen_tokenizer(self):

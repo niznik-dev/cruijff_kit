@@ -123,7 +123,7 @@ MODEL_CONFIGS = {
         "component": "torchtune.models.mistral.lora_mistral_7b",
         "checkpoint_files": {
             "filename_format": "model-{}-of-{}.safetensors",
-            "max_filename": "00003",
+            "max_filename": "00002",
         },
         "model_type": "MISTRAL",
         "dataset_type": "text_completion",
@@ -143,7 +143,7 @@ MODEL_CONFIGS = {
         "component": "torchtune.models.mistral.lora_mistral_7b",
         "checkpoint_files": {
             "filename_format": "model-{}-of-{}.safetensors",
-            "max_filename": "00003",
+            "max_filename": "00002",
         },
         "model_type": "MISTRAL",
         "dataset_type": "chat_completion",
