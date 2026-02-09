@@ -7,6 +7,7 @@
 
 from inspect_ai.scorer import match, includes
 from .risk_scorer import risk_scorer
+from .calibration_metrics import expected_calibration_error, brier_score, auc_score
 
 # Registry of available scorers and their constructors.
 # Task files use build_scorers() to instantiate scorers from YAML config.
