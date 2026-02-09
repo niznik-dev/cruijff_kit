@@ -28,7 +28,7 @@ Look for the most recent `YYYY-MM-DD-SM.md` file in the wiki directory. Files us
 
 - Ask the user for the meeting date if not provided
 - Format: `YYYY-MM-DD` (e.g., `2025-12-02`)
-- Meetings are typically on Tuesdays
+- Meetings are typically on Mondays
 
 ### 4. Create New Agenda
 
