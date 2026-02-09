@@ -152,6 +152,7 @@ def parse_eval_metadata(logs_df: pd.DataFrame) -> pd.DataFrame:
 
 METRIC_DISPLAY_NAMES: dict[str, str] = {
     "risk_scorer_cruijff_kit/ece": "ECE",
+    "risk_scorer_cruijff_kit/expected_calibration_error": "ECE",
     "risk_scorer_cruijff_kit/brier_score": "Brier Score",
     "risk_scorer_cruijff_kit/auc_score": "AUC",
     "risk_scorer_cruijff_kit/mean_risk_score": "Mean Risk Score",

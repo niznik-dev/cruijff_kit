@@ -521,34 +521,72 @@ def generate_narrative(
     return "\n".join(lines)
 
 
-def _format_model_table(metrics: list[ModelMetrics]) -> str:
-    """Format model comparison table."""
-    lines = [
-        "| Model | Epoch | Accuracy | 95% CI | Sample Size |",
-        "|-------|-------|----------|--------|-------------|",
-    ]
+def _format_model_table(
+    metrics: list[ModelMetrics],
+    calibration: Optional[list[CalibrationResult]] = None,
+) -> str:
+    """Format unified model comparison table.
+
+    When *calibration* is provided, supplementary metric columns are appended
+    between the CI and Sample Size columns.
+    """
+    # Collect supplementary column names (preserving order across results)
+    supp_names: list[str] = []
+    cal_lookup: dict[tuple[str, Optional[int]], CalibrationResult] = {}
+    if calibration:
+        for r in calibration:
+            # Build lookup by (model, epoch) — epoch may be int or float
+            epoch_key = int(r.epoch) if r.epoch is not None and not pd.isna(r.epoch) else None
+            cal_lookup[(r.model_name, epoch_key)] = r
+            for name in r.metrics:
+                if name not in supp_names:
+                    supp_names.append(name)
+
+    # Header
+    headers = ["Model", "Epoch", "Accuracy", "95% CI"]
+    headers.extend(display_name(s) for s in supp_names)
+    headers.append("Sample Size")
+
+    header_line = "| " + " | ".join(headers) + " |"
+    separator = "| " + " | ".join("---" for _ in headers) + " |"
+    lines = [header_line, separator]
 
     # Sort by accuracy descending, with synthetic baselines last
     sorted_metrics = sorted(
         metrics,
-        key=lambda x: (x.is_synthetic, -x.accuracy)
+        key=lambda x: (x.is_synthetic, -x.accuracy),
     )
 
     seen_synthetic = False
     for m in sorted_metrics:
         # Add separator before first synthetic baseline
         if m.is_synthetic and not seen_synthetic:
-            lines.append("| | | | | |")
+            empty_row = "| " + " | ".join("" for _ in headers) + " |"
+            lines.append(empty_row)
             seen_synthetic = True
 
         epoch_str = str(m.epoch) if m.epoch is not None else "-"
         ci_str = f"{m.ci_lower:.1%}-{m.ci_upper:.1%}"
         sample_str = "-" if m.is_synthetic else str(m.sample_size)
         baseline_marker = " *" if m.is_baseline else ""
-        lines.append(
-            f"| {m.name}{baseline_marker} | {epoch_str} | "
-            f"{m.accuracy:.1%} | {ci_str} | {sample_str} |"
-        )
+
+        cells = [
+            f"{m.name}{baseline_marker}",
+            epoch_str,
+            f"{m.accuracy:.1%}",
+            ci_str,
+        ]
+
+        # Supplementary metric cells
+        if supp_names:
+            epoch_key = int(m.epoch) if m.epoch is not None and not pd.isna(m.epoch) else None
+            cal = cal_lookup.get((m.name, epoch_key))
+            for s in supp_names:
+                val = cal.metrics.get(s) if cal else None
+                cells.append(f"{val:.3f}" if val is not None else "-")
+
+        cells.append(sample_str)
+        lines.append("| " + " | ".join(cells) + " |")
 
     return "\n".join(lines)
 
@@ -724,28 +762,33 @@ def generate_report(
     if research_question:
         report_lines.append(research_question)
 
+    # Detect supplementary metrics and extract calibration results
+    detected = detect_metrics(df)
+    calibration_results = None
+    if detected.supplementary:
+        calibration_results = extract_calibration_metrics(
+            df, detected.supplementary, config
+        ) or None
+
     report_lines.extend([
         "## Executive Summary\n",
         narrative + "\n",
         "## Model Comparison\n",
-        _format_model_table(metrics) + "\n",
-        "*\\* indicates baseline model*\n",
+        _format_model_table(metrics, calibration_results) + "\n",
+    ])
+
+    # Footnotes
+    footnotes = ["*\\* indicates baseline model*"]
+    if calibration_results:
+        footnotes.append(
+            "*ECE and Brier Score: lower is better. AUC: higher is better.*"
+        )
+    report_lines.append("  \n".join(footnotes) + "\n")
+
+    report_lines.extend([
         "## Improvement vs Baseline\n",
         _format_improvement_table(comparisons) + "\n",
     ])
-
-    # Add calibration / risk metrics section if supplementary metrics exist
-    detected = detect_metrics(df)
-    if detected.supplementary:
-        calibration_results = extract_calibration_metrics(
-            df, detected.supplementary, config
-        )
-        if calibration_results:
-            report_lines.append("## Calibration & Risk Metrics\n")
-            report_lines.append(
-                "*ECE and Brier Score: lower is better. AUC: higher is better.*\n"
-            )
-            report_lines.append(_format_calibration_table(calibration_results) + "\n")
 
     # Add per-task breakdown if applicable
     task_breakdown = _format_per_task_breakdown(metrics)

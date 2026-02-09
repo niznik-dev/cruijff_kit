@@ -5,8 +5,10 @@ import pytest
 
 from tools.inspect.report_generator import (
     CalibrationResult,
+    ModelMetrics,
     extract_calibration_metrics,
     _format_calibration_table,
+    _format_model_table,
 )
 
 
@@ -238,3 +240,53 @@ class TestFormatCalibrationTable:
         data_row = lines[-1]
         cells = [c.strip() for c in data_row.split("|") if c.strip()]
         assert cells[1] == "-"
+
+
+# =============================================================================
+# _format_model_table() with calibration
+# =============================================================================
+
+class TestFormatModelTableCombined:
+
+    def _metric(self, name="model_a", accuracy=0.75, epoch=1, n=500, **kw):
+        from tools.inspect.report_generator import compute_wilson_ci
+        ci_lo, ci_hi = compute_wilson_ci(accuracy, n)
+        return ModelMetrics(
+            name=name, accuracy=accuracy, ci_lower=ci_lo, ci_upper=ci_hi,
+            sample_size=n, epoch=epoch, **kw,
+        )
+
+    def test_without_calibration(self):
+        """Table works the same when no calibration is passed."""
+        table = _format_model_table([self._metric()])
+        assert "Accuracy" in table
+        assert "ECE" not in table
+        assert "AUC" not in table
+
+    def test_with_calibration_adds_columns(self):
+        """Supplementary columns appear in header when calibration provided."""
+        cal = [CalibrationResult(
+            model_name="model_a", epoch=1, sample_size=500,
+            metrics={"risk_scorer_cruijff_kit/auc_score": 0.85, "risk_scorer_cruijff_kit/brier_score": 0.15},
+        )]
+        table = _format_model_table([self._metric()], calibration=cal)
+        assert "AUC" in table
+        assert "Brier Score" in table
+        assert "0.850" in table
+        assert "0.150" in table
+
+    def test_missing_calibration_shows_dash(self):
+        """Models without calibration data get dashes in metric columns."""
+        m_base = self._metric(name="base", accuracy=0.0, epoch=None, is_baseline=True)
+        m_tuned = self._metric(name="tuned", accuracy=0.8, epoch=1)
+        cal = [CalibrationResult(
+            model_name="tuned", epoch=1, sample_size=500,
+            metrics={"risk_scorer_cruijff_kit/auc_score": 0.9},
+        )]
+        table = _format_model_table([m_base, m_tuned], calibration=cal)
+        lines = table.strip().split("\n")
+        # base model row should have "-" for AUC
+        base_row = [l for l in lines if "base" in l][0]
+        cells = [c.strip() for c in base_row.split("|") if c.strip()]
+        # cells: Model, Epoch, Accuracy, CI, AUC, Sample Size
+        assert cells[4] == "-"
