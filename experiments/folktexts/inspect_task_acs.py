@@ -19,7 +19,7 @@ Or use task-specific aliases:
 import yaml
 from inspect_ai import Task, task
 from inspect_ai.dataset import hf_dataset, Sample
-from inspect_ai.solver import chain, generate, system_message
+from inspect_ai.solver import chain, generate, system_message, assistant_message
 from inspect_ai.scorer import match, includes
 
 
@@ -50,7 +50,7 @@ def _create_acs_task(
     full_task_name = f"{task_name}_{vis_label}" if vis_label else task_name
     # Read prompt config from YAML
     prompt_str = "{input}"
-    system_prompt = ""
+    system_prompt = "You are a helpful assistant. You answer multiple-choice questions based on the information provided."
 
     if config_path:
         with open(config_path, 'r') as f:
@@ -74,14 +74,18 @@ def _create_acs_task(
         sample_fields=record_to_sample,
     )
 
+    assistant_prefill = "If I had to select one of the options, my answer would be "
+
     if use_chat_template:
-        # Instruct models: use chat format with system message
+        # Instruct models: use chat format with system message + assistant prefill
         solver = chain(
             system_message(system_prompt),
+            assistant_message(assistant_prefill),
             generate(temperature=temperature, max_tokens=max_tokens),
         )
     else:
         solver = chain(
+            assistant_message(assistant_prefill),
             generate(temperature=temperature, max_tokens=max_tokens),
         )
 
