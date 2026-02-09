@@ -111,7 +111,10 @@ runs:
 evaluation:
   system_prompt: string            # REQUIRED: Must match training system prompt
   temperature: float               # REQUIRED: Evaluation temperature (typically 0.0)
-  scorer: string                   # REQUIRED: Inspect-ai scorer type (e.g., "match")
+  scorer:                            # REQUIRED: Inspect-ai scorer(s) - list of scorers with optional params
+    - name: string                   # REQUIRED: Scorer name (e.g., "match", "includes", "risk_scorer")
+      params:                        # OPTIONAL: Parameters passed to the scorer
+        key: value                   # e.g., option_tokens: ["0", "1"] for risk_scorer
 
   tasks:
     # REQUIRED: List of evaluation tasks

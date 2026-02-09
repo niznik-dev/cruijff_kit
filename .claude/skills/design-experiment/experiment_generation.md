@@ -19,7 +19,7 @@ Create structured configuration in `{experiment_dir}/experiment_summary.yaml` us
 - `data`: training dataset with splits
 - `output`: checkpoint directories and naming patterns
 - `runs`: complete list of fine-tuned + control runs
-- `evaluation`: system prompt, temperature, scorer, tasks, matrix
+- `evaluation`: system prompt, temperature, scorer (structured list with optional params), tasks, matrix
 
 **Important notes:**
 - Use actual paths from `claude.local.md`, not placeholders
