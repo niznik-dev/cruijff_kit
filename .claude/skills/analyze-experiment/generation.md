@@ -146,11 +146,24 @@ Use descriptive names that indicate the view type and content:
 Instead of hardcoding metrics, detect them from the dataframe:
 
 ```python
-from tools.inspect.viz_helpers import detect_metrics
+from tools.inspect.viz_helpers import detect_metrics, display_name
 
 # Automatically detect available metrics
-metrics = detect_metrics(logs_df)
-# Returns e.g., ['match', 'includes'] or ['match'] depending on data
+detected = detect_metrics(logs_df)
+# detected.accuracy -> e.g., ['match', 'includes']
+# detected.supplementary -> e.g., ['risk_scorer_cruijff_kit/ece', ...]
+
+# Generate plots for accuracy metrics
+for metric in detected.accuracy:
+    score_col = f"score_{metric}_accuracy"
+    # ... create accuracy plot
+
+# Generate plots for supplementary metrics (calibration, risk)
+for metric in detected.supplementary:
+    score_col = f"score_{metric}"
+    label = display_name(metric)  # "ECE", "Brier Score", "AUC", etc.
+    # These work with any view that accepts score_value parameter
+    plot = scores_by_task(data, task_name='task_name', score_value=score_col, score_label=label)
 ```
 
 ## PNG Export
@@ -227,6 +240,7 @@ The generated `report.md` includes:
 | Executive Summary | Best performer, improvement vs baseline |
 | Model Comparison | Table with accuracy, 95% CI, sample size |
 | Improvement vs Baseline | Absolute and relative differences |
+| Calibration & Risk Metrics | ECE, Brier, AUC, Mean Risk Score (if supplementary metrics detected) |
 | Per-Task Breakdown | Best model per task (if multiple tasks) |
 
 ### Baseline Identification

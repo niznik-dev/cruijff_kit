@@ -23,6 +23,8 @@ from typing import Optional
 
 import pandas as pd
 
+from tools.inspect.viz_helpers import DetectedMetrics, detect_metrics, display_name
+
 
 @dataclass
 class ModelMetrics:
@@ -50,6 +52,138 @@ class Comparison:
     absolute_diff: float
     relative_diff: float  # as percentage
     direction: str  # "improvement" or "decline"
+
+
+@dataclass
+class CalibrationResult:
+    """Calibration / risk metrics for a single model evaluation."""
+
+    model_name: str
+    metrics: dict[str, Optional[float]]  # metric_name -> value (None if NA)
+    sample_size: int
+    epoch: Optional[int] = None
+    is_baseline: bool = False
+
+
+def extract_calibration_metrics(
+    df: pd.DataFrame,
+    supplementary_metrics: list[str],
+    config: Optional[dict] = None,
+) -> list[CalibrationResult]:
+    """
+    Extract calibration / risk metrics from evaluation dataframe.
+
+    Args:
+        df: DataFrame with score columns (from evals_df_prep + parse_eval_metadata)
+        supplementary_metrics: List of supplementary metric names (from DetectedMetrics)
+        config: Optional experiment config for baseline identification
+
+    Returns:
+        List of CalibrationResult per model/epoch combination
+    """
+    if not supplementary_metrics:
+        return []
+
+    baseline_info = identify_baseline(df, config)
+
+    # Determine sample size column
+    sample_col = None
+    for col in ["sample_size", "results_total_samples", "total_samples", "n"]:
+        if col in df.columns:
+            sample_col = col
+            break
+
+    # Group by model (and epoch if present)
+    group_cols = ["model"]
+    if "epoch" in df.columns:
+        group_cols.append("epoch")
+
+    results = []
+    for group_key, group_df in df.groupby(group_cols, dropna=False):
+        # groupby with a list always returns tuple keys
+        if not isinstance(group_key, tuple):
+            group_key = (group_key,)
+        model_name = group_key[0]
+        epoch = group_key[1] if len(group_key) > 1 else None
+
+        n = int(group_df[sample_col].iloc[0]) if sample_col else 0
+
+        is_baseline = (
+            baseline_info.model_name is not None
+            and model_name == baseline_info.model_name
+        )
+
+        metric_values: dict[str, Optional[float]] = {}
+        for metric_name in supplementary_metrics:
+            col_name = f"score_{metric_name}"
+            if col_name in group_df.columns:
+                val = group_df[col_name].iloc[0]
+                metric_values[metric_name] = None if pd.isna(val) else float(val)
+            else:
+                metric_values[metric_name] = None
+
+        # Skip if all values are None
+        if all(v is None for v in metric_values.values()):
+            continue
+
+        results.append(
+            CalibrationResult(
+                model_name=model_name,
+                metrics=metric_values,
+                sample_size=n,
+                epoch=epoch,
+                is_baseline=is_baseline,
+            )
+        )
+
+    return results
+
+
+def _format_calibration_table(results: list[CalibrationResult]) -> str:
+    """Format calibration metrics as a markdown table.
+
+    Args:
+        results: List of CalibrationResult to display
+
+    Returns:
+        Markdown table string
+    """
+    if not results:
+        return "*No calibration metrics available.*"
+
+    # Collect all metric names across results (preserving order)
+    all_metric_names: list[str] = []
+    for r in results:
+        for name in r.metrics:
+            if name not in all_metric_names:
+                all_metric_names.append(name)
+
+    # Build header
+    headers = ["Model", "Epoch"]
+    headers.extend(display_name(m) for m in all_metric_names)
+    headers.append("Sample Size")
+
+    header_line = "| " + " | ".join(headers) + " |"
+    separator = "| " + " | ".join("---" for _ in headers) + " |"
+
+    lines = [header_line, separator]
+
+    # Sort by model name, with baselines first
+    sorted_results = sorted(results, key=lambda r: (not r.is_baseline, r.model_name))
+
+    for r in sorted_results:
+        epoch_str = str(r.epoch) if r.epoch is not None else "-"
+        baseline_marker = " *" if r.is_baseline else ""
+
+        cells = [f"{r.model_name}{baseline_marker}", epoch_str]
+        for metric_name in all_metric_names:
+            val = r.metrics.get(metric_name)
+            cells.append(f"{val:.3f}" if val is not None else "-")
+        cells.append(str(r.sample_size))
+
+        lines.append("| " + " | ".join(cells) + " |")
+
+    return "\n".join(lines)
 
 
 def compute_wilson_ci(
@@ -599,6 +733,19 @@ def generate_report(
         "## Improvement vs Baseline\n",
         _format_improvement_table(comparisons) + "\n",
     ])
+
+    # Add calibration / risk metrics section if supplementary metrics exist
+    detected = detect_metrics(df)
+    if detected.supplementary:
+        calibration_results = extract_calibration_metrics(
+            df, detected.supplementary, config
+        )
+        if calibration_results:
+            report_lines.append("## Calibration & Risk Metrics\n")
+            report_lines.append(
+                "*ECE and Brier Score: lower is better. AUC: higher is better.*\n"
+            )
+            report_lines.append(_format_calibration_table(calibration_results) + "\n")
 
     # Add per-task breakdown if applicable
     task_breakdown = _format_per_task_breakdown(metrics)

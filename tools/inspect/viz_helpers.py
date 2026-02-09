@@ -17,6 +17,7 @@ Example usage:
 
 import json
 import os
+from dataclasses import dataclass, field
 
 import pandas as pd
 from inspect_ai.log import read_eval_log
@@ -149,7 +150,39 @@ def parse_eval_metadata(logs_df: pd.DataFrame) -> pd.DataFrame:
     return logs_df
 
 
-def detect_metrics(logs_df: pd.DataFrame) -> list[str]:
+METRIC_DISPLAY_NAMES: dict[str, str] = {
+    "risk_scorer_cruijff_kit/ece": "ECE",
+    "risk_scorer_cruijff_kit/brier_score": "Brier Score",
+    "risk_scorer_cruijff_kit/auc_score": "AUC",
+    "risk_scorer_cruijff_kit/mean_risk_score": "Mean Risk Score",
+}
+
+
+def display_name(metric_name: str) -> str:
+    """Return human-readable display name for a metric, or title-case the raw name."""
+    return METRIC_DISPLAY_NAMES.get(
+        metric_name,
+        metric_name.rsplit("/", 1)[-1].replace("_", " ").title(),
+    )
+
+
+@dataclass
+class DetectedMetrics:
+    """Metrics detected from score columns in an evaluation dataframe.
+
+    Attributes:
+        accuracy: Accuracy metric names (e.g., ['match', 'includes']).
+            Use as ``f"score_{name}_accuracy"`` to get the column name.
+        supplementary: Non-accuracy score column names with the ``score_`` prefix
+            stripped (e.g., ['risk_scorer_cruijff_kit/auc_score']).
+            Use as ``f"score_{name}"`` to get the column name.
+    """
+
+    accuracy: list[str] = field(default_factory=list)
+    supplementary: list[str] = field(default_factory=list)
+
+
+def detect_metrics(logs_df: pd.DataFrame) -> DetectedMetrics:
     """
     Detect available metrics from score columns in the dataframe.
 
@@ -157,19 +190,36 @@ def detect_metrics(logs_df: pd.DataFrame) -> list[str]:
         logs_df: DataFrame with score columns (e.g., score_match_accuracy)
 
     Returns:
-        List of metric names (e.g., ['match', 'includes'])
+        DetectedMetrics with ``.accuracy`` and ``.supplementary`` lists.
 
     Example:
-        metrics = detect_metrics(logs_df)
-        for metric in metrics:
+        detected = detect_metrics(logs_df)
+        for metric in detected.accuracy:
             score_col = f"score_{metric}_accuracy"
-            # ... generate plot
+            # ... generate accuracy plot
+
+        for metric in detected.supplementary:
+            score_col = f"score_{metric}"
+            label = display_name(metric)
+            # ... generate supplementary plot
     """
-    score_cols = [
+    accuracy_cols = [
         c for c in logs_df.columns
         if c.startswith('score_') and c.endswith('_accuracy')
     ]
-    return [c.replace('score_', '').replace('_accuracy', '') for c in score_cols]
+    accuracy_names = [
+        c.replace('score_', '').replace('_accuracy', '') for c in accuracy_cols
+    ]
+
+    supplementary_names = [
+        c[len('score_'):] for c in logs_df.columns
+        if c.startswith('score_')
+        and not c.endswith('_accuracy')
+        and not c.endswith('_stderr')
+        and not c.startswith('score_headline_')
+    ]
+
+    return DetectedMetrics(accuracy=accuracy_names, supplementary=supplementary_names)
 
 
 def evals_df_prep(logs: list[str]) -> pd.DataFrame:

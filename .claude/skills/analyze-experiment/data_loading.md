@@ -64,10 +64,20 @@ logs_df = evals_df_prep(kept)  # kept is list of .eval file paths
 Dynamically detect available score columns:
 
 ```python
-from tools.inspect.viz_helpers import detect_metrics
+from tools.inspect.viz_helpers import detect_metrics, display_name
 
-metrics = detect_metrics(logs_df)
-# Returns e.g., ['match', 'includes'] depending on what's in the data
+detected = detect_metrics(logs_df)
+# detected.accuracy  -> e.g., ['match', 'includes'] (accuracy metric names)
+# detected.supplementary -> e.g., ['risk_scorer_cruijff_kit/ece', ...] (calibration/risk metrics)
+
+# Accuracy metrics use: f"score_{name}_accuracy"
+for metric in detected.accuracy:
+    score_col = f"score_{metric}_accuracy"
+
+# Supplementary metrics use: f"score_{name}"
+for metric in detected.supplementary:
+    score_col = f"score_{metric}"
+    label = display_name(metric)  # e.g., "ECE", "Brier Score", "AUC"
 ```
 
 ## Constructing Subdirs from Config
