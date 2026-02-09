@@ -16,7 +16,7 @@ def mean_risk_score() -> Metric:
     """Average risk score across all samples."""
     def compute(scores: list[Score]) -> float:
         values = [s.metadata["risk_score"] for s in scores if s.metadata.get("risk_score") is not None]
-        return sum(values) / len(values) if values else 0.0
+        return sum(values) / len(values) if values else float("nan")
     return compute
 
 @scorer(metrics=[mean_risk_score(), expected_calibration_error(), brier_score(), auc_score()])

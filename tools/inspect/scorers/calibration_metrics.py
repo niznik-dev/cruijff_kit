@@ -35,7 +35,7 @@ def expected_calibration_error(n_bins: int = 10) -> Metric:
             accuracies.append(1.0 if s.value == CORRECT else 0.0)
 
         if not confidences:
-            return 0.0
+            return float("nan")
 
         n = len(confidences)
         bin_width = 1.0 / n_bins
@@ -91,7 +91,7 @@ def brier_score() -> Metric:
             y_prob.append(risk)
 
         if len(y_true) < 2:
-            return 0.0
+            return float("nan")
 
         return float(brier_score_loss(y_true, y_prob))
 
@@ -105,7 +105,7 @@ def auc_score() -> Metric:
     Uses risk_score as the predicted probability and target to derive
     binary labels (1 if target == first option token, else 0).
 
-    Returns 0.0 if only one class is present or fewer than 2 samples.
+    Returns NaN if only one class is present or fewer than 2 samples.
     """
     def compute(scores: list[Score]) -> float:
         y_true = []
@@ -124,7 +124,7 @@ def auc_score() -> Metric:
             y_score.append(risk)
 
         if len(y_true) < 2 or len(set(y_true)) < 2:
-            return 0.0
+            return float("nan")
 
         return float(roc_auc_score(y_true, y_score))
 

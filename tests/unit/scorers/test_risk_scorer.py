@@ -427,15 +427,15 @@ class TestMeanRiskScoreMetric:
         result = metric_fn(scores)
         assert result == pytest.approx(0.7, abs=1e-6)
 
-    def test_all_none_returns_zero(self):
-        """When all risk scores are None, return 0.0."""
+    def test_all_none_returns_nan(self):
+        """When all risk scores are None, return NaN."""
         scores = [
             Score(value=INCORRECT, metadata={"risk_score": None}),
             Score(value=INCORRECT, metadata={"risk_score": None}),
         ]
         metric_fn = mean_risk_score()
         result = metric_fn(scores)
-        assert result == 0.0
+        assert math.isnan(result)
 
     def test_single_score(self):
         """Single valid score returns that value."""

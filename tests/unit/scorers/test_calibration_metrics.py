@@ -4,6 +4,7 @@ Tests ECE, Brier Score, and AUC metrics that aggregate over Score objects
 produced by risk_scorer.
 """
 
+import math
 import pytest
 from inspect_ai.scorer import Score, CORRECT, INCORRECT
 
@@ -87,10 +88,10 @@ class TestExpectedCalibrationError:
         result = metric_fn(scores)
         assert result == pytest.approx(0.2, abs=1e-6)
 
-    def test_empty_scores_returns_zero(self):
-        """No valid scores -> 0.0."""
+    def test_empty_scores_returns_nan(self):
+        """No valid scores -> NaN."""
         metric_fn = expected_calibration_error(n_bins=10)
-        assert metric_fn([]) == 0.0
+        assert math.isnan(metric_fn([]))
 
 
 # =============================================================================
@@ -144,15 +145,15 @@ class TestBrierScore:
         result = metric_fn(scores)
         assert result == pytest.approx(0.0, abs=1e-6)
 
-    def test_fewer_than_two_samples_returns_zero(self):
-        """Single sample -> return 0.0."""
+    def test_fewer_than_two_samples_returns_nan(self):
+        """Single sample -> return NaN."""
         scores = [_score(CORRECT, 0.8, {"0": 0.8, "1": 0.2}, "0")]
         metric_fn = brier_score()
-        assert metric_fn(scores) == 0.0
+        assert math.isnan(metric_fn(scores))
 
-    def test_empty_scores_returns_zero(self):
+    def test_empty_scores_returns_nan(self):
         metric_fn = brier_score()
-        assert metric_fn([]) == 0.0
+        assert math.isnan(metric_fn([]))
 
 
 # =============================================================================
@@ -173,14 +174,14 @@ class TestAUCScore:
         result = metric_fn(scores)
         assert result == pytest.approx(1.0, abs=1e-6)
 
-    def test_single_class_returns_zero(self):
-        """Only one class present -> AUC = 0.0 (undefined, fallback)."""
+    def test_single_class_returns_nan(self):
+        """Only one class present -> AUC = NaN (undefined)."""
         scores = [
             _score(CORRECT, 0.8, {"0": 0.8, "1": 0.2}, "0"),
             _score(CORRECT, 0.6, {"0": 0.6, "1": 0.4}, "0"),
         ]
         metric_fn = auc_score()
-        assert metric_fn(scores) == 0.0
+        assert math.isnan(metric_fn(scores))
 
     def test_random_discrimination(self):
         """Anti-correlated risk scores -> AUC = 0.0."""
@@ -206,14 +207,14 @@ class TestAUCScore:
         result = metric_fn(scores)
         assert result == pytest.approx(1.0, abs=1e-6)
 
-    def test_fewer_than_two_samples_returns_zero(self):
+    def test_fewer_than_two_samples_returns_nan(self):
         scores = [_score(CORRECT, 0.8, {"0": 0.8, "1": 0.2}, "0")]
         metric_fn = auc_score()
-        assert metric_fn(scores) == 0.0
+        assert math.isnan(metric_fn(scores))
 
-    def test_empty_scores_returns_zero(self):
+    def test_empty_scores_returns_nan(self):
         metric_fn = auc_score()
-        assert metric_fn([]) == 0.0
+        assert math.isnan(metric_fn([]))
 
 
 # =============================================================================
@@ -223,14 +224,14 @@ class TestAUCScore:
 class TestEdgeCases:
 
     def test_all_none_metadata(self):
-        """When all samples have None metadata, all metrics return 0.0."""
+        """When all samples have None metadata, all metrics return NaN."""
         scores = [
             Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": None}),
             Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": None}),
         ]
-        assert expected_calibration_error()(scores) == 0.0
-        assert brier_score()(scores) == 0.0
-        assert auc_score()(scores) == 0.0
+        assert math.isnan(expected_calibration_error()(scores))
+        assert math.isnan(brier_score()(scores))
+        assert math.isnan(auc_score()(scores))
 
     def test_missing_metadata_key(self):
         """Scores with no metadata at all don't crash."""
@@ -238,9 +239,9 @@ class TestEdgeCases:
             Score(value=INCORRECT, metadata={}),
             Score(value=INCORRECT, metadata={}),
         ]
-        assert expected_calibration_error()(scores) == 0.0
-        assert brier_score()(scores) == 0.0
-        assert auc_score()(scores) == 0.0
+        assert math.isnan(expected_calibration_error()(scores))
+        assert math.isnan(brier_score()(scores))
+        assert math.isnan(auc_score()(scores))
 
     def test_none_metadata(self):
         """Scores with metadata=None don't crash."""
@@ -248,6 +249,6 @@ class TestEdgeCases:
             Score(value=INCORRECT, metadata=None),
             Score(value=INCORRECT, metadata=None),
         ]
-        assert expected_calibration_error()(scores) == 0.0
-        assert brier_score()(scores) == 0.0
-        assert auc_score()(scores) == 0.0
+        assert math.isnan(expected_calibration_error()(scores))
+        assert math.isnan(brier_score()(scores))
+        assert math.isnan(auc_score()(scores))
