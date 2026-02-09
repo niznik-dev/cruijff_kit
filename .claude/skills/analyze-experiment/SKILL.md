@@ -80,7 +80,28 @@ Create visualizations using inspect-viz:
 - Output file naming conventions
 - Creating multiple plots per experiment
 
-### 5. Logging → `logging.md`
+### 5. Generate Report → `generation.md`
+
+Create markdown report with metrics and comparisons:
+1. Extract metrics from evaluation dataframe
+2. Identify baseline model (finetuned=False, type="control", or "base" in name)
+3. Compute Wilson score confidence intervals
+4. Generate narrative summary and comparison tables
+5. Write report to `analysis/report.md`
+
+Uses `tools/inspect/report_generator.py`:
+```python
+from tools.inspect.report_generator import generate_report
+
+report = generate_report(
+    df=logs_df,
+    experiment_name=experiment_name,
+    output_path=Path(experiment_dir) / "analysis" / "report.md",
+    config=experiment_config  # Optional, for baseline identification
+)
+```
+
+### 6. Logging → `logging.md`
 
 Document process in `{experiment_dir}/analyze-experiment.log`
 
@@ -103,9 +124,24 @@ Document process in `{experiment_dir}/analyze-experiment.log`
 
 **Note:** `scores_by_model` requires a single-task experiment. For multi-task experiments, use `scores_by_task`, `scores_heatmap`, or `scores_radar_by_task` instead.
 
-## User Question
+## User Questions
 
-When `vis_label` creates multiple task variants (conditions), **always ask the user** which visualization to generate:
+### Existing Analysis Outputs
+
+If `analysis/` directory exists with files, **ask the user**:
+
+```
+Found existing analysis outputs in analysis/. What would you like to do?
+
+1. Keep existing files, add new outputs (Recommended)
+2. Clean analysis directory first
+```
+
+If user chooses option 2, delete contents of `analysis/` before generating new outputs.
+
+### Visualization Selection
+
+When `vis_label` creates multiple task variants (conditions), **ask the user** which visualization to generate:
 
 ```
 Found {N} conditions via vis_label: {list}
@@ -115,6 +151,20 @@ Which visualization would you like?
 1. scores_by_task - Compare conditions side-by-side (Recommended)
 2. scores_heatmap - Model × condition matrix
 3. Both
+```
+
+### Tracking Generated Files
+
+**Important:** Track which PNG files you generate during this run. Only pass those to `generate_report()` so the report embeds only the visualizations created in this session, not stale outputs from previous runs.
+
+```python
+generated_pngs = []
+
+# After each successful PNG export
+generated_pngs.append(png_path)
+
+# Pass to report generator
+generate_report(..., generated_pngs=generated_pngs)
 ```
 
 **Smart defaults for everything else:**
@@ -130,6 +180,7 @@ After running, the experiment directory will contain:
 ```
 {experiment_dir}/
 ├── analysis/
+│   ├── report.md               # Markdown report with metrics
 │   ├── scores_by_task.html
 │   ├── scores_by_task.png      (if playwright available)
 │   ├── scores_heatmap.html
@@ -168,6 +219,7 @@ Before reporting success, verify:
 - ✓ Evaluation logs were loaded successfully
 - ✓ At least one visualization was generated
 - ✓ HTML files exist in analysis/ directory
+- ✓ report.md was generated in analysis/ directory
 - ✓ Log file created (analyze-experiment.log)
 
 ## Output Summary
@@ -178,6 +230,13 @@ After completing analysis, provide a summary:
 ## Analyze Experiment Complete
 
 Experiment: `{experiment_dir}`
+
+### Report Generated
+
+✓ Markdown report: `analysis/report.md`
+  - Executive summary with best performer
+  - Model comparison table with 95% CIs
+  - Improvement vs baseline table
 
 ### Visualizations Generated
 

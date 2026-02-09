@@ -26,6 +26,7 @@ Created during analysis to record data loading, visualization selection, and gen
 | `DEDUPLICATE` | Remove duplicate evals (keep most recent per model+epoch) |
 | `SELECT_VIEW` | Record user's visualization choice |
 | `GENERATE_PLOT` | Create individual visualization |
+| `GENERATE_REPORT` | Create markdown report with metrics |
 | `COMPLETE` | Mark analysis finished with summary |
 
 ---
@@ -45,6 +46,12 @@ Created during analysis to record data loading, visualization selection, and gen
 - Which view type user selected
 - Each plot generated (with output path)
 - Any generation errors
+
+### During Report Generation
+- Report output path
+- Number of models included
+- Baseline model identified (or none)
+- Any report generation errors
 
 ### On Completion
 - Total plots generated
@@ -79,6 +86,10 @@ Result: scores_by_task
 [2026-01-29 14:00:15] GENERATE_PLOT: scores_by_task
 Details: Creating bar chart with match metric
 Result: analysis/scores_by_task.html
+
+[2026-01-29 14:00:18] GENERATE_REPORT
+Details: Creating markdown report with metrics and comparisons
+Result: analysis/report.md (3 models, baseline: 1B_base)
 
 [2026-01-29 14:00:20] COMPLETE
 Details: All visualizations generated

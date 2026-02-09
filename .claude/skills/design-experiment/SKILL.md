@@ -94,7 +94,7 @@ Before presenting plan to user (step 8), validate completeness:
 
 After user approves, create output files:
 1. `experiment_summary.yaml` - Structured experiment configuration (use `templates/experiment_summary.yaml`)
-2. `design-experiment.jsonl` - Machine-readable audit trail (see `logging.md`)
+2. `design-experiment.log` - Human-readable audit trail (see `logging.md`)
 
 Then ask about next steps (scaffold-experiment?).
 
@@ -110,7 +110,7 @@ Then ask about next steps (scaffold-experiment?).
 
 ### Logging → `logging.md`
 
-**IMPORTANT:** Throughout param_selection and generation, create detailed log at `{experiment_dir}/design-experiment.jsonl`.
+**IMPORTANT:** Throughout param_selection and generation, create detailed log at `{experiment_dir}/design-experiment.log`.
 
 **What to log:**
 - ✓ Resource verification (ls, du, df commands and results)
@@ -118,12 +118,12 @@ Then ask about next steps (scaffold-experiment?).
 - ✓ Decisions (naming, recipe, configuration)
 - ✓ File creation
 
-**Format:** JSON Lines (.jsonl) - one JSON object per line
+**Format:** Plain text with timestamped action entries
 
 **See `logging.md` for:**
 - Complete log format specification
-- All action types with schemas
-- Example entries for each action type
+- All action types with examples
+- Entry structure and timestamp format
 - When to log during workflow
 
 ### Templates → `templates/`
@@ -135,6 +135,8 @@ Reference materials for output generation:
 
 ## Important Reminders
 
+- **BEFORE generating experiment_summary.yaml:** You MUST read `templates/experiment_summary.yaml` first. Do not freestyle the YAML structure — use the template schema exactly.
+- **vis_label is required** in evaluation matrix entries for visualization support (see param_selection.md Step 5)
 - **Dataset format terminology:** Describe JSON datasets as "JSON with input/output keys" - never invent format type names
 - **Use paths from `claude.local.md`** for models, datasets, scratch directories
 - **Always verify resources** exist before finalizing plan (log all verification)
@@ -156,8 +158,8 @@ This skill uses the **param_selection → validation → generation** pattern:
 |--------|---------|-------|
 | param_selection.md | 9-step interactive workflow | ~340 |
 | validation.md | Completeness checklist | ~140 |
-| experiment_generation.md | Create YAML and JSONL files | ~125 |
-| logging.md | JSONL audit trail specification | ~400 |
+| experiment_generation.md | Create YAML and log files | ~125 |
+| logging.md | Plain text audit trail specification | ~340 |
 | templates/experiment_summary.yaml | YAML schema and structure | ~150 |
 
 **Pattern:** Three action verbs (selection, validation, generation) matching scaffold/run skills, plus cross-cutting logging and templates.
