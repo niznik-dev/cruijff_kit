@@ -524,11 +524,15 @@ def generate_narrative(
 def _format_model_table(
     metrics: list[ModelMetrics],
     calibration: Optional[list[CalibrationResult]] = None,
-) -> str:
+) -> tuple[str, list[str]]:
     """Format unified model comparison table.
 
     When *calibration* is provided, supplementary metric columns are appended
-    between the CI and Sample Size columns.
+    after the accuracy column.
+
+    Returns:
+        Tuple of (table_markdown, footnotes) where footnotes is a list of
+        strings to render below the table.
     """
     # Collect supplementary column names (preserving order across results)
     supp_names: list[str] = []
@@ -542,10 +546,17 @@ def _format_model_table(
                 if name not in supp_names:
                     supp_names.append(name)
 
+    # Check if sample sizes are uniform (excluding synthetic baselines)
+    actual_sizes = set(
+        m.sample_size for m in metrics if not m.is_synthetic
+    )
+    uniform_sample_size = actual_sizes.pop() if len(actual_sizes) == 1 else None
+
     # Header
-    headers = ["Model", "Epoch", "Accuracy", "95% CI"]
+    headers = ["Model", "Epoch", "Accuracy"]
     headers.extend(display_name(s) for s in supp_names)
-    headers.append("Sample Size")
+    if uniform_sample_size is None:
+        headers.append("Sample Size")
 
     header_line = "| " + " | ".join(headers) + " |"
     separator = "| " + " | ".join("---" for _ in headers) + " |"
@@ -565,16 +576,13 @@ def _format_model_table(
             lines.append(empty_row)
             seen_synthetic = True
 
-        epoch_str = str(m.epoch) if m.epoch is not None else "-"
-        ci_str = f"{m.ci_lower:.1%}-{m.ci_upper:.1%}"
-        sample_str = "-" if m.is_synthetic else str(m.sample_size)
+        epoch_str = str(int(m.epoch)) if m.epoch is not None and not pd.isna(m.epoch) else "-"
         baseline_marker = " *" if m.is_baseline else ""
 
         cells = [
             f"{m.name}{baseline_marker}",
             epoch_str,
-            f"{m.accuracy:.1%}",
-            ci_str,
+            f"{m.accuracy:.3f}",
         ]
 
         # Supplementary metric cells
@@ -585,10 +593,22 @@ def _format_model_table(
                 val = cal.metrics.get(s) if cal else None
                 cells.append(f"{val:.3f}" if val is not None else "-")
 
-        cells.append(sample_str)
+        if uniform_sample_size is None:
+            sample_str = "-" if m.is_synthetic else str(m.sample_size)
+            cells.append(sample_str)
+
         lines.append("| " + " | ".join(cells) + " |")
 
-    return "\n".join(lines)
+    # Build footnotes
+    footnotes = ["*\\* indicates baseline model*"]
+    if uniform_sample_size is not None:
+        footnotes.append(f"*Sample size: {uniform_sample_size} per model*")
+    if calibration:
+        footnotes.append(
+            "*ECE and Brier Score: lower is better. AUC: higher is better.*"
+        )
+
+    return "\n".join(lines), footnotes
 
 
 def _format_improvement_table(comparisons: list[Comparison]) -> str:
@@ -770,20 +790,15 @@ def generate_report(
             df, detected.supplementary, config
         ) or None
 
+    model_table, footnotes = _format_model_table(metrics, calibration_results)
+
     report_lines.extend([
         "## Executive Summary\n",
         narrative + "\n",
         "## Model Comparison\n",
-        _format_model_table(metrics, calibration_results) + "\n",
+        model_table + "\n",
+        "  \n".join(footnotes) + "\n",
     ])
-
-    # Footnotes
-    footnotes = ["*\\* indicates baseline model*"]
-    if calibration_results:
-        footnotes.append(
-            "*ECE and Brier Score: lower is better. AUC: higher is better.*"
-        )
-    report_lines.append("  \n".join(footnotes) + "\n")
 
     report_lines.extend([
         "## Improvement vs Baseline\n",

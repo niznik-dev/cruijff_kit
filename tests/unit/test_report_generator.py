@@ -258,7 +258,7 @@ class TestFormatModelTableCombined:
 
     def test_without_calibration(self):
         """Table works the same when no calibration is passed."""
-        table = _format_model_table([self._metric()])
+        table, footnotes = _format_model_table([self._metric()])
         assert "Accuracy" in table
         assert "ECE" not in table
         assert "AUC" not in table
@@ -269,7 +269,7 @@ class TestFormatModelTableCombined:
             model_name="model_a", epoch=1, sample_size=500,
             metrics={"risk_scorer_cruijff_kit/auc_score": 0.85, "risk_scorer_cruijff_kit/brier_score": 0.15},
         )]
-        table = _format_model_table([self._metric()], calibration=cal)
+        table, footnotes = _format_model_table([self._metric()], calibration=cal)
         assert "AUC" in table
         assert "Brier Score" in table
         assert "0.850" in table
@@ -283,10 +283,26 @@ class TestFormatModelTableCombined:
             model_name="tuned", epoch=1, sample_size=500,
             metrics={"risk_scorer_cruijff_kit/auc_score": 0.9},
         )]
-        table = _format_model_table([m_base, m_tuned], calibration=cal)
+        table, footnotes = _format_model_table([m_base, m_tuned], calibration=cal)
         lines = table.strip().split("\n")
         # base model row should have "-" for AUC
         base_row = [l for l in lines if "base" in l][0]
         cells = [c.strip() for c in base_row.split("|") if c.strip()]
-        # cells: Model, Epoch, Accuracy, CI, AUC, Sample Size
-        assert cells[4] == "-"
+        # cells: Model, Epoch, Accuracy, AUC (no Sample Size — uniform)
+        assert cells[3] == "-"
+
+    def test_uniform_sample_size_excluded_from_table(self):
+        """When all models have the same sample size, column is omitted."""
+        m1 = self._metric(name="a", n=1000)
+        m2 = self._metric(name="b", n=1000)
+        table, footnotes = _format_model_table([m1, m2])
+        assert "Sample Size" not in table
+        assert any("1000" in f for f in footnotes)
+
+    def test_varying_sample_size_included_in_table(self):
+        """When sample sizes differ, column stays in the table."""
+        m1 = self._metric(name="a", n=1000)
+        m2 = self._metric(name="b", n=500)
+        table, footnotes = _format_model_table([m1, m2])
+        assert "Sample Size" in table
+        assert not any("per model" in f for f in footnotes)
