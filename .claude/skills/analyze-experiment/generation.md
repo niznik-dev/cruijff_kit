@@ -24,10 +24,18 @@ from inspect_viz.view.beta import (
     scores_by_model,
     scores_by_factor,
 )
+from tools.inspect.viz_helpers import sanitize_columns_for_viz
 
 # Create output directory
 output_dir = os.path.join(experiment_dir, "analysis")
 os.makedirs(output_dir, exist_ok=True)
+
+# IMPORTANT: sanitize column names before passing to inspect-viz.
+# Metric names with "/" (e.g. risk_scorer_cruijff_kit/auc_score) cause
+# DuckDB parse errors in inspect-viz. Use the sanitized df for all
+# Data.from_dataframe() calls; use the original df for report generation.
+viz_df = sanitize_columns_for_viz(logs_df)
+data = Data.from_dataframe(viz_df)
 ```
 
 ## View Function Signatures
@@ -60,17 +68,26 @@ plot = scores_by_task(
 
 Model × task matrix visualization.
 
+**When to skip:** If each model appears in only one task (1:1 mapping between
+model and vis_label), the heatmap is just a diagonal — skip it. Check before
+generating:
+
 ```python
-plot = scores_heatmap(
-    data,
-    task_name='task_name',          # Column with task names
-    model_name="model_display_name", # Column with model names
-    model_label="Model",            # Label for model axis
-    score_value="score_match_accuracy",
-    tip=True,                       # Show tooltips
-    title="",                       # Plot title (empty for no title)
-    orientation="vertical"          # or "horizontal"
-)
+# Only generate heatmap when multiple models share tasks
+models_per_task = logs_df.groupby('task_name')['model'].nunique()
+if models_per_task.max() > 1:
+    plot = scores_heatmap(
+        data,
+        task_name='task_name',
+        model_name="model_display_name",
+        model_label="Model",
+        score_value="score_match_accuracy",
+        tip=True,
+        title="",
+        orientation="vertical"
+    )
+else:
+    print("Skipping heatmap: each model maps to a single task (diagonal matrix)")
 ```
 
 ### scores_radar_by_task
@@ -159,8 +176,10 @@ for metric in detected.accuracy:
     # ... create accuracy plot
 
 # Generate plots for supplementary metrics (calibration, risk)
+# NOTE: use sanitized column names (/ -> __) for inspect-viz score_value,
+# but the original names for display_name() lookups.
 for metric in detected.supplementary:
-    score_col = f"score_{metric}"
+    score_col = f"score_{metric}".replace("/", "__")  # sanitized for viz
     label = display_name(metric)  # "ECE", "Brier Score", "AUC", etc.
     # These work with any view that accepts score_value parameter
     plot = scores_by_task(data, task_name='task_name', score_value=score_col, score_label=label)

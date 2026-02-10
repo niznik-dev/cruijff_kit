@@ -7,6 +7,7 @@ from tools.inspect.viz_helpers import (
     DetectedMetrics,
     detect_metrics,
     display_name,
+    sanitize_columns_for_viz,
     METRIC_DISPLAY_NAMES,
 )
 
@@ -114,3 +115,40 @@ class TestDisplayName:
 
     def test_plain_name(self):
         assert display_name("my_metric") == "My Metric"
+
+
+# =============================================================================
+# sanitize_columns_for_viz()
+# =============================================================================
+
+class TestSanitizeColumnsForViz:
+
+    def test_replaces_slashes(self):
+        """Slashes in column names are replaced with double underscores."""
+        df = pd.DataFrame({
+            "model": ["a"],
+            "score_risk_scorer_cruijff_kit/auc_score": [0.85],
+        })
+        result = sanitize_columns_for_viz(df)
+        assert "score_risk_scorer_cruijff_kit__auc_score" in result.columns
+        assert "score_risk_scorer_cruijff_kit/auc_score" not in result.columns
+
+    def test_no_slashes_returns_same_df(self):
+        """When no columns contain slashes, returns the original DataFrame."""
+        df = pd.DataFrame({"model": ["a"], "score_match_accuracy": [0.8]})
+        result = sanitize_columns_for_viz(df)
+        assert result is df  # same object, not a copy
+
+    def test_preserves_data(self):
+        """Column values are unchanged after renaming."""
+        df = pd.DataFrame({
+            "score_risk_scorer_cruijff_kit/brier_score": [0.15, 0.22],
+        })
+        result = sanitize_columns_for_viz(df)
+        assert result["score_risk_scorer_cruijff_kit__brier_score"].tolist() == [0.15, 0.22]
+
+    def test_multiple_slashes(self):
+        """Columns with multiple slashes get all replaced."""
+        df = pd.DataFrame({"a/b/c": [1]})
+        result = sanitize_columns_for_viz(df)
+        assert "a__b__c" in result.columns

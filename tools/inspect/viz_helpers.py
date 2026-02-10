@@ -223,6 +223,37 @@ def detect_metrics(logs_df: pd.DataFrame) -> DetectedMetrics:
     return DetectedMetrics(accuracy=accuracy_names, supplementary=supplementary_names)
 
 
+def sanitize_columns_for_viz(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Return a copy of *df* with column names safe for inspect-viz.
+
+    inspect-viz uses DuckDB internally for data queries. DuckDB interprets
+    "/" in unquoted column names as the division operator, which causes
+    Binder Errors for columns like ``score_risk_scorer_cruijff_kit/auc_score``
+    (parsed as ``score_risk_scorer_cruijff_kit`` ÷ ``auc_score``).
+
+    This is an upstream quoting bug in inspect-viz. Until it's fixed, we
+    work around it by replacing "/" with "__" in column names before passing
+    the DataFrame to ``Data.from_dataframe()``.
+
+    Important: only use the sanitized DataFrame for inspect-viz rendering.
+    The report generator should receive the *original* DataFrame so that
+    ``detect_metrics()`` and ``display_name()`` see the canonical names.
+
+    Example:
+        viz_df = sanitize_columns_for_viz(logs_df)
+        data = Data.from_dataframe(viz_df)  # safe for inspect-viz views
+    """
+    rename_map = {
+        col: col.replace("/", "__")
+        for col in df.columns
+        if "/" in col
+    }
+    if not rename_map:
+        return df
+    return df.rename(columns=rename_map)
+
+
 def evals_df_prep(logs: list[str]) -> pd.DataFrame:
     """
     Prepare evaluation-level data for plotting.
