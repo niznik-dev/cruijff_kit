@@ -23,6 +23,8 @@ from typing import Optional
 
 import pandas as pd
 
+from cruijff_kit.tools.inspect.viz_helpers import DetectedMetrics, detect_metrics, display_name
+
 
 @dataclass
 class ModelMetrics:
@@ -50,6 +52,138 @@ class Comparison:
     absolute_diff: float
     relative_diff: float  # as percentage
     direction: str  # "improvement" or "decline"
+
+
+@dataclass
+class CalibrationResult:
+    """Calibration / risk metrics for a single model evaluation."""
+
+    model_name: str
+    metrics: dict[str, Optional[float]]  # metric_name -> value (None if NA)
+    sample_size: int
+    epoch: Optional[int] = None
+    is_baseline: bool = False
+
+
+def extract_calibration_metrics(
+    df: pd.DataFrame,
+    supplementary_metrics: list[str],
+    config: Optional[dict] = None,
+) -> list[CalibrationResult]:
+    """
+    Extract calibration / risk metrics from evaluation dataframe.
+
+    Args:
+        df: DataFrame with score columns (from evals_df_prep + parse_eval_metadata)
+        supplementary_metrics: List of supplementary metric names (from DetectedMetrics)
+        config: Optional experiment config for baseline identification
+
+    Returns:
+        List of CalibrationResult per model/epoch combination
+    """
+    if not supplementary_metrics:
+        return []
+
+    baseline_info = identify_baseline(df, config)
+
+    # Determine sample size column
+    sample_col = None
+    for col in ["sample_size", "results_total_samples", "total_samples", "n"]:
+        if col in df.columns:
+            sample_col = col
+            break
+
+    # Group by model (and epoch if present)
+    group_cols = ["model"]
+    if "epoch" in df.columns:
+        group_cols.append("epoch")
+
+    results = []
+    for group_key, group_df in df.groupby(group_cols, dropna=False):
+        # groupby with a list always returns tuple keys
+        if not isinstance(group_key, tuple):
+            group_key = (group_key,)
+        model_name = group_key[0]
+        epoch = group_key[1] if len(group_key) > 1 else None
+
+        n = int(group_df[sample_col].iloc[0]) if sample_col else 0
+
+        is_baseline = (
+            baseline_info.model_name is not None
+            and model_name == baseline_info.model_name
+        )
+
+        metric_values: dict[str, Optional[float]] = {}
+        for metric_name in supplementary_metrics:
+            col_name = f"score_{metric_name}"
+            if col_name in group_df.columns:
+                val = group_df[col_name].iloc[0]
+                metric_values[metric_name] = None if pd.isna(val) else float(val)
+            else:
+                metric_values[metric_name] = None
+
+        # Skip if all values are None
+        if all(v is None for v in metric_values.values()):
+            continue
+
+        results.append(
+            CalibrationResult(
+                model_name=model_name,
+                metrics=metric_values,
+                sample_size=n,
+                epoch=epoch,
+                is_baseline=is_baseline,
+            )
+        )
+
+    return results
+
+
+def _format_calibration_table(results: list[CalibrationResult]) -> str:
+    """Format calibration metrics as a markdown table.
+
+    Args:
+        results: List of CalibrationResult to display
+
+    Returns:
+        Markdown table string
+    """
+    if not results:
+        return "*No calibration metrics available.*"
+
+    # Collect all metric names across results (preserving order)
+    all_metric_names: list[str] = []
+    for r in results:
+        for name in r.metrics:
+            if name not in all_metric_names:
+                all_metric_names.append(name)
+
+    # Build header
+    headers = ["Model", "Epoch"]
+    headers.extend(display_name(m) for m in all_metric_names)
+    headers.append("Sample Size")
+
+    header_line = "| " + " | ".join(headers) + " |"
+    separator = "| " + " | ".join("---" for _ in headers) + " |"
+
+    lines = [header_line, separator]
+
+    # Sort by model name, with baselines first
+    sorted_results = sorted(results, key=lambda r: (not r.is_baseline, r.model_name))
+
+    for r in sorted_results:
+        epoch_str = str(r.epoch) if r.epoch is not None else "-"
+        baseline_marker = " *" if r.is_baseline else ""
+
+        cells = [f"{r.model_name}{baseline_marker}", epoch_str]
+        for metric_name in all_metric_names:
+            val = r.metrics.get(metric_name)
+            cells.append(f"{val:.3f}" if val is not None else "-")
+        cells.append(str(r.sample_size))
+
+        lines.append("| " + " | ".join(cells) + " |")
+
+    return "\n".join(lines)
 
 
 def compute_wilson_ci(
@@ -387,36 +521,94 @@ def generate_narrative(
     return "\n".join(lines)
 
 
-def _format_model_table(metrics: list[ModelMetrics]) -> str:
-    """Format model comparison table."""
-    lines = [
-        "| Model | Epoch | Accuracy | 95% CI | Sample Size |",
-        "|-------|-------|----------|--------|-------------|",
-    ]
+def _format_model_table(
+    metrics: list[ModelMetrics],
+    calibration: Optional[list[CalibrationResult]] = None,
+) -> tuple[str, list[str]]:
+    """Format unified model comparison table.
+
+    When *calibration* is provided, supplementary metric columns are appended
+    after the accuracy column.
+
+    Returns:
+        Tuple of (table_markdown, footnotes) where footnotes is a list of
+        strings to render below the table.
+    """
+    # Collect supplementary column names (preserving order across results)
+    supp_names: list[str] = []
+    cal_lookup: dict[tuple[str, Optional[int]], CalibrationResult] = {}
+    if calibration:
+        for r in calibration:
+            # Build lookup by (model, epoch) — epoch may be int or float
+            epoch_key = int(r.epoch) if r.epoch is not None and not pd.isna(r.epoch) else None
+            cal_lookup[(r.model_name, epoch_key)] = r
+            for name in r.metrics:
+                if name not in supp_names:
+                    supp_names.append(name)
+
+    # Check if sample sizes are uniform (excluding synthetic baselines)
+    actual_sizes = set(
+        m.sample_size for m in metrics if not m.is_synthetic
+    )
+    uniform_sample_size = actual_sizes.pop() if len(actual_sizes) == 1 else None
+
+    # Header
+    headers = ["Model", "Epoch", "Accuracy"]
+    headers.extend(display_name(s) for s in supp_names)
+    if uniform_sample_size is None:
+        headers.append("Sample Size")
+
+    header_line = "| " + " | ".join(headers) + " |"
+    separator = "| " + " | ".join("---" for _ in headers) + " |"
+    lines = [header_line, separator]
 
     # Sort by accuracy descending, with synthetic baselines last
     sorted_metrics = sorted(
         metrics,
-        key=lambda x: (x.is_synthetic, -x.accuracy)
+        key=lambda x: (x.is_synthetic, -x.accuracy),
     )
 
     seen_synthetic = False
     for m in sorted_metrics:
         # Add separator before first synthetic baseline
         if m.is_synthetic and not seen_synthetic:
-            lines.append("| | | | | |")
+            empty_row = "| " + " | ".join("" for _ in headers) + " |"
+            lines.append(empty_row)
             seen_synthetic = True
 
-        epoch_str = str(m.epoch) if m.epoch is not None else "-"
-        ci_str = f"{m.ci_lower:.1%}-{m.ci_upper:.1%}"
-        sample_str = "-" if m.is_synthetic else str(m.sample_size)
+        epoch_str = str(int(m.epoch)) if m.epoch is not None and not pd.isna(m.epoch) else "-"
         baseline_marker = " *" if m.is_baseline else ""
-        lines.append(
-            f"| {m.name}{baseline_marker} | {epoch_str} | "
-            f"{m.accuracy:.1%} | {ci_str} | {sample_str} |"
+
+        cells = [
+            f"{m.name}{baseline_marker}",
+            epoch_str,
+            f"{m.accuracy:.3f}",
+        ]
+
+        # Supplementary metric cells
+        if supp_names:
+            epoch_key = int(m.epoch) if m.epoch is not None and not pd.isna(m.epoch) else None
+            cal = cal_lookup.get((m.name, epoch_key))
+            for s in supp_names:
+                val = cal.metrics.get(s) if cal else None
+                cells.append(f"{val:.3f}" if val is not None else "-")
+
+        if uniform_sample_size is None:
+            sample_str = "-" if m.is_synthetic else str(m.sample_size)
+            cells.append(sample_str)
+
+        lines.append("| " + " | ".join(cells) + " |")
+
+    # Build footnotes
+    footnotes = ["*\\* indicates baseline model*"]
+    if uniform_sample_size is not None:
+        footnotes.append(f"*Sample size: {uniform_sample_size} per model*")
+    if calibration:
+        footnotes.append(
+            "*ECE and Brier Score: lower is better. AUC: higher is better.*"
         )
 
-    return "\n".join(lines)
+    return "\n".join(lines), footnotes
 
 
 def _format_improvement_table(comparisons: list[Comparison]) -> str:
@@ -590,12 +782,25 @@ def generate_report(
     if research_question:
         report_lines.append(research_question)
 
+    # Detect supplementary metrics and extract calibration results
+    detected = detect_metrics(df)
+    calibration_results = None
+    if detected.supplementary:
+        calibration_results = extract_calibration_metrics(
+            df, detected.supplementary, config
+        ) or None
+
+    model_table, footnotes = _format_model_table(metrics, calibration_results)
+
     report_lines.extend([
         "## Executive Summary\n",
         narrative + "\n",
         "## Model Comparison\n",
-        _format_model_table(metrics) + "\n",
-        "*\\* indicates baseline model*\n",
+        model_table + "\n",
+        "  \n".join(footnotes) + "\n",
+    ])
+
+    report_lines.extend([
         "## Improvement vs Baseline\n",
         _format_improvement_table(comparisons) + "\n",
     ])

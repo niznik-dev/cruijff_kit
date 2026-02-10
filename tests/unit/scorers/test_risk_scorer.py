@@ -90,6 +90,7 @@ class TestBinaryRiskScore:
         assert result.metadata["risk_score"] == pytest.approx(0.9, abs=1e-4)
         assert result.metadata["option_probs"]["0"] == pytest.approx(0.9, abs=1e-4)
         assert result.metadata["option_probs"]["1"] == pytest.approx(0.1, abs=1e-4)
+        assert result.metadata["target"] == "0"
 
     def test_confident_incorrect_prediction(self):
         """Model is 90% confident in class 1, but 0 is correct."""
@@ -273,6 +274,7 @@ class TestEdgeCases:
         assert result.metadata["risk_score"] is None
         assert result.metadata["option_probs"] is None
         assert "1" in result.metadata["missing_tokens"]
+        assert result.metadata["target"] == "0"
 
     def test_no_logprobs(self):
         """When no logprobs data is available, return INCORRECT."""
@@ -288,6 +290,7 @@ class TestEdgeCases:
 
         assert result.value == INCORRECT
         assert result.metadata["risk_score"] is None
+        assert result.metadata["target"] == "0"
         assert "No logprobs" in result.explanation
 
     def test_empty_logprobs_content(self):
@@ -424,15 +427,15 @@ class TestMeanRiskScoreMetric:
         result = metric_fn(scores)
         assert result == pytest.approx(0.7, abs=1e-6)
 
-    def test_all_none_returns_zero(self):
-        """When all risk scores are None, return 0.0."""
+    def test_all_none_returns_nan(self):
+        """When all risk scores are None, return NaN."""
         scores = [
             Score(value=INCORRECT, metadata={"risk_score": None}),
             Score(value=INCORRECT, metadata={"risk_score": None}),
         ]
         metric_fn = mean_risk_score()
         result = metric_fn(scores)
-        assert result == 0.0
+        assert math.isnan(result)
 
     def test_single_score(self):
         """Single valid score returns that value."""

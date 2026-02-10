@@ -24,11 +24,11 @@ dependencies = [
     "torchvision",
     "wandb",
     "h5py",
-    "inspect-ai",
+    "inspect-ai>=0.3.163",
     "inspect-viz",
     "datasets",
     "peft",
-    "transformers>=4.57.1",
+    "transformers>=4.57.1,<5",
     "tokenizers>=0.22.1",
     "scikit-learn",
     "matplotlib",
@@ -51,6 +51,7 @@ packages = [
   "cruijff_kit.tools",
   "cruijff_kit.tools.torchtune",
   "cruijff_kit.tools.torchtune.custom_recipes",
+  "cruijff_kit.tools.inspect",
   "cruijff_kit.tools.inspect.scorers",
 ]
 
