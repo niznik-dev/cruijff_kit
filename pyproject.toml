@@ -51,6 +51,7 @@ packages = [
   "cruijff_kit.tools",
   "cruijff_kit.tools.torchtune",
   "cruijff_kit.tools.torchtune.custom_recipes",
+  "cruijff_kit.tools.inspect",
   "cruijff_kit.tools.inspect.scorers",
 ]
 

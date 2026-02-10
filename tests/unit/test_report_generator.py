@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from tools.inspect.report_generator import (
+from cruijff_kit.tools.inspect.report_generator import (
     CalibrationResult,
     ModelMetrics,
     extract_calibration_metrics,
@@ -249,7 +249,7 @@ class TestFormatCalibrationTable:
 class TestFormatModelTableCombined:
 
     def _metric(self, name="model_a", accuracy=0.75, epoch=1, n=500, **kw):
-        from tools.inspect.report_generator import compute_wilson_ci
+        from cruijff_kit.tools.inspect.report_generator import compute_wilson_ci
         ci_lo, ci_hi = compute_wilson_ci(accuracy, n)
         return ModelMetrics(
             name=name, accuracy=accuracy, ci_lower=ci_lo, ci_upper=ci_hi,

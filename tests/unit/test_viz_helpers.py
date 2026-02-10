@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from tools.inspect.viz_helpers import (
+from cruijff_kit.tools.inspect.viz_helpers import (
     DetectedMetrics,
     detect_metrics,
     display_name,

@@ -23,7 +23,7 @@ from typing import Optional
 
 import pandas as pd
 
-from tools.inspect.viz_helpers import DetectedMetrics, detect_metrics, display_name
+from cruijff_kit.tools.inspect.viz_helpers import DetectedMetrics, detect_metrics, display_name
 
 
 @dataclass
