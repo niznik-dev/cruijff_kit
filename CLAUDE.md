@@ -206,7 +206,13 @@ Each tier directory contains a `CLAUDE.md` file with detailed access rules. See:
 
 ## Documentation
 
-- **ARCHITECTURE.md**: Detailed architecture and design documentation
-- **README.md**: Project overview and installation instructions
+- **README.md**: Project overview, quick start, and experiment workflow
+- **ARCHITECTURE.md**: Detailed architecture, data flow, and skill workflow diagrams
+- **SUPPORTED_MODELS.md**: Supported models and resource requirements
+- **PREREQUISITES.md**: Required skills, accounts, and tutorial links
+- **WORKFLOW_GUIDE.md**: Manual workflow instructions (without Claude Code)
+- **SKILLS_ARCHITECTURE_SUMMARY.md**: How skills are organized and orchestrated
+- **CHANGELOG.md**: Release history
+- **KNOWN_ISSUES.md**: Current limitations and workarounds
 - **Experiment-specific READMEs**: Located in `experiments/*/README.md`
 - **claude.local.md**: User-specific environment configuration (not version controlled)
