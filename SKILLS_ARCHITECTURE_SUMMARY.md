@@ -99,6 +99,15 @@ Skills that create reusable evaluation tasks:
    - Can run standalone (for general task creation)
    - Status: ⚠️ Existing (not modified in this refactor)
 
+### Utility Skills
+Lightweight tools for common tasks:
+
+1. **analyze-to-pdf**
+   - Converts markdown reports to PDF using pandoc + xelatex/pdflatex
+   - Auto-detects `analysis/report.md` in experiment directories
+   - Also works with any arbitrary markdown file
+   - Status: ✅ Created
+
 ## Key Design Principles
 
 ### 1. Single Responsibility & Modularity
