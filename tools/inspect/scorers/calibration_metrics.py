@@ -69,6 +69,7 @@ def brier_score() -> Metric:
     first option token, else 0.
 
     Requires risk_score and target in Score.metadata (binary tasks only).
+    Returns NaN for multiclass tasks where risk_score is not set.
     """
     def compute(scores: list[Score]) -> float:
         y_true = []
@@ -86,8 +87,9 @@ def brier_score() -> Metric:
             option_probs = meta.get("option_probs")
             if option_probs is None:
                 continue
-            first_token = next(iter(option_probs))
-            y_true.append(1.0 if target == first_token else 0.0)
+            # First key = first option token (dict order matches risk_scorer's option_tokens list)
+            positive_token = next(iter(option_probs))
+            y_true.append(1.0 if target == positive_token else 0.0)
             y_prob.append(risk)
 
         if len(y_true) < 2:
@@ -105,7 +107,8 @@ def auc_score() -> Metric:
     Uses risk_score as the predicted probability and target to derive
     binary labels (1 if target == first option token, else 0).
 
-    Returns NaN if only one class is present or fewer than 2 samples.
+    Returns NaN if only one class is present, fewer than 2 samples, or
+    for multiclass tasks where risk_score is not set.
     """
     def compute(scores: list[Score]) -> float:
         y_true = []
@@ -119,8 +122,9 @@ def auc_score() -> Metric:
             option_probs = meta.get("option_probs")
             if option_probs is None:
                 continue
-            first_token = next(iter(option_probs))
-            y_true.append(1.0 if target == first_token else 0.0)
+            # First key = first option token (dict order matches risk_scorer's option_tokens list)
+            positive_token = next(iter(option_probs))
+            y_true.append(1.0 if target == positive_token else 0.0)
             y_score.append(risk)
 
         if len(y_true) < 2 or len(set(y_true)) < 2:
