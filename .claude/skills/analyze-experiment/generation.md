@@ -256,19 +256,10 @@ The generated `report.md` includes:
 
 | Section | Description |
 |---------|-------------|
-| Executive Summary | Best performer, improvement vs baseline |
+| Executive Summary | Best performer and model count |
 | Model Comparison | Table with accuracy, 95% CI, sample size |
-| Improvement vs Baseline | Absolute and relative differences |
 | Calibration & Risk Metrics | ECE, Brier, AUC, Mean Risk Score (if supplementary metrics detected) |
 | Per-Task Breakdown | Best model per task (if multiple tasks) |
-
-### Baseline Identification
-
-The report automatically identifies baseline models using this priority:
-
-1. `finetuned == False` in metadata
-2. `type == "control"` in experiment_summary.yaml
-3. "base" in model name (case-insensitive)
 
 ### Confidence Intervals
 
@@ -277,11 +268,6 @@ Uses Wilson score intervals (preferred over normal approximation):
 - Works well with small samples and extreme proportions
 
 ### Error Handling
-
-**If no baseline found:**
-- Report still generates
-- Comparison section shows "No baseline identified"
-- Narrative focuses on best performer only
 
 **If metrics extraction fails:**
 - Log error

@@ -84,10 +84,9 @@ Create visualizations using inspect-viz:
 
 Create markdown report with metrics and comparisons:
 1. Extract metrics from evaluation dataframe
-2. Identify baseline model (finetuned=False, type="control", or "base" in name)
-3. Compute Wilson score confidence intervals
-4. Generate narrative summary and comparison tables
-5. Write report to `analysis/report.md`
+2. Compute Wilson score confidence intervals
+3. Generate narrative summary and comparison tables
+4. Write report to `analysis/report.md`
 
 Uses `tools/inspect/report_generator.py`:
 ```python
@@ -97,7 +96,7 @@ report = generate_report(
     df=logs_df,
     experiment_name=experiment_name,
     output_path=Path(experiment_dir) / "analysis" / "report.md",
-    config=experiment_config  # Optional, for baseline identification
+    config=experiment_config  # Optional, for research question metadata
 )
 ```
 
@@ -236,7 +235,7 @@ Experiment: `{experiment_dir}`
 ✓ Markdown report: `analysis/report.md`
   - Executive summary with best performer
   - Model comparison table with 95% CIs
-  - Improvement vs baseline table
+  - Calibration metrics (if available)
 
 ### Visualizations Generated
 
