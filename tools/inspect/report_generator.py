@@ -493,6 +493,48 @@ def _format_research_question(config: Optional[dict]) -> str:
     return "\n".join(lines)
 
 
+def _format_inspect_view_commands(
+    eval_log_paths: list[Path], max_commands: int = 20
+) -> str:
+    """Format inspect view commands for eval log directories.
+
+    Generates copy-paste-ready ``inspect view start`` commands, one per unique
+    log directory.  When the number of directories exceeds *max_commands*, a
+    single template command with a ``<LOG_DIR>`` placeholder is shown instead.
+
+    Args:
+        eval_log_paths: List of ``.eval`` file paths.
+        max_commands: Threshold above which commands collapse to a template.
+
+    Returns:
+        Markdown string (collapsible ``<details>`` block), or empty string if
+        *eval_log_paths* is empty.
+    """
+    if not eval_log_paths:
+        return ""
+
+    log_dirs = sorted(set(str(p.parent) for p in eval_log_paths))
+
+    lines = ["<details>", "<summary>Inspect view commands</summary>", ""]
+
+    if len(log_dirs) > max_commands:
+        lines.append("```bash")
+        lines.append("inspect view start --log-dir <LOG_DIR>")
+        lines.append("```")
+        lines.append("")
+        lines.append(
+            f"Replace `<LOG_DIR>` with one of the {len(log_dirs)} log directories listed above."
+        )
+    else:
+        lines.append("```bash")
+        for log_dir in log_dirs:
+            lines.append(f"inspect view start --log-dir {log_dir}")
+        lines.append("```")
+
+    lines.extend(["", "</details>", ""])
+    return "\n".join(lines)
+
+
 def generate_report(
     df: pd.DataFrame,
     experiment_name: str,
@@ -606,6 +648,10 @@ def generate_report(
         for p in sorted(eval_log_paths):
             report_lines.append(f"- `{p}`")
         report_lines.append("\n</details>\n")
+
+        view_commands = _format_inspect_view_commands(eval_log_paths)
+        if view_commands:
+            report_lines.append(view_commands)
 
     report_content = "\n".join(report_lines)
 

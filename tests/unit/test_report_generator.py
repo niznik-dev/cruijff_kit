@@ -11,6 +11,7 @@ from cruijff_kit.tools.inspect.report_generator import (
     extract_calibration_metrics,
     generate_report,
     _format_calibration_table,
+    _format_inspect_view_commands,
     _format_model_table,
 )
 
@@ -338,3 +339,82 @@ class TestProvenanceMetadata:
             output_path=tmp_path / "report.md",
         )
         assert "<details>" not in report
+
+    def test_inspect_view_commands_in_report(self, tmp_path):
+        """inspect view commands appear when eval_log_paths are provided."""
+        log_paths = [
+            Path("/experiments/run1/eval/logs/log1.eval"),
+            Path("/experiments/run2/eval/logs/log2.eval"),
+        ]
+        report = generate_report(
+            df=self._make_report_df(),
+            experiment_name="test",
+            output_path=tmp_path / "report.md",
+            eval_log_paths=log_paths,
+        )
+        assert "Inspect view commands" in report
+        assert "inspect view start --log-dir" in report
+
+
+# =============================================================================
+# _format_inspect_view_commands()
+# =============================================================================
+
+class TestFormatInspectViewCommands:
+
+    def test_empty_paths(self):
+        """Empty list returns empty string."""
+        assert _format_inspect_view_commands([]) == ""
+
+    def test_single_log_dir(self):
+        """Single log path produces one command."""
+        paths = [Path("/exp/run1/eval/logs/log1.eval")]
+        result = _format_inspect_view_commands(paths)
+        assert "inspect view start --log-dir /exp/run1/eval/logs" in result
+        assert "<details>" in result
+        assert "Inspect view commands" in result
+
+    def test_deduplicates_shared_directory(self):
+        """Multiple logs in the same directory produce one command."""
+        paths = [
+            Path("/exp/run1/eval/logs/epoch1.eval"),
+            Path("/exp/run1/eval/logs/epoch2.eval"),
+        ]
+        result = _format_inspect_view_commands(paths)
+        assert result.count("inspect view start") == 1
+
+    def test_multiple_directories(self):
+        """Logs in different directories produce one command each."""
+        paths = [
+            Path("/exp/run1/eval/logs/log1.eval"),
+            Path("/exp/run2/eval/logs/log2.eval"),
+            Path("/exp/run3/eval/logs/log3.eval"),
+        ]
+        result = _format_inspect_view_commands(paths)
+        assert result.count("inspect view start") == 3
+
+    def test_collapse_above_threshold(self):
+        """More directories than max_commands collapses to template."""
+        paths = [Path(f"/exp/run{i}/logs/log.eval") for i in range(25)]
+        result = _format_inspect_view_commands(paths, max_commands=20)
+        assert "<LOG_DIR>" in result
+        assert result.count("inspect view start") == 1
+        assert "25 log directories" in result
+
+    def test_no_collapse_at_threshold(self):
+        """Exactly max_commands directories are enumerated, not collapsed."""
+        paths = [Path(f"/exp/run{i}/logs/log.eval") for i in range(20)]
+        result = _format_inspect_view_commands(paths, max_commands=20)
+        assert "<LOG_DIR>" not in result
+        assert result.count("inspect view start") == 20
+
+    def test_sorted_output(self):
+        """Commands are sorted by directory path."""
+        paths = [
+            Path("/exp/zebra/logs/log.eval"),
+            Path("/exp/alpha/logs/log.eval"),
+        ]
+        result = _format_inspect_view_commands(paths)
+        lines = [l for l in result.split("\n") if "inspect view start" in l]
+        assert "alpha" in lines[0]
+        assert "zebra" in lines[1]
