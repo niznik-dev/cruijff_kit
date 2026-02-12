@@ -244,7 +244,9 @@ report = generate_report(
     experiment_name=experiment_name,          # e.g., "acs_income_2026-01-29"
     output_path=Path(output_dir) / "report.md",
     config=experiment_config,                 # Optional: experiment_summary.yaml dict
-    generated_pngs=generated_pngs             # Only embed PNGs from this run
+    generated_pngs=generated_pngs,            # Only embed PNGs from this run
+    eval_log_paths=eval_log_paths,            # List of .eval file Paths used
+    generated_by="Claude Opus 4.6",           # Attribution (use actual model name)
 )
 ```
 
@@ -260,6 +262,7 @@ The generated `report.md` includes:
 | Model Comparison | Table with accuracy, 95% CI, sample size |
 | Calibration & Risk Metrics | ECE, Brier, AUC, Mean Risk Score (if supplementary metrics detected) |
 | Per-Task Breakdown | Best model per task (if multiple tasks) |
+| Provenance | Attribution and source eval log paths (collapsible) |
 
 ### Confidence Intervals
 
