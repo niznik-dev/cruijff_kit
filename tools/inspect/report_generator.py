@@ -518,18 +518,16 @@ def _format_inspect_view_commands(
     lines = ["<details>", "<summary>Inspect view commands</summary>", ""]
 
     if len(log_dirs) > max_commands:
-        lines.append("```bash")
-        lines.append("inspect view start --log-dir <LOG_DIR>")
-        lines.append("```")
+        lines.append("<pre><code>inspect view start --log-dir &lt;LOG_DIR&gt;</code></pre>")
         lines.append("")
         lines.append(
-            f"Replace `<LOG_DIR>` with one of the {len(log_dirs)} log directories listed above."
+            f"Replace <code>&lt;LOG_DIR&gt;</code> with one of the {len(log_dirs)} log directories listed above."
         )
     else:
-        lines.append("```bash")
-        for log_dir in log_dirs:
-            lines.append(f"inspect view start --log-dir {log_dir}")
-        lines.append("```")
+        commands = "\n".join(
+            f"inspect view start --log-dir {d}" for d in log_dirs
+        )
+        lines.append(f"<pre><code>{commands}</code></pre>")
 
     lines.extend(["", "</details>", ""])
     return "\n".join(lines)

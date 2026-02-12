@@ -397,7 +397,7 @@ class TestFormatInspectViewCommands:
         """More directories than max_commands collapses to template."""
         paths = [Path(f"/exp/run{i}/logs/log.eval") for i in range(25)]
         result = _format_inspect_view_commands(paths, max_commands=20)
-        assert "<LOG_DIR>" in result
+        assert "&lt;LOG_DIR&gt;" in result
         assert result.count("inspect view start") == 1
         assert "25 log directories" in result
 
@@ -405,7 +405,7 @@ class TestFormatInspectViewCommands:
         """Exactly max_commands directories are enumerated, not collapsed."""
         paths = [Path(f"/exp/run{i}/logs/log.eval") for i in range(20)]
         result = _format_inspect_view_commands(paths, max_commands=20)
-        assert "<LOG_DIR>" not in result
+        assert "&lt;LOG_DIR&gt;" not in result
         assert result.count("inspect view start") == 20
 
     def test_sorted_output(self):
