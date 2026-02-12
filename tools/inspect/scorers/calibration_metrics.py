@@ -11,7 +11,7 @@ Metrics:
     - auc_score: Area under ROC curve for binary discrimination
 """
 
-from inspect_ai.scorer import metric, Score, Metric, CORRECT
+from inspect_ai.scorer import metric, Score, Metric, value_to_float
 from sklearn.metrics import brier_score_loss, roc_auc_score
 
 
@@ -22,9 +22,12 @@ def expected_calibration_error(n_bins: int = 10) -> Metric:
     Bins samples by confidence (max option probability), then computes the
     weighted average of |avg_confidence - avg_accuracy| per bin.
 
-    Uses option_probs and CORRECT/INCORRECT from Score — does NOT need target.
+    Uses option_probs and Score.value for accuracy. Score.value is converted
+    via value_to_float() to handle both pre-reduction ("C"/"I") and
+    post-reduction (1.0/0.0) representations.
     """
     def compute(scores: list[Score]) -> float:
+        vtf = value_to_float()
         confidences = []
         accuracies = []
         for s in scores:
@@ -32,7 +35,7 @@ def expected_calibration_error(n_bins: int = 10) -> Metric:
             if option_probs is None:
                 continue
             confidences.append(max(option_probs.values()))
-            accuracies.append(1.0 if s.value == CORRECT else 0.0)
+            accuracies.append(vtf(s.value))
 
         if not confidences:
             return float("nan")

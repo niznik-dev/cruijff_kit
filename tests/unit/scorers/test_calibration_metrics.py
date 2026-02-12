@@ -93,6 +93,38 @@ class TestExpectedCalibrationError:
         metric_fn = expected_calibration_error(n_bins=10)
         assert math.isnan(metric_fn([]))
 
+    def test_post_reduction_float_values(self):
+        """ECE works when Score.value is float (post-reducer) instead of string.
+
+        inspect-ai's mean_score() reducer converts "C"->1.0 and "I"->0.0
+        before passing scores to @metric functions. This test ensures ECE
+        handles both representations correctly.
+        """
+        # Same setup as test_known_ece_value but with float values
+        scores = []
+        for _ in range(5):
+            scores.append(_score(1.0, 0.7, {"0": 0.7, "1": 0.3}, "0"))
+        for _ in range(5):
+            scores.append(_score(0.0, 0.9, {"0": 0.9, "1": 0.1}, "1"))
+
+        metric_fn = expected_calibration_error(n_bins=10)
+        result = metric_fn(scores)
+        # ECE = 5/10 * |0.7 - 1.0| + 5/10 * |0.9 - 0.0| = 0.6
+        assert result == pytest.approx(0.6, abs=1e-6)
+
+    def test_string_and_float_values_agree(self):
+        """ECE gives same result for string ("C"/"I") and float (1.0/0.0) values."""
+        string_scores = []
+        float_scores = []
+        for i in range(10):
+            correct_str = CORRECT if i < 8 else INCORRECT
+            correct_flt = 1.0 if i < 8 else 0.0
+            string_scores.append(_score(correct_str, 0.8, {"0": 0.8, "1": 0.2}, "0"))
+            float_scores.append(_score(correct_flt, 0.8, {"0": 0.8, "1": 0.2}, "0"))
+
+        metric_fn = expected_calibration_error(n_bins=10)
+        assert metric_fn(string_scores) == pytest.approx(metric_fn(float_scores), abs=1e-6)
+
 
 # =============================================================================
 # Brier Score
