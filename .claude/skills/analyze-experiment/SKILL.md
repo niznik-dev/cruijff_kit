@@ -80,13 +80,24 @@ Create visualizations using inspect-viz:
 - Output file naming conventions
 - Creating multiple plots per experiment
 
-### 5. Generate Report → `generation.md`
+### 5. Generate Analysis & Interpretation → `generation.md`
+
+**This step is required by default.** Write a `future_directions` string that interprets the results and suggests next steps. This section should:
+
+1. Interpret the key findings (what do the metrics mean for the research question?)
+2. Note any surprises or anomalies in the results
+3. Suggest concrete next experiments or analyses
+
+Only omit this section if the user explicitly asks to skip it.
+
+### 6. Generate Report → `generation.md`
 
 Create markdown report with metrics and comparisons:
 1. Extract metrics from evaluation dataframe
 2. Compute Wilson score confidence intervals
 3. Generate narrative summary and comparison tables
-4. Write report to `analysis/report.md`
+4. Include `future_directions` from step 5
+5. Write report to `analysis/report.md`
 
 Uses `tools/inspect/report_generator.py`:
 ```python
@@ -96,11 +107,12 @@ report = generate_report(
     df=logs_df,
     experiment_name=experiment_name,
     output_path=Path(experiment_dir) / "analysis" / "report.md",
-    config=experiment_config  # Optional, for research question metadata
+    config=experiment_config,  # Optional, for research question metadata
+    future_directions=future_directions,  # From step 5
 )
 ```
 
-### 6. Logging → `logging.md`
+### 7. Logging → `logging.md`
 
 Document process in `{experiment_dir}/analyze-experiment.log`
 
