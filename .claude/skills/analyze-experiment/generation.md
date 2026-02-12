@@ -224,9 +224,48 @@ except ImportError:
 - Skip views that require those columns
 - Report in summary
 
+## Analysis & Interpretation (Required)
+
+**This step is required by default.** After generating visualizations and before calling `generate_report()`, write a `future_directions` string that interprets results and suggests next steps.
+
+The analysis should cover:
+
+1. **Key findings**: What do the metrics mean for the research question in experiment_summary.yaml? Reference the hypothesis if one exists.
+2. **Surprises or anomalies**: Anything unexpected — large gaps between models, metrics that disagree, base rates that explain accuracy, etc.
+3. **Concrete next steps**: Suggest 2-4 specific follow-up experiments or analyses. Be actionable, not vague.
+
+Example:
+```python
+future_directions = """
+### Key Findings
+
+Fine-tuning dramatically improved both models from 0% zero-shot to 75-78% accuracy,
+confirming the hypothesis. The instruct model's edge (78.5% vs 0.2%) appears to come
+from its ability to format text output, not from better discrimination — the base
+model actually achieves higher AUC (0.883 vs 0.876).
+
+### Anomalies
+
+The base fine-tuned model has near-zero text accuracy despite excellent AUC, suggesting
+it learned the probability distribution but not the output format. This is expected
+for base models without chat template training.
+
+### Suggested Next Steps
+
+1. **Compare with 1B/3B results**: The 8B instruct model (78.5%) barely outperforms
+   the 3B (76.6%) — check if scaling to 8B is worth the 4x compute cost.
+2. **Calibration deep-dive**: ECE of 0.019 for instruct is surprisingly good —
+   verify this holds with the corrected ECE metric on fresh evals.
+3. **Increase training data**: All models trained on 40K samples. Try 100K to see
+   if the accuracy plateau breaks.
+"""
+```
+
+Only omit this section if the user explicitly asks to skip it (e.g., "just generate the plots, no analysis").
+
 ## Report Generation
 
-After generating visualizations, create a markdown report with metrics and comparisons:
+After generating visualizations and writing the analysis, create a markdown report:
 
 ```python
 from pathlib import Path
@@ -247,6 +286,7 @@ report = generate_report(
     generated_pngs=generated_pngs,            # Only embed PNGs from this run
     eval_log_paths=eval_log_paths,            # List of .eval file Paths used
     generated_by="Claude Opus 4.6",           # Attribution (use actual model name)
+    future_directions=future_directions,      # Analysis from previous step
 )
 ```
 
@@ -262,6 +302,7 @@ The generated `report.md` includes:
 | Model Comparison | Table with accuracy, 95% CI, sample size |
 | Calibration & Risk Metrics | ECE, Brier, AUC, Mean Risk Score (if supplementary metrics detected) |
 | Per-Task Breakdown | Best model per task (if multiple tasks) |
+| Analysis & Interpretation | Key findings, anomalies, and suggested next steps |
 | Provenance | Attribution and source eval log paths (collapsible) |
 
 ### Confidence Intervals
