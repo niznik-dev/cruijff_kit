@@ -16,6 +16,7 @@ Example usage:
 """
 
 import math
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -658,3 +659,46 @@ def generate_report(
     output_path.write_text(report_content)
 
     return report_content
+
+
+def expand_details_for_pdf(text: str) -> str:
+    """Expand HTML ``<details>`` blocks into plain markdown for PDF conversion.
+
+    Collapsible sections are a browser concept; in print they should just be
+    visible.  This function:
+
+    * Converts ``<summary>`` text to a bold label.
+    * Converts ``<pre><code>`` blocks to fenced code blocks.
+    * Strips the wrapping ``<details>``/``</details>`` tags.
+
+    Args:
+        text: Markdown report text (may contain ``<details>`` blocks).
+
+    Returns:
+        Markdown text with all ``<details>`` blocks expanded.
+    """
+
+    def _expand_block(match: re.Match) -> str:
+        content = match.group(1)
+
+        # Extract and remove <summary>
+        summary_match = re.search(r"<summary>(.*?)</summary>", content)
+        summary = summary_match.group(1) if summary_match else ""
+        content = re.sub(r"<summary>.*?</summary>\s*", "", content)
+
+        # Convert <pre><code>...</code></pre> to fenced code blocks
+        content = re.sub(
+            r"<pre><code>(.*?)</code></pre>",
+            lambda m: f"```\n{m.group(1)}\n```",
+            content,
+            flags=re.DOTALL,
+        )
+
+        return f"**{summary}**\n\n{content.strip()}\n"
+
+    return re.sub(
+        r"<details>\s*\n?(.*?)</details>",
+        _expand_block,
+        text,
+        flags=re.DOTALL,
+    )
