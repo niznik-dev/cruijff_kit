@@ -50,7 +50,6 @@ Created during analysis to record data loading, visualization selection, and gen
 ### During Report Generation
 - Report output path
 - Number of models included
-- Baseline model identified (or none)
 - Any report generation errors
 
 ### On Completion
@@ -89,7 +88,7 @@ Result: analysis/scores_by_task.html
 
 [2026-01-29 14:00:18] GENERATE_REPORT
 Details: Creating markdown report with metrics and comparisons
-Result: analysis/report.md (3 models, baseline: 1B_base)
+Result: analysis/report.md (3 models)
 
 [2026-01-29 14:00:20] COMPLETE
 Details: All visualizations generated

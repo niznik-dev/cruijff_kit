@@ -105,20 +105,6 @@ class TestExtractCalibrationMetrics:
         names = {r.model_name for r in results}
         assert names == {"model_a", "model_b"}
 
-    def test_baseline_identified(self):
-        """Baseline flag is set when finetuned==False."""
-        df = pd.DataFrame({
-            "model": ["base_model", "finetuned_model"],
-            "finetuned": [False, True],
-            "results_total_samples": [500, 500],
-            "score_risk_scorer_cruijff_kit/ece": [0.3, 0.15],
-        })
-        supplementary = ["risk_scorer_cruijff_kit/ece"]
-        results = extract_calibration_metrics(df, supplementary)
-        baseline = [r for r in results if r.is_baseline]
-        assert len(baseline) == 1
-        assert baseline[0].model_name == "base_model"
-
     def test_missing_column_yields_none(self):
         """Supplementary metric not in dataframe becomes None."""
         df = _make_df(
@@ -189,25 +175,6 @@ class TestFormatCalibrationTable:
         # cells: [model, epoch, ECE value, sample_size]
         assert cells[2] == "-"
 
-    def test_baseline_marker(self):
-        """Baseline models get an asterisk marker."""
-        results = [
-            CalibrationResult(
-                model_name="base",
-                metrics={"risk_scorer_cruijff_kit/ece": 0.3},
-                sample_size=500,
-                is_baseline=True,
-            ),
-            CalibrationResult(
-                model_name="tuned",
-                metrics={"risk_scorer_cruijff_kit/ece": 0.15},
-                sample_size=500,
-            ),
-        ]
-        table = _format_calibration_table(results)
-        assert "base *" in table
-        assert "tuned |" in table  # no marker
-
     def test_empty_results(self):
         """Empty results list returns informational message."""
         table = _format_calibration_table([])
@@ -277,7 +244,7 @@ class TestFormatModelTableCombined:
 
     def test_missing_calibration_shows_dash(self):
         """Models without calibration data get dashes in metric columns."""
-        m_base = self._metric(name="base", accuracy=0.0, epoch=None, is_baseline=True)
+        m_base = self._metric(name="base", accuracy=0.0, epoch=None)
         m_tuned = self._metric(name="tuned", accuracy=0.8, epoch=1)
         cal = [CalibrationResult(
             model_name="tuned", epoch=1, sample_size=500,
