@@ -16,6 +16,7 @@ Example usage:
 """
 
 import math
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -493,6 +494,46 @@ def _format_research_question(config: Optional[dict]) -> str:
     return "\n".join(lines)
 
 
+def _format_inspect_view_commands(
+    eval_log_paths: list[Path], max_commands: int = 20
+) -> str:
+    """Format inspect view commands for eval log directories.
+
+    Generates copy-paste-ready ``inspect view start`` commands, one per unique
+    log directory.  When the number of directories exceeds *max_commands*, a
+    single template command with a ``<LOG_DIR>`` placeholder is shown instead.
+
+    Args:
+        eval_log_paths: List of ``.eval`` file paths.
+        max_commands: Threshold above which commands collapse to a template.
+
+    Returns:
+        Markdown string (collapsible ``<details>`` block), or empty string if
+        *eval_log_paths* is empty.
+    """
+    if not eval_log_paths:
+        return ""
+
+    log_dirs = sorted(set(str(p.parent) for p in eval_log_paths))
+
+    lines = ["<details>", "<summary>Inspect view commands</summary>", ""]
+
+    if len(log_dirs) > max_commands:
+        lines.append("<pre><code>inspect view start --log-dir &lt;LOG_DIR&gt;</code></pre>")
+        lines.append("")
+        lines.append(
+            f"Replace <code>&lt;LOG_DIR&gt;</code> with one of the {len(log_dirs)} log directories listed above."
+        )
+    else:
+        commands = "\n".join(
+            f"inspect view start --log-dir {d}" for d in log_dirs
+        )
+        lines.append(f"<pre><code>{commands}</code></pre>")
+
+    lines.extend(["", "</details>", ""])
+    return "\n".join(lines)
+
+
 def generate_report(
     df: pd.DataFrame,
     experiment_name: str,
@@ -607,6 +648,10 @@ def generate_report(
             report_lines.append(f"- `{p}`")
         report_lines.append("\n</details>\n")
 
+        view_commands = _format_inspect_view_commands(eval_log_paths)
+        if view_commands:
+            report_lines.append(view_commands)
+
     report_content = "\n".join(report_lines)
 
     # Write to file
@@ -614,3 +659,46 @@ def generate_report(
     output_path.write_text(report_content)
 
     return report_content
+
+
+def expand_details_for_pdf(text: str) -> str:
+    """Expand HTML ``<details>`` blocks into plain markdown for PDF conversion.
+
+    Collapsible sections are a browser concept; in print they should just be
+    visible.  This function:
+
+    * Converts ``<summary>`` text to a bold label.
+    * Converts ``<pre><code>`` blocks to fenced code blocks.
+    * Strips the wrapping ``<details>``/``</details>`` tags.
+
+    Args:
+        text: Markdown report text (may contain ``<details>`` blocks).
+
+    Returns:
+        Markdown text with all ``<details>`` blocks expanded.
+    """
+
+    def _expand_block(match: re.Match) -> str:
+        content = match.group(1)
+
+        # Extract and remove <summary>
+        summary_match = re.search(r"<summary>(.*?)</summary>", content)
+        summary = summary_match.group(1) if summary_match else ""
+        content = re.sub(r"<summary>.*?</summary>\s*", "", content)
+
+        # Convert <pre><code>...</code></pre> to fenced code blocks
+        content = re.sub(
+            r"<pre><code>(.*?)</code></pre>",
+            lambda m: f"```\n{m.group(1)}\n```",
+            content,
+            flags=re.DOTALL,
+        )
+
+        return f"**{summary}**\n\n{content.strip()}\n"
+
+    return re.sub(
+        r"<details>\s*\n?(.*?)</details>",
+        _expand_block,
+        text,
+        flags=re.DOTALL,
+    )
