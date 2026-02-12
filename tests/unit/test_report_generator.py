@@ -8,9 +8,11 @@ import pytest
 from cruijff_kit.tools.inspect.report_generator import (
     CalibrationResult,
     ModelMetrics,
+    expand_details_for_pdf,
     extract_calibration_metrics,
     generate_report,
     _format_calibration_table,
+    _format_inspect_view_commands,
     _format_model_table,
 )
 
@@ -338,3 +340,158 @@ class TestProvenanceMetadata:
             output_path=tmp_path / "report.md",
         )
         assert "<details>" not in report
+
+    def test_inspect_view_commands_in_report(self, tmp_path):
+        """inspect view commands appear when eval_log_paths are provided."""
+        log_paths = [
+            Path("/experiments/run1/eval/logs/log1.eval"),
+            Path("/experiments/run2/eval/logs/log2.eval"),
+        ]
+        report = generate_report(
+            df=self._make_report_df(),
+            experiment_name="test",
+            output_path=tmp_path / "report.md",
+            eval_log_paths=log_paths,
+        )
+        assert "Inspect view commands" in report
+        assert "inspect view start --log-dir" in report
+
+
+# =============================================================================
+# _format_inspect_view_commands()
+# =============================================================================
+
+class TestFormatInspectViewCommands:
+
+    def test_empty_paths(self):
+        """Empty list returns empty string."""
+        assert _format_inspect_view_commands([]) == ""
+
+    def test_single_log_dir(self):
+        """Single log path produces one command."""
+        paths = [Path("/exp/run1/eval/logs/log1.eval")]
+        result = _format_inspect_view_commands(paths)
+        assert "inspect view start --log-dir /exp/run1/eval/logs" in result
+        assert "<details>" in result
+        assert "Inspect view commands" in result
+
+    def test_deduplicates_shared_directory(self):
+        """Multiple logs in the same directory produce one command."""
+        paths = [
+            Path("/exp/run1/eval/logs/epoch1.eval"),
+            Path("/exp/run1/eval/logs/epoch2.eval"),
+        ]
+        result = _format_inspect_view_commands(paths)
+        assert result.count("inspect view start") == 1
+
+    def test_multiple_directories(self):
+        """Logs in different directories produce one command each."""
+        paths = [
+            Path("/exp/run1/eval/logs/log1.eval"),
+            Path("/exp/run2/eval/logs/log2.eval"),
+            Path("/exp/run3/eval/logs/log3.eval"),
+        ]
+        result = _format_inspect_view_commands(paths)
+        assert result.count("inspect view start") == 3
+
+    def test_collapse_above_threshold(self):
+        """More directories than max_commands collapses to template."""
+        paths = [Path(f"/exp/run{i}/logs/log.eval") for i in range(25)]
+        result = _format_inspect_view_commands(paths, max_commands=20)
+        assert "&lt;LOG_DIR&gt;" in result
+        assert result.count("inspect view start") == 1
+        assert "25 log directories" in result
+
+    def test_no_collapse_at_threshold(self):
+        """Exactly max_commands directories are enumerated, not collapsed."""
+        paths = [Path(f"/exp/run{i}/logs/log.eval") for i in range(20)]
+        result = _format_inspect_view_commands(paths, max_commands=20)
+        assert "&lt;LOG_DIR&gt;" not in result
+        assert result.count("inspect view start") == 20
+
+    def test_sorted_output(self):
+        """Commands are sorted by directory path."""
+        paths = [
+            Path("/exp/zebra/logs/log.eval"),
+            Path("/exp/alpha/logs/log.eval"),
+        ]
+        result = _format_inspect_view_commands(paths)
+        lines = [l for l in result.split("\n") if "inspect view start" in l]
+        assert "alpha" in lines[0]
+        assert "zebra" in lines[1]
+
+
+# =============================================================================
+# expand_details_for_pdf()
+# =============================================================================
+
+class TestExpandDetailsForPdf:
+
+    def test_summary_becomes_bold(self):
+        """<summary> text becomes a **bold** label."""
+        text = "<details>\n<summary>My Section</summary>\n\nSome content.\n\n</details>"
+        result = expand_details_for_pdf(text)
+        assert "**My Section**" in result
+        assert "<details>" not in result
+        assert "<summary>" not in result
+
+    def test_content_preserved(self):
+        """Inner content is kept after expansion."""
+        text = "<details>\n<summary>Logs</summary>\n\n- `log1.eval`\n- `log2.eval`\n\n</details>"
+        result = expand_details_for_pdf(text)
+        assert "log1.eval" in result
+        assert "log2.eval" in result
+
+    def test_pre_code_to_fenced(self):
+        """<pre><code> blocks become fenced code blocks."""
+        text = (
+            "<details>\n<summary>Commands</summary>\n\n"
+            "<pre><code>echo hello\necho world</code></pre>\n\n</details>"
+        )
+        result = expand_details_for_pdf(text)
+        assert "```\necho hello\necho world\n```" in result
+        assert "<pre>" not in result
+        assert "<code>" not in result
+
+    def test_multiple_details_blocks(self):
+        """Multiple <details> blocks are all expanded."""
+        text = (
+            "<details>\n<summary>First</summary>\n\nAAA\n\n</details>\n\n"
+            "<details>\n<summary>Second</summary>\n\nBBB\n\n</details>"
+        )
+        result = expand_details_for_pdf(text)
+        assert "**First**" in result
+        assert "**Second**" in result
+        assert "AAA" in result
+        assert "BBB" in result
+        assert "<details>" not in result
+
+    def test_no_details_passthrough(self):
+        """Text without <details> blocks is returned unchanged."""
+        text = "# Heading\n\nSome regular markdown.\n"
+        assert expand_details_for_pdf(text) == text
+
+    def test_real_report_round_trip(self, tmp_path):
+        """Expanding a generated report removes all HTML details tags."""
+        df = pd.DataFrame({
+            "model": ["model_a"],
+            "results_total_samples": [100],
+            "score_match_accuracy": [0.75],
+        })
+        log_paths = [
+            Path("/exp/run1/eval/logs/log1.eval"),
+            Path("/exp/run2/eval/logs/log2.eval"),
+        ]
+        report = generate_report(
+            df=df,
+            experiment_name="test",
+            output_path=tmp_path / "report.md",
+            eval_log_paths=log_paths,
+        )
+        expanded = expand_details_for_pdf(report)
+        assert "<details>" not in expanded
+        assert "</details>" not in expanded
+        assert "<summary>" not in expanded
+        # Content is still present
+        assert "log1.eval" in expanded
+        assert "inspect view start" in expanded

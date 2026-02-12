@@ -56,16 +56,41 @@ Record which engine is available for the conversion step.
 
 **Validate** the file exists before proceeding.
 
+## Preprocess for PDF
+
+Reports may contain HTML `<details>` blocks (collapsible sections) that LaTeX cannot render. Expand them before conversion:
+
+```python
+from pathlib import Path
+from tools.inspect.report_generator import expand_details_for_pdf
+
+md_path = Path("{full_path_to_md}")
+text = md_path.read_text()
+expanded = expand_details_for_pdf(text)
+
+# Write to a temp file in the same directory (so relative image paths still work)
+tmp_path = md_path.with_suffix(".tmp.md")
+tmp_path.write_text(expanded)
+```
+
+This converts `<summary>` text to bold labels and `<pre><code>` blocks to fenced code blocks. If the markdown has no `<details>` blocks, the text passes through unchanged.
+
 ## Convert to PDF
 
 **Critical:** Change to the markdown file's parent directory before running pandoc. This ensures relative image paths (e.g., `![](scores_by_task.png)`) resolve correctly.
 
 ```bash
 cd {parent_directory}
-pandoc {filename} -o {stem}.pdf --pdf-engine={engine}
+pandoc {tmp_filename} -o {stem}.pdf --pdf-engine={engine}
 ```
 
-Where `{stem}` is the filename without the `.md` extension (e.g., `report.md` → `report.pdf`).
+Where `{stem}` is the **original** filename without the `.md` extension (e.g., `report.md` → `report.pdf`).
+
+After conversion, clean up the temp file:
+
+```python
+tmp_path.unlink()
+```
 
 ## Report Result
 
