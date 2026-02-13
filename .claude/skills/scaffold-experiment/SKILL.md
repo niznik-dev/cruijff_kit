@@ -289,6 +289,7 @@ Before reporting success, verify:
 
 - Launch both subagents in a **single message** with multiple Task tool calls
 - Do NOT launch them sequentially in separate messages
+- **Do NOT use `run_in_background: true`** — background agents cannot surface permission prompts to the user, so all tool calls get auto-denied. Foreground parallel (multiple Task calls in one message) works correctly.
 - The subagents run independently in separate context windows
 - They can work simultaneously because their outputs don't depend on each other
 - Wait for both to complete before proceeding to create the orchestration log

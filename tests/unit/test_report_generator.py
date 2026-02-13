@@ -269,7 +269,7 @@ class TestFormatModelTableCombined:
         m2 = self._metric(name="b", n=1000)
         table, footnotes = _format_model_table([m1, m2])
         assert "Sample Size" not in table
-        assert any("1000" in f for f in footnotes)
+        assert any("1,000" in f for f in footnotes)
 
     def test_varying_sample_size_included_in_table(self):
         """When sample sizes differ, column stays in the table."""

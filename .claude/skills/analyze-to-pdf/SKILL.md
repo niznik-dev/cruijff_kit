@@ -81,8 +81,15 @@ This converts `<summary>` text to bold labels and `<pre><code>` blocks to fenced
 
 ```bash
 cd {parent_directory}
-pandoc {tmp_filename} -o {stem}.pdf --pdf-engine={engine}
+pandoc {tmp_filename} -o {stem}.pdf --pdf-engine={engine} \
+  --from markdown-implicit_figures \
+  -V geometry:margin=1in
 ```
+
+**Why these flags matter:**
+
+- `--from markdown-implicit_figures` — disables pandoc's automatic wrapping of images in LaTeX `\begin{figure}` float environments. Without this, LaTeX treats every image as a float and reorders them past surrounding text onto later pages. With this flag, images are inline `\includegraphics` calls that appear exactly where they are in the markdown, just like text. The tradeoff is no `Figure N:` captions, but report images already have `###` headings so captions are redundant.
+- `geometry:margin=1in` — maximizes page real estate for figures
 
 Where `{stem}` is the **original** filename without the `.md` extension (e.g., `report.md` → `report.pdf`).
 

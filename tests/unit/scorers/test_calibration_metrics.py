@@ -10,6 +10,7 @@ from inspect_ai.scorer import Score, CORRECT, INCORRECT
 
 from cruijff_kit.tools.inspect.scorers.calibration_metrics import (
     expected_calibration_error,
+    risk_calibration_error,
     brier_score,
     auc_score,
 )
@@ -92,6 +93,126 @@ class TestExpectedCalibrationError:
         """No valid scores -> NaN."""
         metric_fn = expected_calibration_error(n_bins=10)
         assert math.isnan(metric_fn([]))
+
+    def test_post_reduction_float_values(self):
+        """ECE works when Score.value is float (post-reducer) instead of string.
+
+        inspect-ai's mean_score() reducer converts "C"->1.0 and "I"->0.0
+        before passing scores to @metric functions. This test ensures ECE
+        handles both representations correctly.
+        """
+        # Same setup as test_known_ece_value but with float values
+        scores = []
+        for _ in range(5):
+            scores.append(_score(1.0, 0.7, {"0": 0.7, "1": 0.3}, "0"))
+        for _ in range(5):
+            scores.append(_score(0.0, 0.9, {"0": 0.9, "1": 0.1}, "1"))
+
+        metric_fn = expected_calibration_error(n_bins=10)
+        result = metric_fn(scores)
+        # ECE = 5/10 * |0.7 - 1.0| + 5/10 * |0.9 - 0.0| = 0.6
+        assert result == pytest.approx(0.6, abs=1e-6)
+
+    def test_string_and_float_values_agree(self):
+        """ECE gives same result for string ("C"/"I") and float (1.0/0.0) values."""
+        string_scores = []
+        float_scores = []
+        for i in range(10):
+            correct_str = CORRECT if i < 8 else INCORRECT
+            correct_flt = 1.0 if i < 8 else 0.0
+            string_scores.append(_score(correct_str, 0.8, {"0": 0.8, "1": 0.2}, "0"))
+            float_scores.append(_score(correct_flt, 0.8, {"0": 0.8, "1": 0.2}, "0"))
+
+        metric_fn = expected_calibration_error(n_bins=10)
+        assert metric_fn(string_scores) == pytest.approx(metric_fn(float_scores), abs=1e-6)
+
+
+# =============================================================================
+# Risk Calibration Error
+# =============================================================================
+
+class TestRiskCalibrationError:
+
+    def test_perfect_risk_calibration(self):
+        """When risk_score matches actual base rate in every bin, risk ECE = 0."""
+        # 10 samples with risk=0.8, 8 of which are truly positive -> perfectly calibrated
+        scores = []
+        for i in range(10):
+            target = "0" if i < 8 else "1"  # 80% positive
+            correct = CORRECT if target == "0" else INCORRECT
+            scores.append(_score(correct, 0.8, {"0": 0.8, "1": 0.2}, target))
+
+        metric_fn = risk_calibration_error(n_bins=10)
+        result = metric_fn(scores)
+        assert result == pytest.approx(0.0, abs=1e-6)
+
+    def test_worst_case_risk_calibration(self):
+        """risk=1.0 but all samples are actually negative -> risk ECE=1.0."""
+        scores = [_score(INCORRECT, 1.0, {"0": 1.0, "1": 0.0}, "1") for _ in range(10)]
+
+        metric_fn = risk_calibration_error(n_bins=10)
+        result = metric_fn(scores)
+        assert result == pytest.approx(1.0, abs=1e-6)
+
+    def test_known_risk_ece_value(self):
+        """Manually computed risk ECE with two distinct bins."""
+        # 5 samples: risk=0.7, all truly positive (target="0")
+        #   -> bin (0.6, 0.7]: avg_risk=0.7, avg_actual=1.0
+        # 5 samples: risk=0.3, all truly negative (target="1")
+        #   -> bin (0.2, 0.3]: avg_risk=0.3, avg_actual=0.0
+        scores = []
+        for _ in range(5):
+            scores.append(_score(CORRECT, 0.7, {"0": 0.7, "1": 0.3}, "0"))
+        for _ in range(5):
+            scores.append(_score(CORRECT, 0.3, {"0": 0.3, "1": 0.7}, "1"))
+
+        metric_fn = risk_calibration_error(n_bins=10)
+        result = metric_fn(scores)
+        # ECE = 5/10 * |0.7 - 1.0| + 5/10 * |0.3 - 0.0| = 0.15 + 0.15 = 0.3
+        assert result == pytest.approx(0.3, abs=1e-6)
+
+    def test_differs_from_confidence_ece(self):
+        """Risk ECE and confidence ECE give different values on the same data."""
+        # P(Y=1)=0.3 -> confidence=0.7, risk=0.3 — different bins!
+        # 5 samples: risk=0.3, truly negative, model predicts 0 correctly
+        # 5 samples: risk=0.7, truly positive, model predicts 0 incorrectly
+        scores = []
+        for _ in range(5):
+            # risk=0.3, target="1" (negative), predicted "1" correctly
+            scores.append(_score(CORRECT, 0.3, {"0": 0.3, "1": 0.7}, "1"))
+        for _ in range(5):
+            # risk=0.7, target="0" (positive), predicted "1" incorrectly
+            scores.append(_score(INCORRECT, 0.7, {"0": 0.7, "1": 0.3}, "0"))
+
+        risk_ece = risk_calibration_error(n_bins=10)(scores)
+        conf_ece = expected_calibration_error(n_bins=10)(scores)
+        assert risk_ece != pytest.approx(conf_ece, abs=1e-3)
+
+    def test_does_not_use_score_value(self):
+        """Risk ECE is immune to Score.value bugs — same result regardless of value."""
+        base_args = dict(risk_score=0.8, option_probs={"0": 0.8, "1": 0.2}, target="0")
+        scores_correct = [_score(CORRECT, **base_args) for _ in range(10)]
+        scores_wrong = [_score(INCORRECT, **base_args) for _ in range(10)]
+        scores_float = [_score(0.0, **base_args) for _ in range(10)]  # bogus float
+
+        metric_fn = risk_calibration_error(n_bins=10)
+        assert metric_fn(scores_correct) == pytest.approx(metric_fn(scores_wrong), abs=1e-6)
+        assert metric_fn(scores_correct) == pytest.approx(metric_fn(scores_float), abs=1e-6)
+
+    def test_empty_scores_returns_nan(self):
+        metric_fn = risk_calibration_error(n_bins=10)
+        assert math.isnan(metric_fn([]))
+
+    def test_skips_none_risk_score(self):
+        """Samples with None risk_score are skipped."""
+        scores = [
+            _score(CORRECT, 0.8, {"0": 0.8, "1": 0.2}, "0"),
+            Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": "0"}),
+        ]
+        metric_fn = risk_calibration_error(n_bins=10)
+        # 1 sample: risk=0.8, actual=1.0 -> |0.8-1.0|=0.2
+        result = metric_fn(scores)
+        assert result == pytest.approx(0.2, abs=1e-6)
 
 
 # =============================================================================
@@ -230,6 +351,7 @@ class TestEdgeCases:
             Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": None}),
         ]
         assert math.isnan(expected_calibration_error()(scores))
+        assert math.isnan(risk_calibration_error()(scores))
         assert math.isnan(brier_score()(scores))
         assert math.isnan(auc_score()(scores))
 
@@ -240,6 +362,7 @@ class TestEdgeCases:
             Score(value=INCORRECT, metadata={}),
         ]
         assert math.isnan(expected_calibration_error()(scores))
+        assert math.isnan(risk_calibration_error()(scores))
         assert math.isnan(brier_score()(scores))
         assert math.isnan(auc_score()(scores))
 
@@ -250,5 +373,6 @@ class TestEdgeCases:
             Score(value=INCORRECT, metadata=None),
         ]
         assert math.isnan(expected_calibration_error()(scores))
+        assert math.isnan(risk_calibration_error()(scores))
         assert math.isnan(brier_score()(scores))
         assert math.isnan(auc_score()(scores))
