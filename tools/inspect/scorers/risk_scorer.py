@@ -9,7 +9,7 @@ import math
 from inspect_ai.scorer import scorer, Score, metric, Metric, CORRECT, INCORRECT
 from inspect_ai.solver import TaskState
 from inspect_ai.scorer import Target
-from .calibration_metrics import expected_calibration_error, brier_score, auc_score
+from .calibration_metrics import expected_calibration_error, risk_calibration_error, brier_score, auc_score
 
 @metric
 def mean_risk_score() -> Metric:
@@ -19,7 +19,7 @@ def mean_risk_score() -> Metric:
         return sum(values) / len(values) if values else float("nan")
     return compute
 
-@scorer(metrics=[mean_risk_score(), expected_calibration_error(), brier_score(), auc_score()])
+@scorer(metrics=[mean_risk_score(), expected_calibration_error(), risk_calibration_error(), brier_score(), auc_score()])
 def risk_scorer(option_tokens: list[str] = ("0", "1")):
     """
     Scorer that extracts risk scores from logprobs of the first generated token.

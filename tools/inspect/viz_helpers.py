@@ -155,8 +155,9 @@ def parse_eval_metadata(logs_df: pd.DataFrame) -> pd.DataFrame:
 
 
 METRIC_DISPLAY_NAMES: dict[str, str] = {
-    "risk_scorer_cruijff_kit/ece": "ECE",
-    "risk_scorer_cruijff_kit/expected_calibration_error": "ECE",
+    "risk_scorer_cruijff_kit/ece": "C-ECE",
+    "risk_scorer_cruijff_kit/expected_calibration_error": "C-ECE",
+    "risk_scorer_cruijff_kit/risk_calibration_error": "R-ECE",
     "risk_scorer_cruijff_kit/brier_score": "Brier Score",
     "risk_scorer_cruijff_kit/auc_score": "AUC",
     "risk_scorer_cruijff_kit/mean_risk_score": "Mean Risk Score",
@@ -228,6 +229,24 @@ def detect_metrics(logs_df: pd.DataFrame) -> DetectedMetrics:
         and not c.endswith('_stderr')
         and not c.startswith('score_headline_')
     ]
+
+    # Sort into a deliberate presentation order:
+    #   AUC (discrimination) → Brier (composite) → C-ECE → R-ECE → Mean Risk Score
+    # Unknown metrics fall to the end in their original order.
+    _METRIC_ORDER = {
+        "auc_score": 0,
+        "brier_score": 1,
+        "expected_calibration_error": 2,  # C-ECE
+        "ece": 2,                         # C-ECE alias
+        "risk_calibration_error": 3,      # R-ECE
+        "mean_risk_score": 4,
+    }
+
+    def _sort_key(name: str) -> int:
+        suffix = name.rsplit("/", 1)[-1]
+        return _METRIC_ORDER.get(suffix, 100)
+
+    supplementary_names.sort(key=_sort_key)
 
     return DetectedMetrics(accuracy=accuracy_names, supplementary=supplementary_names)
 
