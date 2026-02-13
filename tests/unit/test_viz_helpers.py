@@ -105,7 +105,7 @@ class TestDetectMetrics:
 class TestDisplayName:
 
     def test_known_metrics(self):
-        assert display_name("risk_scorer_cruijff_kit/ece") == "ECE"
+        assert display_name("risk_scorer_cruijff_kit/ece") == "C-ECE"
         assert display_name("risk_scorer_cruijff_kit/brier_score") == "Brier Score"
         assert display_name("risk_scorer_cruijff_kit/auc_score") == "AUC"
         assert display_name("risk_scorer_cruijff_kit/mean_risk_score") == "Mean Risk Score"
