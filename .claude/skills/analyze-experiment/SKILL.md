@@ -196,6 +196,9 @@ After running, the experiment directory will contain:
 │   ├── scores_by_task.png      (if playwright available)
 │   ├── scores_heatmap.html
 │   ├── scores_heatmap.png      (if playwright available)
+│   ├── roc_curves.png          (if risk_scorer used)
+│   ├── calibration_curves.png  (if risk_scorer used)
+│   ├── prediction_histogram.png (if risk_scorer used)
 │   └── ...
 ├── analyze-experiment.log
 └── experiment_summary.yaml
