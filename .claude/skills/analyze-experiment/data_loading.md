@@ -94,6 +94,29 @@ def get_subdirs_from_config(config):
 subdirs = get_subdirs_from_config(config)
 ```
 
+### extract_per_sample_risk_data()
+
+Load per-sample `(y_true, y_score)` pairs from eval files for ROC and calibration plots:
+
+```python
+from tools.inspect.viz_helpers import extract_per_sample_risk_data
+
+risk_data = extract_per_sample_risk_data(kept)  # list[PerSampleRiskData]
+# Each entry has: model_name, y_true, y_score, n_total, n_valid
+```
+
+**Important:** This reads the full eval log (all samples), not just aggregate metrics, so it's slower than `evals_df_prep()`. Models with <2 valid samples or only one class are automatically skipped.
+
+### has_risk_scorer
+
+Check whether per-sample risk plots should be generated:
+
+```python
+detected = detect_metrics(logs_df)
+if detected.has_risk_scorer:
+    # Generate ROC + calibration plots (see generation.md)
+```
+
 ## Required Columns by View Type
 
 | View | Required Columns |

@@ -224,6 +224,34 @@ except ImportError:
 - Skip views that require those columns
 - Report in summary
 
+## Per-Sample Risk Plots (ROC & Calibration)
+
+When the experiment used `risk_scorer`, generate overlay plots from per-sample data. These are **matplotlib PNGs** (not inspect-viz HTML), gated on `detected.has_risk_scorer`:
+
+```python
+from tools.inspect.viz_helpers import (
+    extract_per_sample_risk_data, generate_roc_overlay,
+    generate_calibration_overlay, generate_prediction_histogram,
+)
+
+if detected.has_risk_scorer:
+    risk_data = extract_per_sample_risk_data(kept)  # kept = deduplicated .eval paths
+    if risk_data:
+        roc_path = generate_roc_overlay(risk_data, f"{output_dir}/roc_curves.png")
+        cal_path = generate_calibration_overlay(risk_data, f"{output_dir}/calibration_curves.png")
+        hist_path = generate_prediction_histogram(risk_data, f"{output_dir}/prediction_histogram.png")
+        if roc_path:
+            generated_pngs.append(str(roc_path))
+        if cal_path:
+            generated_pngs.append(str(cal_path))
+        if hist_path:
+            generated_pngs.append(str(hist_path))
+```
+
+**Performance note:** `extract_per_sample_risk_data()` reads full eval logs (all samples), so it's slower than the aggregate `evals_df_prep()` path. For a 5000-sample eval this typically takes a few seconds per file.
+
+**Skipped models:** Models with <2 valid samples or only one class (e.g., zeroshot models that always predict the same thing) are silently skipped. The function logs which models were skipped at INFO level.
+
 ## Analysis & Interpretation (Required)
 
 **This step is required by default.** After generating visualizations and before calling `generate_report()`, write a `future_directions` string that interprets results and suggests next steps.
