@@ -74,7 +74,7 @@ Created during the planning workflow to record all verification steps, calculati
 Details: Beginning experiment design
 Experiment: cap_4L_lora_rank_comparison
 Type: sanity_check
-Directory: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_rank_comparison
+Directory: {scratch_dir}/cap_4L_lora_rank_comparison
 Result: success
 ```
 
@@ -83,7 +83,7 @@ Result: success
 ```
 [2025-10-22 14:30:00] CONSULT_PRIOR_EXPERIMENT
 Details: Examining prior experiment for design insights
-Path: /scratch/gpfs/MSALGANIK/niznik/prior_cap_experiment
+Path: {scratch_dir}/prior_cap_experiment
 Files examined: experiment_summary.yaml, run_001/results.json, run_001/slurm-12345.out
 Insights: LoRA rank 4 achieved 95% accuracy; ~2 min/epoch on same hardware; no issues
 Influence: Using same dataset and model size; testing higher ranks to explore capacity limits
@@ -108,7 +108,7 @@ Result: success
 [2025-10-22 14:30:01] VERIFY_MODEL
 Details: Verifying model directory exists
 Model: Llama-3.2-1B-Instruct
-Path: /scratch/gpfs/MSALGANIK/niznik/llms/Meta-Llama-3.2-1B-Instruct
+Path: {scratch_dir}/llms/Meta-Llama-3.2-1B-Instruct
 Size: 4.0 GB
 Result: success
 ```
@@ -119,7 +119,7 @@ Failure example:
 [2025-10-22 14:30:01] VERIFY_MODEL
 Details: Verifying model directory exists
 Model: Llama-3.2-1B-Instruct
-Path: /scratch/gpfs/MSALGANIK/niznik/llms/Meta-Llama-3.2-1B-Instruct
+Path: {scratch_dir}/llms/Meta-Llama-3.2-1B-Instruct
 Error: FileNotFoundError - Model directory does not exist
 Result: failure
 ```
@@ -129,7 +129,7 @@ Result: failure
 ```
 [2025-10-22 14:30:01] VERIFY_DATASET
 Details: Verifying dataset file exists
-Path: /home/sarahep/cruijff_kit/data/green/words_5L_80P_1000.json
+Path: /path/to/cruijff_kit/data/green/words_5L_80P_1000.json
 Size: 84 KB
 Result: success
 ```
@@ -152,7 +152,7 @@ Result: success
 [2025-10-22 14:30:02] VERIFY_EVAL_TASK
 Details: Verifying evaluation task script exists
 Task: capitalization
-Path: /home/sarahep/cruijff_kit/experiments/capitalization/cap_task.py
+Path: /path/to/cruijff_kit/experiments/capitalization/cap_task.py
 Size: 12 KB
 Result: success
 ```
@@ -162,7 +162,7 @@ Result: success
 ```
 [2025-10-22 14:30:02] SEARCH_PRIOR_RUNS
 Details: Searching for prior runs to estimate training speed
-Pattern: find /scratch/gpfs/MSALGANIK/niznik -name 'slurm-*.out' -path '*/ck-out-*'
+Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/ck-out-*'
 Found: 3 prior run logs
 Result: success
 ```
@@ -172,7 +172,7 @@ Result: success
 ```
 [2025-10-22 14:30:03] EXTRACT_TRAINING_SPEED
 Details: Extracting training speed from prior run
-Source: /scratch/gpfs/MSALGANIK/niznik/prior_exp/run1/slurm-123.out
+Source: {scratch_dir}/prior_exp/run1/slurm-123.out
 Speed: 2.5 it/s
 Estimated: 120 seconds/epoch
 Result: success
@@ -196,7 +196,7 @@ Result: success
 ```
 [2025-10-22 14:30:05] CHECK_DISK_SPACE
 Details: Checking available disk space
-Filesystem: /scratch/gpfs/MSALGANIK/niznik
+Filesystem: {scratch_dir}
 Available: 5120 GB
 Used: 2048 GB
 Total: 7168 GB
@@ -283,7 +283,7 @@ Result: success
 ```
 [2025-10-22 14:30:08] CREATE_YAML
 Details: Writing experiment configuration
-Path: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_rank_comparison/experiment_summary.yaml
+Path: {scratch_dir}/cap_4L_lora_rank_comparison/experiment_summary.yaml
 Size: 1456 bytes
 Result: success
 ```
@@ -293,7 +293,7 @@ Result: success
 ```
 [2025-10-22 14:30:08] CREATE_LOG
 Details: Writing design log
-Path: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_rank_comparison/design-experiment.log
+Path: {scratch_dir}/cap_4L_lora_rank_comparison/design-experiment.log
 Entries: 14
 Result: success
 ```
@@ -319,7 +319,7 @@ When `Result: failure` or `Result: warning`, include an `Error:` line with the e
 [2025-10-22 14:30:01] VERIFY_MODEL
 Details: Verifying model directory exists
 Model: Llama-3.2-1B-Instruct
-Path: /scratch/gpfs/MSALGANIK/niznik/llms/Meta-Llama-3.2-1B-Instruct
+Path: {scratch_dir}/llms/Meta-Llama-3.2-1B-Instruct
 Error: FileNotFoundError - Model directory does not exist
 Result: failure
 ```
@@ -362,19 +362,19 @@ Separate entries with a blank line for readability.
 Details: Beginning experiment design
 Experiment: cap_4L_lora_rank_comparison
 Type: sanity_check
-Directory: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_rank_comparison
+Directory: {scratch_dir}/cap_4L_lora_rank_comparison
 Result: success
 
 [2025-10-22 14:30:01] VERIFY_MODEL
 Details: Verifying model directory exists
 Model: Llama-3.2-1B-Instruct
-Path: /scratch/gpfs/MSALGANIK/niznik/llms/Meta-Llama-3.2-1B-Instruct
+Path: {scratch_dir}/llms/Meta-Llama-3.2-1B-Instruct
 Size: 4.0 GB
 Result: success
 
 [2025-10-22 14:30:01] VERIFY_DATASET
 Details: Verifying dataset file exists
-Path: /home/sarahep/cruijff_kit/data/green/words_5L_80P_1000.json
+Path: /path/to/cruijff_kit/data/green/words_5L_80P_1000.json
 Size: 84 KB
 Result: success
 
@@ -389,19 +389,19 @@ Result: success
 [2025-10-22 14:30:02] VERIFY_EVAL_TASK
 Details: Verifying evaluation task script exists
 Task: capitalization
-Path: /home/sarahep/cruijff_kit/experiments/capitalization/cap_task.py
+Path: /path/to/cruijff_kit/experiments/capitalization/cap_task.py
 Size: 12 KB
 Result: success
 
 [2025-10-22 14:30:02] SEARCH_PRIOR_RUNS
 Details: Searching for prior runs to estimate training speed
-Pattern: find /scratch/gpfs/MSALGANIK/niznik -name 'slurm-*.out' -path '*/ck-out-*'
+Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/ck-out-*'
 Found: 3 prior run logs
 Result: success
 
 [2025-10-22 14:30:03] EXTRACT_TRAINING_SPEED
 Details: Extracting training speed from prior run
-Source: /scratch/gpfs/MSALGANIK/niznik/prior_exp/run1/slurm-123.out
+Source: {scratch_dir}/prior_exp/run1/slurm-123.out
 Speed: 2.5 it/s
 Estimated: 120 seconds/epoch
 Result: success
@@ -417,7 +417,7 @@ Result: success
 
 [2025-10-22 14:30:05] CHECK_DISK_SPACE
 Details: Checking available disk space
-Filesystem: /scratch/gpfs/MSALGANIK/niznik
+Filesystem: {scratch_dir}
 Available: 5120 GB
 Used: 2048 GB
 Total: 7168 GB
@@ -448,13 +448,13 @@ Result: success
 
 [2025-10-22 14:30:08] CREATE_YAML
 Details: Writing experiment configuration
-Path: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_rank_comparison/experiment_summary.yaml
+Path: {scratch_dir}/cap_4L_lora_rank_comparison/experiment_summary.yaml
 Size: 1456 bytes
 Result: success
 
 [2025-10-22 14:30:08] CREATE_LOG
 Details: Writing design log
-Path: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_rank_comparison/design-experiment.log
+Path: {scratch_dir}/cap_4L_lora_rank_comparison/design-experiment.log
 Entries: 14
 Result: success
 

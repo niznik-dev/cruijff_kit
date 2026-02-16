@@ -18,35 +18,25 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 
 ## Step 1: Determine Experiment Location
 
-### Auto-Detect Based on Working Directory
+### Derive Paths from claude.local.md
 
-```python
-import os
-
-# Get current working directory
-cwd = os.getcwd()
-
-# Determine base directory based on context
-if "/sanity_checks/" in cwd or cwd.endswith("/sanity_checks"):
-    # Working from sanity_checks directory -> this is a sanity check
-    base_dir = "/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/"
-    experiment_type = "sanity_check"
-else:
-    # Default to experiments
-    base_dir = "/scratch/gpfs/MSALGANIK/niznik/ck-experiments/"
-    experiment_type = "experiment"
-
-# Full experiment directory
-experiment_dir = f"{base_dir}{experiment_name}/"
-```
+1. Read the **Scratch directory** field from `claude.local.md`
+2. Determine experiment type based on user intent or working directory context:
+   - If the user mentions "sanity check" or is working in a sanity-checks directory → `experiment_type = "sanity_check"`
+   - Otherwise → `experiment_type = "experiment"`
+3. Derive the experiment directory:
+   - **Experiments**: `{scratch_dir}/ck-experiments/{experiment_name}/`
+   - **Sanity checks**: `{scratch_dir}/ck-sanity-checks/{experiment_name}/`
+4. Derive the output directory:
+   - `{scratch_dir}/ck-outputs/{experiment_name}/`
 
 ### Directory Structure
 
-- **Experiments** (research tasks): `/scratch/gpfs/MSALGANIK/niznik/ck-experiments/{experiment_name}/`
-- **Sanity checks** (simple fine-tuning verification): `/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/{sanity_check_name}/`
+- **Experiments** (research tasks): `{scratch_dir}/ck-experiments/{experiment_name}/`
+- **Sanity checks** (simple fine-tuning verification): `{scratch_dir}/ck-sanity-checks/{sanity_check_name}/`
 
 **Outputs are automatically grouped:**
-- Output directory: `/scratch/gpfs/MSALGANIK/niznik/ck-outputs/{experiment_or_sanity_check_name}/ck-out-{run_name}/`
+- Output directory: `{scratch_dir}/ck-outputs/{experiment_or_sanity_check_name}/ck-out-{run_name}/`
 
 ### Confirm with User
 
