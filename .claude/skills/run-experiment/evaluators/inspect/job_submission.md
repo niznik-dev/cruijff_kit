@@ -36,8 +36,8 @@ Track:
 **No stagger delay needed** for evaluations.
 
 **Why no stagger?**
-- Unlike fine-tuning, evaluations don't have HuggingFace cache race conditions
-- Can submit all evaluations rapidly
+- HF datasets cache is pre-built before submission (see cache_prebuilding.md)
+- With cache pre-built, evaluations can be submitted rapidly without race conditions
 
 **Optional:** Brief 1-second delay between submissions for rate limiting:
 ```bash

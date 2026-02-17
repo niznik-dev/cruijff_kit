@@ -85,7 +85,38 @@ Recommendation: Check if fine-tuning job failed
 
 **Technical details:** See [evaluators/inspect/dependency_checking.md](../evaluators/inspect/dependency_checking.md)
 
-### 3. Select Evaluations to Submit
+### 3. Pre-build HuggingFace Datasets Cache (CRITICAL)
+
+**⚠️ CACHE PRE-BUILDING - MANDATORY**
+
+When multiple eval jobs launch simultaneously, they race to build the same HF datasets cache. Pre-build it once on the login node before submitting jobs.
+
+**Extract unique dataset paths from experiment_summary.yaml:**
+```python
+import yaml
+with open("experiment_summary.yaml") as f:
+    config = yaml.safe_load(f)
+dataset_paths = set()
+for task in config.get("evaluation", {}).get("tasks", []):
+    dataset = task.get("dataset")
+    if dataset:
+        dataset_paths.add(dataset)
+```
+
+**Pre-build cache for each unique dataset:**
+```bash
+python -c "
+from datasets import load_dataset
+load_dataset('json', data_files='DATA_PATH', field='test', split='train')
+print('Cache built for: DATA_PATH')
+"
+```
+
+This takes seconds and prevents `FileNotFoundError` crashes from cache race conditions.
+
+**Technical details:** See [evaluators/inspect/cache_prebuilding.md](../evaluators/inspect/cache_prebuilding.md)
+
+### 4. Select Evaluations to Submit
 
 **Check for already running evaluations:**
 ```bash
@@ -103,7 +134,7 @@ ls {run_dir}/eval/logs/*.eval 2>/dev/null
 
 **Technical details:** See [evaluators/inspect/evaluation_selection.md](../evaluators/inspect/evaluation_selection.md)
 
-### 4. Submit SLURM Jobs
+### 5. Submit SLURM Jobs
 
 For each evaluation in "submit" list:
 
@@ -118,11 +149,11 @@ job_id=$(sbatch {task}_epoch{N}.slurm | awk '{print $4}')
 - Record timestamp
 
 **No stagger delay needed:**
-Unlike fine-tuning, evaluations don't have cache race conditions. Can submit rapidly (optional 1-second delay for rate limiting).
+Cache race conditions are handled by the pre-building step (Step 3). Can submit all evaluations rapidly (optional 1-second delay for rate limiting).
 
 **Technical details:** See [evaluators/inspect/job_submission.md](../evaluators/inspect/job_submission.md)
 
-### 5. Monitor Job Progress
+### 6. Monitor Job Progress
 
 **Poll SLURM every 60 seconds:**
 ```bash
@@ -146,7 +177,7 @@ Stop monitoring when all jobs reach: COMPLETED, FAILED, CANCELLED, or TIMEOUT
 
 **Technical details:** See [evaluators/inspect/monitoring.md](../evaluators/inspect/monitoring.md)
 
-### 6. Validate Completion
+### 7. Validate Completion
 
 **Check dependency verification performed:**
 Verify fine-tuning completion and checkpoints were checked before submission.
@@ -224,7 +255,7 @@ Create detailed log at `{experiment_dir}/run-inspect.log` (or similar name based
 Always verify fine-tuning complete and checkpoints exist before submitting evaluation jobs. Skipping this causes job failures.
 
 **No stagger delay needed:**
-Unlike fine-tuning (which needs 5-second stagger for cache), evaluations can be submitted rapidly.
+HF datasets cache is pre-built in Step 3, so evaluations can be submitted rapidly without stagger delays.
 
 **Polling efficiency:**
 - Query all user jobs at once (not one by one)
