@@ -63,7 +63,7 @@ Execute fine-tuning jobs using torchtune framework.
 
 **Resumability:** Selection logic ensures already-completed jobs aren't resubmitted
 
-**Status Tracking:** Monitoring continuously updates experiment_summary.yaml with job status
+**Status Tracking:** Monitoring continuously updates run state with job status
 
 **Progressive Disclosure:** SKILL.md links to main.md, which links to specific stage files
 

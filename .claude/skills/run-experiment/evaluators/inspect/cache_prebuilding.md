@@ -93,4 +93,4 @@ Without pre-building, the first eval job to run triggers cache construction. If 
 
 ## Next Stage
 
-Pass to evaluation_selection.md / job_submission.md for submission planning and execution.
+Pass to evaluation_selection.md to determine which evaluations need submission.

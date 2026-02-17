@@ -54,14 +54,14 @@ Log each submission:
 
 ```
 [YYYY-MM-DD HH:MM:SS] SUBMIT_EVAL: {run_name}/{task}/epoch{N}
-Command: cd {run_dir}/eval && sbatch {task}_epoch{N}.slurm
+Details: cd {run_dir}/eval && sbatch {task}_epoch{N}.slurm
 Result: Job ID {job_id} submitted at {timestamp}
 ```
 
 Example:
 ```
 [2025-11-11 14:45:20] SUBMIT_EVAL: r8_lr1e-5/capitalization/epoch0
-Command: cd r8_lr1e-5/eval && sbatch capitalization_epoch0.slurm
+Details: cd r8_lr1e-5/eval && sbatch capitalization_epoch0.slurm
 Result: Job ID 12345690 submitted at 2025-11-11 14:45:20
 ```
 
