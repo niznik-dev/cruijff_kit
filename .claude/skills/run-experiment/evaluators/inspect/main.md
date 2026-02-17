@@ -11,23 +11,17 @@ Executes inspect-ai evaluation jobs for all runs in an experiment.
 - Fine-tuning complete (model checkpoints exist)
 - SLURM cluster access
 
-## Submodules
+## Workflow
 
-- **[parsing.md](parsing.md)** - Parse experiment_summary.yaml and scan for eval/*.slurm files
-- **[dependency_checking.md](dependency_checking.md)** - **CRITICAL:** Verify fine-tuning complete, checkpoints exist
-- **[evaluation_selection.md](evaluation_selection.md)** - Decide which evaluations to submit (skip completed, skip missing checkpoints)
-- **[job_submission.md](job_submission.md)** - Submit SLURM jobs, capture IDs
-- **[monitoring.md](monitoring.md)** - Poll squeue, track status, wait for completion
-- **[validation.md](validation.md)** - Verify all jobs completed, evaluation logs exist
+1. **[parsing.md](parsing.md)** - Parse experiment to identify evaluations
+2. **[dependency_checking.md](dependency_checking.md)** - Verify fine-tuning complete, checkpoints exist
+3. **[cache_prebuilding.md](cache_prebuilding.md)** - Pre-build HF datasets cache to prevent race conditions
+4. **[evaluation_selection.md](evaluation_selection.md)** - Select which evaluations need submission
+5. **[job_submission.md](job_submission.md)** - Submit SLURM jobs, capture IDs
+6. **[monitoring.md](monitoring.md)** - Poll squeue, track status, wait for completion
+7. **[validation.md](validation.md)** - Verify all jobs completed, evaluation logs exist
 
-## Workflow Summary
-
-1. Parse experiment to identify evaluations
-2. **Verify fine-tuning complete** (dependency check)
-3. Select which evaluations need submission
-4. Submit jobs (no stagger needed - unlike fine-tuning)
-5. Monitor with 60-second polling until all complete
-6. Validate evaluation logs created successfully
+Every step is required. Execute steps in order — each step depends on the output of the previous one.
 
 ## Output
 
