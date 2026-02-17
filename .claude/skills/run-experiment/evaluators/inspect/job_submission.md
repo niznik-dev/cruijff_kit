@@ -33,14 +33,12 @@ Track:
 
 ### 4. Submission Timing
 
-**No stagger delay needed** for evaluations.
-
-Brief 1-second delay between submissions for rate limiting:
+Brief 1-second delay between submissions:
 ```bash
 sleep 1
 ```
-**Why no stagger?**
-- HF datasets cache is pre-built before submission (see cache_prebuilding.md)
+
+We don't need a longer delay because HF datasets cache is pre-built before submission (see cache_prebuilding.md)
 
 ## Error Handling
 
