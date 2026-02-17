@@ -56,7 +56,53 @@ The subagent performs these operations autonomously:
    - Task script references
    - System prompt and evaluation parameters
    - Output directory configuration
+   - **SLURM resources:**
+     - **GPU resources** from `tools/torchtune/model_configs.py`: `slurm.mem`, `slurm.partition`, `slurm.constraint` (these are hardware properties of the model)
+     - **Eval time limit**: Ask the user during scaffolding (see below)
+   - **GPU monitoring** — same `nvidia-smi` background logging pattern as fine-tuning:
+     ```bash
+     nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu \
+         --format=csv -l 30 --id=$CUDA_VISIBLE_DEVICES > {output_dir}/gpu_metrics.csv 2>/dev/null &
+     GPU_MONITOR_PID=$!
+     # ... run inspect eval ...
+     kill $GPU_MONITOR_PID 2>/dev/null
+     wait $GPU_MONITOR_PID 2>/dev/null
+     ```
 5. **Creates detailed log** at `scaffold-inspect.log` with complete process information
+
+### SLURM Resource Configuration
+
+#### GPU resources (from model_configs.py)
+
+Read GPU-related resources from `tools/torchtune/model_configs.py` — these are properties of the model/hardware:
+
+```python
+from tools.torchtune.model_configs import MODEL_CONFIGS
+
+model_config = MODEL_CONFIGS[model_name]
+slurm = model_config["slurm"]
+# slurm["mem"]        → e.g., "40G" (matches GPU tier)
+# slurm["partition"]   → e.g., "nomig" or None
+# slurm["constraint"]  → e.g., "gpu80" or None
+```
+
+#### Eval time limit (ask user)
+
+Eval time depends on multiple factors (model size, holdout set size, evaluation task complexity, hardware), so it is **not** a model property. Ask the user during scaffolding:
+
+> What time limit should eval jobs use? (HH:MM:SS)
+>
+> This depends on model size, holdout set size, and task complexity.
+> For reference, training time for this experiment is set to {training_time}.
+> Eval jobs are typically much faster than training.
+>
+> 1. 0:10:00 (10 min — good for small models/datasets) (Recommended)
+> 2. 0:20:00 (20 min — good for larger models/datasets)
+> 3. 0:30:00 (30 min — conservative)
+
+Use the same time limit for all eval jobs in the experiment. If the user doesn't have a preference, default to `0:10:00`.
+
+**Why this matters:** Eval jobs often finish in seconds but hold a GPU for the full allocation. A 30-minute default for a 4-second job wastes 29+ minutes of GPU time per eval.
 
 ---
 

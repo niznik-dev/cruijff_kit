@@ -189,6 +189,15 @@ Complete workflow: {total_duration}
 - Optimization: {opt_duration}
 - Evaluation: {eval_duration}
 
+### GPU Utilization
+
+| Run | Type | Wall Time | Time Limit | GPU Util | GPU Mem (GB) | Power (W) |
+| --- | --- | --- | --- | --- | --- | --- |
+| {run_name} | finetune | {wall_time} | {time_limit} | {gpu_util}% | {gpu_mem} | {power}W |
+| {run_name} | eval | {wall_time} | {time_limit} | {gpu_util}% | {gpu_mem} | {power}W |
+
+*GPU metrics from nvidia-smi background monitoring. seff data captured per job.*
+
 ### Next Steps
 
 1. View results: `inspect view --port=$(get_free_port)`

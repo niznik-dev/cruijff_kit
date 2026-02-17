@@ -346,6 +346,109 @@ Uses Wilson score intervals (preferred over normal approximation):
 - Report generation skipped with warning
 - Visualizations still generated
 
+## Compute Utilization Analysis (Optional)
+
+After generating visualizations and before the report, optionally add compute metrics. This requires run logs from `run-experiment`.
+
+### Extracting Job IDs
+
+```python
+import re
+import json
+from pathlib import Path
+from tools.slurm.compute_metrics import parse_seff_output, summarize_gpu_metrics, format_compute_table
+
+# Extract job IDs from run logs
+job_ids = {}
+for log_name in ["run-torchtune.log", "run-inspect.log"]:
+    log_path = Path(experiment_dir) / log_name
+    if log_path.exists():
+        text = log_path.read_text()
+        # Match patterns like "Result: Job ID 12345678"
+        for match in re.finditer(r"(?:SUBMIT_JOB|SUBMIT_EVAL):\s*(\S+).*?Result:\s*Job ID\s*(\d+)", text, re.DOTALL):
+            run_name = match.group(1)
+            job_id = match.group(2)
+            job_type = "finetune" if "torchtune" in log_name else "eval"
+            job_ids[job_id] = {"run_name": run_name, "job_type": job_type}
+```
+
+### Running seff and Parsing
+
+```python
+import subprocess
+
+jobs = []
+for job_id, info in job_ids.items():
+    try:
+        result = subprocess.run(["seff", job_id], capture_output=True, text=True, timeout=30)
+        seff_data = parse_seff_output(result.stdout)
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        seff_data = {}
+
+    job_entry = {
+        "run_name": info["run_name"],
+        "job_type": info["job_type"],
+        "wall_time": seff_data.get("wall_time", "-"),
+        "time_limit": seff_data.get("time_limit", "-"),
+    }
+    jobs.append(job_entry)
+```
+
+### Adding GPU Metrics from gpu_metrics.csv
+
+```python
+for job_entry in jobs:
+    # Look for gpu_metrics.csv in the run's output directory
+    gpu_csv = find_gpu_metrics_csv(job_entry["run_name"])  # implementation depends on dir structure
+    if gpu_csv and gpu_csv.exists():
+        gpu_data = summarize_gpu_metrics(gpu_csv)
+        job_entry.update(gpu_data)
+```
+
+### Generating the Compute Section
+
+```python
+# Format as markdown table
+compute_table = format_compute_table(jobs)
+
+# Claude writes narrative recommendations based on the data
+# (e.g., "GPU utilization averaged 80% during training. Consider increasing
+# batch size to improve throughput." or "Eval jobs used <1 minute of a
+# 10-minute allocation — eval_time is well-sized.")
+
+compute_section = f"""## Compute Utilization
+
+{compute_table}
+
+### Recommendations
+
+{recommendations}  # Claude-generated narrative based on structured data
+"""
+
+# Save raw metrics for reproducibility
+metrics_path = Path(output_dir) / "compute_metrics.json"
+metrics_path.write_text(json.dumps(jobs, indent=2, default=str))
+```
+
+### Passing to Report Generator
+
+```python
+report = generate_report(
+    df=logs_df,
+    experiment_name=experiment_name,
+    output_path=Path(output_dir) / "report.md",
+    compute_section=compute_section,  # NEW: inserted after Analysis & Interpretation
+    # ... other args
+)
+```
+
+### Error Handling
+
+- **Missing seff**: If `seff` command not found or fails, skip seff data (GPU metrics from CSV may still be available)
+- **Missing gpu_metrics.csv**: Show `-` for GPU columns in the table
+- **Missing run logs**: Skip compute analysis entirely (log a note)
+- **Partial data**: Generate table with whatever data is available
+
 ## Logging
 
-Log generation actions using `GENERATE_PLOT` and `GENERATE_REPORT` action types. See `logging.md` for format specification.
+Log generation actions using `GENERATE_PLOT`, `GENERATE_REPORT`, and `COMPUTE_METRICS` action types. See `logging.md` for format specification.

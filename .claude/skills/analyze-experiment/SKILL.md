@@ -112,6 +112,19 @@ report = generate_report(
 )
 ```
 
+### 6b. Compute Utilization Report (Optional) → `generation.md`
+
+If run logs exist (`run-torchtune.log` and/or `run-inspect.log`), generate a compute utilization section:
+
+1. Extract job IDs from logs (regex: `Result: Job ID (\d+)`)
+2. Run `seff` for each job and parse with `tools/slurm/compute_metrics.py`
+3. Read `gpu_metrics.csv` files and summarize with `summarize_gpu_metrics()`
+4. Generate compute table with `format_compute_table()`
+5. Save raw metrics to `analysis/compute_metrics.json`
+6. Pass formatted table as `compute_section` to `generate_report()`
+
+**Skip silently** if no run logs exist (e.g., analyzing results without having run the experiment locally).
+
 ### 7. Logging → `logging.md`
 
 Document process in `{experiment_dir}/analyze-experiment.log`
