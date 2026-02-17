@@ -35,14 +35,12 @@ Track:
 
 **No stagger delay needed** for evaluations.
 
-**Why no stagger?**
-- HF datasets cache is pre-built before submission (see cache_prebuilding.md)
-- With cache pre-built, evaluations can be submitted rapidly without race conditions
-
-**Optional:** Brief 1-second delay between submissions for rate limiting:
+Brief 1-second delay between submissions for rate limiting:
 ```bash
 sleep 1
 ```
+**Why no stagger?**
+- HF datasets cache is pre-built before submission (see cache_prebuilding.md)
 
 ## Error Handling
 
