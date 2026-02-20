@@ -353,7 +353,7 @@ After generating visualizations and before the report, optionally add compute me
 **Workflow:**
 
 1. Extract job IDs from `run-torchtune.log` and `run-inspect.log` (regex: `SUBMIT_JOB|SUBMIT_EVAL` → Job ID)
-2. Run `seff {job_id}` and parse with `parse_seff_output()`
+2. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
 3. Read `gpu_metrics.csv` from each run's output dir with `summarize_gpu_metrics()`
 4. Format with `format_compute_table(jobs)` → markdown table
 5. Write narrative recommendations based on the data
@@ -362,6 +362,7 @@ After generating visualizations and before the report, optionally add compute me
 
 **Key functions** from `tools.slurm.compute_metrics`:
 - `parse_seff_output(stdout: str) -> dict` — wall time, time limit, memory, CPU efficiency
+- `parse_sacct_time_limit(stdout: str) -> str | None` — fallback for time limit when seff omits it
 - `summarize_gpu_metrics(csv_path: Path) -> dict` — mean GPU util, memory, power from nvidia-smi CSV
 - `format_compute_table(jobs: list[dict]) -> str` — markdown table
 

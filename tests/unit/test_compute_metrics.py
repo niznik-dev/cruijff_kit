@@ -13,6 +13,7 @@ import pytest
 
 from cruijff_kit.tools.slurm.compute_metrics import (
     format_compute_table,
+    parse_sacct_time_limit,
     parse_seff_output,
     summarize_gpu_metrics,
 )
@@ -89,6 +90,30 @@ class TestParseSeffOutput:
 
 
 # =============================================================================
+# parse_sacct_time_limit()
+# =============================================================================
+
+class TestParseSacctTimeLimit:
+
+    def test_basic_time_limit(self):
+        assert parse_sacct_time_limit("00:15:00\n") == "00:15:00"
+
+    def test_multiline_takes_first(self):
+        """sacct may return lines for job steps; we take the first."""
+        assert parse_sacct_time_limit("01:00:00\n01:00:00\n") == "01:00:00"
+
+    def test_empty_returns_none(self):
+        assert parse_sacct_time_limit("") is None
+
+    def test_unknown_returns_none(self):
+        assert parse_sacct_time_limit("PARTITION_LIMIT\n") is None
+
+    def test_day_format(self):
+        """sacct can return D-HH:MM:SS for long jobs."""
+        assert parse_sacct_time_limit("1-00:00:00\n") == "1-00:00:00"
+
+
+# =============================================================================
 # summarize_gpu_metrics()
 # =============================================================================
 
@@ -110,6 +135,7 @@ class TestSummarizeGpuMetrics:
         assert result["gpu_mem_total_gb"] == 40.0
         assert result["sample_count"] == 3
         assert result["power_mean_w"] == 250.0
+        assert result["possibly_mig"] is False
 
     def test_empty_csv(self, tmp_path):
         csv_path = tmp_path / "gpu_metrics.csv"
@@ -132,6 +158,26 @@ class TestSummarizeGpuMetrics:
         result = summarize_gpu_metrics(csv_path)
         assert result["sample_count"] == 2
         assert result["gpu_util_mean"] == 75.0
+
+    def test_mig_gpu_na_utilization(self, tmp_path):
+        """MIG GPUs report [N/A] for utilization but have valid memory/power."""
+        csv_content = textwrap.dedent("""\
+            timestamp, utilization.gpu [%], utilization.memory [%], memory.used [MiB], memory.total [MiB], power.draw [W], temperature.gpu
+            2026/02/20 14:28:12.659, [N/A], [N/A], 177 MiB, 81920 MiB, 96.01 W, 41
+            2026/02/20 14:28:42.685, [N/A], [N/A], 3984 MiB, 81920 MiB, 180.40 W, 44
+            2026/02/20 14:29:12.722, [N/A], [N/A], 3984 MiB, 81920 MiB, 188.84 W, 49
+        """)
+        csv_path = tmp_path / "gpu_metrics.csv"
+        csv_path.write_text(csv_content)
+
+        result = summarize_gpu_metrics(csv_path)
+        assert result["possibly_mig"] is True
+        assert result["gpu_util_mean"] is None
+        assert result["gpu_util_max"] is None
+        assert result["gpu_mem_used_mean_gb"] is not None  # memory still parsed
+        assert result["gpu_mem_total_gb"] == 80.0
+        assert result["power_mean_w"] is not None
+        assert result["sample_count"] == 3
 
 
 # =============================================================================
@@ -189,6 +235,38 @@ class TestFormatComputeTable:
         table = format_compute_table(jobs)
         lines = table.strip().split("\n")
         assert len(lines) == 4  # header + separator + 2 data rows
+
+    def test_mig_footnote(self):
+        jobs = [
+            {
+                "run_name": "1B_bs2",
+                "job_type": "finetune",
+                "wall_time": "00:05:38",
+                "possibly_mig": True,
+                "gpu_util_mean": None,
+                "gpu_mem_used_mean_gb": 4.9,
+                "gpu_mem_total_gb": 80.0,
+                "power_mean_w": 200.0,
+            },
+        ]
+        table = format_compute_table(jobs)
+        assert "MIG*" in table
+        assert "gpu80" in table
+        assert "half-A100" in table
+
+    def test_no_mig_footnote_when_not_mig(self):
+        jobs = [
+            {
+                "run_name": "1B_bs2",
+                "job_type": "finetune",
+                "wall_time": "00:05:38",
+                "gpu_util_mean": 80.0,
+                "gpu_mem_used_mean_gb": 20.0,
+                "power_mean_w": 250.0,
+            },
+        ]
+        table = format_compute_table(jobs)
+        assert "MIG" not in table
 
     def test_valid_markdown_format(self):
         jobs = [

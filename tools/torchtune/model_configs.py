@@ -31,9 +31,9 @@ MODEL_CONFIGS = {
             "model_family": "llama",
         },
         "slurm": {
-            "mem": "40G",
-            "partition": "nomig",
-            "constraint": None,
+            "mem": "80G",
+            "partition": None,
+            "constraint": "gpu80",
             "cpus": 4,
             "gpus": 1,
         },
@@ -49,9 +49,9 @@ MODEL_CONFIGS = {
             "model_family": "llama",
         },
         "slurm": {
-            "mem": "40G",
-            "partition": "nomig",  # Avoid MIG partitions by default
-            "constraint": None,
+            "mem": "80G",
+            "partition": None,
+            "constraint": "gpu80",
             "cpus": 4,
             "gpus": 1,
         },
