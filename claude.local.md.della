@@ -97,14 +97,14 @@ sbatch finetune.slurm
 
 ### Evaluation (manual)
 ```bash
-# Setup inspect for a fine-tuned checkpoint
+# First create eval_config.yaml in the eval directory (see inspect_agent.md for schema)
+# Then render the SLURM script from the template:
+cd /path/to/experiment/<run>/eval
 python /scratch/gpfs/MSALGANIK/jc0425/GitHub/cruijff_kit/tools/inspect/setup_inspect.py \
-  --finetune_epoch_dir /path/to/ck-outputs/<experiment>/<run>/epoch_N/
-
-# Optionally include base model for comparison
-python /scratch/gpfs/MSALGANIK/jc0425/GitHub/cruijff_kit/tools/inspect/setup_inspect.py \
-  --base_model_dir /scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct/ \
-  --finetune_epoch_dir /path/to/ck-outputs/<experiment>/<run>/epoch_N/
+  --config eval_config.yaml \
+  --model_name Llama-3.2-1B-Instruct \
+  --account msalganik \
+  --time 0:10:00
 
 # Submit evaluation job
 sbatch <task>_epoch<N>.slurm
