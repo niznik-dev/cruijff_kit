@@ -358,6 +358,59 @@ class TestProvenanceMetadata:
 
 
 # =============================================================================
+# compute_section parameter
+# =============================================================================
+
+class TestComputeSection:
+
+    def _make_report_df(self):
+        """Minimal DataFrame for generate_report."""
+        return pd.DataFrame({
+            "model": ["model_a"],
+            "results_total_samples": [100],
+            "score_match_accuracy": [0.75],
+        })
+
+    def test_compute_section_none_unchanged(self, tmp_path):
+        """compute_section=None produces output without compute section."""
+        report = generate_report(
+            df=self._make_report_df(),
+            experiment_name="test",
+            output_path=tmp_path / "report.md",
+        )
+        assert "Compute Utilization" not in report
+
+    def test_compute_section_appears_in_report(self, tmp_path):
+        """compute_section content appears in the report."""
+        compute = "## Compute Utilization\n\n| Run | Type | Wall Time |\n| --- | --- | --- |\n| 1B | finetune | 00:09:52 |"
+        report = generate_report(
+            df=self._make_report_df(),
+            experiment_name="test",
+            output_path=tmp_path / "report.md",
+            compute_section=compute,
+        )
+        assert "Compute Utilization" in report
+        assert "00:09:52" in report
+
+    def test_compute_section_after_analysis(self, tmp_path):
+        """compute_section appears after Analysis & Interpretation."""
+        compute = "## Compute Utilization\n\nGPU data here."
+        future = "### Key Findings\n\nSome analysis."
+        report = generate_report(
+            df=self._make_report_df(),
+            experiment_name="test",
+            output_path=tmp_path / "report.md",
+            future_directions=future,
+            compute_section=compute,
+        )
+        analysis_pos = report.index("Analysis & Interpretation")
+        compute_pos = report.index("Compute Utilization")
+        separator_pos = report.index("---", compute_pos)
+        assert compute_pos > analysis_pos
+        assert separator_pos > compute_pos
+
+
+# =============================================================================
 # _format_inspect_view_commands()
 # =============================================================================
 

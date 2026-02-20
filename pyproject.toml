@@ -53,6 +53,7 @@ packages = [
   "cruijff_kit.tools.torchtune.custom_recipes",
   "cruijff_kit.tools.inspect",
   "cruijff_kit.tools.inspect.scorers",
+  "cruijff_kit.tools.slurm",
 ]
 
 [tool.pytest.ini_options]

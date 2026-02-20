@@ -28,6 +28,8 @@ Both created during job execution to record job submissions, status changes, and
 | `SUBMIT_JOB` | Submit individual fine-tuning job to SLURM |
 | `STATUS_CHECK` | Poll SLURM for job statuses |
 | `STATE_CHANGE` | Record job state transition |
+| `COMPUTE_METRICS` | Record seff compute metrics when job reaches terminal state |
+| `RESOURCE_STATUS` | Report GPU utilization from gpu_metrics.csv during monitoring |
 | `ALL_COMPLETE` | Mark all fine-tuning jobs finished |
 
 ### Inspect-ai Actions
@@ -41,6 +43,8 @@ Both created during job execution to record job submissions, status changes, and
 | `SUBMIT_EVAL` | Submit individual evaluation job to SLURM |
 | `STATUS_CHECK` | Poll SLURM for job statuses |
 | `STATE_CHANGE` | Record job state transition |
+| `COMPUTE_METRICS` | Record seff compute metrics when eval job reaches terminal state |
+| `RESOURCE_STATUS` | Report GPU utilization from gpu_metrics.csv during monitoring |
 | `ALL_COMPLETE` | Mark all evaluations finished |
 
 ---

@@ -27,6 +27,7 @@ Created during analysis to record data loading, visualization selection, and gen
 | `SELECT_VIEW` | Record user's visualization choice |
 | `GENERATE_PLOT` | Create individual visualization |
 | `GENERATE_REPORT` | Create markdown report with metrics |
+| `COMPUTE_METRICS` | Extract and format compute utilization data |
 | `COMPLETE` | Mark analysis finished with summary |
 
 ---

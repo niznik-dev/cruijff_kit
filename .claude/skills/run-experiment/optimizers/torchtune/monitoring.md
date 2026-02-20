@@ -114,6 +114,12 @@ Elapsed: 8m 3s
 Action: Updated experiment_summary.yaml
 ```
 
+## Post-Completion Metrics & GPU Status
+
+See [../../shared/compute_monitoring.md](../../shared/compute_monitoring.md) for seff capture (with retry), real-time GPU status polling, and log format examples.
+
+**Identifier format for this module:** `{run_name}` (e.g., `r8_lr1e-5`)
+
 ## Completion Detection
 
 When all jobs reach terminal states:
