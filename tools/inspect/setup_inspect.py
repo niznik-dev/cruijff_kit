@@ -90,11 +90,18 @@ def load_eval_config(config_path):
     return config
 
 
+def _format_value(value):
+    """Format a config value for CLI arg. YAML booleans become lowercase."""
+    if isinstance(value, bool):
+        return str(value).lower()
+    return str(value)
+
+
 def build_task_args(config):
     """Build -T key=value lines for the inspect eval command.
 
-    Reads TASK_ARG_KEYS from config. config_path is always included
-    (auto-derived from --config location).
+    Reads TASK_ARG_KEYS from config. config_path is always present
+    in config (auto-derived by load_eval_config from --config location).
 
     Returns a string of lines like '  -T data_path="..." \\\n'
     """
@@ -102,7 +109,7 @@ def build_task_args(config):
     for key in TASK_ARG_KEYS:
         value = config.get(key)
         if value is not None:
-            lines.append(f'  -T {key}="{value}" \\')
+            lines.append(f'  -T {key}="{_format_value(value)}" \\')
     return "\n".join(lines) + "\n" if lines else ""
 
 
@@ -117,7 +124,7 @@ def build_metadata_args(config):
     for key in METADATA_ARG_KEYS:
         value = config.get(key)
         if value is not None:
-            lines.append(f'  --metadata {key}="{value}" \\')
+            lines.append(f'  --metadata {key}="{_format_value(value)}" \\')
     return "\n".join(lines) + "\n" if lines else ""
 
 

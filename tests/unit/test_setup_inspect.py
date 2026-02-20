@@ -1,17 +1,20 @@
 """Unit tests for tools/inspect/setup_inspect.py"""
 
 import re
+import sys
 import textwrap
 
 import pytest
 import yaml
 
 from cruijff_kit.tools.inspect.setup_inspect import (
+    _format_value,
     build_task_args,
     build_metadata_args,
     render_template,
     load_eval_config,
     create_parser,
+    main,
     TASK_ARG_KEYS,
     METADATA_ARG_KEYS,
 )
@@ -153,6 +156,38 @@ class TestLoadEvalConfig:
         config = load_eval_config(str(config_file))
         assert config["custom_field"] == "hello"
 
+    def test_empty_yaml_raises(self, tmp_path):
+        """Empty YAML file raises ValueError (missing required keys)."""
+        config_file = tmp_path / "eval_config.yaml"
+        config_file.write_text("")
+
+        with pytest.raises(ValueError, match="missing required keys"):
+            load_eval_config(str(config_file))
+
+
+# ---------------------------------------------------------------------------
+# _format_value (boolean normalization)
+# ---------------------------------------------------------------------------
+
+class TestFormatValue:
+
+    def test_bool_true_becomes_lowercase(self):
+        """Python True (from YAML `true`) renders as lowercase 'true'."""
+        assert _format_value(True) == "true"
+
+    def test_bool_false_becomes_lowercase(self):
+        """Python False (from YAML `false`) renders as lowercase 'false'."""
+        assert _format_value(False) == "false"
+
+    def test_string_passthrough(self):
+        """String values pass through unchanged."""
+        assert _format_value("hello") == "hello"
+
+    def test_int_passthrough(self):
+        """Integer values are stringified."""
+        assert _format_value(0) == "0"
+        assert _format_value(42) == "42"
+
 
 # ---------------------------------------------------------------------------
 # build_task_args
@@ -187,6 +222,12 @@ class TestBuildTaskArgs:
         assert "-T vis_label=" in result
         assert "use_chat_template" not in result
 
+    def test_boolean_value_lowercased(self):
+        """YAML boolean True renders as lowercase 'true' in -T args."""
+        config = make_config(use_chat_template=True)
+        result = build_task_args(config)
+        assert '-T use_chat_template="true"' in result
+
 
 # ---------------------------------------------------------------------------
 # build_metadata_args
@@ -214,6 +255,12 @@ class TestBuildMetadataArgs:
         assert '--metadata epoch="2"' in result
         assert "finetuned" not in result
         assert "source_model" not in result
+
+    def test_boolean_finetuned_lowercased(self):
+        """YAML boolean finetuned: true renders as lowercase 'true'."""
+        config = make_config(finetuned=True)
+        result = build_metadata_args(config)
+        assert '--metadata finetuned="true"' in result
 
 
 # ---------------------------------------------------------------------------
@@ -320,6 +367,26 @@ class TestRenderTemplate:
         cli = make_cli_args(conda_env="myenv")
         script = render_template(cli, make_config())
         assert "conda activate myenv" in script
+
+    def test_task_and_metadata_args_together(self):
+        """Both task args and metadata args render correctly in the template."""
+        config = make_config(
+            data_path="/data/test.json",
+            vis_label="1B_ft",
+            epoch=0,
+            finetuned=True,
+        )
+        script = render_template(make_cli_args(), config)
+        # Both blocks present
+        assert '-T data_path="/data/test.json"' in script
+        assert '-T vis_label="1B_ft"' in script
+        assert '--metadata epoch="0"' in script
+        assert '--metadata finetuned="true"' in script
+        # Proper ordering: task args before metadata, both before --log-dir
+        task_pos = script.index("-T data_path=")
+        meta_pos = script.index("--metadata epoch=")
+        logdir_pos = script.index("--log-dir")
+        assert task_pos < meta_pos < logdir_pos
 
 
 # ---------------------------------------------------------------------------
@@ -456,3 +523,61 @@ class TestCreateParser:
         assert args.conda_env == "cruijff"
         assert args.account is None
         assert args.output_slurm is None
+
+
+# ---------------------------------------------------------------------------
+# main() integration
+# ---------------------------------------------------------------------------
+
+class TestMain:
+
+    def test_writes_output_with_epoch(self, tmp_path, monkeypatch):
+        """main() writes {task_name}_epoch{N}.slurm when epoch is set."""
+        config_file = tmp_path / "eval_config.yaml"
+        config_file.write_text(MINIMAL_EVAL_CONFIG + "epoch: 0\n")
+
+        monkeypatch.setattr("sys.argv", [
+            "setup_inspect.py",
+            "--config", str(config_file),
+            "--model_name", "Llama-3.2-1B-Instruct",
+        ])
+        monkeypatch.chdir(tmp_path)
+        main()
+
+        output = tmp_path / "my_task_epoch0.slurm"
+        assert output.exists()
+        content = output.read_text()
+        assert "inspect eval" in content
+
+    def test_writes_output_without_epoch(self, tmp_path, monkeypatch):
+        """main() writes {task_name}.slurm when epoch is not set."""
+        config_file = tmp_path / "eval_config.yaml"
+        config_file.write_text(MINIMAL_EVAL_CONFIG)
+
+        monkeypatch.setattr("sys.argv", [
+            "setup_inspect.py",
+            "--config", str(config_file),
+            "--model_name", "Llama-3.2-1B-Instruct",
+        ])
+        monkeypatch.chdir(tmp_path)
+        main()
+
+        output = tmp_path / "my_task.slurm"
+        assert output.exists()
+
+    def test_output_slurm_override(self, tmp_path, monkeypatch):
+        """--output_slurm overrides the default filename."""
+        config_file = tmp_path / "eval_config.yaml"
+        config_file.write_text(MINIMAL_EVAL_CONFIG + "epoch: 0\n")
+
+        monkeypatch.setattr("sys.argv", [
+            "setup_inspect.py",
+            "--config", str(config_file),
+            "--model_name", "Llama-3.2-1B-Instruct",
+            "--output_slurm", str(tmp_path / "custom.slurm"),
+        ])
+        monkeypatch.chdir(tmp_path)
+        main()
+
+        assert (tmp_path / "custom.slurm").exists()
+        assert not (tmp_path / "my_task_epoch0.slurm").exists()

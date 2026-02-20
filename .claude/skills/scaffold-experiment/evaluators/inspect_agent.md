@@ -30,9 +30,9 @@ Your tasks:
 2. Read claude.local.md for environment-specific settings
 3. Verify that inspect-ai task scripts exist at the specified paths
 4. For each run and evaluation combination:
-   - Create eval/ subdirectory in the run directory
-   - Generate inspect.slurm script with correct model paths and task parameters
-   - Configure output locations
+   a. Create eval/ subdirectory (with logs/ inside) in the run directory
+   b. Generate eval_config.yaml with experiment-specific values (see Step 4 below)
+   c. Call setup_inspect.py to render the SLURM script from the template (see Step 5 below)
 5. Create a detailed log at {experiment_dir}/scaffold-inspect.log
 
 Report back:
@@ -162,21 +162,24 @@ After scaffold-inspect completes, the experiment directory will contain:
 {experiment_dir}/
 ├── Llama-3.2-1B-Instruct_base/    # Control run
 │   └── eval/
-│       ├── capitalization_base.slurm
+│       ├── eval_config.yaml
+│       ├── {task_name}_base.slurm
 │       └── logs/
 ├── Llama-3.2-1B-Instruct_rank4/   # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   └── eval/
-│       ├── capitalization_epoch0.slurm
+│       ├── eval_config.yaml
+│       ├── {task_name}_epoch0.slurm
 │       └── logs/
 ├── Llama-3.2-1B-Instruct_rank8/   # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   └── eval/
-│       ├── capitalization_epoch0.slurm
+│       ├── eval_config.yaml
+│       ├── {task_name}_epoch0.slurm
 │       └── logs/
 ├── scaffold-torchtune.log
 └── scaffold-inspect.log
