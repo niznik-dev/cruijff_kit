@@ -93,36 +93,11 @@ Action: Updated experiment_summary.yaml
 Result log: r8_lr1e-5/eval/logs/
 ```
 
-## Post-Completion Metrics
+## Post-Completion Metrics & GPU Status
 
-When an evaluation job transitions to COMPLETED or FAILED, capture compute metrics with `seff`. SLURM accounting has a lag — if seff returns no data, wait 30 seconds and retry once.
+See [../../shared/compute_monitoring.md](../../shared/compute_monitoring.md) for seff capture (with retry), real-time GPU status polling, and log format examples.
 
-```bash
-# First attempt
-seff {job_id}
-# If output shows "not available" or empty, wait and retry:
-sleep 30
-seff {job_id}
-```
-
-Log the metrics:
-
-```
-[YYYY-MM-DD HH:MM:SS] COMPUTE_METRICS: {run_name}/{task_name}/{epoch}
-Job ID: {job_id}
-GPU Time: {wall_time} / {time_limit} ({time_eff}%)
-Memory: {mem_used} / {mem_requested}
-CPU Efficiency: {cpu_eff}%
-```
-
-If the wall time exceeds the time limit (job state TIMEOUT), flag it:
-
-```
-[YYYY-MM-DD HH:MM:SS] COMPUTE_METRICS: {run_name}/{task_name}/{epoch}
-Job ID: {job_id}
-GPU Time: {wall_time} / {time_limit} (**EXCEEDED**)
-⚠️ Time limit exceeded — consider increasing eval time limit when re-scaffolding
-```
+**Identifier format for this module:** `{run_name}/{task_name}/{epoch}` (e.g., `r8_lr1e-5/capitalization/epoch0`)
 
 ## Completion Detection
 
@@ -133,23 +108,6 @@ When all evaluation jobs reach terminal states:
 Summary: 8 evaluations completed - 8 COMPLETED, 0 FAILED
 Total time: 15 minutes
 ```
-
-## GPU Status (Real-Time Feedback)
-
-Every 5th poll (~5 minutes) for RUNNING jobs, read the latest GPU metrics from the shared filesystem:
-
-```bash
-tail -1 {output_dir}/gpu_metrics.csv
-```
-
-Log as:
-
-```
-[YYYY-MM-DD HH:MM:SS] RESOURCE_STATUS: {run_name}/{task_name}/{epoch}
-GPU Utilization: {gpu_util}% | GPU Memory: {gpu_mem_used}/{gpu_mem_total} GB
-```
-
-If `gpu_metrics.csv` doesn't exist yet (job just started), skip silently.
 
 ## Error Handling
 

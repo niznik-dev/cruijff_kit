@@ -21,9 +21,10 @@ conda activate <CONDA_ENV>
 mkdir -p <OUTPUT_DIR>logs/wandb  # wandb is picky about existing dirs
 cp finetune.slurm setup_finetune.yaml <OUTPUT_DIR>/  # Copy config to output dir for reference
 
-# Start GPU monitoring in background (filter to allocated GPU only)
+# Start GPU monitoring in background
+# With --gres=gpu:1, SLURM cgroup isolation scopes nvidia-smi to the allocated GPU
 nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu \
-    --format=csv -l 30 --id=$CUDA_VISIBLE_DEVICES > <OUTPUT_DIR>/gpu_metrics.csv 2>/dev/null &
+    --format=csv -l 30 > <OUTPUT_DIR>/gpu_metrics.csv 2>/dev/null &
 GPU_MONITOR_PID=$!
 
 tune run lora_finetune_single_device \

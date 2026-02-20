@@ -61,8 +61,9 @@ The subagent performs these operations autonomously:
      - **Eval time limit**: Ask the user during scaffolding (see below)
    - **GPU monitoring** — same `nvidia-smi` background logging pattern as fine-tuning:
      ```bash
+     # SLURM cgroup isolation scopes nvidia-smi to the allocated GPU
      nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu \
-         --format=csv -l 30 --id=$CUDA_VISIBLE_DEVICES > {output_dir}/gpu_metrics.csv 2>/dev/null &
+         --format=csv -l 30 > {output_dir}/gpu_metrics.csv 2>/dev/null &
      GPU_MONITOR_PID=$!
      # ... run inspect eval ...
      kill $GPU_MONITOR_PID 2>/dev/null
