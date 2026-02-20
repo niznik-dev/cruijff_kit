@@ -62,20 +62,20 @@ class TestModelAwareSlurmResources:
     """Test that SLURM resources are set correctly based on model size."""
 
     def test_1b_default_memory(self, temp_run_dir):
-        """1B model defaults to 40G memory."""
+        """1B model defaults to 80G memory (gpu80 node)."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-1B-Instruct")
-        assert "#SBATCH --mem=40G" in slurm
+        assert "#SBATCH --mem=80G" in slurm
 
-    def test_1b_default_partition_nomig(self, temp_run_dir):
-        """1B model defaults to nomig partition."""
+    def test_1b_no_partition(self, temp_run_dir):
+        """1B model has no partition (uses gpu80 constraint instead)."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-1B-Instruct")
-        assert "#SBATCH --partition=nomig" in slurm
+        # Partition line should remain commented out
+        assert "##SBATCH --partition=<PART>" in slurm
 
-    def test_1b_no_gpu_constraint(self, temp_run_dir):
-        """1B model should not have gpu80 constraint."""
+    def test_1b_gpu80_constraint(self, temp_run_dir):
+        """1B model defaults to gpu80 constraint."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-1B-Instruct")
-        # Constraint line should remain commented out
-        assert "#SBATCH --constraint=gpu80" not in slurm
+        assert "#SBATCH --constraint=gpu80" in slurm
 
     def test_3b_default_memory(self, temp_run_dir):
         """3B model defaults to 80G memory."""
