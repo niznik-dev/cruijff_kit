@@ -88,7 +88,7 @@ def parse_sacct_time_limit(sacct_output: str) -> str | None:
         return None
     # sacct may return multiple lines for job steps; take the first
     first_line = text.splitlines()[0].strip()
-    if re.match(r"[\d:-]+", first_line):
+    if re.match(r"^\d[\d:-]+$", first_line):
         return first_line
     return None
 
@@ -110,10 +110,10 @@ def summarize_gpu_metrics(csv_path: Path) -> dict:
 
     Returns:
         Dict with keys: gpu_util_mean, gpu_util_max, gpu_mem_used_mean_gb,
-        gpu_mem_total_gb, power_mean_w, sample_count, possibly_mig.
-        Fields without data are None. ``possibly_mig`` is True when GPU
-        utilization is unavailable (reported as [N/A]) but memory/power
-        data exists — a signature of MIG-partitioned GPUs.
+        gpu_mem_total_gb, power_mean_w, sample_count, gpu_util_unavailable.
+        Fields without data are None. ``gpu_util_unavailable`` is True when
+        GPU utilization is reported as [N/A] but memory/power data exists —
+        common with MIG-partitioned GPUs but can have other causes.
     """
     gpu_utils: list[float] = []
     mem_useds: list[float] = []
@@ -151,8 +151,8 @@ def summarize_gpu_metrics(csv_path: Path) -> dict:
             if power is not None:
                 powers.append(power)
 
-    # MIG detection: utilization unknown but other metrics present
-    possibly_mig = saw_na_util and data_rows > 0 and bool(mem_useds or powers)
+    # Utilization unavailable but other metrics present (common with MIG)
+    gpu_util_unavailable = saw_na_util and data_rows > 0 and bool(mem_useds or powers)
 
     if not mem_useds and not gpu_utils and not powers:
         return {
@@ -162,7 +162,7 @@ def summarize_gpu_metrics(csv_path: Path) -> dict:
             "gpu_mem_total_gb": None,
             "power_mean_w": None,
             "sample_count": 0,
-            "possibly_mig": possibly_mig,
+            "gpu_util_unavailable": gpu_util_unavailable,
         }
 
     return {
@@ -172,7 +172,7 @@ def summarize_gpu_metrics(csv_path: Path) -> dict:
         "gpu_mem_total_gb": round(mem_totals[0], 1) if mem_totals else None,
         "power_mean_w": round(sum(powers) / len(powers), 0) if powers else None,
         "sample_count": data_rows,
-        "possibly_mig": possibly_mig,
+        "gpu_util_unavailable": gpu_util_unavailable,
     }
 
 
@@ -182,28 +182,28 @@ def format_compute_table(jobs: list[dict]) -> str:
     Args:
         jobs: List of dicts, each with keys: run_name, job_type, wall_time,
               time_limit, gpu_util_mean, gpu_mem_used_mean_gb, power_mean_w,
-              possibly_mig. Missing or None values render as "-".
+              gpu_util_unavailable. Missing or None values render as "-".
 
     Returns:
-        Markdown-formatted table string, with a footnote if any jobs
-        appear to have run on MIG-partitioned GPUs.
+        Markdown-formatted table string, with a footnote if GPU
+        utilization was unavailable for any job.
     """
     headers = ["Run", "Type", "Wall Time", "Time Limit", "GPU Util", "GPU Mem (GB)", "Power (W)"]
     header_line = "| " + " | ".join(headers) + " |"
     separator = "| " + " | ".join("---" for _ in headers) + " |"
 
     lines = [header_line, separator]
-    any_mig = False
+    any_util_unavailable = False
 
     for job in jobs:
         gpu_util = job.get("gpu_util_mean")
         gpu_mem = job.get("gpu_mem_used_mean_gb")
         gpu_total = job.get("gpu_mem_total_gb")
         power = job.get("power_mean_w")
-        is_mig = job.get("possibly_mig", False)
+        util_unavailable = job.get("gpu_util_unavailable", False)
 
-        if is_mig:
-            any_mig = True
+        if util_unavailable:
+            any_util_unavailable = True
 
         # Show mem as "used/total" when we have both
         if gpu_mem is not None and gpu_total is not None:
@@ -213,7 +213,7 @@ def format_compute_table(jobs: list[dict]) -> str:
         else:
             mem_str = "-"
 
-        util_str = f"{gpu_util}%" if gpu_util is not None else ("MIG*" if is_mig else "-")
+        util_str = f"{gpu_util}%" if gpu_util is not None else ("N/A*" if util_unavailable else "-")
 
         cells = [
             job.get("run_name") or "-",
@@ -226,12 +226,12 @@ def format_compute_table(jobs: list[dict]) -> str:
         ]
         lines.append("| " + " | ".join(cells) + " |")
 
-    if any_mig:
+    if any_util_unavailable:
         lines.append("")
         lines.append(
-            "*\\*MIG: GPU utilization is unavailable for MIG-partitioned GPUs. "
-            "These are half-A100s (40 GB) that appear in the `nomig` partition. "
-            "Use `--constraint=gpu80` to guarantee a full A100 with utilization metrics.*"
+            "*\\*N/A: GPU utilization was unavailable for these jobs. "
+            "This is common with MIG-partitioned GPUs, which report memory and power "
+            "but not utilization. Check your cluster's GPU allocation policy.*"
         )
 
     return "\n".join(lines)

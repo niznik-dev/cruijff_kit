@@ -135,7 +135,7 @@ class TestSummarizeGpuMetrics:
         assert result["gpu_mem_total_gb"] == 40.0
         assert result["sample_count"] == 3
         assert result["power_mean_w"] == 250.0
-        assert result["possibly_mig"] is False
+        assert result["gpu_util_unavailable"] is False
 
     def test_empty_csv(self, tmp_path):
         csv_path = tmp_path / "gpu_metrics.csv"
@@ -171,7 +171,7 @@ class TestSummarizeGpuMetrics:
         csv_path.write_text(csv_content)
 
         result = summarize_gpu_metrics(csv_path)
-        assert result["possibly_mig"] is True
+        assert result["gpu_util_unavailable"] is True
         assert result["gpu_util_mean"] is None
         assert result["gpu_util_max"] is None
         assert result["gpu_mem_used_mean_gb"] is not None  # memory still parsed
@@ -236,13 +236,13 @@ class TestFormatComputeTable:
         lines = table.strip().split("\n")
         assert len(lines) == 4  # header + separator + 2 data rows
 
-    def test_mig_footnote(self):
+    def test_util_unavailable_footnote(self):
         jobs = [
             {
                 "run_name": "1B_bs2",
                 "job_type": "finetune",
                 "wall_time": "00:05:38",
-                "possibly_mig": True,
+                "gpu_util_unavailable": True,
                 "gpu_util_mean": None,
                 "gpu_mem_used_mean_gb": 4.9,
                 "gpu_mem_total_gb": 80.0,
@@ -250,11 +250,11 @@ class TestFormatComputeTable:
             },
         ]
         table = format_compute_table(jobs)
-        assert "MIG*" in table
-        assert "gpu80" in table
-        assert "half-A100" in table
+        assert "N/A*" in table
+        assert "unavailable" in table
+        assert "MIG" in table  # mentioned as common cause
 
-    def test_no_mig_footnote_when_not_mig(self):
+    def test_no_footnote_when_util_available(self):
         jobs = [
             {
                 "run_name": "1B_bs2",
@@ -266,7 +266,24 @@ class TestFormatComputeTable:
             },
         ]
         table = format_compute_table(jobs)
-        assert "MIG" not in table
+        assert "N/A*" not in table
+        assert "unavailable" not in table
+
+    def test_mem_used_total_format(self):
+        """Memory column shows used/total when both values present."""
+        jobs = [
+            {
+                "run_name": "1B_bs2",
+                "job_type": "finetune",
+                "wall_time": "00:05:00",
+                "gpu_util_mean": 65.0,
+                "gpu_mem_used_mean_gb": 3.7,
+                "gpu_mem_total_gb": 80.0,
+                "power_mean_w": 171.0,
+            },
+        ]
+        table = format_compute_table(jobs)
+        assert "3.7/80.0" in table
 
     def test_valid_markdown_format(self):
         jobs = [
