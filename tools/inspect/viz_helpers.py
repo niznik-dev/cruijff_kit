@@ -350,7 +350,8 @@ def _extract_risk_from_log(log) -> PerSampleRiskData | None:
         if risk is None or target is None or option_probs is None:
             continue
 
-        positive_token = next(iter(option_probs))
+        # Positive token is the last key (e.g., "1"), matching risk_score = P(last token)
+        positive_token = list(option_probs.keys())[-1]
         y_true.append(1.0 if target == positive_token else 0.0)
         y_score.append(risk)
 

@@ -2,7 +2,7 @@
 Calibration and discrimination metrics for inspect-ai risk scoring.
 
 These are aggregate @metric functions that consume Score.metadata produced by
-risk_scorer: risk_score (P of first option token), option_probs (full
+risk_scorer: risk_score (P of positive/last option token), option_probs (full
 distribution), and target (ground truth label).
 
 Metrics:
@@ -93,7 +93,8 @@ def risk_calibration_error(n_bins: int = 10) -> Metric:
             option_probs = meta.get("option_probs")
             if risk is None or target is None or option_probs is None:
                 continue
-            positive_token = next(iter(option_probs))
+            # Positive token is the last key (e.g., "1"), matching risk_score = P(last token)
+            positive_token = list(option_probs.keys())[-1]
             risks.append(risk)
             actuals.append(1.0 if target == positive_token else 0.0)
 
@@ -107,8 +108,8 @@ def brier_score() -> Metric:
     """Brier Score for binary predictions.
 
     Computes mean squared error between risk_score (predicted probability of
-    first option token) and the binary indicator y_i = 1 if target matches
-    first option token, else 0.
+    positive/last option token) and the binary indicator y_i = 1 if target
+    matches positive token, else 0.
 
     Requires risk_score and target in Score.metadata (binary tasks only).
     Returns NaN for multiclass tasks where risk_score is not set.
@@ -122,15 +123,11 @@ def brier_score() -> Metric:
             target = meta.get("target")
             if risk is None or target is None:
                 continue
-            # risk_score = P(first option token), so y=1 when target IS the first option token
-            # We don't have option_tokens here, but risk_score is defined as P(token_0),
-            # so y=1 iff target == the token whose probability risk_score represents.
-            # The option_probs keys are ordered; first key = first option token.
             option_probs = meta.get("option_probs")
             if option_probs is None:
                 continue
-            # First key = first option token (dict order matches risk_scorer's option_tokens list)
-            positive_token = next(iter(option_probs))
+            # Positive token is the last key (e.g., "1"), matching risk_score = P(last token)
+            positive_token = list(option_probs.keys())[-1]
             y_true.append(1.0 if target == positive_token else 0.0)
             y_prob.append(risk)
 
@@ -147,7 +144,7 @@ def auc_score() -> Metric:
     """Area Under ROC Curve for binary predictions.
 
     Uses risk_score as the predicted probability and target to derive
-    binary labels (1 if target == first option token, else 0).
+    binary labels (1 if target == positive/last option token, else 0).
 
     Returns NaN if only one class is present, fewer than 2 samples, or
     for multiclass tasks where risk_score is not set.
@@ -164,8 +161,8 @@ def auc_score() -> Metric:
             option_probs = meta.get("option_probs")
             if option_probs is None:
                 continue
-            # First key = first option token (dict order matches risk_scorer's option_tokens list)
-            positive_token = next(iter(option_probs))
+            # Positive token is the last key (e.g., "1"), matching risk_score = P(last token)
+            positive_token = list(option_probs.keys())[-1]
             y_true.append(1.0 if target == positive_token else 0.0)
             y_score.append(risk)
 
