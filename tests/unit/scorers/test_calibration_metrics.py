@@ -135,12 +135,13 @@ class TestRiskCalibrationError:
 
     def test_perfect_risk_calibration(self):
         """When risk_score matches actual base rate in every bin, risk ECE = 0."""
-        # 10 samples with risk=0.8, 8 of which are truly positive -> perfectly calibrated
+        # 10 samples with risk=0.8, 8 of which are truly positive (target="1")
+        # positive_token = last key = "1", so y_true=1 when target=="1"
         scores = []
         for i in range(10):
-            target = "0" if i < 8 else "1"  # 80% positive
-            correct = CORRECT if target == "0" else INCORRECT
-            scores.append(_score(correct, 0.8, {"0": 0.8, "1": 0.2}, target))
+            target = "1" if i < 8 else "0"  # 80% positive
+            correct = CORRECT if target == "1" else INCORRECT
+            scores.append(_score(correct, 0.8, {"0": 0.2, "1": 0.8}, target))
 
         metric_fn = risk_calibration_error(n_bins=10)
         result = metric_fn(scores)
@@ -148,7 +149,9 @@ class TestRiskCalibrationError:
 
     def test_worst_case_risk_calibration(self):
         """risk=1.0 but all samples are actually negative -> risk ECE=1.0."""
-        scores = [_score(INCORRECT, 1.0, {"0": 1.0, "1": 0.0}, "1") for _ in range(10)]
+        # risk=1.0 means model predicts P(positive)=1.0, but all targets are "0" (negative)
+        # positive_token = "1", target="0" -> y_true=0.0 for all
+        scores = [_score(INCORRECT, 1.0, {"0": 0.0, "1": 1.0}, "0") for _ in range(10)]
 
         metric_fn = risk_calibration_error(n_bins=10)
         result = metric_fn(scores)
@@ -156,15 +159,16 @@ class TestRiskCalibrationError:
 
     def test_known_risk_ece_value(self):
         """Manually computed risk ECE with two distinct bins."""
-        # 5 samples: risk=0.7, all truly positive (target="0")
+        # positive_token = last key = "1"
+        # 5 samples: risk=0.7, all truly positive (target="1")
         #   -> bin (0.6, 0.7]: avg_risk=0.7, avg_actual=1.0
-        # 5 samples: risk=0.3, all truly negative (target="1")
+        # 5 samples: risk=0.3, all truly negative (target="0")
         #   -> bin (0.2, 0.3]: avg_risk=0.3, avg_actual=0.0
         scores = []
         for _ in range(5):
-            scores.append(_score(CORRECT, 0.7, {"0": 0.7, "1": 0.3}, "0"))
+            scores.append(_score(CORRECT, 0.7, {"0": 0.3, "1": 0.7}, "1"))
         for _ in range(5):
-            scores.append(_score(CORRECT, 0.3, {"0": 0.3, "1": 0.7}, "1"))
+            scores.append(_score(CORRECT, 0.3, {"0": 0.7, "1": 0.3}, "0"))
 
         metric_fn = risk_calibration_error(n_bins=10)
         result = metric_fn(scores)
@@ -205,8 +209,9 @@ class TestRiskCalibrationError:
 
     def test_skips_none_risk_score(self):
         """Samples with None risk_score are skipped."""
+        # positive_token = "1", target="1" -> y_true=1.0
         scores = [
-            _score(CORRECT, 0.8, {"0": 0.8, "1": 0.2}, "0"),
+            _score(CORRECT, 0.8, {"0": 0.2, "1": 0.8}, "1"),
             Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": "0"}),
         ]
         metric_fn = risk_calibration_error(n_bins=10)
@@ -223,9 +228,10 @@ class TestBrierScore:
 
     def test_perfect_predictions(self):
         """Risk score perfectly matches outcome -> Brier = 0."""
+        # positive_token = "1"; risk_score = P("1")
         scores = [
-            _score(CORRECT, 1.0, {"0": 1.0, "1": 0.0}, "0"),  # y=1, p=1.0
-            _score(CORRECT, 0.0, {"0": 0.0, "1": 1.0}, "1"),  # y=0, p=0.0
+            _score(CORRECT, 1.0, {"0": 0.0, "1": 1.0}, "1"),  # y=1, p=1.0
+            _score(CORRECT, 0.0, {"0": 1.0, "1": 0.0}, "0"),  # y=0, p=0.0
         ]
         metric_fn = brier_score()
         result = metric_fn(scores)
@@ -234,8 +240,8 @@ class TestBrierScore:
     def test_worst_predictions(self):
         """Risk score maximally wrong -> Brier = 1.0."""
         scores = [
-            _score(INCORRECT, 0.0, {"0": 0.0, "1": 1.0}, "0"),  # y=1, p=0.0
-            _score(INCORRECT, 1.0, {"0": 1.0, "1": 0.0}, "1"),  # y=0, p=1.0
+            _score(INCORRECT, 0.0, {"0": 1.0, "1": 0.0}, "1"),  # y=1, p=0.0
+            _score(INCORRECT, 1.0, {"0": 0.0, "1": 1.0}, "0"),  # y=0, p=1.0
         ]
         metric_fn = brier_score()
         result = metric_fn(scores)
@@ -243,12 +249,13 @@ class TestBrierScore:
 
     def test_known_intermediate_value(self):
         """Known Brier score computation."""
+        # positive_token = "1"; risk_score = P("1")
         # y=[1, 0, 1], p=[0.8, 0.3, 0.6]
         # Brier = mean((1-0.8)^2, (0-0.3)^2, (1-0.6)^2) = mean(0.04, 0.09, 0.16) = 0.29/3
         scores = [
-            _score(CORRECT, 0.8, {"0": 0.8, "1": 0.2}, "0"),   # y=1
-            _score(INCORRECT, 0.3, {"0": 0.3, "1": 0.7}, "1"),  # y=0
-            _score(CORRECT, 0.6, {"0": 0.6, "1": 0.4}, "0"),    # y=1
+            _score(CORRECT, 0.8, {"0": 0.2, "1": 0.8}, "1"),   # y=1
+            _score(INCORRECT, 0.3, {"0": 0.7, "1": 0.3}, "0"),  # y=0
+            _score(CORRECT, 0.6, {"0": 0.4, "1": 0.6}, "1"),    # y=1
         ]
         metric_fn = brier_score()
         result = metric_fn(scores)
@@ -258,9 +265,9 @@ class TestBrierScore:
     def test_skips_none_risk_score(self):
         """Samples with None risk_score are skipped."""
         scores = [
-            _score(CORRECT, 1.0, {"0": 1.0, "1": 0.0}, "0"),
+            _score(CORRECT, 1.0, {"0": 0.0, "1": 1.0}, "1"),
             Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": "0"}),
-            _score(CORRECT, 0.0, {"0": 0.0, "1": 1.0}, "1"),
+            _score(CORRECT, 0.0, {"0": 1.0, "1": 0.0}, "0"),
         ]
         metric_fn = brier_score()
         result = metric_fn(scores)
@@ -285,11 +292,13 @@ class TestAUCScore:
 
     def test_perfect_separation(self):
         """When risk_score perfectly separates classes -> AUC = 1.0."""
+        # positive_token = "1"; risk_score = P("1")
+        # High risk for positive class, low risk for negative class
         scores = [
-            _score(CORRECT, 0.9, {"0": 0.9, "1": 0.1}, "0"),   # y=1, high score
-            _score(CORRECT, 0.8, {"0": 0.8, "1": 0.2}, "0"),   # y=1, high score
-            _score(CORRECT, 0.1, {"0": 0.1, "1": 0.9}, "1"),   # y=0, low score
-            _score(CORRECT, 0.2, {"0": 0.2, "1": 0.8}, "1"),   # y=0, low score
+            _score(CORRECT, 0.9, {"0": 0.1, "1": 0.9}, "1"),   # y=1, high score
+            _score(CORRECT, 0.8, {"0": 0.2, "1": 0.8}, "1"),   # y=1, high score
+            _score(CORRECT, 0.1, {"0": 0.9, "1": 0.1}, "0"),   # y=0, low score
+            _score(CORRECT, 0.2, {"0": 0.8, "1": 0.2}, "0"),   # y=0, low score
         ]
         metric_fn = auc_score()
         result = metric_fn(scores)
@@ -306,12 +315,13 @@ class TestAUCScore:
 
     def test_random_discrimination(self):
         """Anti-correlated risk scores -> AUC = 0.0."""
+        # positive_token = "1"; risk_score = P("1")
         # y=1 gets low scores, y=0 gets high scores -> AUC near 0
         scores = [
-            _score(INCORRECT, 0.1, {"0": 0.1, "1": 0.9}, "0"),  # y=1, low score
-            _score(INCORRECT, 0.2, {"0": 0.2, "1": 0.8}, "0"),  # y=1, low score
-            _score(CORRECT, 0.9, {"0": 0.9, "1": 0.1}, "1"),    # y=0, high score
-            _score(CORRECT, 0.8, {"0": 0.8, "1": 0.2}, "1"),    # y=0, high score
+            _score(INCORRECT, 0.1, {"0": 0.9, "1": 0.1}, "1"),  # y=1, low score
+            _score(INCORRECT, 0.2, {"0": 0.8, "1": 0.2}, "1"),  # y=1, low score
+            _score(CORRECT, 0.9, {"0": 0.1, "1": 0.9}, "0"),    # y=0, high score
+            _score(CORRECT, 0.8, {"0": 0.2, "1": 0.8}, "0"),    # y=0, high score
         ]
         metric_fn = auc_score()
         result = metric_fn(scores)
@@ -319,10 +329,11 @@ class TestAUCScore:
 
     def test_skips_none_risk_score(self):
         """Samples with None risk_score are skipped."""
+        # positive_token = "1"; high risk for positive, low risk for negative -> AUC=1.0
         scores = [
-            _score(CORRECT, 0.9, {"0": 0.9, "1": 0.1}, "0"),
+            _score(CORRECT, 0.9, {"0": 0.1, "1": 0.9}, "1"),
             Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": "0"}),
-            _score(CORRECT, 0.1, {"0": 0.1, "1": 0.9}, "1"),
+            _score(CORRECT, 0.1, {"0": 0.9, "1": 0.1}, "0"),
         ]
         metric_fn = auc_score()
         result = metric_fn(scores)
