@@ -161,6 +161,11 @@ METRIC_DISPLAY_NAMES: dict[str, str] = {
     "risk_scorer_cruijff_kit/brier_score": "Brier Score",
     "risk_scorer_cruijff_kit/auc_score": "AUC",
     "risk_scorer_cruijff_kit/mean_risk_score": "Mean Risk Score",
+    "numeric_risk_scorer_cruijff_kit/expected_calibration_error": "C-ECE",
+    "numeric_risk_scorer_cruijff_kit/risk_calibration_error": "R-ECE",
+    "numeric_risk_scorer_cruijff_kit/brier_score": "Brier Score",
+    "numeric_risk_scorer_cruijff_kit/auc_score": "AUC",
+    "numeric_risk_scorer_cruijff_kit/mean_risk_score": "Mean Risk Score",
 }
 
 
@@ -340,7 +345,7 @@ def _extract_risk_from_log(log) -> PerSampleRiskData | None:
 
     for sample in (log.samples or []):
         scores = sample.scores or {}
-        risk_score_obj = scores.get('risk_scorer')
+        risk_score_obj = scores.get('risk_scorer') or scores.get('numeric_risk_scorer')
         if risk_score_obj is None:
             continue
         meta = risk_score_obj.metadata or {}
