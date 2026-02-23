@@ -136,12 +136,14 @@ inspect eval experiments/synthetic_twins/inspect_task_twins.py \
 **Or use the inspect setup script**:
 
 ```bash
-# Generate inspect config and SLURM script
+# Create eval_config.yaml in eval dir (see inspect_agent.md for schema), then:
+cd /path/to/experiment/run/eval
 python ../../tools/inspect/setup_inspect.py \
-  --finetune_epoch_dir /path/to/epoch_1
+  --config eval_config.yaml \
+  --model_name Llama-3.2-1B-Instruct
 
 # Submit evaluation job
-sbatch inspect.slurm
+sbatch synthetic_twins_epoch0.slurm
 ```
 
 ### Step 6: View Results

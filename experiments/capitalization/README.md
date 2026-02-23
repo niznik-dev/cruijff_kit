@@ -97,16 +97,19 @@ wandb sync /path/to/output/folder/logs/wandb/latest-run
 
 ### Part 4 - Test the model
 
-Generate inspect.slurm by running the following command:
+Create an `eval_config.yaml` in your eval directory with the experiment-specific config (see `inspect_agent.md` for the full schema), then render the SLURM script:
+
+```bash
+cd /path/to/experiment/run/eval
+python ../../tools/inspect/setup_inspect.py \
+  --config eval_config.yaml \
+  --model_name Llama-3.2-1B-Instruct
+```
+
+Then submit the job:
 
 ```
-python ../../tools/inspect/setup_inspect.py --finetune_epoch_dir /path/to/finetuned/model/epoch_0/
-```
-
-Then as the output says you can run:
-
-```
-sbatch inspect.slurm
+sbatch capitalization_epoch0.slurm
 ```
 
 and examine the slurm log file for the output; you can also run
@@ -123,13 +126,11 @@ Did your finetuning and/or choice of prompt help?
 
 ### Part 5 - Test the base model
 
-If you've already generated one finetuned version of the base model, you can evaluate on the base model by running [setup_inspect.py](../../tools/inspect/setup_inspect.py) in a slightly different way:
+To evaluate the base model, create an `eval_config.yaml` pointing to the base model path (with `finetuned: false` in metadata) and run [setup_inspect.py](../../tools/inspect/setup_inspect.py) the same way:
 
+```bash
+cd /path/to/experiment/base_run/eval
+python ../../tools/inspect/setup_inspect.py \
+  --config eval_config.yaml \
+  --model_name Llama-3.2-1B-Instruct
 ```
-Generate inspect.slurm by running the following command:
-
-```
-python ../../tools/inspect/setup_inspect.py --base_model_dir /path/to/base/model/ --finetune_epoch_dir /path/to/finetuned/model/epoch_0/
-```
-
-In this case, the base model will get used but `inspect.slurm` will reference the finetuned model's slurm scripts to get the proper parameters for GPUs, memory, etc.

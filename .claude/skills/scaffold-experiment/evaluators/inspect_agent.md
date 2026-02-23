@@ -30,9 +30,9 @@ Your tasks:
 2. Read claude.local.md for environment-specific settings
 3. Verify that inspect-ai task scripts exist at the specified paths
 4. For each run and evaluation combination:
-   - Create eval/ subdirectory in the run directory
-   - Generate inspect.slurm script with correct model paths and task parameters
-   - Configure output locations
+   a. Create eval/ subdirectory (with logs/ inside) in the run directory
+   b. Generate eval_config.yaml with experiment-specific values (see Step 4 below)
+   c. Call setup_inspect.py to render the SLURM script from the template (see Step 5 below)
 5. Create a detailed log at {experiment_dir}/scaffold-inspect.log
 
 Report back:
@@ -50,44 +50,20 @@ The subagent performs these operations autonomously:
 
 1. **Parses evaluation plan** from experiment_summary.yaml (which runs, which tasks, which epochs)
 2. **Verifies task scripts exist** at paths specified in experiment_summary.yaml
-3. **Creates `eval/` subdirectories** in each run directory
-4. **Generates inspect.slurm scripts** for each evaluation with:
-   - Correct model paths (base model or fine-tuned checkpoint)
-   - Task script references
-   - System prompt and evaluation parameters
-   - Output directory configuration
-   - **SLURM resources:**
-     - **GPU resources** from `tools/torchtune/model_configs.py`: `slurm.mem`, `slurm.partition`, `slurm.constraint` (these are hardware properties of the model)
-     - **Eval time limit**: Ask the user during scaffolding (see below)
-   - **GPU monitoring** — same `nvidia-smi` background logging pattern as fine-tuning:
-     ```bash
-     # SLURM cgroup isolation scopes nvidia-smi to the allocated GPU
-     nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu \
-         --format=csv -l 30 > {output_dir}/gpu_metrics.csv 2>/dev/null &
-     GPU_MONITOR_PID=$!
-     # ... run inspect eval ...
-     kill $GPU_MONITOR_PID 2>/dev/null
-     wait $GPU_MONITOR_PID 2>/dev/null
-     ```
-5. **Creates detailed log** at `scaffold-inspect.log` with complete process information
+3. **Creates `eval/` subdirectories** (with `logs/` inside) in each run directory
+4. **Generates `eval_config.yaml`** in each eval directory with all experiment-specific config
+5. **Calls `setup_inspect.py`** to render SLURM scripts from the template (see below)
+6. **Creates detailed log** at `scaffold-inspect.log` with complete process information
 
-### SLURM Resource Configuration
+### Step 4: Generate eval_config.yaml
 
-#### GPU resources (from model_configs.py)
+For each evaluation, create `eval_config.yaml` in the eval directory with all experiment-specific configuration. See `agents/scaffold-inspect.md` for the full schema (required keys, optional task args, metadata, scorer config).
 
-Read GPU-related resources from `tools/torchtune/model_configs.py` — these are properties of the model/hardware:
+### Step 5: Render SLURM scripts via setup_inspect.py
 
-```python
-from tools.torchtune.model_configs import MODEL_CONFIGS
+After writing `eval_config.yaml`, call `setup_inspect.py` to render the SLURM script from the template. See `agents/scaffold-inspect.md` for full CLI reference and details on what the renderer handles.
 
-model_config = MODEL_CONFIGS[model_name]
-slurm = model_config["slurm"]
-# slurm["mem"]        → e.g., "40G" (matches GPU tier)
-# slurm["partition"]   → e.g., "nomig" or None
-# slurm["constraint"]  → e.g., "gpu80" or None
-```
-
-#### Eval time limit (ask user)
+### Eval time limit (ask user)
 
 Eval time depends on multiple factors (model size, holdout set size, evaluation task complexity, hardware), so it is **not** a model property. Ask the user during scaffolding:
 
@@ -115,21 +91,24 @@ After scaffold-inspect completes, the experiment directory will contain:
 {experiment_dir}/
 ├── Llama-3.2-1B-Instruct_base/    # Control run
 │   └── eval/
-│       ├── capitalization_base.slurm
+│       ├── eval_config.yaml
+│       ├── {task_name}_base.slurm
 │       └── logs/
 ├── Llama-3.2-1B-Instruct_rank4/   # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   └── eval/
-│       ├── capitalization_epoch0.slurm
+│       ├── eval_config.yaml
+│       ├── {task_name}_epoch0.slurm
 │       └── logs/
 ├── Llama-3.2-1B-Instruct_rank8/   # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   └── eval/
-│       ├── capitalization_epoch0.slurm
+│       ├── eval_config.yaml
+│       ├── {task_name}_epoch0.slurm
 │       └── logs/
 ├── scaffold-torchtune.log
 └── scaffold-inspect.log
