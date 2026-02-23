@@ -197,6 +197,7 @@ If user says "no", add `gpu80: false` to the run parameters in experiment_summar
 - Batch sizes - estimate from GPU memory usage in prior runs
 - Dataset packing - enabled by default, affects batch size
 - For help estimating: check `{scratch_dir}/*/slurm-*.out` for similar runs
+- **Consult past compute utilization analyses** - If previous experiments have `analysis/compute_metrics.json` or a compute section in `report.md`, use that data to inform time limits, memory allocations, and GPU resource requests for new runs
 
 ### Generate Runs List
 

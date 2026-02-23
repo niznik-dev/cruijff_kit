@@ -112,7 +112,7 @@ report = generate_report(
 )
 ```
 
-### 6b. Compute Utilization Report (Optional) → `generation.md`
+### 6b. Compute Utilization Report → `generation.md`
 
 If run logs exist (`run-torchtune.log` and/or `run-inspect.log`), generate a compute utilization section:
 

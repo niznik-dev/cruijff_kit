@@ -346,7 +346,7 @@ Uses Wilson score intervals (preferred over normal approximation):
 - Report generation skipped with warning
 - Visualizations still generated
 
-## Compute Utilization Analysis (Optional)
+## Compute Utilization Analysis
 
 After generating visualizations and before the report, optionally add compute metrics. This requires run logs from `run-experiment`.
 
@@ -356,7 +356,7 @@ After generating visualizations and before the report, optionally add compute me
 2. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
 3. Read `gpu_metrics.csv` from each run's output dir with `summarize_gpu_metrics()`
 4. Format with `format_compute_table(jobs)` → markdown table
-5. Write narrative recommendations based on the data
+5. Write narrative recommendations for resource right-sizing (e.g., reduce time limits, adjust memory allocations)
 6. Save raw metrics to `{output_dir}/compute_metrics.json`
 7. Pass `compute_section=` to `generate_report()` (inserted after Analysis & Interpretation)
 
