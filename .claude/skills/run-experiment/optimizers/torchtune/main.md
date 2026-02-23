@@ -8,21 +8,15 @@ Executes torchtune fine-tuning jobs for all runs in an experiment.
 - Fine-tuning scaffolding complete (finetune.slurm files exist)
 - SLURM cluster access
 
-## Submodules
+## Workflow
 
-- **[parsing.md](parsing.md)** - Parse experiment_summary.yaml and scan for finetune.slurm files
-- **[run_selection.md](run_selection.md)** - Decide which runs to submit (skip completed/running)
-- **[job_submission.md](job_submission.md)** - Submit SLURM jobs, capture IDs, stagger submissions
-- **[monitoring.md](monitoring.md)** - Poll squeue, track status, wait for completion
-- **[validation.md](validation.md)** - Verify all jobs completed, model checkpoints exist
+1. **[parsing.md](parsing.md)** - Parse experiment to identify runs
+2. **[run_selection.md](run_selection.md)** - Select which runs need submission
+3. **[job_submission.md](job_submission.md)** - Submit jobs with 5-second stagger (prevents cache collision)
+4. **[monitoring.md](monitoring.md)** - Monitor with 60-second polling until all complete
+5. **[validation.md](validation.md)** - Validate checkpoints created successfully
 
-## Workflow Summary
-
-1. Parse experiment to identify runs
-2. Select which runs need submission
-3. Submit jobs with 5-second stagger (prevents cache collision)
-4. Monitor with 60-second polling until all complete
-5. Validate checkpoints created successfully
+Every step is required. Execute steps in order — each step depends on the output of the previous one.
 
 ## Output
 

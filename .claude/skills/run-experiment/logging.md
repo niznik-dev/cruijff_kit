@@ -39,8 +39,13 @@ Both created during job execution to record job submissions, status changes, and
 | `DISCOVER_EXPERIMENT` | Find and validate experiment directory |
 | `VERIFY_FINETUNING` | Check that fine-tuning completed |
 | `VERIFY_CHECKPOINTS` | Check that model checkpoints exist |
+| `CHECKPOINT_MISSING` | Model checkpoint not found for a run |
+| `CACHE_PREBUILD` | Start pre-building HF datasets cache |
+| `CACHE_BUILT` | Single dataset cache built successfully |
+| `CACHE_PREBUILD_COMPLETE` | All dataset caches ready |
 | `IDENTIFY_EVALS` | List evaluations to execute |
 | `SUBMIT_EVAL` | Submit individual evaluation job to SLURM |
+| `ALL_SUBMITTED` | All evaluation jobs submitted |
 | `STATUS_CHECK` | Poll SLURM for job statuses |
 | `STATE_CHANGE` | Record job state transition |
 | `COMPUTE_METRICS` | Record seff compute metrics when eval job reaches terminal state |
@@ -58,6 +63,11 @@ Both created during job execution to record job submissions, status changes, and
 ### During Selection
 - Which runs/evaluations will be submitted
 - Any runs/evaluations being skipped (and why)
+
+### During Cache Pre-building (inspect-ai only)
+- Which datasets need cache pre-building
+- Each dataset cache built
+- Any cache build failures
 
 ### During Job Submission
 - Each job submitted (with job ID and timestamp)
@@ -82,7 +92,7 @@ Both created during job execution to record job submissions, status changes, and
 
 **State changes:** Log all state transitions with timestamps to track execution time
 
-**Staggering:** Note 5-second delays between submissions to explain timeline
+**Staggering:** Torchtune uses 5-second stagger between submissions to prevent cache collision; inspect uses 1-second delay (cache is pre-built)
 
 **Errors:** Log SLURM error messages when jobs fail
 
