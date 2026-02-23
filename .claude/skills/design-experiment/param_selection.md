@@ -173,20 +173,21 @@ When designing experiments, you can vary any of these parameters. Add varied par
 
 **Note:** If user opted to use recipe defaults (see "Use Recipe Defaults?" above), unset parameters inherit from the recipe. Only specify parameters that vary across runs or differ from recipe defaults.
 
-**1B Model GPU Allocation (only for 1B models):**
-> "Allow use of MIG partitions? (uncommon, say 'no' if unsure)"
+**1B Model GPU Constraint (only for 1B models):**
+> "Use `--constraint=gpu80` for a full A100 with GPU utilization metrics? (Recommended for experiments, optional for sanity checks)"
 
-- **No (default):** Uses `partition: nomig` with 40G memory - gets a full 40GB+ A100. This is the typical choice.
-- **Yes:** Allows MIG partitions (9GB GPU slices) with 16G memory. Can reduce queue wait times but requires careful memory management.
+- **Yes (default for experiments):** Uses `constraint: gpu80` with 80G memory — guarantees a full 80GB A100 with complete nvidia-smi metrics (GPU utilization, memory, power). This is the standard choice for experiments where compute observability matters.
+- **No (acceptable for sanity checks):** Uses `partition: nomig` with 40G memory — faster queue times but may land on a 40GB MIG-partitioned A100 where GPU utilization reports as `[N/A]`. Memory and power metrics are still available.
 
-If user says "yes", add `mig: true` to the run parameters in experiment_summary.yaml. If "no" (default), don't add anything - setup_finetune.py already defaults to nomig.
+If user says "no", add `gpu80: false` to the run parameters in experiment_summary.yaml. If "yes" (default), don't add anything — model_configs.py defaults to gpu80 for all models.
 
-**Note:** Only ask this for 1B models. 3B+ models require gpu80 constraint and don't support MIG.
+**Note:** Only ask this for 1B models. 3B+ models always require gpu80 and this question doesn't apply.
 
 **Advanced settings (calculate from prior runs if available):**
 - Batch sizes - estimate from GPU memory usage in prior runs
 - Dataset packing - enabled by default, affects batch size
 - For help estimating: check `{scratch_dir}/*/slurm-*.out` for similar runs
+- **Consult past compute utilization analyses** - If previous experiments have `analysis/compute_metrics.json` or a compute section in `report.md`, use that data to inform time limits, memory allocations, and GPU resource requests for new runs
 
 ### Generate Runs List
 

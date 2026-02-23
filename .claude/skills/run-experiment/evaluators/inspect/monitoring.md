@@ -93,6 +93,12 @@ Action: Updated experiment_summary.yaml
 Result log: r8_lr1e-5/eval/logs/
 ```
 
+## Post-Completion Metrics & GPU Status
+
+See [../../shared/compute_monitoring.md](../../shared/compute_monitoring.md) for seff capture (with retry), real-time GPU status polling, and log format examples.
+
+**Identifier format for this module:** `{run_name}/{task_name}/{epoch}` (e.g., `r8_lr1e-5/capitalization/epoch0`)
+
 ## Completion Detection
 
 When all evaluation jobs reach terminal states:

@@ -873,11 +873,13 @@ inspect eval my_task.py \
   -T dataset_path=/path/to/dataset.json
 ```
 
-### Integration with setup_inspect.py (Future)
+### Integration with setup_inspect.py
 
-This task pattern enables integration with the `setup_inspect.py` tool (when implemented):
+This task pattern integrates with `setup_inspect.py`, which renders eval SLURM scripts from a template. The scaffold-inspect agent writes `eval_config.yaml` (referencing the task script created here) and calls:
 ```bash
-python tools/inspect/setup_inspect.py --finetune_epoch_dir /path/to/experiment/run/epoch_0
+python tools/inspect/setup_inspect.py \
+  --config eval_config.yaml \
+  --model_name Llama-3.2-1B-Instruct
 ```
 
 ## Validation Before Completion

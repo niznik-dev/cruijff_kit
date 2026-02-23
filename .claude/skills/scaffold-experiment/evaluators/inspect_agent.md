@@ -30,9 +30,9 @@ Your tasks:
 2. Read claude.local.md for environment-specific settings
 3. Verify that inspect-ai task scripts exist at the specified paths
 4. For each run and evaluation combination:
-   - Create eval/ subdirectory in the run directory
-   - Generate inspect.slurm script with correct model paths and task parameters
-   - Configure output locations
+   a. Create eval/ subdirectory (with logs/ inside) in the run directory
+   b. Generate eval_config.yaml with experiment-specific values (see Step 4 below)
+   c. Call setup_inspect.py to render the SLURM script from the template (see Step 5 below)
 5. Create a detailed log at {experiment_dir}/scaffold-inspect.log
 
 Report back:
@@ -50,13 +50,36 @@ The subagent performs these operations autonomously:
 
 1. **Parses evaluation plan** from experiment_summary.yaml (which runs, which tasks, which epochs)
 2. **Verifies task scripts exist** at paths specified in experiment_summary.yaml
-3. **Creates `eval/` subdirectories** in each run directory
-4. **Generates inspect.slurm scripts** for each evaluation with:
-   - Correct model paths (base model or fine-tuned checkpoint)
-   - Task script references
-   - System prompt and evaluation parameters
-   - Output directory configuration
-5. **Creates detailed log** at `scaffold-inspect.log` with complete process information
+3. **Creates `eval/` subdirectories** (with `logs/` inside) in each run directory
+4. **Generates `eval_config.yaml`** in each eval directory with all experiment-specific config
+5. **Calls `setup_inspect.py`** to render SLURM scripts from the template (see below)
+6. **Creates detailed log** at `scaffold-inspect.log` with complete process information
+
+### Step 4: Generate eval_config.yaml
+
+For each evaluation, create `eval_config.yaml` in the eval directory with all experiment-specific configuration. See `agents/scaffold-inspect.md` for the full schema (required keys, optional task args, metadata, scorer config).
+
+### Step 5: Render SLURM scripts via setup_inspect.py
+
+After writing `eval_config.yaml`, call `setup_inspect.py` to render the SLURM script from the template. See `agents/scaffold-inspect.md` for full CLI reference and details on what the renderer handles.
+
+### Eval time limit (ask user)
+
+Eval time depends on multiple factors (model size, holdout set size, evaluation task complexity, hardware), so it is **not** a model property. Ask the user during scaffolding:
+
+> What time limit should eval jobs use? (HH:MM:SS)
+>
+> This depends on model size, holdout set size, and task complexity.
+> For reference, training time for this experiment is set to {training_time}.
+> Eval jobs are typically much faster than training.
+>
+> 1. 0:10:00 (10 min — good for small models/datasets) (Recommended)
+> 2. 0:20:00 (20 min — good for larger models/datasets)
+> 3. 0:30:00 (30 min — conservative)
+
+Use the same time limit for all eval jobs in the experiment. If the user doesn't have a preference, default to `0:10:00`.
+
+**Why this matters:** Eval jobs often finish in seconds but hold a GPU for the full allocation. A 30-minute default for a 4-second job wastes 29+ minutes of GPU time per eval.
 
 ---
 
@@ -68,21 +91,24 @@ After scaffold-inspect completes, the experiment directory will contain:
 {experiment_dir}/
 ├── Llama-3.2-1B-Instruct_base/    # Control run
 │   └── eval/
-│       ├── capitalization_base.slurm
+│       ├── eval_config.yaml
+│       ├── {task_name}_base.slurm
 │       └── logs/
 ├── Llama-3.2-1B-Instruct_rank4/   # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   └── eval/
-│       ├── capitalization_epoch0.slurm
+│       ├── eval_config.yaml
+│       ├── {task_name}_epoch0.slurm
 │       └── logs/
 ├── Llama-3.2-1B-Instruct_rank8/   # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   └── eval/
-│       ├── capitalization_epoch0.slurm
+│       ├── eval_config.yaml
+│       ├── {task_name}_epoch0.slurm
 │       └── logs/
 ├── scaffold-torchtune.log
 └── scaffold-inspect.log

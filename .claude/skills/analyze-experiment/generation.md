@@ -346,6 +346,28 @@ Uses Wilson score intervals (preferred over normal approximation):
 - Report generation skipped with warning
 - Visualizations still generated
 
+## Compute Utilization Analysis
+
+After generating visualizations and before the report, optionally add compute metrics. This requires run logs from `run-experiment`.
+
+**Workflow:**
+
+1. Extract job IDs from `run-torchtune.log` and `run-inspect.log` (regex: `SUBMIT_JOB|SUBMIT_EVAL` → Job ID)
+2. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
+3. Read `gpu_metrics.csv` from each run's output dir with `summarize_gpu_metrics()`
+4. Format with `format_compute_table(jobs)` → markdown table
+5. Write narrative recommendations for resource right-sizing (e.g., reduce time limits, adjust memory allocations)
+6. Save raw metrics to `{output_dir}/compute_metrics.json`
+7. Pass `compute_section=` to `generate_report()` (inserted after Analysis & Interpretation)
+
+**Key functions** from `tools.slurm.compute_metrics`:
+- `parse_seff_output(stdout: str) -> dict` — wall time, time limit, memory, CPU efficiency
+- `parse_sacct_time_limit(stdout: str) -> str | None` — fallback for time limit when seff omits it
+- `summarize_gpu_metrics(csv_path: Path) -> dict` — mean GPU util, memory, power from nvidia-smi CSV
+- `format_compute_table(jobs: list[dict]) -> str` — markdown table
+
+**Error handling:** Missing seff → skip seff columns; missing gpu_metrics.csv → show `-` for GPU columns; missing run logs → skip compute analysis entirely; partial data → generate table with whatever is available.
+
 ## Logging
 
-Log generation actions using `GENERATE_PLOT` and `GENERATE_REPORT` action types. See `logging.md` for format specification.
+Log generation actions using `GENERATE_PLOT`, `GENERATE_REPORT`, and `COMPUTE_METRICS` action types. See `logging.md` for format specification.
