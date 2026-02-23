@@ -57,82 +57,11 @@ The subagent performs these operations autonomously:
 
 ### Step 4: Generate eval_config.yaml
 
-For each evaluation, create `eval_config.yaml` in the eval directory. This file contains all experiment-specific configuration — both what the SLURM renderer needs and what the inspect task reads at runtime.
+For each evaluation, create `eval_config.yaml` in the eval directory with all experiment-specific configuration. See `agents/scaffold-inspect.md` for the full schema (required keys, optional task args, metadata, scorer config).
 
-**Required keys** (used by `setup_inspect.py` for SLURM rendering):
+### Step 5: Render SLURM scripts via setup_inspect.py
 
-```yaml
-task_script: /path/to/experiments/task.py@task_name
-task_name: acs_income
-model_path: /outputs/run1/epoch_0
-model_hf_name: hf/1B_ft_epoch_0
-output_dir: /outputs/run1/
-```
-
-**Optional keys** (task args passed as `-T`, metadata passed as `--metadata`):
-
-```yaml
-# Task args (-T key=value)
-data_path: /data/acs_income.json
-vis_label: 1B_ft
-use_chat_template: "true"
-
-# Metadata (--metadata key=value)
-epoch: 0
-finetuned: true
-source_model: Llama-3.2-1B-Instruct
-```
-
-**Experiment-specific config** (not used by SLURM renderer, read by inspect task at runtime):
-
-```yaml
-scorer:
-  - name: match
-  - name: risk_scorer
-    params:
-      option_tokens: ["0", "1"]
-system_prompt: ""
-prompt: "{input}\n"
-```
-
-Note: `config_path` and `eval_dir` are **auto-derived** from the location of the YAML file — do not include them in eval_config.yaml.
-
-### Step 5: Call setup_inspect.py
-
-After writing `eval_config.yaml`, generate the SLURM script by running:
-
-```bash
-cd {run_dir}/eval
-python tools/inspect/setup_inspect.py \
-  --config eval_config.yaml \
-  --model_name "Llama-3.2-1B-Instruct" \
-  --time "0:10:00" \
-  --account "msalganik" \
-  --conda_env "cruijff"
-```
-
-This renders `tools/inspect/templates/eval_template.slurm` with the correct values. The template includes GPU monitoring, proper SLURM headers, and SLURM log management automatically.
-
-**What setup_inspect.py handles:**
-- GPU resources (`mem`, `cpus`, `partition`, `constraint`) from `model_configs.py`
-- GPU monitoring (nvidia-smi background logging)
-- `cd` to eval_dir before running inspect
-- SLURM log move on success
-- Output filename: `{task_name}_epoch{epoch}.slurm` (or `{task_name}.slurm` if no epoch)
-
-**CLI arguments** (infrastructure — shared across all evals in the experiment):
-
-| Arg | Required | Description |
-|-----|----------|-------------|
-| `--config` | Yes | Path to eval_config.yaml |
-| `--model_name` | Yes | Key in MODEL_CONFIGS for SLURM resource lookup |
-| `--time` | No | SLURM time limit (default: `0:10:00`) |
-| `--account` | No | SLURM account |
-| `--conda_env` | No | Conda environment (default: `cruijff`) |
-| `--mem` | No | Override model_configs memory |
-| `--partition` | No | Override model_configs partition |
-| `--constraint` | No | Override model_configs constraint |
-| `--output_slurm` | No | Override output filename |
+After writing `eval_config.yaml`, call `setup_inspect.py` to render the SLURM script from the template. See `agents/scaffold-inspect.md` for full CLI reference and details on what the renderer handles.
 
 ### Eval time limit (ask user)
 
