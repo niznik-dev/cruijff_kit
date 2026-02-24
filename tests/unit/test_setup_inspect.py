@@ -467,17 +467,17 @@ class TestModelConfigLookup:
         assert "#SBATCH --mem=32G" in script
 
     def test_1b_instruct_cpus(self):
-        """1B-Instruct gets 4 CPUs from model_configs."""
+        """1B-Instruct gets 1 CPU from model_configs."""
         cli = make_cli_args(model_name="Llama-3.2-1B-Instruct")
         script = render_template(cli, make_config())
-        assert "#SBATCH --cpus-per-task=4" in script
+        assert "#SBATCH --cpus-per-task=1" in script
 
     def test_70b_gets_high_resources(self):
-        """70B model gets 320G mem and 16 CPUs."""
+        """70B model gets 320G mem and 4 CPUs."""
         cli = make_cli_args(model_name="Llama-3.3-70B-Instruct")
         script = render_template(cli, make_config())
         assert "#SBATCH --mem=320G" in script
-        assert "#SBATCH --cpus-per-task=16" in script
+        assert "#SBATCH --cpus-per-task=4" in script
 
     def test_unknown_model_raises(self):
         """Unknown model name raises ValueError."""
