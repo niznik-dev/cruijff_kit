@@ -17,6 +17,7 @@ SUPPORTED_MODEL_FAMILIES = {"llama", "mistral", "qwen"}
 # Keys are model directory names (e.g., "Llama-3.2-3B-Instruct")
 # Base/foundation models use "text_completion"; instruct models use "chat_completion"
 # SLURM resources follow RAM=VRAM rule to ensure checkpoint saving doesn't OOM
+# CPUs: 1 per GPU (single-threaded PyTorch dataloading; more wastes cluster CPU allocation)
 MODEL_CONFIGS = {
     # -------------------------------------------------------------------------
     # Llama models - use SentencePiece tokenizer (original/tokenizer.model)
@@ -34,7 +35,7 @@ MODEL_CONFIGS = {
             "mem": "80G",
             "partition": None,
             "constraint": "gpu80",
-            "cpus": 4,
+            "cpus": 1,
             "gpus": 1,
         },
     },
@@ -52,7 +53,7 @@ MODEL_CONFIGS = {
             "mem": "80G",
             "partition": None,
             "constraint": "gpu80",
-            "cpus": 4,
+            "cpus": 1,
             "gpus": 1,
         },
     },
@@ -72,7 +73,7 @@ MODEL_CONFIGS = {
             "mem": "80G",
             "partition": None,
             "constraint": "gpu80",
-            "cpus": 4,
+            "cpus": 1,
             "gpus": 1,
         },
     },
@@ -92,7 +93,7 @@ MODEL_CONFIGS = {
             "mem": "80G",
             "partition": None,
             "constraint": "gpu80",
-            "cpus": 4,
+            "cpus": 1,
             "gpus": 1,
         },
     },
@@ -112,7 +113,7 @@ MODEL_CONFIGS = {
             "mem": "320G",
             "partition": None,
             "constraint": "gpu80",
-            "cpus": 16,
+            "cpus": 4,
             "gpus": 4,
         },
     },
@@ -135,7 +136,7 @@ MODEL_CONFIGS = {
             "mem": "80G",
             "partition": None,
             "constraint": "gpu80",
-            "cpus": 4,
+            "cpus": 1,
             "gpus": 1,
         },
     },
@@ -155,7 +156,7 @@ MODEL_CONFIGS = {
             "mem": "80G",
             "partition": None,
             "constraint": "gpu80",
-            "cpus": 4,
+            "cpus": 1,
             "gpus": 1,
         },
     },
@@ -178,7 +179,7 @@ MODEL_CONFIGS = {
             "mem": "80G",
             "partition": None,
             "constraint": "gpu80",
-            "cpus": 4,
+            "cpus": 1,
             "gpus": 1,
         },
     },
@@ -198,7 +199,7 @@ MODEL_CONFIGS = {
             "mem": "80G",
             "partition": None,
             "constraint": "gpu80",
-            "cpus": 4,
+            "cpus": 1,
             "gpus": 1,
         },
     },

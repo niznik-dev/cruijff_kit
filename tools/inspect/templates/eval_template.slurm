@@ -19,8 +19,10 @@ conda activate <CONDA_ENV>
 
 # Start GPU monitoring in background
 # With --gres=gpu:1, SLURM cgroup isolation scopes nvidia-smi to the allocated GPU
+GPU_METRICS_DIR="<GPU_METRICS_DIR>"
+mkdir -p "$GPU_METRICS_DIR"
 nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu \
-    --format=csv -l 30 > <OUTPUT_DIR>gpu_metrics.csv 2>/dev/null &
+    --format=csv -l 30 > "${GPU_METRICS_DIR}/gpu_metrics.csv" 2>/dev/null &
 GPU_MONITOR_PID=$!
 
 # Run inspect-ai evaluation

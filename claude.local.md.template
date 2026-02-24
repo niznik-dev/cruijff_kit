@@ -137,6 +137,10 @@ scancel <job_id>
 scancel -u <username>
 ```
 
+## Compute Observability
+
+- **jobstats**: Auto-detected at runtime via `check_jobstats_available()`. No configuration needed. When available, provides per-node CPU utilization, memory usage, and resource recommendations. Falls back to seff for CPU data when unavailable.
+
 ## Notes
 
 For a filled-in example, see `claude.local.md.della` (configured for the MSALGANIK group on Princeton's Della cluster).

@@ -181,6 +181,15 @@ def render_template(cli_args, config):
     script = script.replace("<NETID>", username)
     script = script.replace("<CONDA_ENV>", cli_args.conda_env)
     script = script.replace("<OUTPUT_DIR>", output_dir)
+
+    # GPU metrics go to epoch-specific subdir when epoch is set, so
+    # concurrent eval jobs don't overwrite each other (or the finetune CSV).
+    if epoch is not None:
+        gpu_metrics_dir = f"{output_dir}epoch_{epoch}"
+    else:
+        gpu_metrics_dir = output_dir.rstrip("/")
+    script = script.replace("<GPU_METRICS_DIR>", gpu_metrics_dir)
+
     script = script.replace("<EVAL_DIR>", config["eval_dir"])
     script = script.replace("<TASK_SCRIPT>", config["task_script"])
     script = script.replace("<MODEL_HF_NAME>", config["model_hf_name"])

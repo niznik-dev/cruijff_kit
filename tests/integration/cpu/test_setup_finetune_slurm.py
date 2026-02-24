@@ -209,21 +209,21 @@ class TestCpuAllocation:
     """Test CPU allocation based on model and GPU count."""
 
     def test_1b_default_cpus(self, temp_run_dir):
-        """1B model defaults to 4 CPUs."""
+        """1B model defaults to 1 CPU."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-1B-Instruct")
-        assert "#SBATCH --cpus-per-task=4" in slurm
+        assert "#SBATCH --cpus-per-task=1" in slurm
 
     def test_3b_default_cpus(self, temp_run_dir):
-        """3B model defaults to 4 CPUs."""
+        """3B model defaults to 1 CPU."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-3B-Instruct")
-        assert "#SBATCH --cpus-per-task=4" in slurm
+        assert "#SBATCH --cpus-per-task=1" in slurm
 
     def test_8b_default_cpus(self, temp_run_dir):
-        """8B model defaults to 4 CPUs."""
+        """8B model defaults to 1 CPU."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.1-8B-Instruct")
-        assert "#SBATCH --cpus-per-task=4" in slurm
+        assert "#SBATCH --cpus-per-task=1" in slurm
 
     def test_70b_default_cpus(self, temp_run_dir):
-        """70B model defaults to 16 CPUs (4 per GPU × 4 GPUs)."""
+        """70B model defaults to 4 CPUs (1 per GPU × 4 GPUs)."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
-        assert "#SBATCH --cpus-per-task=16" in slurm
+        assert "#SBATCH --cpus-per-task=4" in slurm

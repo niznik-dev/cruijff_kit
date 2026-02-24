@@ -353,20 +353,35 @@ After generating visualizations and before the report, optionally add compute me
 **Workflow:**
 
 1. Extract job IDs from `run-torchtune.log` and `run-inspect.log` (regex: `SUBMIT_JOB|SUBMIT_EVAL` → Job ID)
-2. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
-3. Read `gpu_metrics.csv` from each run's output dir with `summarize_gpu_metrics()`
-4. Format with `format_compute_table(jobs)` → markdown table
-5. Write narrative recommendations for resource right-sizing (e.g., reduce time limits, adjust memory allocations)
+2. Check if jobstats is available with `check_jobstats_available()`
+3. For each job:
+   a. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
+   b. Read `gpu_metrics.csv` with `summarize_gpu_metrics()`. **Paths differ by job type:**
+      - Fine-tuning: `{output_dir}/ck-out-{run}/gpu_metrics.csv`
+      - Evaluation: `{output_dir}/ck-out-{run}/epoch_{N}/gpu_metrics.csv`
+   c. If jobstats available: run `run_jobstats(job_id)` for CPU metrics (JSON) and `run_jobstats(job_id, json_mode=False)` for notes. Parse with `parse_jobstats_json()` and `extract_jobstats_notes()`.
+4. Build job dicts combining all sources:
+   - **CPU**: from jobstats (`cpu_efficiency_pct`, `cpu_mem_used_gb`, `cpu_mem_allocated_gb`), or seff `cpu_efficiency` as fallback
+   - **GPU utilization**: dual-source — set `gpu_util_jobstats_pct` from `parse_jobstats_json()["gpu_util_pct"]` (Prometheus average), and `gpu_util_min`/`gpu_util_max` from `summarize_gpu_metrics()` (nvidia-smi range). `format_compute_table` renders this as `avg% (min–max%)` when both are present.
+   - **GPU memory / power**: from nvidia-smi CSV (`gpu_mem_used_mean_gb`, `gpu_mem_total_gb`, `power_mean_w`)
+5. Format with `format_compute_table(jobs, recommendations=recs)` → markdown table with optional recommendations
 6. Save raw metrics to `{output_dir}/compute_metrics.json`
 7. Pass `compute_section=` to `generate_report()` (inserted after Analysis & Interpretation)
 
 **Key functions** from `tools.slurm.compute_metrics`:
-- `parse_seff_output(stdout: str) -> dict` — wall time, time limit, memory, CPU efficiency
+- `check_jobstats_available() -> bool` — auto-detect jobstats on PATH
+- `run_jobstats(job_id, json_mode=True) -> dict | str | None` — run jobstats (JSON or text mode), 30s timeout
+- `parse_jobstats_json(js_data: dict) -> dict` — CPU metrics (cores, efficiency, memory) and GPU metrics (`gpu_util_pct`, `gpu_mem_used_gb`, `gpu_mem_total_gb`) from jobstats JSON
+- `extract_jobstats_notes(text: str) -> list[str]` — actionable recommendations from jobstats text output
+- `parse_seff_output(stdout: str) -> dict` — wall time, time limit, memory, CPU efficiency (fallback)
 - `parse_sacct_time_limit(stdout: str) -> str | None` — fallback for time limit when seff omits it
-- `summarize_gpu_metrics(csv_path: Path) -> dict` — mean GPU util, memory, power from nvidia-smi CSV
-- `format_compute_table(jobs: list[dict]) -> str` — markdown table
+- `summarize_gpu_metrics(csv_path: Path) -> dict` — GPU util (mean, min, max), memory, power from nvidia-smi CSV
+- `generate_gpu_recommendations(jobs) -> dict[str, list[str]]` — GPU memory optimization suggestions for finetune jobs
+- `format_compute_table(jobs, recommendations=None) -> str` — markdown table with CPU + GPU columns. GPU Util shows `avg% (min–max%)` when `gpu_util_jobstats_pct` and `gpu_util_min`/`gpu_util_max` are both present in the job dict.
 
-**Error handling:** Missing seff → skip seff columns; missing gpu_metrics.csv → show `-` for GPU columns; missing run logs → skip compute analysis entirely; partial data → generate table with whatever is available.
+**Data sources:** nvidia-smi CSV for GPU memory/power and utilization range (min/max), jobstats for CPU metrics and GPU utilization average (Prometheus-sampled, more reliable than nvidia-smi's 30s polling), seff for job metadata + CPU fallback.
+
+**Error handling:** Missing seff → skip seff columns; missing gpu_metrics.csv → show `-` for GPU columns; jobstats unavailable or fails → fall back to seff for CPU data; missing run logs → skip compute analysis entirely; partial data → generate table with whatever is available.
 
 ## Logging
 
