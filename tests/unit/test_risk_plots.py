@@ -133,14 +133,14 @@ class TestExtractRiskFromLog:
         assert _extract_risk_from_log(log) is None
 
     def test_y_true_encoding(self):
-        """Verify y_true = 1.0 when target matches first option_probs key."""
+        """Verify y_true = 1.0 when target matches last option_probs key."""
         samples = [
-            _make_sample(0.9, "A", {"A": 0.9, "B": 0.1}),  # positive
-            _make_sample(0.3, "B", {"A": 0.3, "B": 0.7}),  # negative
+            _make_sample(0.9, "A", {"A": 0.9, "B": 0.1}),  # negative (target≠B)
+            _make_sample(0.3, "B", {"A": 0.3, "B": 0.7}),  # positive (target=B)
         ]
         log = _make_log(samples)
         result = _extract_risk_from_log(log)
-        assert result.y_true == [1.0, 0.0]
+        assert result.y_true == [0.0, 1.0]
 
 
 # =============================================================================

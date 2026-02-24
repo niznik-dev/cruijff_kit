@@ -87,7 +87,8 @@ class TestBinaryRiskScore:
         result: Score = _run(score_fn(state, target))
 
         assert result.value == CORRECT
-        assert result.metadata["risk_score"] == pytest.approx(0.9, abs=1e-4)
+        # risk_score = P(last/positive option token) = P("1") ≈ 0.1
+        assert result.metadata["risk_score"] == pytest.approx(0.1, abs=1e-4)
         assert result.metadata["option_probs"]["0"] == pytest.approx(0.9, abs=1e-4)
         assert result.metadata["option_probs"]["1"] == pytest.approx(0.1, abs=1e-4)
         assert result.metadata["target"] == "0"
@@ -103,8 +104,8 @@ class TestBinaryRiskScore:
         result: Score = _run(score_fn(state, target))
 
         assert result.value == INCORRECT
-        # risk_score = P(first option token) = P("0") ≈ 0.1
-        assert result.metadata["risk_score"] == pytest.approx(0.1, abs=1e-4)
+        # risk_score = P(last/positive option token) = P("1") ≈ 0.9
+        assert result.metadata["risk_score"] == pytest.approx(0.9, abs=1e-4)
 
     def test_equal_logprobs_gives_50_50(self):
         """Equal logprobs for both classes -> risk_score = 0.5."""
@@ -135,12 +136,13 @@ class TestBinaryRiskScore:
         score_fn = risk_scorer(option_tokens=["0", "1"])
         result: Score = _run(score_fn(state, target))
 
-        assert result.metadata["risk_score"] == pytest.approx(0.75, abs=1e-4)
+        # risk_score = P(last/positive token) = P("1") = 0.25
+        assert result.metadata["risk_score"] == pytest.approx(0.25, abs=1e-4)
         assert result.metadata["option_probs"]["0"] == pytest.approx(0.75, abs=1e-4)
         assert result.metadata["option_probs"]["1"] == pytest.approx(0.25, abs=1e-4)
 
     def test_extreme_confidence(self):
-        """Near-certain prediction: P(0) ≈ 0.9999."""
+        """Near-certain prediction: P(0) ≈ 0.9999, P(1) ≈ 0.0001."""
         lp_0 = math.log(0.9999)
         lp_1 = math.log(0.0001)
         state = _make_state("0", {"0": lp_0, "1": lp_1})
@@ -149,10 +151,11 @@ class TestBinaryRiskScore:
         score_fn = risk_scorer(option_tokens=["0", "1"])
         result: Score = _run(score_fn(state, target))
 
-        assert result.metadata["risk_score"] == pytest.approx(0.9999, abs=1e-4)
+        # risk_score = P(last/positive token) = P("1") ≈ 0.0001
+        assert result.metadata["risk_score"] == pytest.approx(0.0001, abs=1e-4)
 
-    def test_risk_score_is_always_first_option_token(self):
-        """risk_score = P(first option token), regardless of which is 'correct'."""
+    def test_risk_score_is_always_last_option_token(self):
+        """risk_score = P(last/positive option token), regardless of which is 'correct'."""
         lp_0 = math.log(0.3)
         lp_1 = math.log(0.7)
         state = _make_state("1", {"0": lp_0, "1": lp_1})
@@ -162,8 +165,8 @@ class TestBinaryRiskScore:
         result: Score = _run(score_fn(state, target))
 
         assert result.value == CORRECT
-        # risk_score = P("0") = 0.3, not P(correct class)
-        assert result.metadata["risk_score"] == pytest.approx(0.3, abs=1e-4)
+        # risk_score = P("1") = 0.7
+        assert result.metadata["risk_score"] == pytest.approx(0.7, abs=1e-4)
 
     def test_probs_sum_to_one(self):
         """Normalized option_probs should always sum to 1."""
@@ -342,7 +345,8 @@ class TestEdgeCases:
         score_fn = risk_scorer(option_tokens=["0", "1"])
         result: Score = _run(score_fn(state, target))
 
-        assert result.metadata["risk_score"] == pytest.approx(0.7, abs=1e-4)
+        # risk_score = P(last/positive token) = P("1") = 0.3
+        assert result.metadata["risk_score"] == pytest.approx(0.3, abs=1e-4)
 
     def test_all_option_tokens_missing(self):
         """When no option tokens appear in top logprobs."""
@@ -386,7 +390,7 @@ class TestCorrectnessScoring:
 
     def test_correctness_independent_of_risk_score(self):
         """Correctness is about the completion, not the probability."""
-        # Model generates "0" (correct) but P("0") is only 0.3
+        # Model generates "0" (correct) but P("1") is 0.7 (high risk)
         # (it generated the less-likely token)
         state = _make_state("0", {"0": math.log(0.3), "1": math.log(0.7)})
         target = _make_target("0")
@@ -395,7 +399,8 @@ class TestCorrectnessScoring:
         result: Score = _run(score_fn(state, target))
 
         assert result.value == CORRECT
-        assert result.metadata["risk_score"] == pytest.approx(0.3, abs=1e-4)
+        # risk_score = P(last/positive token) = P("1") = 0.7
+        assert result.metadata["risk_score"] == pytest.approx(0.7, abs=1e-4)
 
 
 # =============================================================================

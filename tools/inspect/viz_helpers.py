@@ -161,6 +161,11 @@ METRIC_DISPLAY_NAMES: dict[str, str] = {
     "risk_scorer_cruijff_kit/brier_score": "Brier Score",
     "risk_scorer_cruijff_kit/auc_score": "AUC",
     "risk_scorer_cruijff_kit/mean_risk_score": "Mean Risk Score",
+    "numeric_risk_scorer_cruijff_kit/expected_calibration_error": "C-ECE",
+    "numeric_risk_scorer_cruijff_kit/risk_calibration_error": "R-ECE",
+    "numeric_risk_scorer_cruijff_kit/brier_score": "Brier Score",
+    "numeric_risk_scorer_cruijff_kit/auc_score": "AUC",
+    "numeric_risk_scorer_cruijff_kit/mean_risk_score": "Mean Risk Score",
 }
 
 
@@ -340,7 +345,7 @@ def _extract_risk_from_log(log) -> PerSampleRiskData | None:
 
     for sample in (log.samples or []):
         scores = sample.scores or {}
-        risk_score_obj = scores.get('risk_scorer')
+        risk_score_obj = scores.get('risk_scorer') or scores.get('numeric_risk_scorer')
         if risk_score_obj is None:
             continue
         meta = risk_score_obj.metadata or {}
@@ -350,7 +355,8 @@ def _extract_risk_from_log(log) -> PerSampleRiskData | None:
         if risk is None or target is None or option_probs is None:
             continue
 
-        positive_token = next(iter(option_probs))
+        # Positive token is the last key (e.g., "1"), matching risk_score = P(last token)
+        positive_token = list(option_probs.keys())[-1]
         y_true.append(1.0 if target == positive_token else 0.0)
         y_score.append(risk)
 

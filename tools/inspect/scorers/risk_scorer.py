@@ -3,7 +3,8 @@ inspect-ai scorer that computes risk scores from logprobs.
 
 Computes normalized probabilities over option tokens from the first generated
 token's top_logprobs. For binary classification, also computes a risk score
-= P(token_0) / (P(token_0) + P(token_1)).
+= P(positive token) where the positive class is the last in option_tokens
+(e.g., "1" in ["0", "1"]).
 """
 import math
 from inspect_ai.scorer import scorer, Score, metric, Metric, CORRECT, INCORRECT
@@ -25,7 +26,7 @@ def risk_scorer(option_tokens: list[str] = ("0", "1")):
     Scorer that extracts risk scores from logprobs of the first generated token.
     - Requires GenerateConfig(logprobs=True, top_logprobs=20) on the Task.
     - Supports any number of option tokens (binary or multiclass).
-    - For binary tasks, returns a risk_score = P(first option token).
+    - For binary tasks, returns a risk_score = P(last/positive option token).
     - For all tasks, returns normalized probabilities over all option tokens.
 
     Args:
@@ -84,8 +85,9 @@ def risk_scorer(option_tokens: list[str] = ("0", "1")):
         total = sum(exp_values.values())
         probs = {t: v / total for t, v in exp_values.items()}
 
-        # Risk score: P(first option token) — only meaningful for binary
-        risk_score = probs[option_tokens[0]] if len(option_tokens) == 2 else None
+        # Risk score: P(last option token) — the positive class probability
+        # option_tokens=("0","1"), risk = P("1")
+        risk_score = probs[option_tokens[-1]] if len(option_tokens) == 2 else None
 
         # Check correctness (match target)
         answer = state.output.completion.strip()

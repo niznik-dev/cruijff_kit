@@ -7,6 +7,7 @@
 
 from inspect_ai.scorer import match, includes
 from .risk_scorer import risk_scorer
+from .numeric_risk_scorer import numeric_risk_scorer
 from .calibration_metrics import expected_calibration_error, brier_score, auc_score
 
 # Registry of available scorers and their constructors.
@@ -15,6 +16,7 @@ SCORER_REGISTRY = {
     "match": lambda params: match(**params) if params else match(location="exact", ignore_case=False),
     "includes": lambda params: includes(**params) if params else includes(ignore_case=False),
     "risk_scorer": lambda params: risk_scorer(**params) if params else risk_scorer(),
+    "numeric_risk_scorer": lambda params: numeric_risk_scorer(**params) if params else numeric_risk_scorer(),
 }
 
 # Default scorers when no config is provided
