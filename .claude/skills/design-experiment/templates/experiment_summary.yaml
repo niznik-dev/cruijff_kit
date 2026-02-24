@@ -54,10 +54,6 @@ models:
     - name: string                 # REQUIRED: Model identifier (e.g., "Llama-3.2-1B-Instruct")
       path: string                 # REQUIRED: Full path to model directory
       size_gb: float               # REQUIRED: Model size for disk estimates
-      base_recipe: string          # OPTIONAL: Torchtune recipe for default hyperparameters
-                                   # e.g., "llama3_2/1B_lora_single_device"
-                                   # When specified, recipe defaults are used for hyperparameters not set
-                                   # Use `tune ls` to see available recipes
 
 
 data:

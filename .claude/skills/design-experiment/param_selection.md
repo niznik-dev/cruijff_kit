@@ -121,23 +121,6 @@ The experiment workflow uses an **orchestrator → worker** pattern:
 ### Should We Include Base Model Controls?
 - Controls evaluate base models without fine-tuning to measure the effect of fine-tuning
 
-### Use Model Torchtune Recipe Defaults?
-
-**Ask the user:** "Would you like to use torchtune recipe defaults for this model to control unspecified hyperparameters?"
-
-Torchtune recipes include sensible defaults for most training parameters (learning rate, gradient accumulation, warmup steps, etc.). When `base_recipe` is specified in experiment_summary.yaml, any hyperparameters not explicitly set will inherit from the recipe.
-
-**Options:**
-- **Yes (recommended):** Specify `base_recipe` (e.g., `"llama3_2/1B_lora_single_device"`) and only set parameters you're actively varying. Reduces configuration complexity.
-- **No:** Explicitly set all training parameters. Useful if you need full control or reproducibility without recipe dependencies.
-
-**If yes:** Note example appropriate recipe names based on model selection:
-- 1B models: `llama3_2/1B_lora_single_device`
-- 3B models: `llama3_2/3B_lora_single_device`
-- 8B models: `llama3_1/8B_lora_single_device`
-
-Use `tune ls` to see all available recipes if needed.
-
 ### Training Configuration
 
 **Basic settings:**
@@ -151,9 +134,6 @@ Use `tune ls` to see all available recipes if needed.
 
 When designing experiments, you can vary any of these parameters. Add varied parameters to `variables` and constant parameters to `controls` in experiment_summary.yaml.
 
-**Recipe Configuration (if user opted to use recipe defaults):**
-- `base_recipe` - Torchtune recipe name for default values (e.g., "llama3_2/1B_lora_single_device"). When specified, model recipe defaults are used for parameters not explicitly set. See "Use Recipe Defaults?" section above.
-
 **Core Training Parameters:**
 | Parameter | Description | Typical Values |
 |-----------|-------------|----------------|
@@ -165,13 +145,11 @@ When designing experiments, you can vary any of these parameters. Add varied par
 **Additional Training Parameters:**
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `gradient_accumulation_steps` | Effective batch = batch_size × this | 1 (or 8 from recipes) |
+| `gradient_accumulation_steps` | Effective batch = batch_size × this | 1 |
 | `weight_decay` | Optimizer regularization | 0.01 |
 | `lora_dropout` | Dropout for LoRA layers | 0.0 |
 | `num_warmup_steps` | LR scheduler warmup steps | 100 |
 | `max_seq_len` | Maximum sequence length | 2048 |
-
-**Note:** If user opted to use recipe defaults (see "Use Recipe Defaults?" above), unset parameters inherit from the recipe. Only specify parameters that vary across runs or differ from recipe defaults.
 
 **1B Model GPU Constraint (only for 1B models):**
 > "Use `--constraint=gpu80` for a full A100 with GPU utilization metrics? (Recommended for experiments, optional for sanity checks)"
