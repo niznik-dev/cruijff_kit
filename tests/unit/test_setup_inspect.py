@@ -337,6 +337,19 @@ class TestRenderTemplate:
         assert "INSPECT_EXIT_CODE=$?" in script
         assert "INSPECT_EXIT_CODE == 0" in script
 
+    def test_gpu_metrics_epoch_specific_dir(self):
+        """GPU metrics write to epoch-specific subdir when epoch is set."""
+        config = make_config(output_dir="/outputs/run1/", epoch=2)
+        script = render_template(make_cli_args(), config)
+        assert 'GPU_METRICS_DIR="/outputs/run1/epoch_2"' in script
+        assert "mkdir -p" in script
+
+    def test_gpu_metrics_no_epoch_uses_output_dir(self):
+        """GPU metrics write to output_dir when no epoch is set."""
+        config = make_config(output_dir="/outputs/run1/")
+        script = render_template(make_cli_args(), config)
+        assert 'GPU_METRICS_DIR="/outputs/run1"' in script
+
     def test_slurm_log_move(self):
         """SLURM log is moved on success."""
         config = make_config(output_dir="/outputs/run1/")

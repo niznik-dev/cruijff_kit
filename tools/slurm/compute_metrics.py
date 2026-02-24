@@ -161,6 +161,7 @@ def summarize_gpu_metrics(csv_path: Path) -> dict:
         return {
             "gpu_util_mean": None,
             "gpu_util_max": None,
+            "gpu_util_min": None,
             "gpu_mem_used_mean_gb": None,
             "gpu_mem_total_gb": None,
             "power_mean_w": None,
@@ -171,6 +172,7 @@ def summarize_gpu_metrics(csv_path: Path) -> dict:
     return {
         "gpu_util_mean": round(sum(gpu_utils) / len(gpu_utils), 1) if gpu_utils else None,
         "gpu_util_max": round(max(gpu_utils), 1) if gpu_utils else None,
+        "gpu_util_min": round(min(gpu_utils), 1) if gpu_utils else None,
         "gpu_mem_used_mean_gb": round(sum(mem_useds) / len(mem_useds), 1) if mem_useds else None,
         "gpu_mem_total_gb": round(mem_totals[0], 1) if mem_totals else None,
         "power_mean_w": round(sum(powers) / len(powers), 0) if powers else None,
@@ -221,15 +223,16 @@ def run_jobstats(job_id: str, json_mode: bool = True) -> dict | str | None:
 
 
 def parse_jobstats_json(js_data: dict) -> dict:
-    """Extract CPU metrics from jobstats JSON output.
+    """Extract CPU and GPU metrics from jobstats JSON output.
 
     Args:
         js_data: Parsed JSON dict from ``jobstats -j``.
 
     Returns:
-        Dict with cpu_cores, cpu_efficiency_pct, cpu_mem_used_gb,
-        cpu_mem_allocated_gb, cpu_mem_efficiency_pct, wall_time_seconds,
-        and nodes. Missing fields are None.
+        Dict with CPU fields (cpu_cores, cpu_efficiency_pct, cpu_mem_used_gb,
+        cpu_mem_allocated_gb, cpu_mem_efficiency_pct), GPU fields
+        (gpu_util_pct, gpu_mem_used_gb, gpu_mem_total_gb), plus
+        wall_time_seconds and nodes. Missing fields are None.
     """
     result: dict = {
         "cpu_cores": None,
@@ -237,6 +240,9 @@ def parse_jobstats_json(js_data: dict) -> dict:
         "cpu_mem_used_gb": None,
         "cpu_mem_allocated_gb": None,
         "cpu_mem_efficiency_pct": None,
+        "gpu_util_pct": None,
+        "gpu_mem_used_gb": None,
+        "gpu_mem_total_gb": None,
         "wall_time_seconds": None,
         "nodes": [],
     }
@@ -250,6 +256,11 @@ def parse_jobstats_json(js_data: dict) -> dict:
     total_mem_used_bytes = 0
     total_mem_allocated_bytes = 0
     node_names = []
+    gpu_utils: list[float] = []
+    gpu_mem_used_bytes = 0
+    gpu_mem_total_bytes = 0
+
+    bytes_per_gb = 1024**3
 
     for name, info in nodes.items():
         if not isinstance(info, dict):
@@ -260,6 +271,17 @@ def parse_jobstats_json(js_data: dict) -> dict:
         total_cpu_seconds += info.get("total_time", 0.0)
         total_mem_used_bytes += info.get("used_memory", 0)
         total_mem_allocated_bytes += info.get("total_memory", 0)
+
+        # GPU metrics: keyed by GPU index within the node
+        for gpu_val in (info.get("gpu_utilization") or {}).values():
+            if isinstance(gpu_val, (int, float)):
+                gpu_utils.append(float(gpu_val))
+        for gpu_val in (info.get("gpu_used_memory") or {}).values():
+            if isinstance(gpu_val, (int, float)):
+                gpu_mem_used_bytes += gpu_val
+        for gpu_val in (info.get("gpu_total_memory") or {}).values():
+            if isinstance(gpu_val, (int, float)):
+                gpu_mem_total_bytes += gpu_val
 
     wall_time = js_data.get("total_time")
     result["nodes"] = node_names
@@ -274,7 +296,6 @@ def parse_jobstats_json(js_data: dict) -> dict:
                 total_cpu_seconds / (wall_time * total_cores) * 100, 1
             )
 
-    bytes_per_gb = 1024**3
     if total_mem_used_bytes > 0:
         result["cpu_mem_used_gb"] = round(total_mem_used_bytes / bytes_per_gb, 2)
     if total_mem_allocated_bytes > 0:
@@ -285,6 +306,14 @@ def parse_jobstats_json(js_data: dict) -> dict:
         result["cpu_mem_efficiency_pct"] = round(
             total_mem_used_bytes / total_mem_allocated_bytes * 100, 1
         )
+
+    # GPU averages across all GPUs on all nodes
+    if gpu_utils:
+        result["gpu_util_pct"] = round(sum(gpu_utils) / len(gpu_utils), 1)
+    if gpu_mem_used_bytes > 0:
+        result["gpu_mem_used_gb"] = round(gpu_mem_used_bytes / bytes_per_gb, 1)
+    if gpu_mem_total_bytes > 0:
+        result["gpu_mem_total_gb"] = round(gpu_mem_total_bytes / bytes_per_gb, 1)
 
     return result
 
@@ -320,23 +349,95 @@ def extract_jobstats_notes(formatted_output: str) -> list[str]:
 
     lines = clean.splitlines()[notes_start:]
 
-    # Skip patterns: Grafana URLs, blank lines, purely informational
-    skip_patterns = [
-        re.compile(r"https?://", re.IGNORECASE),
-        re.compile(r"^\s*$"),
-        re.compile(r"^-+$"),  # horizontal rules
-    ]
+    # Discard line patterns (separators, URLs, boilerplate closers)
+    _discard = re.compile(
+        r"^[-=]+$"            # separator lines
+        r"|https?://"         # URLs
+        r"|^See the .* below" # Grafana link preamble
+        r"|^Have a nice day",
+        re.IGNORECASE,
+    )
 
-    notes = []
+    # "For more info:" terminates each recommendation block in jobstats
+    _boundary = re.compile(r"For more info\s*:?\s*$", re.IGNORECASE)
+
+    # Bullet marker at start of line signals a new message
+    _bullet = re.compile(r"^\s*[*•]\s+")
+
+    # Join continuation lines into complete messages
+    messages: list[str] = []
+    current: list[str] = []
     for line in lines:
-        stripped = line.strip().lstrip("*•- ")
-        if not stripped:
+        trimmed = line.strip()
+        stripped = trimmed.lstrip("*•- ")
+        if not stripped or _discard.search(stripped):
+            if current:
+                messages.append(" ".join(current))
+                current = []
             continue
-        if any(p.search(stripped) for p in skip_patterns):
+        # Check if this line ends a message block
+        if _boundary.search(stripped):
+            before = _boundary.sub("", stripped).strip()
+            if before:
+                current.append(before)
+            if current:
+                messages.append(" ".join(current))
+                current = []
             continue
-        notes.append(stripped)
+        # Bullet marker starts a new message
+        if _bullet.match(trimmed) and current:
+            messages.append(" ".join(current))
+            current = []
+        current.append(stripped)
+    if current:
+        messages.append(" ".join(current))
 
-    return notes
+    # Drop purely informational messages (not resource recommendations)
+    _informational = re.compile(
+        r"ran in the .* QOS",
+        re.IGNORECASE,
+    )
+
+    return [m for m in messages if not _informational.search(m)]
+
+
+def generate_gpu_recommendations(jobs: list[dict]) -> dict[str, list[str]]:
+    """Generate GPU memory optimization recommendations.
+
+    When GPU memory utilization is low relative to total, suggests increasing
+    batch size or other parameters to better utilize the allocated GPU.
+
+    Args:
+        jobs: List of job metric dicts (same format as format_compute_table).
+
+    Returns:
+        Dict mapping run names to lists of recommendation strings.
+        Only includes runs with actionable recommendations.
+    """
+    recs: dict[str, list[str]] = {}
+    for job in jobs:
+        gpu_mem = job.get("gpu_mem_used_mean_gb")
+        gpu_total = job.get("gpu_mem_total_gb")
+        run_name = job.get("run_name", "unknown")
+        job_type = job.get("job_type", "")
+
+        if gpu_mem is None or gpu_total is None or gpu_total == 0:
+            continue
+        # Only recommend for fine-tuning jobs (eval memory is harder to control)
+        if job_type != "finetune":
+            continue
+
+        utilization = gpu_mem / gpu_total
+        if utilization < 0.5:
+            headroom = gpu_total - gpu_mem
+            recs.setdefault(run_name, []).append(
+                f"GPU memory is only {utilization:.0%} utilized "
+                f"({gpu_mem:.1f}/{gpu_total:.0f} GB). "
+                f"~{headroom:.0f} GB headroom — consider increasing "
+                f"batch_size or max_seq_len to improve throughput."
+            )
+
+    return recs
 
 
 def format_compute_table(
@@ -350,6 +451,10 @@ def format_compute_table(
               time_limit, gpu_util_mean, gpu_mem_used_mean_gb, power_mean_w,
               gpu_util_unavailable. Optionally includes cpu_efficiency_pct
               and cpu_mem_used_gb / cpu_mem_allocated_gb for CPU columns.
+              When jobstats GPU data is available, gpu_util_jobstats_pct
+              provides the Prometheus-sampled average and gpu_util_min /
+              gpu_util_max (from nvidia-smi CSV) provide the observed range,
+              displayed as ``avg% (min–max%)``.
               Missing or None values render as "-".
         recommendations: Optional dict mapping run names to lists of
               resource recommendation strings (from jobstats). When
@@ -380,6 +485,9 @@ def format_compute_table(
 
     for job in jobs:
         gpu_util = job.get("gpu_util_mean")
+        gpu_util_js = job.get("gpu_util_jobstats_pct")
+        gpu_util_min = job.get("gpu_util_min")
+        gpu_util_max = job.get("gpu_util_max")
         gpu_mem = job.get("gpu_mem_used_mean_gb")
         gpu_total = job.get("gpu_mem_total_gb")
         power = job.get("power_mean_w")
@@ -396,11 +504,17 @@ def format_compute_table(
         else:
             gpu_mem_str = "-"
 
-        gpu_util_str = (
-            f"{gpu_util}%"
-            if gpu_util is not None
-            else ("N/A*" if util_unavailable else "-")
-        )
+        # GPU util: prefer jobstats average with nvidia-smi min–max range
+        if gpu_util_js is not None and gpu_util_min is not None and gpu_util_max is not None:
+            gpu_util_str = f"{gpu_util_js}% ({gpu_util_min}–{gpu_util_max}%)"
+        elif gpu_util_js is not None:
+            gpu_util_str = f"{gpu_util_js}%"
+        elif gpu_util is not None:
+            gpu_util_str = f"{gpu_util}%"
+        elif util_unavailable:
+            gpu_util_str = "N/A*"
+        else:
+            gpu_util_str = "-"
 
         cells = [
             job.get("run_name") or "-",

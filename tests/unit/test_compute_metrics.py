@@ -17,6 +17,7 @@ from cruijff_kit.tools.slurm.compute_metrics import (
     check_jobstats_available,
     extract_jobstats_notes,
     format_compute_table,
+    generate_gpu_recommendations,
     parse_jobstats_json,
     parse_sacct_time_limit,
     parse_seff_output,
@@ -164,6 +165,28 @@ class TestSummarizeGpuMetrics:
         result = summarize_gpu_metrics(csv_path)
         assert result["sample_count"] == 2
         assert result["gpu_util_mean"] == 75.0
+
+    def test_gpu_util_min(self, tmp_path):
+        csv_content = textwrap.dedent("""\
+            timestamp, utilization.gpu [%], utilization.memory [%], memory.used [MiB], memory.total [MiB], power.draw [W], temperature.gpu
+            2026/02/17 10:00:00.000, 80 %, 45 %, 20480 MiB, 40960 MiB, 250.00 W, 65
+            2026/02/17 10:00:30.000, 90 %, 50 %, 22528 MiB, 40960 MiB, 270.00 W, 68
+            2026/02/17 10:01:00.000, 70 %, 40 %, 18432 MiB, 40960 MiB, 230.00 W, 63
+        """)
+        csv_path = tmp_path / "gpu_metrics.csv"
+        csv_path.write_text(csv_content)
+
+        result = summarize_gpu_metrics(csv_path)
+        assert result["gpu_util_min"] == 70.0
+        assert result["gpu_util_max"] == 90.0
+        assert result["gpu_util_mean"] == 80.0
+
+    def test_gpu_util_min_none_when_empty(self, tmp_path):
+        csv_path = tmp_path / "gpu_metrics.csv"
+        csv_path.write_text("timestamp, utilization.gpu [%], utilization.memory [%], memory.used [MiB], memory.total [MiB], power.draw [W], temperature.gpu\n")
+
+        result = summarize_gpu_metrics(csv_path)
+        assert result["gpu_util_min"] is None
 
     def test_mig_gpu_na_utilization(self, tmp_path):
         """MIG GPUs report [N/A] for utilization but have valid memory/power."""
@@ -482,6 +505,66 @@ class TestParseJobstatsJson:
         assert result["cpu_efficiency_pct"] is None
         assert result["wall_time_seconds"] is None
 
+    def test_gpu_fields_single_gpu(self):
+        """Single GPU node: utilization, used memory, total memory."""
+        js = {
+            "nodes": {
+                "della-l02g13": {
+                    "cpus": 4,
+                    "total_memory": 85899345920,
+                    "used_memory": 1413079040,
+                    "total_time": 55.1,
+                    "gpu_utilization": {"1": 44.4},
+                    "gpu_used_memory": {"1": 10697637888},    # ~9.96 GB
+                    "gpu_total_memory": {"1": 85899345920},   # 80 GB
+                }
+            },
+            "total_time": 146,
+        }
+        result = parse_jobstats_json(js)
+        assert result["gpu_util_pct"] == 44.4
+        assert result["gpu_mem_used_gb"] == 10.0  # 10697637888 / 1024^3
+        assert result["gpu_mem_total_gb"] == 80.0
+
+    def test_gpu_fields_multi_gpu(self):
+        """Two GPUs on one node: averages utilization, sums memory."""
+        js = {
+            "nodes": {
+                "node1": {
+                    "cpus": 8,
+                    "total_memory": 85899345920,
+                    "used_memory": 1073741824,
+                    "total_time": 200.0,
+                    "gpu_utilization": {"0": 60.0, "1": 80.0},
+                    "gpu_used_memory": {"0": 10737418240, "1": 10737418240},  # 10 GB each
+                    "gpu_total_memory": {"0": 85899345920, "1": 85899345920},  # 80 GB each
+                }
+            },
+            "total_time": 100,
+        }
+        result = parse_jobstats_json(js)
+        assert result["gpu_util_pct"] == 70.0  # (60+80)/2
+        assert result["gpu_mem_used_gb"] == 20.0  # 10+10
+        assert result["gpu_mem_total_gb"] == 160.0  # 80+80
+
+    def test_gpu_fields_missing(self):
+        """No GPU data in node → GPU fields remain None."""
+        js = {
+            "nodes": {
+                "della-l04g3": {
+                    "cpus": 4,
+                    "total_memory": 42949672960,
+                    "used_memory": 6442450944,
+                    "total_time": 1200.0,
+                }
+            },
+            "total_time": 600,
+        }
+        result = parse_jobstats_json(js)
+        assert result["gpu_util_pct"] is None
+        assert result["gpu_mem_used_gb"] is None
+        assert result["gpu_mem_total_gb"] is None
+
 
 # =============================================================================
 # extract_jobstats_notes()
@@ -517,6 +600,26 @@ class TestExtractJobstatsNotes:
         notes = extract_jobstats_notes(text)
         assert len(notes) == 2
         assert all("grafana" not in n.lower() for n in notes)
+
+    def test_filters_boilerplate(self):
+        text = textwrap.dedent("""\
+            Notes:
+            ================================================================================
+            This job only used 5% of the 80GB of total allocated CPU memory. For
+            future jobs, please allocate less memory by using a Slurm directive such
+            as --mem-per-cpu=2G or --mem=5G. This will reduce your queue times and
+            make the resources available to other jobs. For more info:
+            This job ran in the gpu-test QOS. Each user can only run a small number of
+            jobs simultaneously in this QOS. For more info:
+            See the URL below for various job metrics plotted as a function of time:
+            Have a nice day!
+        """)
+        notes = extract_jobstats_notes(text)
+        assert not any("====" in n for n in notes)
+        assert not any("Have a nice day" in n for n in notes)
+        assert not any("For more info" in n for n in notes)
+        assert not any("See the" in n for n in notes)
+        assert len(notes) > 0  # Should keep the actual recommendations
 
     def test_strips_ansi_codes(self):
         text = (
@@ -642,3 +745,136 @@ class TestFormatComputeTableCPU:
         assert "250W" in table
         lines = table.strip().split("\n")
         assert len(lines) == 3  # header + separator + 1 row
+
+
+# =============================================================================
+# format_compute_table() — dual-source GPU utilization
+# =============================================================================
+
+class TestFormatComputeTableDualGPU:
+
+    def test_dual_source_gpu_util(self):
+        """Jobstats avg + nvidia-smi range → 'avg% (min–max%)'."""
+        jobs = [
+            {
+                "run_name": "1B_10k",
+                "job_type": "finetune",
+                "wall_time": "00:05:55",
+                "gpu_util_jobstats_pct": 64.7,
+                "gpu_util_min": 20.0,
+                "gpu_util_max": 100.0,
+                "gpu_util_mean": 58.0,  # nvidia-smi mean (not displayed)
+                "gpu_mem_used_mean_gb": 6.4,
+                "gpu_mem_total_gb": 80.0,
+                "power_mean_w": 239.0,
+            },
+        ]
+        table = format_compute_table(jobs)
+        assert "64.7% (20.0\u2013100.0%)" in table
+
+    def test_jobstats_only_gpu_util(self):
+        """Jobstats available but no nvidia-smi range → just 'avg%'."""
+        jobs = [
+            {
+                "run_name": "1B_eval",
+                "job_type": "eval",
+                "wall_time": "00:02:26",
+                "gpu_util_jobstats_pct": 44.4,
+                "gpu_mem_used_mean_gb": 6.6,
+                "gpu_mem_total_gb": 80.0,
+                "power_mean_w": 130.0,
+            },
+        ]
+        table = format_compute_table(jobs)
+        assert "44.4%" in table
+        # Data row should not have a range in parens
+        data_row = table.strip().split("\n")[-1]
+        assert "44.4%" in data_row
+        assert "\u2013" not in data_row  # no en-dash range
+
+    def test_nvidia_only_fallback(self):
+        """No jobstats → falls back to nvidia-smi mean (existing behavior)."""
+        jobs = [
+            {
+                "run_name": "1B_rank4",
+                "job_type": "finetune",
+                "wall_time": "00:09:52",
+                "gpu_util_mean": 80.0,
+                "gpu_util_min": 70.0,
+                "gpu_util_max": 90.0,
+                "gpu_mem_used_mean_gb": 20.0,
+                "power_mean_w": 250.0,
+            },
+        ]
+        table = format_compute_table(jobs)
+        # Data row should show nvidia-smi mean, no range
+        data_row = table.strip().split("\n")[-1]
+        assert "80.0%" in data_row
+        assert "\u2013" not in data_row  # no en-dash range
+
+    def test_neither_source(self):
+        """No GPU util data at all → dash."""
+        jobs = [
+            {
+                "run_name": "1B_eval",
+                "job_type": "eval",
+                "wall_time": "00:01:00",
+            },
+        ]
+        table = format_compute_table(jobs)
+        lines = table.strip().split("\n")
+        data_row = lines[-1]
+        cells = [c.strip() for c in data_row.split("|") if c.strip()]
+        assert cells[4] == "-"  # GPU Util
+
+
+# =============================================================================
+# generate_gpu_recommendations()
+# =============================================================================
+
+class TestGenerateGpuRecommendations:
+
+    def test_recommends_when_underutilized(self):
+        jobs = [
+            {
+                "run_name": "1B_10k",
+                "job_type": "finetune",
+                "gpu_mem_used_mean_gb": 8.2,
+                "gpu_mem_total_gb": 80.0,
+            },
+        ]
+        recs = generate_gpu_recommendations(jobs)
+        assert "1B_10k" in recs
+        assert len(recs["1B_10k"]) == 1
+        assert "batch_size" in recs["1B_10k"][0]
+
+    def test_no_rec_when_well_utilized(self):
+        jobs = [
+            {
+                "run_name": "1B_10k",
+                "job_type": "finetune",
+                "gpu_mem_used_mean_gb": 60.0,
+                "gpu_mem_total_gb": 80.0,
+            },
+        ]
+        recs = generate_gpu_recommendations(jobs)
+        assert recs == {}
+
+    def test_skips_eval_jobs(self):
+        jobs = [
+            {
+                "run_name": "1B_10k_eval",
+                "job_type": "eval",
+                "gpu_mem_used_mean_gb": 5.0,
+                "gpu_mem_total_gb": 80.0,
+            },
+        ]
+        recs = generate_gpu_recommendations(jobs)
+        assert recs == {}
+
+    def test_skips_missing_data(self):
+        jobs = [
+            {"run_name": "1B_10k", "job_type": "finetune"},
+        ]
+        recs = generate_gpu_recommendations(jobs)
+        assert recs == {}

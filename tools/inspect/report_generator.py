@@ -599,7 +599,9 @@ def generate_report(
     ]
 
     # Add dataset split info if available
-    data_config = (config or {}).get("data", {}).get("training", {})
+    # data.training can be a dict (single dataset) or list (multiple datasets)
+    training_raw = (config or {}).get("data", {}).get("training", {})
+    data_config = training_raw if isinstance(training_raw, dict) else {}
     splits = data_config.get("splits", {})
     if splits:
         train_n = splits.get("train")
@@ -680,13 +682,20 @@ def generate_report(
     report_lines.append(f"*{attribution}*\n")
 
     # Data source provenance
-    if data_config.get("path"):
+    if isinstance(training_raw, list) and training_raw:
+        report_lines.append("<details>\n<summary>Training data</summary>\n")
+        for ds in training_raw:
+            label = ds.get("label", "dataset")
+            path = ds.get("path", "unknown")
+            report_lines.append(f"- **{label}:** `{path}`")
+        report_lines.append("\n</details>\n")
+    elif data_config.get("path"):
         report_lines.append("<details>\n<summary>Training data</summary>\n")
         report_lines.append(f"- **Path:** `{data_config['path']}`")
         if data_config.get("label"):
             report_lines.append(f"- **Label:** {data_config['label']}")
         if splits:
-            split_strs = [f"{k}: {v:,}" for k, v in splits.items() if v is not None]
+            split_strs = [f"{k}: {v:,}" if isinstance(v, (int, float)) else f"{k}: {v}" for k, v in splits.items() if v is not None]
             report_lines.append(f"- **Splits:** {' / '.join(split_strs)}")
         report_lines.append("\n</details>\n")
 
