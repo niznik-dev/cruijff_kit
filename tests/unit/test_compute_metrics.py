@@ -89,6 +89,16 @@ class TestParseSeffOutput:
         result = parse_seff_output(seff_text)
         assert result["mem_used_gb"] == 0.5
 
+    def test_handles_kb_memory(self):
+        seff_text = textwrap.dedent("""\
+            Job ID: 99999
+            State: COMPLETED (exit code 0)
+            Memory Utilized: 524288.00 KB
+            Memory Efficiency: 0.05% of 1.00 GB
+        """)
+        result = parse_seff_output(seff_text)
+        assert result["mem_used_gb"] == 0.5
+
     def test_handles_empty_input(self):
         result = parse_seff_output("")
         assert result["job_id"] is None
@@ -187,6 +197,30 @@ class TestSummarizeGpuMetrics:
 
         result = summarize_gpu_metrics(csv_path)
         assert result["gpu_util_min"] is None
+
+    def test_unparseable_field_returns_none(self, tmp_path):
+        """Bare N/A or other non-numeric values should not crash parsing."""
+        csv_content = textwrap.dedent("""\
+            timestamp, utilization.gpu [%], utilization.memory [%], memory.used [MiB], memory.total [MiB], power.draw [W], temperature.gpu
+            2026/02/17 10:00:00.000, N/A, N/A, 20480 MiB, 40960 MiB, 250.00 W, 65
+            2026/02/17 10:00:30.000, ERROR, ERROR, 22528 MiB, 40960 MiB, 270.00 W, 68
+        """)
+        csv_path = tmp_path / "gpu_metrics.csv"
+        csv_path.write_text(csv_content)
+
+        result = summarize_gpu_metrics(csv_path)
+        assert result["gpu_util_mean"] is None
+        assert result["gpu_mem_used_mean_gb"] is not None  # memory still parsed
+        assert result["sample_count"] == 2
+
+    def test_completely_empty_file(self, tmp_path):
+        """Empty file with no header returns empty metrics."""
+        csv_path = tmp_path / "gpu_metrics.csv"
+        csv_path.write_text("")
+
+        result = summarize_gpu_metrics(csv_path)
+        assert result["gpu_util_mean"] is None
+        assert result["sample_count"] == 0
 
     def test_mig_gpu_na_utilization(self, tmp_path):
         """MIG GPUs report [N/A] for utilization but have valid memory/power."""
@@ -413,6 +447,14 @@ class TestRunJobstats:
         assert run_jobstats("12345") is None
 
     @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
+    def test_empty_stdout_returns_none(self, mock_run):
+        mock_run.return_value = type("R", (), {
+            "returncode": 0,
+            "stdout": "   \n",
+        })()
+        assert run_jobstats("12345") is None
+
+    @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
     def test_invalid_json_returns_none(self, mock_run):
         mock_run.return_value = type("R", (), {
             "returncode": 0,
@@ -547,6 +589,27 @@ class TestParseJobstatsJson:
         assert result["gpu_mem_used_gb"] == 20.0  # 10+10
         assert result["gpu_mem_total_gb"] == 160.0  # 80+80
 
+    def test_gpu_string_values_skipped(self):
+        """String GPU values (instead of numeric) are silently skipped."""
+        js = {
+            "nodes": {
+                "node1": {
+                    "cpus": 4,
+                    "total_memory": 42949672960,
+                    "used_memory": 6442450944,
+                    "total_time": 1200.0,
+                    "gpu_utilization": {"0": "60.5"},  # string, not float
+                    "gpu_used_memory": {"0": "10737418240"},
+                    "gpu_total_memory": {"0": "85899345920"},
+                }
+            },
+            "total_time": 600,
+        }
+        result = parse_jobstats_json(js)
+        assert result["gpu_util_pct"] is None
+        assert result["gpu_mem_used_gb"] is None
+        assert result["gpu_mem_total_gb"] is None
+
     def test_gpu_fields_missing(self):
         """No GPU data in node → GPU fields remain None."""
         js = {
@@ -630,6 +693,21 @@ class TestExtractJobstatsNotes:
         assert len(notes) == 1
         assert "\x1b" not in notes[0]
         assert "Reduce memory" in notes[0]
+
+    def test_multiline_continuation(self):
+        """Multi-line recommendation joined into a single message."""
+        text = textwrap.dedent("""\
+            Notes:
+            * This job only used 5% of the 80GB of total allocated CPU memory. For
+              future jobs, please allocate less memory by using a Slurm directive such
+              as --mem-per-cpu=2G or --mem=5G. This will reduce your queue times and
+              make the resources available to other jobs. For more info:
+        """)
+        notes = extract_jobstats_notes(text)
+        assert len(notes) == 1
+        assert "5%" in notes[0]
+        assert "--mem-per-cpu=2G" in notes[0]
+        assert "reduce your queue times" in notes[0]
 
     def test_empty_input(self):
         assert extract_jobstats_notes("") == []
@@ -866,6 +944,19 @@ class TestGenerateGpuRecommendations:
                 "run_name": "1B_10k_eval",
                 "job_type": "eval",
                 "gpu_mem_used_mean_gb": 5.0,
+                "gpu_mem_total_gb": 80.0,
+            },
+        ]
+        recs = generate_gpu_recommendations(jobs)
+        assert recs == {}
+
+    def test_no_rec_at_exactly_50_percent(self):
+        """Exactly 50% utilization should NOT trigger (threshold is < 0.5)."""
+        jobs = [
+            {
+                "run_name": "1B_10k",
+                "job_type": "finetune",
+                "gpu_mem_used_mean_gb": 40.0,
                 "gpu_mem_total_gb": 80.0,
             },
         ]

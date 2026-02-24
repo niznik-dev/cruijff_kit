@@ -102,7 +102,10 @@ def _parse_nvidia_field(value: str) -> float | None:
     if "[N/A]" in value or not value:
         return None
     # Strip units like " %" or " MiB" or " W"
-    return float(value.split()[0].rstrip("%"))
+    try:
+        return float(value.split()[0].rstrip("%"))
+    except ValueError:
+        return None
 
 
 def summarize_gpu_metrics(csv_path: Path) -> dict:
