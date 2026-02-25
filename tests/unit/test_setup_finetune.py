@@ -640,13 +640,13 @@ def test_compute_training_steps_exact_division():
 
 def test_warn_on_low_steps_no_warnings(capsys):
     """Test no warnings when steps are sufficient."""
-    step_info = {'steps_per_epoch': 250, 'total_steps': 250, 'effective_batch_size': 4}
+    step_info = {'steps_per_epoch': 300, 'total_steps': 300, 'effective_batch_size': 4}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         warn_on_low_steps(step_info, num_warmup_steps=100)
         assert len(w) == 0
     captured = capsys.readouterr()
-    assert "250 total steps" in captured.out
+    assert "300 total steps" in captured.out
 
 
 def test_warn_on_low_steps_warmup_exceeds_total():
