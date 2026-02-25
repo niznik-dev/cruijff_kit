@@ -18,6 +18,7 @@ SUPPORTED_MODEL_FAMILIES = {"llama", "mistral", "qwen"}
 # Base/foundation models use "text_completion"; instruct models use "chat_completion"
 # SLURM resources follow RAM=VRAM rule to ensure checkpoint saving doesn't OOM
 # CPUs: 1 per GPU (single-threaded PyTorch dataloading; more wastes cluster CPU allocation)
+# min_gpu_vram_gb: minimum GPU VRAM required (for mapping to cluster-specific constraints)
 MODEL_CONFIGS = {
     # -------------------------------------------------------------------------
     # Llama models - use SentencePiece tokenizer (original/tokenizer.model)
@@ -31,10 +32,9 @@ MODEL_CONFIGS = {
             "component": "torchtune.models.llama3.llama3_tokenizer",
             "model_family": "llama",
         },
+        "min_gpu_vram_gb": 20,
         "slurm": {
             "mem": "80G",
-            "partition": None,
-            "constraint": "gpu80",
             "cpus": 1,
             "gpus": 1,
         },
@@ -49,10 +49,9 @@ MODEL_CONFIGS = {
             "component": "torchtune.models.llama3.llama3_tokenizer",
             "model_family": "llama",
         },
+        "min_gpu_vram_gb": 20,
         "slurm": {
             "mem": "80G",
-            "partition": None,
-            "constraint": "gpu80",
             "cpus": 1,
             "gpus": 1,
         },
@@ -69,10 +68,9 @@ MODEL_CONFIGS = {
             "component": "torchtune.models.llama3.llama3_tokenizer",
             "model_family": "llama",
         },
+        "min_gpu_vram_gb": 40,
         "slurm": {
             "mem": "80G",
-            "partition": None,
-            "constraint": "gpu80",
             "cpus": 1,
             "gpus": 1,
         },
@@ -89,10 +87,9 @@ MODEL_CONFIGS = {
             "component": "torchtune.models.llama3.llama3_tokenizer",
             "model_family": "llama",
         },
+        "min_gpu_vram_gb": 40,
         "slurm": {
             "mem": "80G",
-            "partition": None,
-            "constraint": "gpu80",
             "cpus": 1,
             "gpus": 1,
         },
@@ -109,10 +106,9 @@ MODEL_CONFIGS = {
             "component": "torchtune.models.llama3.llama3_tokenizer",
             "model_family": "llama",
         },
+        "min_gpu_vram_gb": 320,
         "slurm": {
             "mem": "320G",
-            "partition": None,
-            "constraint": "gpu80",
             "cpus": 4,
             "gpus": 4,
         },
@@ -132,10 +128,9 @@ MODEL_CONFIGS = {
             "component": "torchtune.models.mistral.mistral_tokenizer",
             "model_family": "mistral",
         },
+        "min_gpu_vram_gb": 40,
         "slurm": {
             "mem": "80G",
-            "partition": None,
-            "constraint": "gpu80",
             "cpus": 1,
             "gpus": 1,
         },
@@ -152,10 +147,9 @@ MODEL_CONFIGS = {
             "component": "torchtune.models.mistral.mistral_tokenizer",
             "model_family": "mistral",
         },
+        "min_gpu_vram_gb": 40,
         "slurm": {
             "mem": "80G",
-            "partition": None,
-            "constraint": "gpu80",
             "cpus": 1,
             "gpus": 1,
         },
@@ -175,10 +169,9 @@ MODEL_CONFIGS = {
             "component": "torchtune.models.qwen2_5.qwen2_5_tokenizer",
             "model_family": "qwen",
         },
+        "min_gpu_vram_gb": 40,
         "slurm": {
             "mem": "80G",
-            "partition": None,
-            "constraint": "gpu80",
             "cpus": 1,
             "gpus": 1,
         },
@@ -195,10 +188,9 @@ MODEL_CONFIGS = {
             "component": "torchtune.models.qwen2_5.qwen2_5_tokenizer",
             "model_family": "qwen",
         },
+        "min_gpu_vram_gb": 40,
         "slurm": {
             "mem": "80G",
-            "partition": None,
-            "constraint": "gpu80",
             "cpus": 1,
             "gpus": 1,
         },

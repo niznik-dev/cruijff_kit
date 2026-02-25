@@ -29,6 +29,13 @@ To use: copy this file to `claude.local.md` and replace `jc0425` with your HPC u
 - **Default GPUs**: `1`
 - **Default conda environment**: `cruijff`
 
+### GPU Configuration
+
+- **Available GPU types**: A100 80GB (full), A100 40GB (MIG partition)
+- **Full GPU constraint**: `gpu80` — requests a full 80GB A100 with complete nvidia-smi metrics
+- **Shared/MIG partition**: `nomig` — requests a non-MIG GPU; may get a 40GB MIG partition if omitted
+- **MIG notes**: Della's MIG-partitioned A100s expose 40GB slices. GPU utilization reports as `[N/A]` on MIG GPUs; memory and power metrics remain available.
+
 ## Module System
 
 ```bash

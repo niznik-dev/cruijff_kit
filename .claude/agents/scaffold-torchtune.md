@@ -37,24 +37,28 @@ When invoked:
 
 ## Model-Aware SLURM Resources
 
-The `setup_finetune.py` script automatically sets SLURM resources based on model size (RAM=VRAM rule):
+The `setup_finetune.py` script automatically sets SLURM resources for memory, CPUs, and GPUs based on model size (from `model_configs.py`). **Partition and constraint are NOT set by model_configs** — they come from the caller.
 
-| Model | Memory | Partition | Constraint | CPUs |
-|-------|--------|-----------|------------|------|
-| 1B | 40G | nomig | - | 4 |
-| 3B | 80G | - | gpu80 | 4 |
-| 8B | 80G | - | gpu80 | 8 |
-| 70B | 320G | - | gpu80 | 8 |
+| Model | Memory | CPUs | GPUs | min_gpu_vram_gb |
+|-------|--------|------|------|-----------------|
+| 1B    | 80G    | 1    | 1    | 20              |
+| 3B    | 80G    | 1    | 1    | 40              |
+| 8B    | 80G    | 1    | 1    | 40              |
+| 70B   | 320G   | 4    | 4    | 320             |
 
-### MIG Support for 1B Models
+### Setting Partition and Constraint
 
-**MIG is configured during design-experiment, not here.** If the user opted into MIG during experiment design, the run will have `mig: true` in experiment_summary.yaml.
+**Read `claude.local.md` for the user's default partition and constraint values.** Pass these to `setup_finetune.py` via `--partition` and `--constraint` CLI args.
 
-**When parsing experiment_summary.yaml:**
-- If `mig: true` is present for a run: Set `partition: ""` and `mem: 16G` in setup_finetune.yaml
-- If `mig` is not present (default): Do nothing - setup_finetune.py defaults to `partition: nomig` and `mem: 40G`
+- If `experiment_summary.yaml` has `slurm_overrides` for a run (e.g., `slurm_overrides: {constraint: "gpu80"}`), use those values
+- Otherwise, use the defaults from `claude.local.md` SLURM Defaults section
+- If neither is available, omit the flags — the SLURM lines will stay commented out
 
-**Do NOT ask the user about MIG during scaffolding.** This decision is made during experiment design.
+### Shared/MIG GPU Support
+
+**Shared GPU allocation is configured during design-experiment, not here.** If the user opted for shared GPUs during experiment design, the run may have specific `slurm_overrides` in experiment_summary.yaml (e.g., reduced memory, different partition).
+
+**Do NOT ask the user about GPU allocation during scaffolding.** This decision is made during experiment design.
 
 ## Input Format 
 

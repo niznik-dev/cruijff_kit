@@ -626,14 +626,14 @@ def main():
     if args.account:
         slurm_script = slurm_script.replace("##SBATCH --account=<ACT>", "#SBATCH --account=" + args.account)
 
-    # Partition: CLI/yaml overrides model config
+    # Partition: set by caller (scaffold agent reads claude.local.md)
     # Use 'is not None' check because empty string is valid (MIG support)
-    partition = args.partition if args.partition is not None else slurm_config.get("partition")
+    partition = args.partition
     if partition is not None and partition != "":
         slurm_script = slurm_script.replace("##SBATCH --partition=<PART>", "#SBATCH --partition=" + partition)
 
-    # Constraint: CLI overrides model config
-    constraint = args.constraint if args.constraint else slurm_config.get("constraint")
+    # Constraint: set by caller (scaffold agent reads claude.local.md)
+    constraint = args.constraint
     if constraint:
         slurm_script = slurm_script.replace("##SBATCH --constraint=<CONST>", "#SBATCH --constraint=" + constraint)
     if args.custom_recipe:

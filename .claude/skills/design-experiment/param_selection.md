@@ -151,15 +151,17 @@ When designing experiments, you can vary any of these parameters. Add varied par
 | `num_warmup_steps` | LR scheduler warmup steps | 100 |
 | `max_seq_len` | Maximum sequence length | 2048 |
 
-**1B Model GPU Constraint (only for 1B models):**
-> "Use `--constraint=gpu80` for a full A100 with GPU utilization metrics? (Recommended for experiments, optional for sanity checks)"
+**GPU Allocation (small models only):**
 
-- **Yes (default for experiments):** Uses `constraint: gpu80` with 80G memory — guarantees a full 80GB A100 with complete nvidia-smi metrics (GPU utilization, memory, power). This is the standard choice for experiments where compute observability matters.
-- **No (acceptable for sanity checks):** Uses `partition: nomig` with 40G memory — faster queue times but may land on a 40GB MIG-partitioned A100 where GPU utilization reports as `[N/A]`. Memory and power metrics are still available.
+For models that fit on a GPU partition smaller than a full GPU (1B models require ~20GB VRAM), ask:
+> "Use a full dedicated GPU for complete utilization metrics? (Recommended for experiments, optional for sanity checks)"
 
-If user says "no", add `gpu80: false` to the run parameters in experiment_summary.yaml. If "yes" (default), don't add anything — model_configs.py defaults to gpu80 for all models.
+- **Yes (default for experiments):** Uses the full-GPU constraint/partition from `claude.local.md` — guarantees a dedicated GPU with complete nvidia-smi metrics (GPU utilization, memory, power). This is the standard choice for experiments where compute observability matters.
+- **No (acceptable for sanity checks):** May land on a shared or MIG-partitioned GPU where GPU utilization reports as `[N/A]`. Memory and power metrics are still available. Faster queue times.
 
-**Note:** Only ask this for 1B models. 3B+ models always require gpu80 and this question doesn't apply.
+If user says "yes" (default), add the constraint/partition values from `claude.local.md` SLURM Defaults to `experiment_summary.yaml` under the run's `slurm_overrides` section (e.g., `slurm_overrides: {constraint: "gpu80"}`). If "no", omit `slurm_overrides` — scaffold will not pass constraint/partition, and the SLURM lines stay commented out.
+
+**Note:** Only ask this for models where `min_gpu_vram_gb` (from model_configs.py) is less than a full GPU's VRAM. Larger models always need full dedicated GPUs — read the constraint/partition from `claude.local.md` and include it automatically.
 
 **Advanced settings (calculate from prior runs if available):**
 - Batch sizes - estimate from GPU memory usage in prior runs

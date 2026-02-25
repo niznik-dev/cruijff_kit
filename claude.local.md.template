@@ -30,6 +30,15 @@ Copy this file to `claude.local.md` in the repository root and customize it with
 - **Default GPUs**: `1`
 - **Default conda environment**: `cruijff` (recommended)
 
+### GPU Configuration
+
+Describe the GPU types available on your cluster so Claude can map model VRAM requirements to the correct SLURM flags.
+
+- **Available GPU types**: `<gpu_type> <vram>GB` (e.g., "A100 80GB", "H100 80GB", "A100 40GB MIG")
+- **Full GPU constraint**: `<constraint>` — SLURM constraint for requesting a full dedicated GPU (e.g., `gpu80`)
+- **Shared/MIG partition**: `<partition>` — SLURM partition for shared or MIG-partitioned GPUs, if available (e.g., `nomig`). Leave empty if not applicable.
+- **MIG notes**: On some clusters, MIG-partitioned GPUs report GPU utilization as `[N/A]` in nvidia-smi. Memory and power metrics remain available.
+
 ## Module System
 
 If your cluster uses environment modules:
