@@ -82,7 +82,6 @@ Extract the following information from the YAML structure:
 
 3. **Control hyperparameters (held constant):**
 These are *example* parameters that the user might vary. There may be other parameters under `controls`, so check all of them that apply to `setup_finetune.yaml`:
-   - `models.base[0].base_recipe` - Torchtune recipe name for defaults (optional, e.g., "llama3_2/1B_lora_single_device")
    - `controls.epochs` - Number of training epochs
    - `controls.batch_size` - Batch size (if not varied)
    - `controls.system_prompt` - Training system prompt
@@ -199,10 +198,6 @@ dataset_ext: {from data.training.format, convert: "json" → ".json", "parquet" 
 # Model Configuration
 torchtune_model_name: {from models.base[0].name, e.g., "Llama-3.2-1B-Instruct"}
 model_checkpoint: {from models.base[0].path}
-
-# Base Recipe (optional - provides default hyperparameter values from a torchtune config)
-# Only include if base_recipe is specified in experiment_summary.yaml
-base_recipe: {from models.base[0].base_recipe, if present}
 
 # Varying parameters (optional, run-specific)
 lora_rank: {from run.parameters.lora_rank, if present}

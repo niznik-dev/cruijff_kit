@@ -28,7 +28,6 @@ Create structured configuration in `{experiment_dir}/experiment_summary.yaml` us
 - **Epochs are 0-indexed** - Use `[0, 1, 2]` in evaluation matrix for epochs 0, 1, 2
 - Control runs: Set `epochs: null` in evaluation matrix (no epoch suffix)
 - Fine-tuned runs: Specify epoch list `epochs: [0, 1]` for which epochs to evaluate
-- Verify whether the user wants to use the torchtune base recipe or other defaults before specifying **base_recipe**.  
 
 **YAML formatting:**
 - Use standard YAML syntax (2-space indentation)
