@@ -659,18 +659,18 @@ def test_warn_on_low_steps_warmup_exceeds_total():
         assert any("warmup" in msg.lower() for msg in warning_messages)
 
 
-def test_warn_on_low_steps_below_50():
-    """Test warning when total steps are below 50."""
+def test_warn_on_low_steps_below_3x_warmup():
+    """Test warning when total steps < 3 * warmup steps."""
     step_info = {'steps_per_epoch': 10, 'total_steps': 10, 'effective_batch_size': 100}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         warn_on_low_steps(step_info, num_warmup_steps=5)
         warning_messages = [str(x.message) for x in w]
-        assert any("very low" in msg.lower() for msg in warning_messages)
+        assert any("3x warmup" in msg for msg in warning_messages)
 
 
 def test_warn_on_low_steps_both_warnings():
-    """Test both warnings fire when steps < warmup and < 50."""
+    """Test both warnings fire when steps < warmup and < 3x warmup."""
     step_info = {'steps_per_epoch': 1, 'total_steps': 1, 'effective_batch_size': 256}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
@@ -678,10 +678,32 @@ def test_warn_on_low_steps_both_warnings():
         assert len(w) == 2
 
 
-def test_warn_on_low_steps_exactly_50_no_warning():
-    """Test that exactly 50 steps does not trigger the low-steps warning."""
-    step_info = {'steps_per_epoch': 50, 'total_steps': 50, 'effective_batch_size': 20}
+def test_warn_on_low_steps_exactly_3x_warmup_no_warning():
+    """Test that exactly 3x warmup steps does not trigger the low-steps warning."""
+    step_info = {'steps_per_epoch': 30, 'total_steps': 30, 'effective_batch_size': 20}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         warn_on_low_steps(step_info, num_warmup_steps=10)
+        assert len(w) == 0
+
+
+def test_warn_on_low_steps_above_50_but_below_3x_warmup():
+    """Test that total > 50 but < 3*warmup still warns (would have passed old check)."""
+    # warmup=20, total=50: 50 < 60 (3*20), should warn
+    step_info = {'steps_per_epoch': 50, 'total_steps': 50, 'effective_batch_size': 20}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_low_steps(step_info, num_warmup_steps=20)
+        warning_messages = [str(x.message) for x in w]
+        assert len(w) == 1
+        assert any("3x warmup" in msg for msg in warning_messages)
+
+
+def test_warn_on_low_steps_below_50_but_above_3x_warmup():
+    """Test that total < 50 but > 3*warmup does NOT warn (would have failed old check)."""
+    # warmup=5, total=34: 34 > 15 (3*5), should not warn
+    step_info = {'steps_per_epoch': 34, 'total_steps': 34, 'effective_batch_size': 3}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_low_steps(step_info, num_warmup_steps=5)
         assert len(w) == 0

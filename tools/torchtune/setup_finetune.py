@@ -96,11 +96,13 @@ def warn_on_low_steps(step_info, num_warmup_steps):
             f"Warmup will never complete — the learning rate will never reach its target value.",
             stacklevel=2,
         )
-    if total < 50:
+    min_recommended = 3 * num_warmup_steps
+    if total < min_recommended:
         warnings.warn(
-            f"Total training steps ({total}) is very low (< 50). "
-            f"The model may not train meaningfully. Consider reducing batch size "
-            f"or gradient accumulation, or increasing epochs.",
+            f"Total training steps ({total}) < {min_recommended} "
+            f"(3x warmup steps of {num_warmup_steps}). "
+            f"The model will spend most of training in warmup with little time at full learning rate. "
+            f"Consider reducing batch size or gradient accumulation, or increasing epochs.",
             stacklevel=2,
         )
 
