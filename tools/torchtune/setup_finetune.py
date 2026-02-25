@@ -1,6 +1,8 @@
 import argparse
 import json
+import math
 import os
+import warnings
 import yaml
 from pathlib import Path
 
@@ -16,6 +18,8 @@ script_dir = Path(__file__).parent
 
 # Skip these when writing the yaml file
 SLURM_ONLY = ['time', 'gpus', 'conda_env', 'account', 'partition', 'constraint', 'mem']
+# Meta-arguments that are not torchtune config parameters
+META_ARGS = ['training_samples']
 
 # Maps torchtune recipe config paths to setup_finetune.py argument names
 RECIPE_PARAM_MAPPING = {
@@ -52,6 +56,54 @@ def extract_flat_params(recipe_config: dict, mapping: dict) -> dict:
         except (KeyError, TypeError):
             continue  # Parameter not in recipe
     return flat
+
+def compute_training_steps(training_samples, batch_size, gradient_accumulation_steps, epochs):
+    """Compute total training steps and steps per epoch.
+
+    Args:
+        training_samples: Number of training samples in the dataset
+        batch_size: Per-device batch size
+        gradient_accumulation_steps: Number of gradient accumulation steps
+        epochs: Number of training epochs
+
+    Returns:
+        Dict with 'steps_per_epoch', 'total_steps', and 'effective_batch_size'
+    """
+    effective_batch_size = batch_size * gradient_accumulation_steps
+    steps_per_epoch = math.ceil(training_samples / effective_batch_size)
+    total_steps = steps_per_epoch * epochs
+    return {
+        'steps_per_epoch': steps_per_epoch,
+        'total_steps': total_steps,
+        'effective_batch_size': effective_batch_size,
+    }
+
+
+def warn_on_low_steps(step_info, num_warmup_steps):
+    """Print step summary and emit warnings if training steps are dangerously low.
+
+    Args:
+        step_info: Dict from compute_training_steps()
+        num_warmup_steps: Number of warmup steps configured for the LR scheduler
+    """
+    total = step_info['total_steps']
+    print(f"Training step summary: {step_info['steps_per_epoch']} steps/epoch, "
+          f"{total} total steps (effective batch size: {step_info['effective_batch_size']})")
+
+    if total < num_warmup_steps:
+        warnings.warn(
+            f"Total training steps ({total}) < warmup steps ({num_warmup_steps}). "
+            f"Warmup will never complete — the learning rate will never reach its target value.",
+            stacklevel=2,
+        )
+    if total < 50:
+        warnings.warn(
+            f"Total training steps ({total}) is very low (< 50). "
+            f"The model may not train meaningfully. Consider reducing batch size "
+            f"or gradient accumulation, or increasing epochs.",
+            stacklevel=2,
+        )
+
 
 # Used for epochs_to_save to allow for all/none options
 def parse_epochs(value):
@@ -294,6 +346,10 @@ def create_parser():
     parser.add_argument("--mem", type=str, help="Slurm memory allocation (e.g., '40G', '16G')")
     parser.add_argument("--constraint", type=str, help="Slurm constraint to use")
 
+    # ------ Training Step Guard -----
+    parser.add_argument("--training_samples", type=int, default=None,
+                        help="Number of training samples. When provided, computes and reports total training steps and warns if dangerously low.")
+
     parser.add_argument("--custom_recipe", type=str, help="Full name of a custom recipe file in the repo's custom_recipes folder to use for fine-tuning")
     parser.add_argument("--base_recipe", type=str, default=None,
                         help="Torchtune recipe name to use as base config (e.g., 'llama3_2/1B_lora_single_device'). Recipe defaults are used for parameters not explicitly set.")
@@ -354,6 +410,16 @@ def main():
     # Validate lr_scheduler (after config file has been loaded and merged)
     validate_lr_scheduler(args.lr_scheduler)
 
+    # Training step guard: compute and warn if --training_samples provided
+    if args.training_samples is not None:
+        step_info = compute_training_steps(
+            training_samples=args.training_samples,
+            batch_size=args.batch_size,
+            gradient_accumulation_steps=args.gradient_accumulation_steps,
+            epochs=args.epochs,
+        )
+        warn_on_low_steps(step_info, args.num_warmup_steps)
+
     model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
     username = os.environ.get("USER")
 
@@ -382,7 +448,7 @@ def main():
     model_dir = os.path.basename(raw_checkpoint.rstrip('/'))
 
     for key, value in vars(args).items():
-        if key in SLURM_ONLY:
+        if key in SLURM_ONLY or key in META_ARGS:
             continue
         # Model config - apply torchtune-specific settings
         elif key == "torchtune_model_name":
