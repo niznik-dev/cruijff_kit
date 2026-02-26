@@ -205,17 +205,18 @@ Complete workflow: {total_duration}
 3. Analyze results (see experiment_summary.yaml for configuration)
 ```
 
-### Optional: Generate Summary
+### Optional: Analyze Results
 
-After completing the experiment, offer to generate a summary:
+After completing the experiment, offer to analyze the results:
 
-> Experiment complete! Would you like me to generate a summary.md with key metrics?
-> This will extract final loss values and evaluation accuracy for easy comparison.
+> Experiment complete! Would you like me to run `analyze-experiment` to generate visualizations and a full report?
 > [Y/n]
 
-**If yes:** Invoke the `summarize-experiment` skill to create summary.md
+**If yes:** Invoke the `analyze-experiment` skill to create interactive plots and `analysis/report.md`.
 
-**If no:** Skip summarization. User can run `summarize-experiment` manually later.
+**If no:** Skip analysis. User can run `analyze-experiment` manually later.
+
+*Note: `summarize-experiment` is also available for a lightweight text-only summary if a full analysis isn't needed.*
 
 ## Important Notes
 
@@ -228,7 +229,7 @@ After completing the experiment, offer to generate a summary:
 
 **Relationship to other skills:**
 - **Before:** design-experiment, scaffold-experiment
-- **After:** summarize-experiment (optional), analyze-experiment (planned)
+- **After:** analyze-experiment (recommended), summarize-experiment (lightweight alternative)
 - **Standalone:** Individual tool modules can run independently
 
 **Resumability:**

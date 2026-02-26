@@ -421,12 +421,11 @@ class TestSbatchActivation:
         script = render_template(cli, make_config())
         assert "##SBATCH --account=<ACT>" in script
 
-    def test_constraint_from_model_config(self):
-        """Constraint activated from model_configs (1B defaults to gpu80)."""
+    def test_constraint_stays_commented_when_none(self):
+        """Constraint stays commented when no CLI value provided."""
         cli = make_cli_args(model_name="Llama-3.2-1B-Instruct")
         script = render_template(cli, make_config())
-        assert "#SBATCH --constraint=gpu80" in script
-        assert "##SBATCH --constraint" not in script
+        assert "##SBATCH --constraint=<CONST>" in script
 
     def test_constraint_cli_override(self):
         """CLI constraint overrides model_configs."""

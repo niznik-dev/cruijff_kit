@@ -289,6 +289,16 @@ cd {experiment_dir}/analysis && python -m http.server 8080
 ### Log
 
 Details recorded in `analyze-experiment.log`
+
+### Report Path
+
+`{experiment_dir}/analysis/report.md`
+```
+
+**IMPORTANT:** Always end your output summary with the **full absolute path** to `report.md` on its own line, so the user can command-click it in their terminal/IDE. Example:
+
+```
+Full report: /scratch/gpfs/user/ck-experiments/my_experiment/analysis/report.md
 ```
 
 ## Relationship to Other Skills
@@ -299,7 +309,7 @@ Details recorded in `analyze-experiment.log`
 
 **Workflow position:**
 ```
-design-experiment → scaffold-experiment → run-experiment → summarize-experiment → analyze-experiment
+design-experiment → scaffold-experiment → run-experiment → analyze-experiment
 ```
 
 ## Important Notes

@@ -207,14 +207,14 @@ def render_template(cli_args, config):
         script = script.replace("##SBATCH --account=<ACT>",
                                 f"#SBATCH --account={cli_args.account}")
 
-    # Partition: CLI overrides model config
-    partition = cli_args.partition if cli_args.partition is not None else slurm_config.get("partition")
+    # Partition: set by caller (scaffold agent reads claude.local.md)
+    partition = cli_args.partition
     if partition is not None and partition != "":
         script = script.replace("##SBATCH --partition=<PART>",
                                 f"#SBATCH --partition={partition}")
 
-    # Constraint: CLI overrides model config
-    constraint = cli_args.constraint if cli_args.constraint else slurm_config.get("constraint")
+    # Constraint: set by caller (scaffold agent reads claude.local.md)
+    constraint = cli_args.constraint
     if constraint:
         script = script.replace("##SBATCH --constraint=<CONST>",
                                 f"#SBATCH --constraint={constraint}")
