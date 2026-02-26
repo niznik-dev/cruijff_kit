@@ -1,6 +1,7 @@
 """Unit tests for tools/torchtune/setup_finetune.py"""
 
 import argparse
+import warnings
 import pytest
 from cruijff_kit.tools.torchtune.setup_finetune import (
     parse_epochs,
@@ -11,6 +12,8 @@ from cruijff_kit.tools.torchtune.setup_finetune import (
     construct_output_dir,
     configure_dataset_for_format,
     extract_flat_params,
+    compute_training_steps,
+    warn_on_low_steps,
     RECIPE_PARAM_MAPPING,
 )
 
@@ -563,3 +566,144 @@ def test_recipe_param_mapping_has_expected_keys():
     for recipe_path, arg_name in expected_mappings.items():
         assert recipe_path in RECIPE_PARAM_MAPPING, f"Missing mapping for {recipe_path}"
         assert RECIPE_PARAM_MAPPING[recipe_path] == arg_name
+
+
+# Tests for compute_training_steps()
+
+def test_compute_training_steps_basic():
+    """Test basic step computation: 1000 samples, batch 4, no accumulation, 1 epoch."""
+    result = compute_training_steps(
+        training_samples=1000, batch_size=4,
+        gradient_accumulation_steps=1, epochs=1
+    )
+    assert result['steps_per_epoch'] == 250
+    assert result['total_steps'] == 250
+    assert result['effective_batch_size'] == 4
+
+
+def test_compute_training_steps_with_accumulation():
+    """Test step computation with gradient accumulation."""
+    result = compute_training_steps(
+        training_samples=1000, batch_size=4,
+        gradient_accumulation_steps=8, epochs=1
+    )
+    # effective batch = 32, steps = ceil(1000/32) = 32
+    assert result['steps_per_epoch'] == 32
+    assert result['total_steps'] == 32
+    assert result['effective_batch_size'] == 32
+
+
+def test_compute_training_steps_multiple_epochs():
+    """Test step computation with multiple epochs."""
+    result = compute_training_steps(
+        training_samples=100, batch_size=10,
+        gradient_accumulation_steps=1, epochs=3
+    )
+    assert result['steps_per_epoch'] == 10
+    assert result['total_steps'] == 30
+
+
+def test_compute_training_steps_ceiling_division():
+    """Test that partial batches are counted (ceil division)."""
+    result = compute_training_steps(
+        training_samples=101, batch_size=10,
+        gradient_accumulation_steps=1, epochs=1
+    )
+    # ceil(101/10) = 11
+    assert result['steps_per_epoch'] == 11
+    assert result['total_steps'] == 11
+
+
+def test_compute_training_steps_large_batch_collapse():
+    """Test the scenario that motivated this feature: large effective batch collapses steps."""
+    result = compute_training_steps(
+        training_samples=100, batch_size=32,
+        gradient_accumulation_steps=8, epochs=1
+    )
+    # effective batch = 256, steps = ceil(100/256) = 1
+    assert result['steps_per_epoch'] == 1
+    assert result['total_steps'] == 1
+    assert result['effective_batch_size'] == 256
+
+
+def test_compute_training_steps_exact_division():
+    """Test when samples divide evenly into batches."""
+    result = compute_training_steps(
+        training_samples=100, batch_size=10,
+        gradient_accumulation_steps=1, epochs=1
+    )
+    assert result['steps_per_epoch'] == 10
+    assert result['total_steps'] == 10
+
+
+# Tests for warn_on_low_steps()
+
+def test_warn_on_low_steps_no_warnings(capsys):
+    """Test no warnings when steps are sufficient."""
+    step_info = {'steps_per_epoch': 300, 'total_steps': 300, 'effective_batch_size': 4}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_low_steps(step_info, num_warmup_steps=100)
+        assert len(w) == 0
+    captured = capsys.readouterr()
+    assert "300 total steps" in captured.out
+
+
+def test_warn_on_low_steps_warmup_exceeds_total():
+    """Test warning when warmup steps exceed total steps."""
+    step_info = {'steps_per_epoch': 14, 'total_steps': 14, 'effective_batch_size': 256}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_low_steps(step_info, num_warmup_steps=100)
+        warning_messages = [str(x.message) for x in w]
+        assert any("warmup" in msg.lower() for msg in warning_messages)
+
+
+def test_warn_on_low_steps_below_3x_warmup():
+    """Test warning when total steps < 3 * warmup steps."""
+    step_info = {'steps_per_epoch': 10, 'total_steps': 10, 'effective_batch_size': 100}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_low_steps(step_info, num_warmup_steps=5)
+        warning_messages = [str(x.message) for x in w]
+        assert any("3x warmup" in msg for msg in warning_messages)
+
+
+def test_warn_on_low_steps_both_warnings():
+    """Test both warnings fire when steps < warmup and < 3x warmup."""
+    step_info = {'steps_per_epoch': 1, 'total_steps': 1, 'effective_batch_size': 256}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_low_steps(step_info, num_warmup_steps=100)
+        assert len(w) == 2
+
+
+def test_warn_on_low_steps_exactly_3x_warmup_no_warning():
+    """Test that exactly 3x warmup steps does not trigger the low-steps warning."""
+    step_info = {'steps_per_epoch': 30, 'total_steps': 30, 'effective_batch_size': 20}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_low_steps(step_info, num_warmup_steps=10)
+        assert len(w) == 0
+
+
+def test_warn_on_low_steps_above_50_but_below_3x_warmup():
+    """Test that total > 50 but < 3*warmup still warns (would have passed old check)."""
+    # warmup=20, total=50: 50 < 60 (3*20), should warn
+    step_info = {'steps_per_epoch': 50, 'total_steps': 50, 'effective_batch_size': 20}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_low_steps(step_info, num_warmup_steps=20)
+        warning_messages = [str(x.message) for x in w]
+        assert len(w) == 1
+        assert any("3x warmup" in msg for msg in warning_messages)
+
+
+def test_warn_on_low_steps_below_50_but_above_3x_warmup():
+    """Test that total < 50 but > 3*warmup does NOT warn (would have failed old check)."""
+    # warmup=5, total=34: 34 > 15 (3*5), should not warn
+    step_info = {'steps_per_epoch': 34, 'total_steps': 34, 'effective_batch_size': 3}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_low_steps(step_info, num_warmup_steps=5)
+        assert len(w) == 0

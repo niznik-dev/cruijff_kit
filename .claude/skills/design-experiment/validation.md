@@ -24,6 +24,13 @@ Run through this checklist before presenting the plan:
 - ✓ Epochs, batch size, GPUs specified
 - ✓ LoRA parameters specified if not varied
 
+### Training Steps Validation
+- ✓ Compute: `steps_per_epoch = ceil(training_samples / (batch_size * gradient_accumulation_steps))`
+- ✓ Compute: `total_steps = steps_per_epoch * epochs`
+- ✓ Warn if `total_steps < num_warmup_steps` (warmup never completes)
+- ✓ Warn if `total_steps < 50` (too few steps for meaningful training)
+- ✓ If either warning triggers, flag for user and suggest reducing batch size/gradient accumulation or increasing epochs
+
 ### Runs Validation
 - ✓ All run names follow established convention
 - ✓ Names include model and varying parameters
@@ -98,6 +105,12 @@ Run through this checklist before presenting the plan:
 **Problem:** Evaluation task scripts don't exist yet
 **Impact:** scaffold-experiment will fail
 **Fix:** Don't block - clearly document as prerequisite with instructions
+
+### Too Few Training Steps
+**Problem:** Large effective batch size (batch_size * gradient_accumulation_steps) relative to dataset size collapses total training steps
+**Impact:** Warmup never completes (e.g., 100 warmup steps > 14 total steps), model barely trains
+**Formula:** `total_steps = ceil(training_samples / (batch_size * gradient_accumulation_steps)) * epochs`
+**Fix:** Reduce batch_size or gradient_accumulation_steps, or increase epochs. Flag if total_steps < 50 or < num_warmup_steps.
 
 ### Unrealistic Batch Sizes
 **Problem:** Batch size too large for GPU memory

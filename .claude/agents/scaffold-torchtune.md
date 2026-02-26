@@ -265,12 +265,14 @@ For each run directory:
 
    Instead, use `bash -c` with a single compound command:
    ```bash
-   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/tools/torchtune/setup_finetune.py"
+   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train}"
    ```
+
+   The `--training_samples` flag enables the training step guard, which computes total training steps and warns if they are dangerously low (e.g., warmup never completes, or fewer than 50 steps total). The value comes from `data.training.splits.train` in experiment_summary.yaml.
 
    **Example:**
    ```bash
-   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/tools/torchtune/setup_finetune.py"
+   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/tools/torchtune/setup_finetune.py --training_samples 800"
    ```
 
 3. **Why this approach:**

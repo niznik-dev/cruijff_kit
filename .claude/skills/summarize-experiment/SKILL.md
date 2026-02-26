@@ -62,7 +62,8 @@ For each COMPLETED fine-tuning run:
 2. Extract final loss using regex: `(\d+)\|(\d+)\|Loss: ([0-9.]+)`
    - Pattern matches: `{epoch}|{step}|Loss: {value}`
    - Take the LAST match to get final loss
-3. Record: run_name, final_loss, epoch, step
+   - The step number (group 2) from the last match is the total training steps
+3. Record: run_name, final_loss, total_steps, epoch, step
 
 **Note:** Training SLURM outputs are in the output directory, NOT the run directory.
 
@@ -186,10 +187,10 @@ Create `{experiment_dir}/summary.md` with the following structure:
 
 ## Training Results
 
-| Run | Final Loss | Epochs | Duration |
-|-----|------------|--------|----------|
-| rank4_lr1e-5 | 0.234 | 2 | 8m 15s |
-| rank8_lr1e-5 | 0.198 | 2 | 9m 02s |
+| Run | Final Loss | Total Steps | Epochs | Duration |
+|-----|------------|-------------|--------|----------|
+| rank4_lr1e-5 | 0.234 | 250 | 2 | 8m 15s |
+| rank8_lr1e-5 | 0.198 | 250 | 2 | 9m 02s |
 
 **Notes:**
 - Base model runs have no training loss (control)
