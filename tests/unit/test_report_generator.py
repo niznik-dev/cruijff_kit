@@ -176,9 +176,11 @@ class TestFormatCalibrationTable:
         lines = table.strip().split("\n")
         # Data row should contain "-" for the None metric
         data_row = lines[-1]
-        cells = [c.strip() for c in data_row.split("|") if c.strip()]
-        # cells: [model, epoch, ECE value, sample_size]
-        assert cells[2] == "-"
+        # Find the ECE column by header name, not position
+        header_cells = [c.strip() for c in lines[0].split("|") if c.strip()]
+        data_cells = [c.strip() for c in data_row.split("|") if c.strip()]
+        ece_idx = next(i for i, h in enumerate(header_cells) if "ECE" in h)
+        assert data_cells[ece_idx] == "-"
 
     def test_empty_results(self):
         """Empty results list returns informational message."""
@@ -210,8 +212,11 @@ class TestFormatCalibrationTable:
         table = _format_calibration_table(results)
         lines = table.strip().split("\n")
         data_row = lines[-1]
-        cells = [c.strip() for c in data_row.split("|") if c.strip()]
-        assert cells[1] == "-"
+        # Find the Epoch column by header name, not position
+        header_cells = [c.strip() for c in lines[0].split("|") if c.strip()]
+        data_cells = [c.strip() for c in data_row.split("|") if c.strip()]
+        epoch_idx = next(i for i, h in enumerate(header_cells) if "Epoch" in h)
+        assert data_cells[epoch_idx] == "-"
 
 
 # =============================================================================
@@ -259,9 +264,10 @@ class TestFormatModelTableCombined:
         lines = table.strip().split("\n")
         # base model row should have "-" for AUC
         base_row = [l for l in lines if "base" in l][0]
-        cells = [c.strip() for c in base_row.split("|") if c.strip()]
-        # cells: Model, Epoch, Accuracy, AUC (no Sample Size — uniform)
-        assert cells[3] == "-"
+        header_cells = [c.strip() for c in lines[0].split("|") if c.strip()]
+        data_cells = [c.strip() for c in base_row.split("|") if c.strip()]
+        auc_idx = next(i for i, h in enumerate(header_cells) if "AUC" in h)
+        assert data_cells[auc_idx] == "-"
 
     def test_uniform_sample_size_excluded_from_table(self):
         """When all models have the same sample size, column is omitted."""

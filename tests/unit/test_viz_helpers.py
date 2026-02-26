@@ -133,11 +133,12 @@ class TestSanitizeColumnsForViz:
         assert "score_risk_scorer_cruijff_kit__auc_score" in result.columns
         assert "score_risk_scorer_cruijff_kit/auc_score" not in result.columns
 
-    def test_no_slashes_returns_same_df(self):
-        """When no columns contain slashes, returns the original DataFrame."""
+    def test_no_slashes_returns_unchanged(self):
+        """When no columns contain slashes, columns and values are unchanged."""
         df = pd.DataFrame({"model": ["a"], "score_match_accuracy": [0.8]})
         result = sanitize_columns_for_viz(df)
-        assert result is df  # same object, not a copy
+        assert list(result.columns) == list(df.columns)
+        assert result["score_match_accuracy"].tolist() == [0.8]
 
     def test_preserves_data(self):
         """Column values are unchanged after renaming."""

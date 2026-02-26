@@ -281,14 +281,13 @@ class TestFormatComputeTable:
         ]
         table = format_compute_table(jobs)
         assert "1B_eval" in table
-        # Missing GPU metrics should show as "-"
+        # Missing GPU metrics should show as "-" — find columns by header name
         lines = table.strip().split("\n")
-        data_row = lines[-1]
-        # GPU Util, GPU Mem, and Power should all be "-"
-        cells = [c.strip() for c in data_row.split("|") if c.strip()]
-        assert cells[4] == "-"  # GPU Util
-        assert cells[5] == "-"  # GPU Mem
-        assert cells[6] == "-"  # Power
+        headers = [c.strip() for c in lines[0].split("|") if c.strip()]
+        data_cells = [c.strip() for c in lines[-1].split("|") if c.strip()]
+        for col_name in ["GPU Util", "GPU Mem (GB)", "Power (W)"]:
+            idx = next(i for i, h in enumerate(headers) if h == col_name)
+            assert data_cells[idx] == "-", f"{col_name} should be '-' when missing"
 
     def test_multiple_jobs(self):
         jobs = [
@@ -774,12 +773,13 @@ class TestFormatComputeTableCPU:
         table = format_compute_table(jobs)
         assert "CPU Eff" in table
         lines = table.strip().split("\n")
-        # job2 row should have "-" for CPU columns
+        # job2 row should have "-" for CPU columns — find by header name
+        headers = [c.strip() for c in lines[0].split("|") if c.strip()]
         job2_row = [l for l in lines if "job2" in l][0]
-        cells = [c.strip() for c in job2_row.split("|") if c.strip()]
-        # With CPU: Run, Type, Wall, TimeLimit, CPUEff, CPUMem, GPUUtil, GPUMem, Power
-        assert cells[4] == "-"  # CPU Eff
-        assert cells[5] == "-"  # CPU Mem
+        data_cells = [c.strip() for c in job2_row.split("|") if c.strip()]
+        for col_name in ["CPU Eff", "CPU Mem (GB)"]:
+            idx = next(i for i, h in enumerate(headers) if h == col_name)
+            assert data_cells[idx] == "-", f"{col_name} should be '-' for job2"
 
     def test_recommendations_section(self):
         jobs = [
@@ -901,9 +901,10 @@ class TestFormatComputeTableDualGPU:
         ]
         table = format_compute_table(jobs)
         lines = table.strip().split("\n")
-        data_row = lines[-1]
-        cells = [c.strip() for c in data_row.split("|") if c.strip()]
-        assert cells[4] == "-"  # GPU Util
+        headers = [c.strip() for c in lines[0].split("|") if c.strip()]
+        data_cells = [c.strip() for c in lines[-1].split("|") if c.strip()]
+        gpu_idx = next(i for i, h in enumerate(headers) if h == "GPU Util")
+        assert data_cells[gpu_idx] == "-"
 
 
 # =============================================================================
