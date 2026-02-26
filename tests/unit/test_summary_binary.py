@@ -225,3 +225,23 @@ class TestComputeMetrics:
         assert result["recall_0"] == 1.0
         assert result["precision_1"] == 0.0
         assert result["f1"] == 0.0
+
+    def test_non_binary_targets_silently_skipped(self, tmp_path):
+        """Samples with targets outside {0, 1} are silently ignored in the matrix."""
+        samples = [
+            _make_sample("1", "1"),  # counted
+            _make_sample("0", "0"),  # counted
+            _make_sample("2", "1"),  # target "2" — not in matrix, skipped
+            _make_sample("3", "0"),  # target "3" — not in matrix, skipped
+        ]
+        path = tmp_path / "non_binary.eval"
+        _write_eval_file(path, samples)
+        result = compute_metrics(path)
+        assert result["status"] == "success"
+        assert result["samples"] == 4
+        # Only the 2 valid samples contribute to the confusion matrix
+        cm = result["confusion_matrix"]
+        assert cm["tp"] == 1
+        assert cm["tn"] == 1
+        assert cm["fp"] == 0
+        assert cm["fn"] == 0

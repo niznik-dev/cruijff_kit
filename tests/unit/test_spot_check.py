@@ -85,6 +85,21 @@ class TestLoadData:
         with pytest.raises(ValueError, match="Split 'nonexistent' not found"):
             load_data(nested_data_file, n=10, split="nonexistent")
 
+    def test_nested_train_only_falls_back_to_train(self, tmp_path):
+        """Nested JSON with 'train' but no 'validation' should fall back to 'train'."""
+        data = {
+            "train": [
+                {"input": "t1", "output": "T1"},
+                {"input": "t2", "output": "T2"},
+            ],
+        }
+        path = tmp_path / "train_only.json"
+        path.write_text(json.dumps(data))
+
+        prompts, targets = load_data(str(path), n=10)
+        assert len(prompts) == 2
+        assert prompts[0] == "t1"
+
     def test_returns_correct_types(self, flat_data_file):
         prompts, targets = load_data(flat_data_file, n=2)
         assert all(isinstance(p, str) for p in prompts)

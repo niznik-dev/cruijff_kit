@@ -177,6 +177,29 @@ class TestParseEvalLog:
 
         assert result["path"] == str(log_file)
 
+    @patch(PATCH_TARGET)
+    def test_multiple_scorers_uses_first(self, mock_read, tmp_path):
+        """When results.scores has multiple scorers, only the first is used."""
+        log_file = tmp_path / "test.eval"
+        log_file.touch()
+
+        primary_score = SimpleNamespace(
+            name="exact_match",
+            metrics={"accuracy": _make_metric(0.90)},
+        )
+        secondary_score = SimpleNamespace(
+            name="includes",
+            metrics={"accuracy": _make_metric(0.95)},
+        )
+        log = _make_log()
+        log.results.scores = [primary_score, secondary_score]
+        mock_read.return_value = log
+
+        result = parse_eval_log(str(log_file))
+
+        assert result["scorer"] == "exact_match"
+        assert result["metrics"]["accuracy"] == 0.90
+
     def test_path_in_error_result(self):
         path = "/nonexistent/fake.eval"
         result = parse_eval_log(path)

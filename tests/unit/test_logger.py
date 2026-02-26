@@ -81,19 +81,16 @@ class TestSetupLogger:
             assert log_file.exists()
 
     def test_custom_format_string(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            log_file = Path(tmpdir) / "fmt.log"
-            logger = setup_logger(
-                "test_logger_fmt",
-                log_file=str(log_file),
-                console=False,
-                format_string="CUSTOM: %(message)s",
-            )
-            logger.info("test message")
-
-            # File handler uses its own format, but console would use custom
-            # Verify logger was created without error
-            assert log_file.exists()
+        """Custom format_string should apply to the console handler."""
+        logger = setup_logger(
+            "test_logger_fmt",
+            console=True,
+            format_string="CUSTOM_PREFIX: %(message)s",
+        )
+        # The console handler should use our custom format
+        assert len(logger.handlers) == 1
+        handler = logger.handlers[0]
+        assert "CUSTOM_PREFIX" in handler.formatter._fmt
 
     def test_both_console_and_file(self):
         with tempfile.TemporaryDirectory() as tmpdir:

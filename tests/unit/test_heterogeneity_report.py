@@ -61,6 +61,33 @@ def csv_file(tmp_path, basic_df):
     return str(path)
 
 
+@pytest.fixture
+def multi_group_df():
+    """A DataFrame with 5 groups where one is a clear outlier.
+
+    Groups A-D have ~100% accuracy; group E has 0% accuracy.
+    With 5 groups, z-scores have enough spread that the default
+    z_threshold (-1.5) can actually trigger.
+    """
+    good_rows = []
+    for label in ["A", "B", "C", "D"]:
+        good_rows.extend([
+            {"INPUT": "x", "TRUE_LABEL": 1, "PREDICTION": 1,
+             "P(TRUE LABEL)": 0.9, "GROUP": label}
+        ] * 25 + [
+            {"INPUT": "x", "TRUE_LABEL": 0, "PREDICTION": 0,
+             "P(TRUE LABEL)": 0.9, "GROUP": label}
+        ] * 25)
+    bad_rows = [
+        {"INPUT": "x", "TRUE_LABEL": 1, "PREDICTION": 0,
+         "P(TRUE LABEL)": 0.1, "GROUP": "E"}
+    ] * 25 + [
+        {"INPUT": "x", "TRUE_LABEL": 0, "PREDICTION": 1,
+         "P(TRUE LABEL)": 0.1, "GROUP": "E"}
+    ] * 25
+    return pd.DataFrame(good_rows + bad_rows)
+
+
 class TestLoadData:
     """Tests for load_data."""
 
@@ -208,6 +235,16 @@ class TestIdentifyGroups:
         # Very strict threshold — should find more outliers
         identified = identify_groups(metrics, z_threshold=0, auc_threshold=0.99)
         assert len(identified["auc_outliers"]) > 0
+
+    def test_default_threshold_with_multi_group(self, multi_group_df):
+        """Default z_threshold (-1.5) detects group E as outlier with 5 groups."""
+        metrics = calculate_group_metrics(multi_group_df)
+        identified = identify_groups(metrics)  # uses default z_threshold=-1.5
+        outlier_groups = [o["group"] for o in identified["accuracy_outliers"]]
+        assert "E" in outlier_groups
+        # Good groups should not be flagged
+        for label in ["A", "B", "C", "D"]:
+            assert label not in outlier_groups
 
     def test_outlying_in_both(self, basic_df):
         metrics = calculate_group_metrics(basic_df)

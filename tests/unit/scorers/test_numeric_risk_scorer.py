@@ -301,6 +301,26 @@ class TestEdgeCases:
         assert result.value == INCORRECT
         assert result.metadata["risk_score"] is None
 
+    def test_none_completion(self):
+        """None completion -> INCORRECT without AttributeError.
+
+        The source does `state.output.completion.strip()` in the fallback path,
+        so None must be handled gracefully by _parse_risk_score's except clause.
+        """
+        state = _make_state("placeholder")
+        # Override completion to None after construction
+        state.output = MagicMock()
+        state.output.completion = None
+
+        target = _make_target("1")
+
+        score_fn = numeric_risk_scorer()
+        result: Score = _run(score_fn(state, target))
+
+        assert result.value == INCORRECT
+        assert result.metadata["risk_score"] is None
+        assert result.answer == ""
+
 
 # =============================================================================
 # Metric compatibility tests

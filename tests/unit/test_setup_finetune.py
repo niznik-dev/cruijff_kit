@@ -636,6 +636,25 @@ def test_compute_training_steps_exact_division():
     assert result['total_steps'] == 10
 
 
+def test_compute_training_steps_zero_samples():
+    """Test with zero training samples — should produce zero steps."""
+    result = compute_training_steps(
+        training_samples=0, batch_size=4,
+        gradient_accumulation_steps=1, epochs=1
+    )
+    assert result['steps_per_epoch'] == 0
+    assert result['total_steps'] == 0
+
+
+def test_compute_training_steps_zero_batch_size():
+    """Test with zero batch_size — should raise ZeroDivisionError."""
+    with pytest.raises(ZeroDivisionError):
+        compute_training_steps(
+            training_samples=100, batch_size=0,
+            gradient_accumulation_steps=1, epochs=1
+        )
+
+
 # Tests for warn_on_low_steps()
 
 def test_warn_on_low_steps_no_warnings(capsys):
