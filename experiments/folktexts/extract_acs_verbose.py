@@ -24,6 +24,10 @@ from pathlib import Path
 
 from datasets import load_dataset
 
+# Pin to a specific revision for reproducibility.
+# Last modified 2024-11-28; all existing experiments used this revision.
+FOLKTEXTS_REVISION = "ad89c177c7cf428152494c90150cce7011a6d960"
+
 
 # Task configurations: dataset name -> binary question
 ACS_TASKS = {
@@ -63,10 +67,11 @@ def extract_acs(
 
     print(f"Loading {task} dataset from HuggingFace...")
     print(f"  Subset: {task}")
+    print(f"  Revision: {FOLKTEXTS_REVISION}")
     print(f"  Splits: train, validation, test")
 
     # Load dataset from HuggingFace
-    dataset = load_dataset("acruz/folktexts", task)
+    dataset = load_dataset("acruz/folktexts", task, revision=FOLKTEXTS_REVISION)
 
     print(f"Dataset loaded!")
     print(f"  Train: {len(dataset['train'])} examples")
