@@ -75,6 +75,15 @@ model:
     assert "Failed to parse YAML" in str(exc_info.value)
 
 
+def test_load_recipe_defaults_non_dict_yaml(tmp_path):
+    """Non-dict YAML (e.g., a bare list) raises RecipeExtractionError."""
+    config_file = tmp_path / "list.yaml"
+    config_file.write_text("- item1\n- item2\n- item3\n")
+
+    with pytest.raises(RecipeExtractionError):
+        load_recipe_defaults(str(config_file))
+
+
 def test_load_recipe_defaults_nested_config(tmp_path):
     """Test loading a deeply nested config."""
     config_file = tmp_path / "nested.yaml"
@@ -125,12 +134,8 @@ def test_get_custom_recipe_path_another_builtin():
 
 def test_get_custom_recipe_path_existing_custom_recipe():
     """Test that existing custom recipes return the module path."""
-    # The custom_recipes directory should have lora_finetune_single_device_stable.py
     result = get_custom_recipe_path("lora_finetune_single_device_stable")
-
-    if result is not None:
-        assert "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable" == result
-    # If None, the file doesn't exist in this test environment, which is acceptable
+    assert result == "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable"
 
 
 def test_get_custom_recipe_path_nonexistent_custom():

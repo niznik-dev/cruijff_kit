@@ -45,7 +45,7 @@ def calculate_group_metrics(df):
                 group_df['TRUE_LABEL'],
                 group_df['P(TRUE LABEL)']
             )
-        except:
+        except ValueError:
             auc = np.nan
         
         metrics[group] = {

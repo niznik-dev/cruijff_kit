@@ -8,6 +8,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+"></a>
   <a href="#-alpha-release-"><img src="https://img.shields.io/badge/status-alpha-orange.svg" alt="Status: Alpha"></a>
+  <a href="https://github.com/niznik-dev/cruijff_kit/actions/workflows/coverage.yml"><img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/niznik-dev/446aebdc3da3cde75a7124376f985759/raw/cruijff_kit_coverage.json" alt="Coverage"></a>
 </p>
 
 cruijff_kit is a toolkit for doing research with social data and LLMs. It is designed for software agents guided by humans, but supports fully manual operation. The toolkit emphasizes the values of science: correctness, provenance of results, and continual learning and improvement.
