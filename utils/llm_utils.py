@@ -504,7 +504,12 @@ def get_embeddings(
                 if attention_mask is None:
                     attention_mask = batch_mask
                 else:
-                    # Pad masks to the same sequence length before concatenating
+                    # Fix for #234: pad masks to the same sequence length before
+                    # concatenating. Mirrors how pooled_embeds are concatenated above.
+                    # Note: this module was written by Dan and this fix hasn't been
+                    # reviewed by him yet. Currently no production callers use
+                    # get_embeddings() with return_mask=True, so this is untested
+                    # outside of integration tests.
                     max_len = max(attention_mask.shape[1], batch_mask.shape[1])
                     if attention_mask.shape[1] < max_len:
                         attention_mask = torch.nn.functional.pad(
