@@ -49,7 +49,7 @@ Create evaluation tasks from scratch without experiment context. User provides a
 5. **Add task parameters** - Make the task flexible and reusable
 6. **Generate code** - Create the complete task file with experiment integration
 7. **Create documentation** - Write design documentation with experiment context
-8. **Create log** - Document all decisions in `create-inspect-task.log`
+8. **Create log** - Document all decisions in `logs/create-inspect-task.log`
 9. **Provide usage guidance** - Show user how to run the task with their models
 
 ### Mode 2: Standalone Workflow
@@ -61,7 +61,7 @@ Create evaluation tasks from scratch without experiment context. User provides a
 5. **Add task parameters** - Make the task flexible and reusable
 6. **Generate code** - Create the complete task file
 7. **Create documentation** - Write design documentation with rationale
-8. **Create log** - Document all decisions in `create-inspect-task.log`
+8. **Create log** - Document all decisions in `logs/create-inspect-task.log`
 9. **Provide usage guidance** - Show user how to run the task
 
 ## Extracting Information from experiment_summary.yaml (Mode 1)
@@ -214,7 +214,7 @@ If validation fails:
 
 ## Logging
 
-**IMPORTANT:** Create a detailed log file at `{task_directory}/create-inspect-task.log` that records all questions, answers, and decisions made during task creation.
+**IMPORTANT:** Create a detailed log file at `{task_directory}/logs/create-inspect-task.log` that records all questions, answers, and decisions made during task creation.
 
 ### Log Format
 

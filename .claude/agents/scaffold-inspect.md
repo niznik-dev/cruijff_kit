@@ -27,7 +27,7 @@ This subagent can be invoked in two ways:
    - Generate `inspect.slurm` script for that run/epoch
    - Configure model paths, task parameters, output locations
    - Verify configuration
-6. **Create scaffold log** - Document all actions taken in `scaffold-inspect.log`
+6. **Create scaffold log** - Document all actions taken in `logs/scaffold-inspect.log`
 7. **Report summary** - Show user what was created and any issues
 
 ## Input Format
@@ -569,7 +569,7 @@ chmod +x {experiment_dir}/{run_dir}/eval/{task_name}_epoch{N}.slurm
 
 ## Logging
 
-Create a detailed log file at `{experiment_dir}/scaffold-inspect.log`:
+Create a detailed log file at `{experiment_dir}/logs/scaffold-inspect.log`:
 
 ### Log Format
 

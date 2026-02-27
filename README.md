@@ -125,6 +125,7 @@ See the [Workflow Guide](WORKFLOW_GUIDE.md) for step-by-step manual instructions
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, skill diagrams |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | Current limitations and workarounds |
+| [ARTIFACT_LOCATIONS.md](ARTIFACT_LOCATIONS.md) | Where experiment files are created |
 | [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) | How skills are organized |
 | `experiments/*/README.md` | Experiment-specific instructions |
 

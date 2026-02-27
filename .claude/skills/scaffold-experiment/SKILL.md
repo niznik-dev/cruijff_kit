@@ -32,7 +32,7 @@ This ensures the entire experiment is ready to execute from training through eva
 4. **Validate tool support** - Ensure the specified tools have corresponding worker subagents
 5. **Launch preparation and evaluation subagents in parallel** - Use Task tool to launch both simultaneously
 6. **Wait for both subagents to complete** - Each will report back when done
-7. **Create orchestration log** - Document the scaffolding process in `scaffold-experiment.log`
+7. **Create orchestration log** - Document the scaffolding process in `logs/scaffold-experiment.log`
 8. **Report combined summary** - Show user complete status of both scaffolding phases
 
 ## Finding the Experiment
@@ -117,7 +117,7 @@ I'll launch both the torchtune and inspect-ai scaffolding subagents in parallel.
 - Specify the experiment directory path
 - Ask the subagent to read experiment_summary.yaml
 - Request generation of all necessary configuration files
-- Ask for a detailed log file (scaffold-torchtune.log or scaffold-inspect.log)
+- Ask for a detailed log file (logs/scaffold-torchtune.log or logs/scaffold-inspect.log)
 - Request a summary report of created files and any errors
 
 **Why this matters:**
@@ -162,16 +162,16 @@ Launch the subagent using the Task tool with the prompt template from the agent 
 1. Read the response from scaffold-torchtune subagent
    - Extract list of created runs
    - Note any errors or warnings
-   - Identify path to scaffold-torchtune.log
+   - Identify path to logs/scaffold-torchtune.log
 2. Read the response from scaffold-inspect subagent
    - Extract list of created evaluation scripts
    - Note any errors or warnings
-   - Identify path to scaffold-inspect.log
+   - Identify path to logs/scaffold-inspect.log
 3. Verify both subagents completed successfully or note failures
 
 ## Logging
 
-Create an orchestration log at `{experiment_dir}/scaffold-experiment.log` that records the high-level scaffolding process.
+Create an orchestration log at `{experiment_dir}/logs/scaffold-experiment.log` that records the high-level scaffolding process.
 
 **See [logging.md](logging.md) for:**
 - Complete log format specification
@@ -180,7 +180,7 @@ Create an orchestration log at `{experiment_dir}/scaffold-experiment.log` that r
 - Example log entries for all scenarios
 - Error handling patterns
 
-**Key principle:** The orchestration log tracks coordination and timing. Detailed implementation goes in subagent logs (scaffold-torchtune.log, scaffold-inspect.log).
+**Key principle:** The orchestration log tracks coordination and timing. Detailed implementation goes in subagent logs (logs/scaffold-torchtune.log, logs/scaffold-inspect.log).
 
 ## Error Handling
 
@@ -203,7 +203,7 @@ Create an orchestration log at `{experiment_dir}/scaffold-experiment.log` that r
 
 **If both subagents fail:**
 - Report complete failure
-- Direct user to individual subagent logs (scaffold-torchtune.log, scaffold-inspect.log)
+- Direct user to individual subagent logs (logs/scaffold-torchtune.log, logs/scaffold-inspect.log)
 - Suggest checking experiment_summary.yaml for completeness
 - May need to run subagents individually for debugging
 
@@ -249,9 +249,9 @@ Successfully scaffolded experiment:
 
 ### Logs Created
 
-- `scaffold-experiment.log` - Orchestration log (this process)
-- `scaffold-torchtune.log` - Fine-tuning scaffolding details
-- `scaffold-inspect.log` - Evaluation scaffolding details
+- `logs/scaffold-experiment.log` - Orchestration log (this process)
+- `logs/scaffold-torchtune.log` - Fine-tuning scaffolding details
+- `logs/scaffold-inspect.log` - Evaluation scaffolding details
 
 ### Next Steps
 
@@ -268,7 +268,7 @@ Before reporting success, verify:
 - ✓ experiment_summary.yaml was found and read
 - ✓ Optimization subagent was launched and reported back
 - ✓ Evaluation subagent was launched and reported back
-- ✓ Both subagent log files exist (i.e., scaffold-torchtune.log, scaffold-inspect.log)
+- ✓ Both subagent log files exist (i.e., logs/scaffold-torchtune.log, logs/scaffold-inspect.log)
 - ✓ Run directories exist with expected structure (check 1-2 examples)
 - ✓ Evaluation directories exist with expected structure (check 1-2 examples)
 - ✓ Orchestration log was created
@@ -306,7 +306,7 @@ Before reporting success, verify:
 
 If scaffolding fails:
 1. Check orchestration log (scaffold-experiment.log) for high-level flow
-2. Check individual subagent logs (scaffold-torchtune.log, scaffold-inspect.log) for details
+2. Check individual subagent logs (logs/scaffold-torchtune.log, logs/scaffold-inspect.log) for details
 3. Fix the issue (e.g., missing inspect-ai task script, incorrect paths in claude.local.md)
 4. Re-run this skill (subagents should handle existing files gracefully)
 5. Or run individual subagents directly via Task tool for targeted fixes

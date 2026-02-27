@@ -30,7 +30,7 @@ When invoked:
    - **EXECUTE `setup_finetune.py` AUTOMATICALLY using conda run** - This generates `finetune.yaml` and `finetune.slurm`
    - Verify outputs exist (finetune.yaml and finetune.slurm must be present)
    - Report status
-6. **Create scaffold log** - Document all actions taken in `scaffold-torchtune.log`
+6. **Create scaffold log** - Document all actions taken in `logs/scaffold-torchtune.log`
 7. **Report summary** - Show user what was created and any issues
 
 **CRITICAL: You must execute setup_finetune.py automatically. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.**
@@ -341,7 +341,7 @@ For each run directory:
 
 ## Logging
 
-Create a detailed log file at `{experiment_dir}/scaffold-torchtune.log`:
+Create a detailed log file at `{experiment_dir}/logs/scaffold-torchtune.log`:
 
 ### Log Format
 

@@ -9,7 +9,7 @@ This document covers design-experiment-specific logging practices.
 ## Log File Location
 
 ```
-{experiment_dir}/design-experiment.log
+{experiment_dir}/logs/design-experiment.log
 ```
 
 Created during the planning workflow to record all verification steps, calculations, and decisions.
@@ -293,7 +293,7 @@ Result: success
 ```
 [2025-10-22 14:30:08] CREATE_LOG
 Details: Writing design log
-Path: {scratch_dir}/cap_4L_lora_rank_comparison/design-experiment.log
+Path: {scratch_dir}/cap_4L_lora_rank_comparison/logs/design-experiment.log
 Entries: 14
 Result: success
 ```
@@ -304,7 +304,7 @@ Result: success
 [2025-10-22 14:30:08] COMPLETE_DESIGN
 Details: Experiment design finished
 Experiment: cap_4L_lora_rank_comparison
-Files created: experiment_summary.yaml, design-experiment.log
+Files created: experiment_summary.yaml, logs/design-experiment.log
 Duration: 8.89 seconds
 Result: success
 ```
@@ -454,14 +454,14 @@ Result: success
 
 [2025-10-22 14:30:08] CREATE_LOG
 Details: Writing design log
-Path: {scratch_dir}/cap_4L_lora_rank_comparison/design-experiment.log
+Path: {scratch_dir}/cap_4L_lora_rank_comparison/logs/design-experiment.log
 Entries: 14
 Result: success
 
 [2025-10-22 14:30:08] COMPLETE_DESIGN
 Details: Experiment design finished
 Experiment: cap_4L_lora_rank_comparison
-Files created: experiment_summary.yaml, design-experiment.log
+Files created: experiment_summary.yaml, logs/design-experiment.log
 Duration: 8.89 seconds
 Result: success
 ```

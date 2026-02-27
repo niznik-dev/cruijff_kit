@@ -333,7 +333,6 @@ class TestRenderTemplate:
         """Script captures INSPECT_EXIT_CODE."""
         script = render_template(make_cli_args(), make_config())
         assert "INSPECT_EXIT_CODE=$?" in script
-        assert "INSPECT_EXIT_CODE == 0" in script
 
     def test_gpu_metrics_epoch_specific_dir(self):
         """GPU metrics write to epoch-specific subdir when epoch is set."""
@@ -347,13 +346,6 @@ class TestRenderTemplate:
         config = make_config(output_dir="/outputs/run1/")
         script = render_template(make_cli_args(), config)
         assert 'GPU_METRICS_DIR="/outputs/run1"' in script
-
-    def test_slurm_log_move(self):
-        """SLURM log is moved on success."""
-        config = make_config(output_dir="/outputs/run1/")
-        script = render_template(make_cli_args(), config)
-        assert "mv slurm-${SLURM_JOB_ID}.out /outputs/run1/" in script
-        assert "INSPECT_EXIT_CODE == 0" in script
 
     def test_time_override(self):
         """Custom time limit appears in SLURM header."""

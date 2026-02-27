@@ -10,8 +10,8 @@ This document covers run-experiment-specific logging practices.
 
 Run-experiment creates tool-specific logs:
 
-- **Torchtune execution:** `{experiment_dir}/run-torchtune.log`
-- **Inspect-ai execution:** `{experiment_dir}/run-inspect.log`
+- **Torchtune execution:** `{experiment_dir}/logs/run-torchtune.log`
+- **Inspect-ai execution:** `{experiment_dir}/logs/run-inspect.log`
 
 Both created during job execution to record job submissions, status changes, and completion.
 

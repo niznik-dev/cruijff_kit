@@ -33,7 +33,7 @@ Your tasks:
    a. Create eval/ subdirectory (with logs/ inside) in the run directory
    b. Generate eval_config.yaml with experiment-specific values (see Step 4 below)
    c. Call setup_inspect.py to render the SLURM script from the template (see Step 5 below)
-5. Create a detailed log at {experiment_dir}/scaffold-inspect.log
+5. Create a detailed log at {experiment_dir}/logs/scaffold-inspect.log
 
 Report back:
 - Summary of all created evaluation scripts (paths)
@@ -110,8 +110,8 @@ After scaffold-inspect completes, the experiment directory will contain:
 │       ├── eval_config.yaml
 │       ├── {task_name}_epoch0.slurm
 │       └── logs/
-├── scaffold-torchtune.log
-└── scaffold-inspect.log
+├── logs/scaffold-torchtune.log
+└── logs/scaffold-inspect.log
 ```
 
 ---

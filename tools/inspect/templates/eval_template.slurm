@@ -38,5 +38,3 @@ INSPECT_EXIT_CODE=$?
 # Stop GPU monitoring
 kill $GPU_MONITOR_PID 2>/dev/null
 wait $GPU_MONITOR_PID 2>/dev/null
-
-[ $INSPECT_EXIT_CODE == 0 ] && mv slurm-${SLURM_JOB_ID}.out <OUTPUT_DIR>  # Move SLURM log to output dir if successful to avoid clutter

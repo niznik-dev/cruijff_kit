@@ -450,10 +450,6 @@ class TestSaveLoadTensor:
 class TestFullPipeline:
     """End-to-end test of the full llm_utils pipeline."""
 
-    @pytest.mark.xfail(
-        reason="get_embeddings has bug concatenating attention masks across batches with different sequence lengths",
-        strict=True,
-    )
     def test_complete_workflow(self, loaded_model, prompts_and_targets, tmp_path):
         """Test complete workflow: load data → inference → save → load."""
         tokenizer, model = loaded_model
