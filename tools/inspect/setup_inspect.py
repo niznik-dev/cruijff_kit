@@ -37,30 +37,52 @@ def create_parser():
     )
 
     # --- Config file (has all experiment-specific values) ---
-    parser.add_argument("--config", type=str, required=True,
-                        help="Path to eval_config.yaml")
+    parser.add_argument(
+        "--config", type=str, required=True, help="Path to eval_config.yaml"
+    )
 
     # --- Model (for SLURM resource lookup) ---
-    parser.add_argument("--model_name", type=str, required=True,
-                        help="Model name key in MODEL_CONFIGS (e.g. 'Llama-3.2-1B-Instruct')")
+    parser.add_argument(
+        "--model_name",
+        type=str,
+        required=True,
+        help="Model name key in MODEL_CONFIGS (e.g. 'Llama-3.2-1B-Instruct')",
+    )
 
     # --- SLURM overrides (infrastructure, not experiment-specific) ---
-    parser.add_argument("--time", type=str, default="0:10:00",
-                        help="SLURM time limit (HH:MM:SS)")
-    parser.add_argument("--account", type=str, default=None,
-                        help="SLURM account")
-    parser.add_argument("--mem", type=str, default=None,
-                        help="SLURM memory (overrides model_configs default)")
-    parser.add_argument("--partition", type=str, default=None,
-                        help="SLURM partition (overrides model_configs default)")
-    parser.add_argument("--constraint", type=str, default=None,
-                        help="SLURM constraint (overrides model_configs default)")
-    parser.add_argument("--conda_env", type=str, default="cruijff",
-                        help="Conda environment name")
+    parser.add_argument(
+        "--time", type=str, default="0:10:00", help="SLURM time limit (HH:MM:SS)"
+    )
+    parser.add_argument("--account", type=str, default=None, help="SLURM account")
+    parser.add_argument(
+        "--mem",
+        type=str,
+        default=None,
+        help="SLURM memory (overrides model_configs default)",
+    )
+    parser.add_argument(
+        "--partition",
+        type=str,
+        default=None,
+        help="SLURM partition (overrides model_configs default)",
+    )
+    parser.add_argument(
+        "--constraint",
+        type=str,
+        default=None,
+        help="SLURM constraint (overrides model_configs default)",
+    )
+    parser.add_argument(
+        "--conda_env", type=str, default="cruijff", help="Conda environment name"
+    )
 
     # --- Output ---
-    parser.add_argument("--output_slurm", type=str, default=None,
-                        help="Output filename (default: {task_name}_epoch{epoch}.slurm)")
+    parser.add_argument(
+        "--output_slurm",
+        type=str,
+        default=None,
+        help="Output filename (default: {task_name}_epoch{epoch}.slurm)",
+    )
 
     return parser
 
@@ -85,7 +107,9 @@ def load_eval_config(config_path):
     required = ["task_script", "task_name", "model_path", "model_hf_name", "output_dir"]
     missing = [k for k in required if k not in config]
     if missing:
-        raise ValueError(f"eval_config.yaml missing required keys: {', '.join(missing)}")
+        raise ValueError(
+            f"eval_config.yaml missing required keys: {', '.join(missing)}"
+        )
 
     return config
 
@@ -198,26 +222,30 @@ def render_template(cli_args, config):
     script = script.replace("<METADATA_ARGS>", metadata_args)
 
     # CPUs from model config
-    script = script.replace("#SBATCH --cpus-per-task=1",
-                            f"#SBATCH --cpus-per-task={cpus}")
+    script = script.replace(
+        "#SBATCH --cpus-per-task=1", f"#SBATCH --cpus-per-task={cpus}"
+    )
 
     # Activate ##SBATCH lines when values provided
     # Account: CLI only (not a model property)
     if cli_args.account:
-        script = script.replace("##SBATCH --account=<ACT>",
-                                f"#SBATCH --account={cli_args.account}")
+        script = script.replace(
+            "##SBATCH --account=<ACT>", f"#SBATCH --account={cli_args.account}"
+        )
 
     # Partition: set by caller (scaffold agent reads claude.local.md)
     partition = cli_args.partition
     if partition is not None and partition != "":
-        script = script.replace("##SBATCH --partition=<PART>",
-                                f"#SBATCH --partition={partition}")
+        script = script.replace(
+            "##SBATCH --partition=<PART>", f"#SBATCH --partition={partition}"
+        )
 
     # Constraint: set by caller (scaffold agent reads claude.local.md)
     constraint = cli_args.constraint
     if constraint:
-        script = script.replace("##SBATCH --constraint=<CONST>",
-                                f"#SBATCH --constraint={constraint}")
+        script = script.replace(
+            "##SBATCH --constraint=<CONST>", f"#SBATCH --constraint={constraint}"
+        )
 
     return script
 

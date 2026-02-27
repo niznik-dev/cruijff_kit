@@ -25,7 +25,7 @@ from pathlib import Path
 from inspect_ai import Task, task
 from inspect_ai.dataset import hf_dataset, Sample
 from inspect_ai.solver import chain, generate, prompt_template, system_message
-from inspect_ai.scorer import match, includes, accuracy, stderr
+from inspect_ai.scorer import match, includes
 import yaml
 
 
@@ -37,7 +37,7 @@ def general_eval(
     temperature: float = 0.0,
     split: str = "test",
     max_tokens: Optional[int] = None,
-    vis_label: str = "",,
+    vis_label: str = "",
     use_chat_template: bool = True,
 ) -> Task:
     """
@@ -74,21 +74,23 @@ def general_eval(
                 f"Make sure config_dir points to an epoch directory with ../setup_finetune.yaml"
             )
 
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             config = yaml.safe_load(f)
 
         try:
             # Extract dataset path from config
-            dataset_ext = config['dataset_ext']
-            if dataset_ext == '.json':
-                data_path = config['input_dir_base'] + config['dataset_label'] + '.json'
+            dataset_ext = config["dataset_ext"]
+            if dataset_ext == ".json":
+                data_path = config["input_dir_base"] + config["dataset_label"] + ".json"
             else:
                 # For parquet or other formats
-                data_path = config['input_dir_base'] + config['dataset_label'] + dataset_ext
+                data_path = (
+                    config["input_dir_base"] + config["dataset_label"] + dataset_ext
+                )
 
             # Use system prompt from config unless overridden
             if not system_prompt:
-                system_prompt = config.get('system_prompt', '')
+                system_prompt = config.get("system_prompt", "")
 
         except KeyError as e:
             raise KeyError(f"Missing required key in setup_finetune.yaml: {e}")
@@ -114,10 +116,7 @@ def general_eval(
 
     # Define record to sample conversion
     def record_to_sample(record):
-        return Sample(
-            input=record["input"],
-            target=record["output"]
-        )
+        return Sample(input=record["input"], target=record["output"])
 
     # Load dataset
     # Assumes JSON format with structure: {"train": [...], "test": [...]}
@@ -126,7 +125,7 @@ def general_eval(
         data_files=data_path,
         field=split,  # Access the specified split (e.g., "test")
         split="train",  # Top-level split (confusing but this is how hf_dataset works with nested JSON)
-        sample_fields=record_to_sample
+        sample_fields=record_to_sample,
     )
 
     # Build solver chain based on chat template usage
@@ -135,26 +134,30 @@ def general_eval(
         solver_chain = chain(
             system_message(system_prompt),
             prompt_template("{prompt}"),
-            generate({
-                "temperature": temperature,
-                **({"max_tokens": max_tokens} if max_tokens else {})
-            })
+            generate(
+                {
+                    "temperature": temperature,
+                    **({"max_tokens": max_tokens} if max_tokens else {}),
+                }
+            ),
         )
     else:
         # Base models: simple text, no system message
         solver_chain = chain(
             prompt_template("{prompt}"),
-            generate({
-                "temperature": temperature,
-                **({"max_tokens": max_tokens} if max_tokens else {})
-            })
+            generate(
+                {
+                    "temperature": temperature,
+                    **({"max_tokens": max_tokens} if max_tokens else {}),
+                }
+            ),
         )
 
     # Configure scorers
     # Using multiple scorers to get different perspectives on accuracy
     scorers = [
         match(location="exact", ignore_case=False),  # Exact match (case-sensitive)
-        includes(ignore_case=False)  # Substring match (case-sensitive)
+        includes(ignore_case=False),  # Substring match (case-sensitive)
     ]
 
     return Task(

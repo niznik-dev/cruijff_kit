@@ -8,9 +8,11 @@ args = parser.parse_args()
 lm = dspy.LM(model=args.model_path)
 dspy.settings.configure(lm=lm)
 
+
 class Capitalizer(dspy.Signature):
     word = dspy.InputField()
     capitalized_word = dspy.OutputField()
+
 
 class SimpleCapitalizer(dspy.Module):
     def __init__(self):
@@ -19,6 +21,7 @@ class SimpleCapitalizer(dspy.Module):
 
     def forward(self, word):
         return self.generate(word=word)
+
 
 if __name__ == "__main__":
     capitalizer = SimpleCapitalizer()

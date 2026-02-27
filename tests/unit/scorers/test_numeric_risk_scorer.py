@@ -33,6 +33,7 @@ from cruijff_kit.tools.inspect.scorers.calibration_metrics import (
 # Helpers
 # =============================================================================
 
+
 def _make_state(completion: str):
     """Build a mock TaskState with the given text completion (no logprobs needed)."""
     message = ChatMessageAssistant(content=completion)
@@ -57,6 +58,7 @@ def _run(coro):
 # =============================================================================
 # _parse_risk_score tests
 # =============================================================================
+
 
 class TestParseRiskScore:
     """Tests for the _parse_risk_score helper function."""
@@ -98,6 +100,7 @@ class TestParseRiskScore:
 # =============================================================================
 # Binary scoring tests
 # =============================================================================
+
 
 class TestBinaryScoring:
     """Tests for binary classification with default labels ("0", "1")."""
@@ -210,6 +213,7 @@ class TestBinaryScoring:
 # Custom labels tests
 # =============================================================================
 
+
 class TestCustomLabels:
     """Tests with non-default label names."""
 
@@ -240,6 +244,7 @@ class TestCustomLabels:
 # =============================================================================
 # Edge cases
 # =============================================================================
+
 
 class TestEdgeCases:
     """Tests for error handling and malformed input."""
@@ -326,32 +331,45 @@ class TestEdgeCases:
 # Metric compatibility tests
 # =============================================================================
 
+
 class TestMetricCompatibility:
     """Verify synthetic option_probs work with all calibration metrics."""
 
     def _make_scores(self) -> list[Score]:
         """Build a set of Score objects matching numeric_risk_scorer output format."""
         return [
-            Score(value=CORRECT, metadata={
-                "risk_score": 0.8,
-                "option_probs": {"0": 0.2, "1": 0.8},
-                "target": "1",
-            }),
-            Score(value=CORRECT, metadata={
-                "risk_score": 0.3,
-                "option_probs": {"0": 0.7, "1": 0.3},
-                "target": "0",
-            }),
-            Score(value=INCORRECT, metadata={
-                "risk_score": 0.6,
-                "option_probs": {"0": 0.4, "1": 0.6},
-                "target": "0",
-            }),
-            Score(value=CORRECT, metadata={
-                "risk_score": 0.9,
-                "option_probs": {"0": 0.1, "1": 0.9},
-                "target": "1",
-            }),
+            Score(
+                value=CORRECT,
+                metadata={
+                    "risk_score": 0.8,
+                    "option_probs": {"0": 0.2, "1": 0.8},
+                    "target": "1",
+                },
+            ),
+            Score(
+                value=CORRECT,
+                metadata={
+                    "risk_score": 0.3,
+                    "option_probs": {"0": 0.7, "1": 0.3},
+                    "target": "0",
+                },
+            ),
+            Score(
+                value=INCORRECT,
+                metadata={
+                    "risk_score": 0.6,
+                    "option_probs": {"0": 0.4, "1": 0.6},
+                    "target": "0",
+                },
+            ),
+            Score(
+                value=CORRECT,
+                metadata={
+                    "risk_score": 0.9,
+                    "option_probs": {"0": 0.1, "1": 0.9},
+                    "target": "1",
+                },
+            ),
         ]
 
     def test_expected_calibration_error_works(self):
@@ -385,11 +403,16 @@ class TestMetricCompatibility:
     def test_scores_with_none_risk_handled(self):
         """Metrics gracefully skip samples with risk_score=None."""
         scores = self._make_scores()
-        scores.append(Score(value=INCORRECT, metadata={
-            "risk_score": None,
-            "option_probs": None,
-            "target": "1",
-        }))
+        scores.append(
+            Score(
+                value=INCORRECT,
+                metadata={
+                    "risk_score": None,
+                    "option_probs": None,
+                    "target": "1",
+                },
+            )
+        )
         metric_fn = brier_score()
         result = metric_fn(scores)
         assert isinstance(result, float)

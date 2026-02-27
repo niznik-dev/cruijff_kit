@@ -14,7 +14,7 @@ logger = setup_logger(__name__)
 
 msgs = [
     Message(role="system", content="Capitalize the first letter of the given word"),
-    Message(role="user",   content="apple"),
+    Message(role="user", content="apple"),
     Message(role="assistant", content="Apple"),
 ]
 

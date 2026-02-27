@@ -32,7 +32,7 @@ def _create_acs_task(
     temperature: float = 1e-7,
     max_tokens: int = 5,
     vis_label: str = "",
-    use_chat_template = True
+    use_chat_template=True,
 ) -> Task:
     """
     Create an ACS binary prediction eval task.
@@ -55,18 +55,15 @@ def _create_acs_task(
     config = {}
 
     if config_path:
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             config = yaml.safe_load(f) or {}
-        prompt_str = config.get('prompt', '{input}')
-        system_prompt = config.get('system_prompt', '')
+        prompt_str = config.get("prompt", "{input}")
+        system_prompt = config.get("system_prompt", "")
 
     def record_to_sample(record):
         # Wrap input with prompt template - same as chat_completion training
         formatted_input = prompt_str.format(input=record["input"])
-        return Sample(
-            input=formatted_input,
-            target=record["output"]
-        )
+        return Sample(input=formatted_input, target=record["output"])
 
     dataset = hf_dataset(
         path="json",
@@ -93,7 +90,7 @@ def _create_acs_task(
         solver=solver,
         scorer=build_scorers(config),
         # generate log probabilities of top 20 tokens from inspect (sets output_logits=True on model generate() call)
-        config= GenerateConfig(logprobs=True, top_logprobs=20),                                                                                                                  
+        config=GenerateConfig(logprobs=True, top_logprobs=20),
     )
 
 
@@ -106,43 +103,132 @@ def acs_binary(
     temperature: float = 1e-7,
     max_tokens: int = 5,
     vis_label: str = "",
-    use_chat_template = True
+    use_chat_template=True,
 ) -> Task:
     """Generic ACS binary prediction task. Works with any ACS dataset."""
-    return _create_acs_task("acs_binary", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
+    return _create_acs_task(
+        "acs_binary",
+        data_path,
+        config_path,
+        split,
+        temperature,
+        max_tokens,
+        vis_label,
+        use_chat_template,
+    )
 
 
 # Task-specific aliases for clarity in eval logs
 @task
-def acs_income(data_path: str, config_path: str = "", split: str = "test",
-               temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "", use_chat_template = True) -> Task:
+def acs_income(
+    data_path: str,
+    config_path: str = "",
+    split: str = "test",
+    temperature: float = 1e-7,
+    max_tokens: int = 5,
+    vis_label: str = "",
+    use_chat_template=True,
+) -> Task:
     """ACS income prediction (>$50k)."""
-    return _create_acs_task("acs_income", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
+    return _create_acs_task(
+        "acs_income",
+        data_path,
+        config_path,
+        split,
+        temperature,
+        max_tokens,
+        vis_label,
+        use_chat_template,
+    )
 
 
 @task
-def acs_employment(data_path: str, config_path: str = "", split: str = "test",
-                   temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "", use_chat_template = True) -> Task:
+def acs_employment(
+    data_path: str,
+    config_path: str = "",
+    split: str = "test",
+    temperature: float = 1e-7,
+    max_tokens: int = 5,
+    vis_label: str = "",
+    use_chat_template=True,
+) -> Task:
     """ACS employment prediction (employed as civilian)."""
-    return _create_acs_task("acs_employment", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
+    return _create_acs_task(
+        "acs_employment",
+        data_path,
+        config_path,
+        split,
+        temperature,
+        max_tokens,
+        vis_label,
+        use_chat_template,
+    )
 
 
 @task
-def acs_mobility(data_path: str, config_path: str = "", split: str = "test",
-                 temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "", use_chat_template = True) -> Task:
+def acs_mobility(
+    data_path: str,
+    config_path: str = "",
+    split: str = "test",
+    temperature: float = 1e-7,
+    max_tokens: int = 5,
+    vis_label: str = "",
+    use_chat_template=True,
+) -> Task:
     """ACS mobility prediction (moved in last year)."""
-    return _create_acs_task("acs_mobility", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
+    return _create_acs_task(
+        "acs_mobility",
+        data_path,
+        config_path,
+        split,
+        temperature,
+        max_tokens,
+        vis_label,
+        use_chat_template,
+    )
 
 
 @task
-def acs_publiccoverage(data_path: str, config_path: str = "", split: str = "test",
-                       temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "", use_chat_template = True) -> Task:
+def acs_publiccoverage(
+    data_path: str,
+    config_path: str = "",
+    split: str = "test",
+    temperature: float = 1e-7,
+    max_tokens: int = 5,
+    vis_label: str = "",
+    use_chat_template=True,
+) -> Task:
     """ACS public health coverage prediction."""
-    return _create_acs_task("acs_publiccoverage", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
+    return _create_acs_task(
+        "acs_publiccoverage",
+        data_path,
+        config_path,
+        split,
+        temperature,
+        max_tokens,
+        vis_label,
+        use_chat_template,
+    )
 
 
 @task
-def acs_traveltime(data_path: str, config_path: str = "", split: str = "test",
-                   temperature: float = 1e-7, max_tokens: int = 5, vis_label: str = "", use_chat_template = True) -> Task:
+def acs_traveltime(
+    data_path: str,
+    config_path: str = "",
+    split: str = "test",
+    temperature: float = 1e-7,
+    max_tokens: int = 5,
+    vis_label: str = "",
+    use_chat_template=True,
+) -> Task:
     """ACS travel time prediction (>20 min commute)."""
-    return _create_acs_task("acs_traveltime", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
+    return _create_acs_task(
+        "acs_traveltime",
+        data_path,
+        config_path,
+        split,
+        temperature,
+        max_tokens,
+        vis_label,
+        use_chat_template,
+    )

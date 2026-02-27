@@ -68,12 +68,12 @@ def extract_acs(
     print(f"Loading {task} dataset from HuggingFace...")
     print(f"  Subset: {task}")
     print(f"  Revision: {FOLKTEXTS_REVISION}")
-    print(f"  Splits: train, validation, test")
+    print("  Splits: train, validation, test")
 
     # Load dataset from HuggingFace
     dataset = load_dataset("acruz/folktexts", task, revision=FOLKTEXTS_REVISION)
 
-    print(f"Dataset loaded!")
+    print("Dataset loaded!")
     print(f"  Train: {len(dataset['train'])} examples")
     print(f"  Validation: {len(dataset['validation'])} examples")
     print(f"  Test: {len(dataset['test'])} examples")
@@ -88,26 +88,30 @@ def extract_acs(
 
         # Balanced sampling: equal numbers from each class
         half_size = size // 2
-        class_0 = split_data.filter(lambda x: x['label'] == 0).shuffle(seed=random_seed)
-        class_1 = split_data.filter(lambda x: x['label'] == 1).shuffle(seed=random_seed)
+        class_0 = split_data.filter(lambda x: x["label"] == 0).shuffle(seed=random_seed)
+        class_1 = split_data.filter(lambda x: x["label"] == 1).shuffle(seed=random_seed)
 
         # Check we have enough samples
         if len(class_0) < half_size:
-            raise ValueError(f"Not enough class 0 samples: need {half_size}, have {len(class_0)}")
+            raise ValueError(
+                f"Not enough class 0 samples: need {half_size}, have {len(class_0)}"
+            )
         if len(class_1) < half_size:
-            raise ValueError(f"Not enough class 1 samples: need {half_size}, have {len(class_1)}")
+            raise ValueError(
+                f"Not enough class 1 samples: need {half_size}, have {len(class_1)}"
+            )
 
         # Sample equal from each class and concatenate
         from datasets import concatenate_datasets
-        sampled = concatenate_datasets([
-            class_0.select(range(half_size)),
-            class_1.select(range(half_size))
-        ]).shuffle(seed=random_seed)
+
+        sampled = concatenate_datasets(
+            [class_0.select(range(half_size)), class_1.select(range(half_size))]
+        ).shuffle(seed=random_seed)
         return sampled
 
-    train_sample = sample_split(dataset['train'], train_size)
-    val_sample = sample_split(dataset['validation'], val_size)
-    test_sample = sample_split(dataset['test'], test_size)
+    train_sample = sample_split(dataset["train"], train_size)
+    val_sample = sample_split(dataset["validation"], val_size)
+    test_sample = sample_split(dataset["test"], test_size)
 
     # Convert to cruijff_kit format
     print("Converting to cruijff_kit JSON format...")
@@ -119,38 +123,44 @@ def extract_acs(
             # Combine instruction, description, and question for full context
             full_input = f"{example['instruction']}\n{example['description']}\n\n{binary_question}"
 
-            converted.append({
-                "input": full_input,
-                "output": str(example['label'])  # "1" = positive class, "0" = negative class
-            })
+            converted.append(
+                {
+                    "input": full_input,
+                    "output": str(
+                        example["label"]
+                    ),  # "1" = positive class, "0" = negative class
+                }
+            )
         return converted
 
     output_data = {
         "train": convert_split(train_sample),
         "validation": convert_split(val_sample),
-        "test": convert_split(test_sample)
+        "test": convert_split(test_sample),
     }
 
     # Save to JSON
     print(f"\nSaving to {output_path}...")
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(output_data, f, indent=2)
 
-    print(f"\nExtraction complete!")
+    print("\nExtraction complete!")
     print(f"  Task: {task}")
     print(f"  Question: {binary_question}")
     print(f"  Balanced: {balanced}")
     print(f"  Train: {len(output_data['train'])} examples")
     print(f"  Validation: {len(output_data['validation'])} examples")
     print(f"  Test: {len(output_data['test'])} examples")
-    print(f"  Total: {len(output_data['train']) + len(output_data['validation']) + len(output_data['test'])} examples")
+    print(
+        f"  Total: {len(output_data['train']) + len(output_data['validation']) + len(output_data['test'])} examples"
+    )
     print(f"  Output: {output_path}")
 
     # Print a sample example
-    if output_data['train']:
-        print(f"\nSample example:")
+    if output_data["train"]:
+        print("\nSample example:")
         print(f"  Input: {output_data['train'][0]['input'][:150]}...")
         print(f"  Output: {output_data['train'][0]['output']}")
 

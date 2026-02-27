@@ -51,17 +51,14 @@ def bit_sequences(
     system_prompt = ""
 
     if config_path:
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             config = yaml.safe_load(f)
-        prompt_str = config.get('prompt', '{input}')
-        system_prompt = config.get('system_prompt', '')
+        prompt_str = config.get("prompt", "{input}")
+        system_prompt = config.get("system_prompt", "")
 
     def record_to_sample(record):
         formatted_input = prompt_str.format(input=record["input"])
-        return Sample(
-            input=formatted_input,
-            target=record["output"]
-        )
+        return Sample(input=formatted_input, target=record["output"])
 
     dataset = hf_dataset(
         path="json",

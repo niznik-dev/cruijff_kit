@@ -1,7 +1,5 @@
 """Tests for cruijff_kit.utils.run_names."""
 
-import pytest
-
 from cruijff_kit.utils.run_names import (
     generate_model_run_name,
     POSITIVE_ADJECTIVES,

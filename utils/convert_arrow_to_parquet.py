@@ -26,11 +26,7 @@ from cruijff_kit.utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 
-def convert_arrow_to_parquet(
-    input_dir: str,
-    output_dir: str,
-    verbose: bool = True
-):
+def convert_arrow_to_parquet(input_dir: str, output_dir: str, verbose: bool = True):
     """
     Convert Arrow format dataset to Parquet files.
 
@@ -55,7 +51,9 @@ def convert_arrow_to_parquet(
     # Save each split as a separate Parquet file
     for split_name, split_data in dataset.items():
         if verbose:
-            logger.info(f"Converting split '{split_name}' with {len(split_data)} examples")
+            logger.info(
+                f"Converting split '{split_name}' with {len(split_data)} examples"
+            )
 
         # Save as Parquet
         parquet_file = output_path / f"{split_name}.parquet"
@@ -80,35 +78,29 @@ def main():
     parser = argparse.ArgumentParser(
         description="Convert Arrow format dataset to Parquet files",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__
+        epilog=__doc__,
     )
 
     parser.add_argument(
         "--input_dir",
         type=str,
         required=True,
-        help="Path to Arrow dataset directory (saved with save_to_disk)"
+        help="Path to Arrow dataset directory (saved with save_to_disk)",
     )
 
     parser.add_argument(
         "--output_dir",
         type=str,
         required=True,
-        help="Directory to save the Parquet files"
+        help="Directory to save the Parquet files",
     )
 
-    parser.add_argument(
-        "--quiet",
-        action="store_true",
-        help="Suppress progress output"
-    )
+    parser.add_argument("--quiet", action="store_true", help="Suppress progress output")
 
     args = parser.parse_args()
 
     convert_arrow_to_parquet(
-        input_dir=args.input_dir,
-        output_dir=args.output_dir,
-        verbose=not args.quiet
+        input_dir=args.input_dir, output_dir=args.output_dir, verbose=not args.quiet
     )
 
 

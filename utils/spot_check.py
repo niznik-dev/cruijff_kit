@@ -23,9 +23,7 @@ Or from Python:
 
 import argparse
 import json
-from pathlib import Path
 
-import torch
 
 from cruijff_kit.utils.llm_utils import load_model, get_next_tokens
 
@@ -52,7 +50,9 @@ def load_data(data_path: str, n: int, split: str = None):
     # Handle nested format with splits
     if split:
         if split not in data:
-            raise ValueError(f"Split '{split}' not found. Available: {list(data.keys())}")
+            raise ValueError(
+                f"Split '{split}' not found. Available: {list(data.keys())}"
+            )
         data = data[split]
     elif isinstance(data, dict) and "train" in data:
         # Auto-detect nested format, default to validation
@@ -97,15 +97,15 @@ def spot_check(
     Returns:
         List of dicts with prompt, expected, and generated outputs
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("SPOT CHECK")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Model: {model_path}")
     if adapter_path:
         print(f"Adapter: {adapter_path}")
     print(f"Data: {data_path}")
     print(f"Samples: {n}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Load model
     print("Loading model...")
@@ -135,13 +135,13 @@ def spot_check(
         )
         decoded = tokenizer.decode(tokens[0], skip_special_tokens=True)
         outputs.append(decoded)
-        print(f"  [{i+1}/{n}] done")
+        print(f"  [{i + 1}/{n}] done")
 
     # Display results
     results = []
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("RESULTS")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     for i, (prompt, expected, generated) in enumerate(zip(prompts, targets, outputs)):
         result = {
@@ -152,7 +152,7 @@ def spot_check(
         }
         results.append(result)
 
-        print(f"[{i+1}/{n}]")
+        print(f"[{i + 1}/{n}]")
         if show_full_prompt:
             print(f"  Prompt:    {prompt}")
         else:
@@ -166,25 +166,42 @@ def spot_check(
 
     # Summary
     matches = sum(1 for r in results if r["match"])
-    print(f"{'='*60}")
-    print(f"SUMMARY: {matches}/{n} exact matches ({100*matches/n:.1f}%)")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}")
+    print(f"SUMMARY: {matches}/{n} exact matches ({100 * matches / n:.1f}%)")
+    print(f"{'=' * 60}\n")
 
     return results
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Quick spot-check inference on fine-tuned models")
+    parser = argparse.ArgumentParser(
+        description="Quick spot-check inference on fine-tuned models"
+    )
     parser.add_argument("--model", required=True, help="Path to base model")
-    parser.add_argument("--adapter", default=None, help="Path to PEFT adapter (optional)")
+    parser.add_argument(
+        "--adapter", default=None, help="Path to PEFT adapter (optional)"
+    )
     parser.add_argument("--data", required=True, help="Path to JSON data file")
-    parser.add_argument("--split", default=None, help="Data split (e.g., 'train', 'validation')")
-    parser.add_argument("--n", type=int, default=5, help="Number of samples (default: 5)")
-    parser.add_argument("--max-new-tokens", type=int, default=10, help="Max tokens to generate (default: 10)")
+    parser.add_argument(
+        "--split", default=None, help="Data split (e.g., 'train', 'validation')"
+    )
+    parser.add_argument(
+        "--n", type=int, default=5, help="Number of samples (default: 5)"
+    )
+    parser.add_argument(
+        "--max-new-tokens",
+        type=int,
+        default=10,
+        help="Max tokens to generate (default: 10)",
+    )
     parser.add_argument("--preprompt", default="", help="Text to prepend to prompts")
     parser.add_argument("--sysprompt", default="", help="System prompt")
-    parser.add_argument("--no-chat-template", action="store_true", help="Disable chat template")
-    parser.add_argument("--show-full-prompt", action="store_true", help="Show full prompt text")
+    parser.add_argument(
+        "--no-chat-template", action="store_true", help="Disable chat template"
+    )
+    parser.add_argument(
+        "--show-full-prompt", action="store_true", help="Show full prompt text"
+    )
 
     args = parser.parse_args()
 

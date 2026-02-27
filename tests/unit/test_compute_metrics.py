@@ -8,7 +8,6 @@ Tests use fixture data — no cluster or GPU required.
 
 import json
 import textwrap
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -30,8 +29,8 @@ from cruijff_kit.tools.slurm.compute_metrics import (
 # parse_seff_output()
 # =============================================================================
 
-class TestParseSeffOutput:
 
+class TestParseSeffOutput:
     SAMPLE_SEFF = textwrap.dedent("""\
         Job ID: 12345678
         Cluster: della
@@ -110,8 +109,8 @@ class TestParseSeffOutput:
 # parse_sacct_time_limit()
 # =============================================================================
 
-class TestParseSacctTimeLimit:
 
+class TestParseSacctTimeLimit:
     def test_basic_time_limit(self):
         assert parse_sacct_time_limit("00:15:00\n") == "00:15:00"
 
@@ -134,8 +133,8 @@ class TestParseSacctTimeLimit:
 # summarize_gpu_metrics()
 # =============================================================================
 
-class TestSummarizeGpuMetrics:
 
+class TestSummarizeGpuMetrics:
     def test_basic_csv(self, tmp_path):
         csv_content = textwrap.dedent("""\
             timestamp, utilization.gpu [%], utilization.memory [%], memory.used [MiB], memory.total [MiB], power.draw [W], temperature.gpu
@@ -156,7 +155,9 @@ class TestSummarizeGpuMetrics:
 
     def test_empty_csv(self, tmp_path):
         csv_path = tmp_path / "gpu_metrics.csv"
-        csv_path.write_text("timestamp, utilization.gpu [%], utilization.memory [%], memory.used [MiB], memory.total [MiB], power.draw [W], temperature.gpu\n")
+        csv_path.write_text(
+            "timestamp, utilization.gpu [%], utilization.memory [%], memory.used [MiB], memory.total [MiB], power.draw [W], temperature.gpu\n"
+        )
 
         result = summarize_gpu_metrics(csv_path)
         assert result["gpu_util_mean"] is None
@@ -193,7 +194,9 @@ class TestSummarizeGpuMetrics:
 
     def test_gpu_util_min_none_when_empty(self, tmp_path):
         csv_path = tmp_path / "gpu_metrics.csv"
-        csv_path.write_text("timestamp, utilization.gpu [%], utilization.memory [%], memory.used [MiB], memory.total [MiB], power.draw [W], temperature.gpu\n")
+        csv_path.write_text(
+            "timestamp, utilization.gpu [%], utilization.memory [%], memory.used [MiB], memory.total [MiB], power.draw [W], temperature.gpu\n"
+        )
 
         result = summarize_gpu_metrics(csv_path)
         assert result["gpu_util_min"] is None
@@ -247,8 +250,8 @@ class TestSummarizeGpuMetrics:
 # format_compute_table()
 # =============================================================================
 
-class TestFormatComputeTable:
 
+class TestFormatComputeTable:
     def test_basic_table(self):
         jobs = [
             {
@@ -291,8 +294,18 @@ class TestFormatComputeTable:
 
     def test_multiple_jobs(self):
         jobs = [
-            {"run_name": "job1", "job_type": "finetune", "wall_time": "00:10:00", "time_limit": "00:15:00"},
-            {"run_name": "job2", "job_type": "eval", "wall_time": "00:01:00", "time_limit": "00:10:00"},
+            {
+                "run_name": "job1",
+                "job_type": "finetune",
+                "wall_time": "00:10:00",
+                "time_limit": "00:15:00",
+            },
+            {
+                "run_name": "job2",
+                "job_type": "eval",
+                "wall_time": "00:01:00",
+                "time_limit": "00:10:00",
+            },
         ]
         table = format_compute_table(jobs)
         lines = table.strip().split("\n")
@@ -349,7 +362,12 @@ class TestFormatComputeTable:
 
     def test_valid_markdown_format(self):
         jobs = [
-            {"run_name": "test", "job_type": "finetune", "wall_time": "00:05:00", "time_limit": "00:15:00"},
+            {
+                "run_name": "test",
+                "job_type": "finetune",
+                "wall_time": "00:05:00",
+                "time_limit": "00:15:00",
+            },
         ]
         table = format_compute_table(jobs)
         lines = table.strip().split("\n")
@@ -365,8 +383,8 @@ class TestFormatComputeTable:
 # check_jobstats_available()
 # =============================================================================
 
-class TestCheckJobstatsAvailable:
 
+class TestCheckJobstatsAvailable:
     @patch("cruijff_kit.tools.slurm.compute_metrics.shutil.which")
     def test_returns_true_when_found(self, mock_which):
         mock_which.return_value = "/usr/bin/jobstats"
@@ -383,8 +401,8 @@ class TestCheckJobstatsAvailable:
 # run_jobstats()
 # =============================================================================
 
-class TestRunJobstats:
 
+class TestRunJobstats:
     SAMPLE_JSON = {
         "nodes": {
             "della-l04g3": {
@@ -399,66 +417,95 @@ class TestRunJobstats:
 
     @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
     def test_json_mode_success(self, mock_run):
-        mock_run.return_value = type("R", (), {
-            "returncode": 0,
-            "stdout": json.dumps(self.SAMPLE_JSON),
-        })()
+        mock_run.return_value = type(
+            "R",
+            (),
+            {
+                "returncode": 0,
+                "stdout": json.dumps(self.SAMPLE_JSON),
+            },
+        )()
         result = run_jobstats("12345", json_mode=True)
         assert result == self.SAMPLE_JSON
         mock_run.assert_called_once_with(
             ["jobstats", "-j", "12345"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
 
     @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
     def test_text_mode_success(self, mock_run):
-        mock_run.return_value = type("R", (), {
-            "returncode": 0,
-            "stdout": "Some formatted output\nNotes:\n* reduce memory",
-        })()
+        mock_run.return_value = type(
+            "R",
+            (),
+            {
+                "returncode": 0,
+                "stdout": "Some formatted output\nNotes:\n* reduce memory",
+            },
+        )()
         result = run_jobstats("12345", json_mode=False)
         assert "reduce memory" in result
         mock_run.assert_called_once_with(
             ["jobstats", "-n", "12345"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
 
     @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
     def test_timeout_returns_none(self, mock_run):
         import subprocess as sp
+
         mock_run.side_effect = sp.TimeoutExpired(cmd="jobstats", timeout=30)
         assert run_jobstats("12345") is None
 
     @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
     def test_nonzero_exit_returns_none(self, mock_run):
-        mock_run.return_value = type("R", (), {
-            "returncode": 1,
-            "stdout": "",
-        })()
+        mock_run.return_value = type(
+            "R",
+            (),
+            {
+                "returncode": 1,
+                "stdout": "",
+            },
+        )()
         assert run_jobstats("12345") is None
 
     @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
     def test_empty_nodes_returns_none(self, mock_run):
-        mock_run.return_value = type("R", (), {
-            "returncode": 0,
-            "stdout": json.dumps({"nodes": {}, "total_time": 100}),
-        })()
+        mock_run.return_value = type(
+            "R",
+            (),
+            {
+                "returncode": 0,
+                "stdout": json.dumps({"nodes": {}, "total_time": 100}),
+            },
+        )()
         assert run_jobstats("12345") is None
 
     @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
     def test_empty_stdout_returns_none(self, mock_run):
-        mock_run.return_value = type("R", (), {
-            "returncode": 0,
-            "stdout": "   \n",
-        })()
+        mock_run.return_value = type(
+            "R",
+            (),
+            {
+                "returncode": 0,
+                "stdout": "   \n",
+            },
+        )()
         assert run_jobstats("12345") is None
 
     @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
     def test_invalid_json_returns_none(self, mock_run):
-        mock_run.return_value = type("R", (), {
-            "returncode": 0,
-            "stdout": "not valid json {{{",
-        })()
+        mock_run.return_value = type(
+            "R",
+            (),
+            {
+                "returncode": 0,
+                "stdout": "not valid json {{{",
+            },
+        )()
         assert run_jobstats("12345") is None
 
 
@@ -466,16 +513,16 @@ class TestRunJobstats:
 # parse_jobstats_json()
 # =============================================================================
 
-class TestParseJobstatsJson:
 
+class TestParseJobstatsJson:
     def test_single_node(self):
         js = {
             "nodes": {
                 "della-l04g3": {
                     "cpus": 4,
-                    "total_memory": 42949672960,   # 40 GB
-                    "used_memory": 6442450944,      # 6 GB
-                    "total_time": 1200.0,           # 1200 CPU-seconds
+                    "total_memory": 42949672960,  # 40 GB
+                    "used_memory": 6442450944,  # 6 GB
+                    "total_time": 1200.0,  # 1200 CPU-seconds
                 }
             },
             "total_time": 600,  # 600 wall seconds
@@ -495,14 +542,14 @@ class TestParseJobstatsJson:
             "nodes": {
                 "node1": {
                     "cpus": 4,
-                    "total_memory": 21474836480,    # 20 GB
-                    "used_memory": 5368709120,       # 5 GB
+                    "total_memory": 21474836480,  # 20 GB
+                    "used_memory": 5368709120,  # 5 GB
                     "total_time": 800.0,
                 },
                 "node2": {
                     "cpus": 4,
-                    "total_memory": 21474836480,    # 20 GB
-                    "used_memory": 3221225472,       # 3 GB
+                    "total_memory": 21474836480,  # 20 GB
+                    "used_memory": 3221225472,  # 3 GB
                     "total_time": 400.0,
                 },
             },
@@ -556,8 +603,8 @@ class TestParseJobstatsJson:
                     "used_memory": 1413079040,
                     "total_time": 55.1,
                     "gpu_utilization": {"1": 44.4},
-                    "gpu_used_memory": {"1": 10697637888},    # ~9.96 GB
-                    "gpu_total_memory": {"1": 85899345920},   # 80 GB
+                    "gpu_used_memory": {"1": 10697637888},  # ~9.96 GB
+                    "gpu_total_memory": {"1": 85899345920},  # 80 GB
                 }
             },
             "total_time": 146,
@@ -577,8 +624,14 @@ class TestParseJobstatsJson:
                     "used_memory": 1073741824,
                     "total_time": 200.0,
                     "gpu_utilization": {"0": 60.0, "1": 80.0},
-                    "gpu_used_memory": {"0": 10737418240, "1": 10737418240},  # 10 GB each
-                    "gpu_total_memory": {"0": 85899345920, "1": 85899345920},  # 80 GB each
+                    "gpu_used_memory": {
+                        "0": 10737418240,
+                        "1": 10737418240,
+                    },  # 10 GB each
+                    "gpu_total_memory": {
+                        "0": 85899345920,
+                        "1": 85899345920,
+                    },  # 80 GB each
                 }
             },
             "total_time": 100,
@@ -632,8 +685,8 @@ class TestParseJobstatsJson:
 # extract_jobstats_notes()
 # =============================================================================
 
-class TestExtractJobstatsNotes:
 
+class TestExtractJobstatsNotes:
     def test_extracts_notes(self):
         text = textwrap.dedent("""\
             Job 12345 ran on della-l04g3
@@ -684,10 +737,7 @@ class TestExtractJobstatsNotes:
         assert len(notes) > 0  # Should keep the actual recommendations
 
     def test_strips_ansi_codes(self):
-        text = (
-            "\x1b[1mNotes:\x1b[0m\n"
-            "* \x1b[33mReduce memory to 8 GB\x1b[0m\n"
-        )
+        text = "\x1b[1mNotes:\x1b[0m\n* \x1b[33mReduce memory to 8 GB\x1b[0m\n"
         notes = extract_jobstats_notes(text)
         assert len(notes) == 1
         assert "\x1b" not in notes[0]
@@ -716,8 +766,8 @@ class TestExtractJobstatsNotes:
 # format_compute_table() — CPU columns
 # =============================================================================
 
-class TestFormatComputeTableCPU:
 
+class TestFormatComputeTableCPU:
     def test_cpu_columns_present_when_data_available(self):
         jobs = [
             {
@@ -775,7 +825,7 @@ class TestFormatComputeTableCPU:
         lines = table.strip().split("\n")
         # job2 row should have "-" for CPU columns — find by header name
         headers = [c.strip() for c in lines[0].split("|") if c.strip()]
-        job2_row = [l for l in lines if "job2" in l][0]
+        job2_row = [line for line in lines if "job2" in line][0]
         data_cells = [c.strip() for c in job2_row.split("|") if c.strip()]
         for col_name in ["CPU Eff", "CPU Mem (GB)"]:
             idx = next(i for i, h in enumerate(headers) if h == col_name)
@@ -829,8 +879,8 @@ class TestFormatComputeTableCPU:
 # format_compute_table() — dual-source GPU utilization
 # =============================================================================
 
-class TestFormatComputeTableDualGPU:
 
+class TestFormatComputeTableDualGPU:
     def test_dual_source_gpu_util(self):
         """Jobstats avg + nvidia-smi range → 'avg% (min–max%)'."""
         jobs = [
@@ -911,8 +961,8 @@ class TestFormatComputeTableDualGPU:
 # generate_gpu_recommendations()
 # =============================================================================
 
-class TestGenerateGpuRecommendations:
 
+class TestGenerateGpuRecommendations:
     def test_recommends_when_underutilized(self):
         jobs = [
             {

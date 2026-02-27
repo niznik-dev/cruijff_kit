@@ -4,15 +4,13 @@ These tests exercise the template rendering pipeline that the existing
 test_setup_finetune.py doesn't cover (helper functions only).
 """
 
-import os
 import sys
 import yaml
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from cruijff_kit.tools.torchtune.setup_finetune import main, create_parser
+from cruijff_kit.tools.torchtune.setup_finetune import main
 
 
 @pytest.fixture

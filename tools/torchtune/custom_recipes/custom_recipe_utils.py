@@ -53,7 +53,7 @@ def stash_adapter_files(output_dir: str, epoch: int, logger=None) -> None:
     adapter_files = [
         "adapter_config.json",
         "adapter_model.pt",
-        "adapter_model.safetensors"
+        "adapter_model.safetensors",
     ]
 
     stashed_count = 0

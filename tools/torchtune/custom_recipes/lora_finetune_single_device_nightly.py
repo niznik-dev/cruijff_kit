@@ -18,7 +18,9 @@ from omegaconf import DictConfig, ListConfig
 
 # !--- cruijff_kit patch ---!
 # Feature: stash_adapter_files - Helper function for checkpoint cleanup
-from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import stash_adapter_files
+from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
+    stash_adapter_files,
+)
 # !--- end cruijff_kit patch ---!
 
 from torch import nn
@@ -55,6 +57,7 @@ logger = setup_logger(__name__)
 # Conditional import of custom metrics
 try:
     from utils.finetune_custom_metrics import calculate_custom_metrics
+
     CUSTOM_METRICS_AVAILABLE = True
 except ImportError:
     CUSTOM_METRICS_AVAILABLE = False
@@ -191,8 +194,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Both save_last_epoch_only and epochs_to_save are in use. The value for save_last_epoch_only takes precedence but will be removed in a future release.",
             )
         self._save_last_epoch_only = cfg.get("save_last_epoch_only", False)
-        self._epochs_to_save = [self.total_epochs - 1] if self._save_last_epoch_only else cfg.get("epochs_to_save", 'all')
-        if self._epochs_to_save == 'all':
+        self._epochs_to_save = (
+            [self.total_epochs - 1]
+            if self._save_last_epoch_only
+            else cfg.get("epochs_to_save", "all")
+        )
+        if self._epochs_to_save == "all":
             self._epochs_to_save = list(range(self.total_epochs))
         self._stash_adapter_weights = cfg.get("stash_adapter_weights", False)
         # !--- end cruijff_kit patch ---!
@@ -201,9 +208,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._run_val_every_n_steps = cfg.get("run_val_every_n_steps", None)
         if self._run_val_every_n_steps is not None:
-            assert (
-                cfg.get("dataset_val") is not None
-            ), "run_val_every_n_steps is set but dataset_val is not provided"
+            assert cfg.get("dataset_val") is not None, (
+                "run_val_every_n_steps is set but dataset_val is not provided"
+            )
 
         # Enable metrics calculation automatically if utils.metrics is available
         self._calculate_custom_metrics = CUSTOM_METRICS_AVAILABLE
@@ -242,9 +249,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._get_embeddings = cfg.get("get_embeddings", False)
         self._embeddings_output_path = cfg.get("embeddings_output_path", None)
         if self._get_embeddings:
-            assert(
-                self._embeddings_output_path is not None
-            ), "embeddings_output_path must be set if get_embeddings is True"
+            assert self._embeddings_output_path is not None, (
+                "embeddings_output_path must be set if get_embeddings is True"
+            )
             self._embeddings = {}
             self._targets = {}
             os.makedirs(self._embeddings_output_path, exist_ok=True)
@@ -489,7 +496,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             assert (
                 cfg_profiler.get("_component_")
                 == "torchtune.training.setup_torch_profiler"
-            ), "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
+            ), (
+                "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
+            )
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
@@ -552,7 +561,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             lora_attn_modules=self._lora_attn_modules,
             apply_lora_to_mlp=self._apply_lora_to_mlp,
             apply_lora_to_output=self._apply_lora_to_output,
-            #state_dict_keys=model.state_dict().keys(), # ! Fails if left uncommented... Unexpected keyword...
+            # state_dict_keys=model.state_dict().keys(), # ! Fails if left uncommented... Unexpected keyword...
             base_missing=base_missing,
             base_unexpected=base_unexpected,
             lora_missing=lora_missing,
@@ -722,10 +731,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
     def _loss_step(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
-        
+
         # Shape [b, s], needed for the loss not the model
         labels = batch.pop("labels")
-        
+
         # run model
         with self.activations_handling_ctx:
             logits = self._model(**batch)
@@ -733,7 +742,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Calculate custom metrics before computing loss
         # We do this here because the logits are needed for custom metrics
         if self._calculate_custom_metrics:
-            metrics = calculate_custom_metrics(logits, labels, self._tokenizer, self._loss_fn.ignore_index)
+            metrics = calculate_custom_metrics(
+                logits, labels, self._tokenizer, self._loss_fn.ignore_index
+            )
             for metric_name, metric_value in metrics.items():
                 if isinstance(metric_value, torch.Tensor):
                     self._custom_metrics[metric_name] = metric_value.detach().item()
@@ -766,7 +777,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             if self.epochs_run not in self._embeddings:
                 self._embeddings[self.epochs_run] = embeddings.detach().item()
                 self._targets[self.epochs_run] = labels.detach().item()
-            else: # if already initialized for current epoch
+            else:  # if already initialized for current epoch
                 # Concatenate new embeddings and targets to the existing ones
                 self._embeddings[self.epochs_run] = torch.cat(
                     (self._embeddings[self.epochs_run], embeddings.detach())
@@ -791,39 +802,46 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._model.eval()
 
         # ! NOT WORKING! Needs to be fixed for packed sequences...
-        mask = batch.get("mask").materialize().float()  # shape: (batch_size, 1, seq_len, seq_len)
+        mask = (
+            batch.get("mask").materialize().float()
+        )  # shape: (batch_size, 1, seq_len, seq_len)
         logger.info(f"Attention mask shape: {mask.shape}")
         logger.info(f"Attention mask values:\n{mask}")
 
         # Define hook to capture the last hidden state
-        hidden_states = {'last_hidden': None}
+        hidden_states = {"last_hidden": None}
+
         def hook_fn(module, input, output):
-            hidden_states['last_hidden'] = output
+            hidden_states["last_hidden"] = output
 
         # Register hook to last layer of the model
         handle = self._model.layers[-1].register_forward_hook(hook_fn)
 
         # Run forward pass (no grad needed for embeddings)
         with torch.no_grad():
-            outputs = self._model(**batch)
+            self._model(**batch)
 
         # Access hidden state
-        last_hidden = hidden_states['last_hidden']  # shape: (batch_size, seq_len, hidden_size)
+        last_hidden = hidden_states[
+            "last_hidden"
+        ]  # shape: (batch_size, seq_len, hidden_size)
         logger.info(f"Last hidden state shape: {last_hidden.shape}")
         logger.info(f"Last hidden state values:\n{last_hidden}")
 
-        handle.remove() # Remove the hook
+        handle.remove()  # Remove the hook
 
         # Mean pooling (ignore padding tokens)
         # ! NOTE: This will ONLY make sense if no packing is used in the dataloader...
-        embeddings = (last_hidden * mask.unsqueeze(-1)).sum(1) / mask.sum(1) # shape: (batch_size, hidden_size)
+        embeddings = (last_hidden * mask.unsqueeze(-1)).sum(1) / mask.sum(
+            1
+        )  # shape: (batch_size, hidden_size)
 
         logger.info(f"Pooled embeddings shape: {embeddings.shape}")
         logger.info(f"Pooled embeddings values:\n{embeddings}")
 
         return embeddings
-    # !--- end cruijff_kit patch ---!
 
+    # !--- end cruijff_kit patch ---!
 
     def validate(self) -> Dict[str, float]:
         """
@@ -930,7 +948,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         loss_to_log = running_loss.detach().item() / num_tokens
                         pbar.set_description(
                             f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}",
-                            refresh=False
+                            refresh=False,
                         )
                         pbar.update(1)
 
@@ -951,12 +969,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 )
                             if self._clip_grad_norm is not None:
                                 log_dict.update({"grad_norm": grad_norm})
-                            
+
                             # Add custom metrics to log_dict and then reset for the next step
                             if self._custom_metrics:
                                 log_dict.update(self._custom_metrics)
                                 self._custom_metrics = {}
-                            
+
                             self._metric_logger.log_dict(
                                 log_dict,
                                 step=self.global_step,
@@ -1011,8 +1029,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     )
 
                     # Stash adapter files if configured (to avoid confusing inspect-ai)
-                    if self._stash_adapter_weights and not self._save_adapter_weights_only:
-                        log.info("Stashing adapter files from merged model checkpoint...")
+                    if (
+                        self._stash_adapter_weights
+                        and not self._save_adapter_weights_only
+                    ):
+                        log.info(
+                            "Stashing adapter files from merged model checkpoint..."
+                        )
                         stash_adapter_files(self._output_dir, curr_epoch, log)
                 else:
                     log.info(f"Skipping checkpoint save for epoch {curr_epoch}...")

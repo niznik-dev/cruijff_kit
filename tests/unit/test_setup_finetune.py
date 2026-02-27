@@ -76,29 +76,36 @@ def test_parse_epochs_invalid_text():
 
 # Tests for parse_bool()
 
-@pytest.mark.parametrize("value,expected", [
-    ("true", True),
-    ("True", True),
-    ("TRUE", True),
-    ("1", True),
-    ("yes", True),
-    ("Yes", True),
-    ("YES", True),
-])
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("true", True),
+        ("True", True),
+        ("TRUE", True),
+        ("1", True),
+        ("yes", True),
+        ("Yes", True),
+        ("YES", True),
+    ],
+)
 def test_parse_bool_true_values(value, expected):
     """Test that various true representations are parsed correctly."""
     assert parse_bool(value) == expected
 
 
-@pytest.mark.parametrize("value,expected", [
-    ("false", False),
-    ("False", False),
-    ("FALSE", False),
-    ("0", False),
-    ("no", False),
-    ("No", False),
-    ("NO", False),
-])
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("false", False),
+        ("False", False),
+        ("FALSE", False),
+        ("0", False),
+        ("no", False),
+        ("No", False),
+        ("NO", False),
+    ],
+)
 def test_parse_bool_false_values(value, expected):
     """Test that various false representations are parsed correctly."""
     assert parse_bool(value) == expected
@@ -127,6 +134,7 @@ def test_parse_bool_invalid_numeric():
 
 # Tests for calculate_lora_alpha()
 
+
 def test_calculate_lora_alpha():
     """Test LoRA alpha calculation (alpha = 2 * rank) for standard values."""
     assert calculate_lora_alpha(8) == 16
@@ -137,12 +145,16 @@ def test_calculate_lora_alpha():
 
 # Tests for validate_lr_scheduler()
 
-@pytest.mark.parametrize("scheduler_name", [
-    "get_cosine_schedule_with_warmup",
-    "get_linear_schedule_with_warmup",
-    "get_constant_schedule_with_warmup",
-    "get_exponential_schedule_with_warmup",
-])
+
+@pytest.mark.parametrize(
+    "scheduler_name",
+    [
+        "get_cosine_schedule_with_warmup",
+        "get_linear_schedule_with_warmup",
+        "get_constant_schedule_with_warmup",
+        "get_exponential_schedule_with_warmup",
+    ],
+)
 def test_validate_lr_scheduler_valid(scheduler_name):
     """Test that valid lr_scheduler names pass validation."""
     # Should not raise any exception
@@ -159,12 +171,16 @@ def test_validate_lr_scheduler_invalid():
 
 # Tests for validate_dataset_type()
 
-@pytest.mark.parametrize("dataset_type", [
-    "chat_completion",
-    "instruct_dataset",
-    "chat_dataset",
-    "text_completion_dataset",
-])
+
+@pytest.mark.parametrize(
+    "dataset_type",
+    [
+        "chat_completion",
+        "instruct_dataset",
+        "chat_dataset",
+        "text_completion_dataset",
+    ],
+)
 def test_validate_dataset_type_valid(dataset_type):
     """Test that valid dataset_type names pass validation."""
     validate_dataset_type(dataset_type)
@@ -180,12 +196,13 @@ def test_validate_dataset_type_invalid():
 
 # Tests for construct_output_dir()
 
+
 def test_construct_output_dir_with_experiment_and_trailing_slash():
     """Test output dir construction with experiment name and trailing slash."""
     result = construct_output_dir(
         output_dir_base="/scratch/output/",
         experiment_name="my_experiment",
-        model_run_name="run_123"
+        model_run_name="run_123",
     )
     assert result == "/scratch/output/my_experiment/ck-out-run_123/"
 
@@ -195,7 +212,7 @@ def test_construct_output_dir_with_experiment_no_trailing_slash():
     result = construct_output_dir(
         output_dir_base="/scratch/output",
         experiment_name="my_experiment",
-        model_run_name="run_123"
+        model_run_name="run_123",
     )
     assert result == "/scratch/output/my_experiment/ck-out-run_123/"
 
@@ -203,9 +220,7 @@ def test_construct_output_dir_with_experiment_no_trailing_slash():
 def test_construct_output_dir_without_experiment_trailing_slash():
     """Test output dir construction without experiment name, with trailing slash."""
     result = construct_output_dir(
-        output_dir_base="/scratch/output/",
-        experiment_name="",
-        model_run_name="run_123"
+        output_dir_base="/scratch/output/", experiment_name="", model_run_name="run_123"
     )
     assert result == "/scratch/output/ck-out-run_123/"
 
@@ -213,9 +228,7 @@ def test_construct_output_dir_without_experiment_trailing_slash():
 def test_construct_output_dir_without_experiment_no_trailing_slash():
     """Test output dir construction without experiment name, no trailing slash."""
     result = construct_output_dir(
-        output_dir_base="/scratch/output",
-        experiment_name="",
-        model_run_name="run_123"
+        output_dir_base="/scratch/output", experiment_name="", model_run_name="run_123"
     )
     assert result == "/scratch/output/ck-out-run_123/"
 
@@ -225,25 +238,26 @@ def test_construct_output_dir_experiment_name_none():
     result = construct_output_dir(
         output_dir_base="/scratch/output/",
         experiment_name=None,
-        model_run_name="run_123"
+        model_run_name="run_123",
     )
     assert result == "/scratch/output/ck-out-run_123/"
 
 
 # Tests for configure_dataset_for_format()
 
+
 def test_configure_dataset_parquet_with_validation():
     """Test parquet format configuration with validation dataset."""
     config = {
         "dataset": {"data_dir": "/data/my_dataset"},
-        "dataset_val": {"data_dir": "/data/my_dataset"}
+        "dataset_val": {"data_dir": "/data/my_dataset"},
     }
 
     result = configure_dataset_for_format(
         config,
         dataset_label="my_dataset",
         dataset_ext=".parquet",
-        dataset_type="instruct_dataset"  # type doesn't matter for parquet
+        dataset_type="instruct_dataset",  # type doesn't matter for parquet
     )
 
     assert result["dataset_label"] == "my_dataset"
@@ -253,15 +267,13 @@ def test_configure_dataset_parquet_with_validation():
 
 def test_configure_dataset_parquet_without_validation():
     """Test parquet format configuration without validation dataset."""
-    config = {
-        "dataset": {"data_dir": "/data/my_dataset"}
-    }
+    config = {"dataset": {"data_dir": "/data/my_dataset"}}
 
     result = configure_dataset_for_format(
         config,
         dataset_label="my_dataset",
         dataset_ext=".parquet",
-        dataset_type="instruct_dataset"
+        dataset_type="instruct_dataset",
     )
 
     assert result["dataset_label"] == "my_dataset"
@@ -273,14 +285,14 @@ def test_configure_dataset_json_instruct_with_validation():
     """Test JSON instruct_dataset format with validation dataset."""
     config = {
         "dataset": {"data_dir": "/data/my_dataset", "split": "train"},
-        "dataset_val": {"data_dir": "/data/my_dataset", "split": "validation"}
+        "dataset_val": {"data_dir": "/data/my_dataset", "split": "validation"},
     }
 
     result = configure_dataset_for_format(
         config,
         dataset_label="my_dataset",
         dataset_ext=".json",
-        dataset_type="instruct_dataset"
+        dataset_type="instruct_dataset",
     )
 
     assert result["dataset_label"] == "my_dataset"
@@ -299,15 +311,13 @@ def test_configure_dataset_json_instruct_with_validation():
 
 def test_configure_dataset_json_instruct_without_validation():
     """Test JSON instruct_dataset format without validation dataset."""
-    config = {
-        "dataset": {"data_dir": "/data/my_dataset", "split": "train"}
-    }
+    config = {"dataset": {"data_dir": "/data/my_dataset", "split": "train"}}
 
     result = configure_dataset_for_format(
         config,
         dataset_label="my_dataset",
         dataset_ext=".json",
-        dataset_type="instruct_dataset"
+        dataset_type="instruct_dataset",
     )
 
     assert result["dataset_label"] == "my_dataset"
@@ -323,14 +333,14 @@ def test_configure_dataset_json_chat_with_validation():
     """Test JSON chat_dataset format with validation dataset."""
     config = {
         "dataset": {"data_dir": "/data/my_dataset", "split": "train"},
-        "dataset_val": {"data_dir": "/data/my_dataset", "split": "validation"}
+        "dataset_val": {"data_dir": "/data/my_dataset", "split": "validation"},
     }
 
     result = configure_dataset_for_format(
         config,
         dataset_label="my_dataset",
         dataset_ext=".json",
-        dataset_type="chat_dataset"
+        dataset_type="chat_dataset",
     )
 
     assert result["dataset_label"] == "my_dataset"
@@ -347,15 +357,13 @@ def test_configure_dataset_json_chat_with_validation():
 
 def test_configure_dataset_json_chat_without_validation():
     """Test JSON chat_dataset format without validation dataset."""
-    config = {
-        "dataset": {"data_dir": "/data/my_dataset", "split": "train"}
-    }
+    config = {"dataset": {"data_dir": "/data/my_dataset", "split": "train"}}
 
     result = configure_dataset_for_format(
         config,
         dataset_label="my_dataset",
         dataset_ext=".json",
-        dataset_type="chat_dataset"
+        dataset_type="chat_dataset",
     )
 
     assert result["dataset_label"] == "my_dataset"
@@ -374,22 +382,22 @@ def test_configure_dataset_chat_completion():
             "split": "train",
             "model_path": "/models/Llama-3.2-1B-Instruct",
             "prompt": "{input}\n",
-            "system_prompt": ""
+            "system_prompt": "",
         },
         "dataset_val": {
             "data_files": "/data/my_dataset.json",
             "split": "validation",
             "model_path": "/models/Llama-3.2-1B-Instruct",
             "prompt": "{input}\n",
-            "system_prompt": ""
-        }
+            "system_prompt": "",
+        },
     }
 
     result = configure_dataset_for_format(
         config,
         dataset_label="my_dataset",
         dataset_ext=".json",
-        dataset_type="chat_completion"
+        dataset_type="chat_completion",
     )
 
     # chat_completion should pass through config unchanged (except dataset_label)
@@ -403,6 +411,7 @@ def test_configure_dataset_chat_completion():
 
 
 # Tests for extract_flat_params()
+
 
 def test_extract_flat_params_basic():
     """Test extracting flat parameters from nested recipe config."""
@@ -570,96 +579,90 @@ def test_recipe_param_mapping_has_expected_keys():
 
 # Tests for compute_training_steps()
 
+
 def test_compute_training_steps_basic():
     """Test basic step computation: 1000 samples, batch 4, no accumulation, 1 epoch."""
     result = compute_training_steps(
-        training_samples=1000, batch_size=4,
-        gradient_accumulation_steps=1, epochs=1
+        training_samples=1000, batch_size=4, gradient_accumulation_steps=1, epochs=1
     )
-    assert result['steps_per_epoch'] == 250
-    assert result['total_steps'] == 250
-    assert result['effective_batch_size'] == 4
+    assert result["steps_per_epoch"] == 250
+    assert result["total_steps"] == 250
+    assert result["effective_batch_size"] == 4
 
 
 def test_compute_training_steps_with_accumulation():
     """Test step computation with gradient accumulation."""
     result = compute_training_steps(
-        training_samples=1000, batch_size=4,
-        gradient_accumulation_steps=8, epochs=1
+        training_samples=1000, batch_size=4, gradient_accumulation_steps=8, epochs=1
     )
     # effective batch = 32, steps = ceil(1000/32) = 32
-    assert result['steps_per_epoch'] == 32
-    assert result['total_steps'] == 32
-    assert result['effective_batch_size'] == 32
+    assert result["steps_per_epoch"] == 32
+    assert result["total_steps"] == 32
+    assert result["effective_batch_size"] == 32
 
 
 def test_compute_training_steps_multiple_epochs():
     """Test step computation with multiple epochs."""
     result = compute_training_steps(
-        training_samples=100, batch_size=10,
-        gradient_accumulation_steps=1, epochs=3
+        training_samples=100, batch_size=10, gradient_accumulation_steps=1, epochs=3
     )
-    assert result['steps_per_epoch'] == 10
-    assert result['total_steps'] == 30
+    assert result["steps_per_epoch"] == 10
+    assert result["total_steps"] == 30
 
 
 def test_compute_training_steps_ceiling_division():
     """Test that partial batches are counted (ceil division)."""
     result = compute_training_steps(
-        training_samples=101, batch_size=10,
-        gradient_accumulation_steps=1, epochs=1
+        training_samples=101, batch_size=10, gradient_accumulation_steps=1, epochs=1
     )
     # ceil(101/10) = 11
-    assert result['steps_per_epoch'] == 11
-    assert result['total_steps'] == 11
+    assert result["steps_per_epoch"] == 11
+    assert result["total_steps"] == 11
 
 
 def test_compute_training_steps_large_batch_collapse():
     """Test the scenario that motivated this feature: large effective batch collapses steps."""
     result = compute_training_steps(
-        training_samples=100, batch_size=32,
-        gradient_accumulation_steps=8, epochs=1
+        training_samples=100, batch_size=32, gradient_accumulation_steps=8, epochs=1
     )
     # effective batch = 256, steps = ceil(100/256) = 1
-    assert result['steps_per_epoch'] == 1
-    assert result['total_steps'] == 1
-    assert result['effective_batch_size'] == 256
+    assert result["steps_per_epoch"] == 1
+    assert result["total_steps"] == 1
+    assert result["effective_batch_size"] == 256
 
 
 def test_compute_training_steps_exact_division():
     """Test when samples divide evenly into batches."""
     result = compute_training_steps(
-        training_samples=100, batch_size=10,
-        gradient_accumulation_steps=1, epochs=1
+        training_samples=100, batch_size=10, gradient_accumulation_steps=1, epochs=1
     )
-    assert result['steps_per_epoch'] == 10
-    assert result['total_steps'] == 10
+    assert result["steps_per_epoch"] == 10
+    assert result["total_steps"] == 10
 
 
 def test_compute_training_steps_zero_samples():
     """Test with zero training samples — should produce zero steps."""
     result = compute_training_steps(
-        training_samples=0, batch_size=4,
-        gradient_accumulation_steps=1, epochs=1
+        training_samples=0, batch_size=4, gradient_accumulation_steps=1, epochs=1
     )
-    assert result['steps_per_epoch'] == 0
-    assert result['total_steps'] == 0
+    assert result["steps_per_epoch"] == 0
+    assert result["total_steps"] == 0
 
 
 def test_compute_training_steps_zero_batch_size():
     """Test with zero batch_size — should raise ZeroDivisionError."""
     with pytest.raises(ZeroDivisionError):
         compute_training_steps(
-            training_samples=100, batch_size=0,
-            gradient_accumulation_steps=1, epochs=1
+            training_samples=100, batch_size=0, gradient_accumulation_steps=1, epochs=1
         )
 
 
 # Tests for warn_on_low_steps()
 
+
 def test_warn_on_low_steps_no_warnings(capsys):
     """Test no warnings when steps are sufficient."""
-    step_info = {'steps_per_epoch': 300, 'total_steps': 300, 'effective_batch_size': 4}
+    step_info = {"steps_per_epoch": 300, "total_steps": 300, "effective_batch_size": 4}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         warn_on_low_steps(step_info, num_warmup_steps=100)
@@ -670,7 +673,7 @@ def test_warn_on_low_steps_no_warnings(capsys):
 
 def test_warn_on_low_steps_warmup_exceeds_total():
     """Test warning when warmup steps exceed total steps."""
-    step_info = {'steps_per_epoch': 14, 'total_steps': 14, 'effective_batch_size': 256}
+    step_info = {"steps_per_epoch": 14, "total_steps": 14, "effective_batch_size": 256}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         warn_on_low_steps(step_info, num_warmup_steps=100)
@@ -680,7 +683,7 @@ def test_warn_on_low_steps_warmup_exceeds_total():
 
 def test_warn_on_low_steps_below_3x_warmup():
     """Test warning when total steps < 3 * warmup steps."""
-    step_info = {'steps_per_epoch': 10, 'total_steps': 10, 'effective_batch_size': 100}
+    step_info = {"steps_per_epoch": 10, "total_steps": 10, "effective_batch_size": 100}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         warn_on_low_steps(step_info, num_warmup_steps=5)
@@ -690,7 +693,7 @@ def test_warn_on_low_steps_below_3x_warmup():
 
 def test_warn_on_low_steps_both_warnings():
     """Test both warnings fire when steps < warmup and < 3x warmup."""
-    step_info = {'steps_per_epoch': 1, 'total_steps': 1, 'effective_batch_size': 256}
+    step_info = {"steps_per_epoch": 1, "total_steps": 1, "effective_batch_size": 256}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         warn_on_low_steps(step_info, num_warmup_steps=100)
@@ -699,7 +702,7 @@ def test_warn_on_low_steps_both_warnings():
 
 def test_warn_on_low_steps_exactly_3x_warmup_no_warning():
     """Test that exactly 3x warmup steps does not trigger the low-steps warning."""
-    step_info = {'steps_per_epoch': 30, 'total_steps': 30, 'effective_batch_size': 20}
+    step_info = {"steps_per_epoch": 30, "total_steps": 30, "effective_batch_size": 20}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         warn_on_low_steps(step_info, num_warmup_steps=10)
@@ -709,7 +712,7 @@ def test_warn_on_low_steps_exactly_3x_warmup_no_warning():
 def test_warn_on_low_steps_above_50_but_below_3x_warmup():
     """Test that total > 50 but < 3*warmup still warns (would have passed old check)."""
     # warmup=20, total=50: 50 < 60 (3*20), should warn
-    step_info = {'steps_per_epoch': 50, 'total_steps': 50, 'effective_batch_size': 20}
+    step_info = {"steps_per_epoch": 50, "total_steps": 50, "effective_batch_size": 20}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         warn_on_low_steps(step_info, num_warmup_steps=20)
@@ -721,7 +724,7 @@ def test_warn_on_low_steps_above_50_but_below_3x_warmup():
 def test_warn_on_low_steps_below_50_but_above_3x_warmup():
     """Test that total < 50 but > 3*warmup does NOT warn (would have failed old check)."""
     # warmup=5, total=34: 34 > 15 (3*5), should not warn
-    step_info = {'steps_per_epoch': 34, 'total_steps': 34, 'effective_batch_size': 3}
+    step_info = {"steps_per_epoch": 34, "total_steps": 34, "effective_batch_size": 3}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         warn_on_low_steps(step_info, num_warmup_steps=5)
