@@ -10,7 +10,7 @@ parser.add_argument(
     "--output_dir",
     type=Path,
     default=None,
-    help="Output directory (default: data/green/predictable_or_not/)"
+    help="Output directory (default: data/green/predictable_or_not/)",
 )
 args = parser.parse_args()
 
@@ -30,46 +30,43 @@ args.output_dir.mkdir(parents=True, exist_ok=True)
 # Predictable input and output
 pp = []
 for i in range(1000):
-    line = {'input': '', 'output': ''}
+    line = {"input": "", "output": ""}
     start = random.randint(0, 1000 - args.in_seq_len - 1)
     for j in range(args.in_seq_len):
-        line['input'] += str(start + j) + ','
-    line['output'] = str(start + j + 1)
+        line["input"] += str(start + j) + ","
+    line["output"] = str(start + j + 1)
     pp.append(line)
 
 # Predictable input and unpredictable output; just replace the output with a random number
 pu = copy.deepcopy(pp)
 for line in pu:
-    line['output'] = str(random.randint(0, 1000))
+    line["output"] = str(random.randint(0, 1000))
 
 # Unpredictable input and predictable output; 5 random numbers and the output is just always 42
 up = []
 for i in range(1000):
-    line = {'input': '', 'output': '42'}
+    line = {"input": "", "output": "42"}
     for j in range(5):
-        line['input'] += str(random.randint(0, 1000)) + ','
+        line["input"] += str(random.randint(0, 1000)) + ","
     up.append(line)
 
 # Unpredictable input and unpredictable output; just random numbers
 uu = copy.deepcopy(up)
 for line in uu:
-    line['output'] = str(random.randint(0, 1000))
+    line["output"] = str(random.randint(0, 1000))
 
 # Split each scenario 90/10 for train/validation and save with splits as top-level keys
-for scenario_name, scenario_data in [('pp', pp), ('pu', pu), ('up', up), ('uu', uu)]:
+for scenario_name, scenario_data in [("pp", pp), ("pu", pu), ("up", up), ("uu", uu)]:
     # Split 90/10
     split_point = int(len(scenario_data) * 0.9)
     train_data = scenario_data[:split_point]
     val_data = scenario_data[split_point:]
 
     # Create single JSON file with train/validation splits as top-level keys
-    output = {
-        'train': train_data,
-        'validation': val_data
-    }
+    output = {"train": train_data, "validation": val_data}
 
-    output_file = args.output_dir / f'{scenario_name}.json'
-    with open(output_file, 'w') as f:
+    output_file = args.output_dir / f"{scenario_name}.json"
+    with open(output_file, "w") as f:
         json.dump(output, f, indent=2)
 
-    print(f'{output_file}: {len(train_data)} train, {len(val_data)} validation')
+    print(f"{output_file}: {len(train_data)} train, {len(val_data)} validation")

@@ -10,11 +10,8 @@ Or locally (if GPU available): pytest tests/integration/test_llm_utils.py -v
 
 import os
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
-import numpy as np
 import torch
 
 from cruijff_kit.utils.llm_utils import (
@@ -34,27 +31,23 @@ from cruijff_kit.utils.llm_utils import (
 # GPU tests skip automatically if unset. See test_llm_utils.slurm for example.
 
 MODELS_BASE_DIR = os.environ.get("CK_MODELS_DIR", "")
-BASE_MODEL_NAME = os.environ.get(
-    "CK_TEST_MODEL",
-    "Llama-3.2-1B-Instruct"
-)
+BASE_MODEL_NAME = os.environ.get("CK_TEST_MODEL", "Llama-3.2-1B-Instruct")
 BASE_MODEL_PATH = os.path.join(MODELS_BASE_DIR, BASE_MODEL_NAME)
 
 
 # ─── Skip conditions ──────────────────────────────────────────────────────────
 
 requires_gpu = pytest.mark.skipif(
-    not torch.cuda.is_available(),
-    reason="CUDA not available - these tests require GPU"
+    not torch.cuda.is_available(), reason="CUDA not available - these tests require GPU"
 )
 
 requires_model = pytest.mark.skipif(
-    not os.path.exists(BASE_MODEL_PATH),
-    reason=f"Model not found at {BASE_MODEL_PATH}"
+    not os.path.exists(BASE_MODEL_PATH), reason=f"Model not found at {BASE_MODEL_PATH}"
 )
 
 
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="module")
 def test_data_file(tmp_path_factory):
@@ -79,9 +72,7 @@ def test_data_file(tmp_path_factory):
 def prompts_and_targets(test_data_file):
     """Load test prompts and targets."""
     prompts, targets, ids = load_prompts_and_targets(
-        test_data_file,
-        num_obs=None,
-        id_colname="id"
+        test_data_file, num_obs=None, id_colname="id"
     )
     return prompts, targets, ids
 
@@ -107,15 +98,14 @@ def temp_h5_file(tmp_path):
 
 # ─── Data Loading Tests ───────────────────────────────────────────────────────
 
+
 class TestLoadPromptsAndTargets:
     """Tests for load_prompts_and_targets function."""
 
     def test_loads_all_observations(self, test_data_file):
         """Verify all observations are loaded when num_obs=None."""
         prompts, targets, ids = load_prompts_and_targets(
-            test_data_file,
-            num_obs=None,
-            id_colname="id"
+            test_data_file, num_obs=None, id_colname="id"
         )
         assert len(prompts) == 4
         assert len(targets) == 4
@@ -123,18 +113,14 @@ class TestLoadPromptsAndTargets:
 
     def test_loads_limited_observations(self, test_data_file):
         """Verify num_obs limits the number loaded."""
-        prompts, targets, _ = load_prompts_and_targets(
-            test_data_file,
-            num_obs=2
-        )
+        prompts, targets, _ = load_prompts_and_targets(test_data_file, num_obs=2)
         assert len(prompts) == 2
         assert len(targets) == 2
 
     def test_correct_content(self, test_data_file):
         """Verify correct input/output content is loaded."""
         prompts, targets, ids = load_prompts_and_targets(
-            test_data_file,
-            id_colname="id"
+            test_data_file, id_colname="id"
         )
         assert prompts[0] == "apple"
         assert targets[0] == "Apple"
@@ -143,13 +129,13 @@ class TestLoadPromptsAndTargets:
     def test_no_ids_returns_none(self, test_data_file):
         """Verify ids is None when id_colname not specified."""
         prompts, targets, ids = load_prompts_and_targets(
-            test_data_file,
-            id_colname=None
+            test_data_file, id_colname=None
         )
         assert ids is None
 
 
 # ─── Model Loading Tests ──────────────────────────────────────────────────────
+
 
 @requires_gpu
 @requires_model
@@ -178,6 +164,7 @@ class TestLoadModel:
 
 # ─── Logit Extraction Tests ───────────────────────────────────────────────────
 
+
 @requires_gpu
 @requires_model
 class TestGetLogits:
@@ -189,9 +176,7 @@ class TestGetLogits:
         prompts, _, _ = prompts_and_targets
 
         logits = get_logits(
-            model, tokenizer, prompts,
-            batch_size=2,
-            use_chat_template=True
+            model, tokenizer, prompts, batch_size=2, use_chat_template=True
         )
 
         assert logits.shape[0] == len(prompts)
@@ -212,15 +197,14 @@ class TestGetLogits:
         prompts, _, _ = prompts_and_targets
 
         logits = get_logits(
-            model, tokenizer, prompts[:2],
-            batch_size=2,
-            dtype=torch.float32
+            model, tokenizer, prompts[:2], batch_size=2, dtype=torch.float32
         )
 
         assert logits.dtype == torch.float32
 
 
 # ─── Token Generation Tests ───────────────────────────────────────────────────
+
 
 @requires_gpu
 @requires_model
@@ -233,10 +217,12 @@ class TestGetNextTokens:
         prompts, _, _ = prompts_and_targets
 
         generated = get_next_tokens(
-            model, tokenizer, prompts[:2],
+            model,
+            tokenizer,
+            prompts[:2],
             batch_size=2,
             max_new_tokens=5,
-            do_sample=False
+            do_sample=False,
         )
 
         assert generated.shape[0] == 2
@@ -248,12 +234,14 @@ class TestGetNextTokens:
         prompts, _, _ = prompts_and_targets
 
         generated = get_next_tokens(
-            model, tokenizer, prompts[:2],
+            model,
+            tokenizer,
+            prompts[:2],
             batch_size=2,
             max_new_tokens=5,
             do_sample=True,
             num_return_sequences=2,
-            temperature=1.0
+            temperature=1.0,
         )
 
         # Shape should be (batch, num_return_sequences, seq_len)
@@ -266,10 +254,12 @@ class TestGetNextTokens:
         prompts, _, _ = prompts_and_targets
 
         generated = get_next_tokens(
-            model, tokenizer, prompts[:1],
+            model,
+            tokenizer,
+            prompts[:1],
             batch_size=1,
             max_new_tokens=10,
-            do_sample=False
+            do_sample=False,
         )
 
         decoded = tokenizer.decode(generated[0], skip_special_tokens=True)
@@ -277,6 +267,7 @@ class TestGetNextTokens:
 
 
 # ─── Embedding Extraction Tests ───────────────────────────────────────────────
+
 
 @requires_gpu
 @requires_model
@@ -289,11 +280,13 @@ class TestGetEmbeddings:
         prompts, _, _ = prompts_and_targets
 
         embeds, mask = get_embeddings(
-            model, tokenizer, prompts[:2],
+            model,
+            tokenizer,
+            prompts[:2],
             pool="last_non_padding",
             batch_size=2,
             return_mask=True,
-            last_layer_only=True
+            last_layer_only=True,
         )
 
         # Shape should be (batch, 1, hidden_size)
@@ -307,10 +300,7 @@ class TestGetEmbeddings:
         prompts, _, _ = prompts_and_targets
 
         embeds, mask = get_embeddings(
-            model, tokenizer, prompts[:2],
-            pool="mean",
-            batch_size=2,
-            return_mask=True
+            model, tokenizer, prompts[:2], pool="mean", batch_size=2, return_mask=True
         )
 
         assert mask is not None
@@ -322,16 +312,14 @@ class TestGetEmbeddings:
         prompts, _, _ = prompts_and_targets
 
         embeds, mask = get_embeddings(
-            model, tokenizer, prompts[:2],
-            pool="mean",
-            batch_size=2,
-            return_mask=False
+            model, tokenizer, prompts[:2], pool="mean", batch_size=2, return_mask=False
         )
 
         assert mask is None
 
 
 # ─── Pooling Tests ────────────────────────────────────────────────────────────
+
 
 class TestPoolHiddenStates:
     """Tests for pool_hidden_states function (no GPU required)."""
@@ -347,10 +335,7 @@ class TestPoolHiddenStates:
         """Create sample attention mask with varying lengths."""
         # First sequence: 3 real tokens, 2 padding
         # Second sequence: 5 real tokens, 0 padding
-        mask = torch.tensor([
-            [1, 1, 1, 0, 0],
-            [1, 1, 1, 1, 1]
-        ])
+        mask = torch.tensor([[1, 1, 1, 0, 0], [1, 1, 1, 1, 1]])
         return mask
 
     def test_pool_none(self, sample_hidden_states):
@@ -368,7 +353,7 @@ class TestPoolHiddenStates:
         result = pool_hidden_states(
             sample_hidden_states,
             pool="mean_non_padding",
-            attention_mask=sample_attention_mask
+            attention_mask=sample_attention_mask,
         )
         assert result.shape == (2, 2, 8)
 
@@ -389,7 +374,7 @@ class TestPoolHiddenStates:
         result = pool_hidden_states(
             sample_hidden_states,
             pool="last_non_padding",
-            attention_mask=sample_attention_mask
+            attention_mask=sample_attention_mask,
         )
         assert result.shape == (2, 2, 8)
         # First sequence should use index 2 (last non-padding)
@@ -416,6 +401,7 @@ class TestPoolHiddenStates:
 
 # ─── Save/Load Tests ──────────────────────────────────────────────────────────
 
+
 class TestSaveLoadTensor:
     """Tests for save_tensor_with_ids and load_tensor_with_ids."""
 
@@ -435,18 +421,12 @@ class TestSaveLoadTensor:
         """Verify attention mask survives roundtrip."""
         original_tensor = torch.randn(4, 10)
         original_ids = ["a", "b", "c", "d"]
-        original_mask = torch.tensor([
-            [1, 1, 1, 0, 0],
-            [1, 1, 1, 1, 0],
-            [1, 1, 0, 0, 0],
-            [1, 1, 1, 1, 1]
-        ])
+        original_mask = torch.tensor(
+            [[1, 1, 1, 0, 0], [1, 1, 1, 1, 0], [1, 1, 0, 0, 0], [1, 1, 1, 1, 1]]
+        )
 
         save_tensor_with_ids(
-            temp_h5_file,
-            original_tensor,
-            original_ids,
-            attention_mask=original_mask
+            temp_h5_file, original_tensor, original_ids, attention_mask=original_mask
         )
         loaded_tensor, loaded_ids, loaded_mask = load_tensor_with_ids(temp_h5_file)
 
@@ -464,6 +444,7 @@ class TestSaveLoadTensor:
 
 # ─── Full Pipeline Test ───────────────────────────────────────────────────────
 
+
 @requires_gpu
 @requires_model
 class TestFullPipeline:
@@ -471,7 +452,7 @@ class TestFullPipeline:
 
     @pytest.mark.xfail(
         reason="get_embeddings has bug concatenating attention masks across batches with different sequence lengths",
-        strict=True
+        strict=True,
     )
     def test_complete_workflow(self, loaded_model, prompts_and_targets, tmp_path):
         """Test complete workflow: load data → inference → save → load."""
@@ -480,18 +461,13 @@ class TestFullPipeline:
 
         # 1. Get logits
         logits = get_logits(
-            model, tokenizer, prompts,
-            batch_size=2,
-            use_chat_template=True
+            model, tokenizer, prompts, batch_size=2, use_chat_template=True
         )
         assert logits.shape[0] == len(prompts)
 
         # 2. Get embeddings
         embeds, mask = get_embeddings(
-            model, tokenizer, prompts,
-            pool="mean",
-            batch_size=2,
-            return_mask=True
+            model, tokenizer, prompts, pool="mean", batch_size=2, return_mask=True
         )
         assert embeds.shape[0] == len(prompts)
 
@@ -506,9 +482,11 @@ class TestFullPipeline:
 
         # 5. Generate tokens
         generated = get_next_tokens(
-            model, tokenizer, prompts[:2],
+            model,
+            tokenizer,
+            prompts[:2],
             batch_size=2,
             max_new_tokens=5,
-            do_sample=False
+            do_sample=False,
         )
         assert generated.shape[0] == 2

@@ -5,8 +5,6 @@ require GPU access via llm_utils.
 """
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 

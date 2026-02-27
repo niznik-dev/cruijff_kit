@@ -21,6 +21,7 @@ from cruijff_kit.tools.inspect.report_generator import (
 # Helpers
 # =============================================================================
 
+
 def _make_df(**kwargs) -> pd.DataFrame:
     """Build a single-row DataFrame for testing."""
     defaults = {
@@ -35,8 +36,8 @@ def _make_df(**kwargs) -> pd.DataFrame:
 # extract_calibration_metrics()
 # =============================================================================
 
-class TestExtractCalibrationMetrics:
 
+class TestExtractCalibrationMetrics:
     def test_basic_extraction(self):
         """Extract supplementary metrics from a simple dataframe."""
         df = _make_df(
@@ -99,11 +100,13 @@ class TestExtractCalibrationMetrics:
 
     def test_multiple_models(self):
         """Multiple models each get their own CalibrationResult."""
-        df = pd.DataFrame({
-            "model": ["model_a", "model_b"],
-            "results_total_samples": [500, 300],
-            "score_risk_scorer_cruijff_kit/ece": [0.1, 0.2],
-        })
+        df = pd.DataFrame(
+            {
+                "model": ["model_a", "model_b"],
+                "results_total_samples": [500, 300],
+                "score_risk_scorer_cruijff_kit/ece": [0.1, 0.2],
+            }
+        )
         supplementary = ["risk_scorer_cruijff_kit/ece"]
         results = extract_calibration_metrics(df, supplementary)
         assert len(results) == 2
@@ -112,9 +115,7 @@ class TestExtractCalibrationMetrics:
 
     def test_missing_column_yields_none(self):
         """Supplementary metric not in dataframe becomes None."""
-        df = _make_df(
-            **{"score_risk_scorer_cruijff_kit/ece": 0.12}
-        )
+        df = _make_df(**{"score_risk_scorer_cruijff_kit/ece": 0.12})
         supplementary = [
             "risk_scorer_cruijff_kit/ece",
             "risk_scorer_cruijff_kit/brier_score",  # not in df
@@ -126,12 +127,14 @@ class TestExtractCalibrationMetrics:
 
     def test_with_epoch_grouping(self):
         """Results grouped by model + epoch."""
-        df = pd.DataFrame({
-            "model": ["model_a", "model_a"],
-            "epoch": [1, 2],
-            "results_total_samples": [500, 500],
-            "score_risk_scorer_cruijff_kit/ece": [0.2, 0.15],
-        })
+        df = pd.DataFrame(
+            {
+                "model": ["model_a", "model_a"],
+                "epoch": [1, 2],
+                "results_total_samples": [500, 500],
+                "score_risk_scorer_cruijff_kit/ece": [0.2, 0.15],
+            }
+        )
         supplementary = ["risk_scorer_cruijff_kit/ece"]
         results = extract_calibration_metrics(df, supplementary)
         assert len(results) == 2
@@ -143,14 +146,17 @@ class TestExtractCalibrationMetrics:
 # _format_calibration_table()
 # =============================================================================
 
-class TestFormatCalibrationTable:
 
+class TestFormatCalibrationTable:
     def test_basic_table(self):
         """Produces a valid markdown table."""
         results = [
             CalibrationResult(
                 model_name="model_a",
-                metrics={"risk_scorer_cruijff_kit/ece": 0.123, "risk_scorer_cruijff_kit/auc_score": 0.789},
+                metrics={
+                    "risk_scorer_cruijff_kit/ece": 0.123,
+                    "risk_scorer_cruijff_kit/auc_score": 0.789,
+                },
                 sample_size=500,
                 epoch=3,
             ),
@@ -223,14 +229,20 @@ class TestFormatCalibrationTable:
 # _format_model_table() with calibration
 # =============================================================================
 
-class TestFormatModelTableCombined:
 
+class TestFormatModelTableCombined:
     def _metric(self, name="model_a", accuracy=0.75, epoch=1, n=500, **kw):
         from cruijff_kit.tools.inspect.report_generator import compute_wilson_ci
+
         ci_lo, ci_hi = compute_wilson_ci(accuracy, n)
         return ModelMetrics(
-            name=name, accuracy=accuracy, ci_lower=ci_lo, ci_upper=ci_hi,
-            sample_size=n, epoch=epoch, **kw,
+            name=name,
+            accuracy=accuracy,
+            ci_lower=ci_lo,
+            ci_upper=ci_hi,
+            sample_size=n,
+            epoch=epoch,
+            **kw,
         )
 
     def test_without_calibration(self):
@@ -242,10 +254,17 @@ class TestFormatModelTableCombined:
 
     def test_with_calibration_adds_columns(self):
         """Supplementary columns appear in header when calibration provided."""
-        cal = [CalibrationResult(
-            model_name="model_a", epoch=1, sample_size=500,
-            metrics={"risk_scorer_cruijff_kit/auc_score": 0.85, "risk_scorer_cruijff_kit/brier_score": 0.15},
-        )]
+        cal = [
+            CalibrationResult(
+                model_name="model_a",
+                epoch=1,
+                sample_size=500,
+                metrics={
+                    "risk_scorer_cruijff_kit/auc_score": 0.85,
+                    "risk_scorer_cruijff_kit/brier_score": 0.15,
+                },
+            )
+        ]
         table, footnotes = _format_model_table([self._metric()], calibration=cal)
         assert "AUC" in table
         assert "Brier Score" in table
@@ -256,14 +275,18 @@ class TestFormatModelTableCombined:
         """Models without calibration data get dashes in metric columns."""
         m_base = self._metric(name="base", accuracy=0.0, epoch=None)
         m_tuned = self._metric(name="tuned", accuracy=0.8, epoch=1)
-        cal = [CalibrationResult(
-            model_name="tuned", epoch=1, sample_size=500,
-            metrics={"risk_scorer_cruijff_kit/auc_score": 0.9},
-        )]
+        cal = [
+            CalibrationResult(
+                model_name="tuned",
+                epoch=1,
+                sample_size=500,
+                metrics={"risk_scorer_cruijff_kit/auc_score": 0.9},
+            )
+        ]
         table, footnotes = _format_model_table([m_base, m_tuned], calibration=cal)
         lines = table.strip().split("\n")
         # base model row should have "-" for AUC
-        base_row = [l for l in lines if "base" in l][0]
+        base_row = [line for line in lines if "base" in line][0]
         header_cells = [c.strip() for c in lines[0].split("|") if c.strip()]
         data_cells = [c.strip() for c in base_row.split("|") if c.strip()]
         auc_idx = next(i for i, h in enumerate(header_cells) if "AUC" in h)
@@ -290,15 +313,17 @@ class TestFormatModelTableCombined:
 # Provenance metadata
 # =============================================================================
 
-class TestProvenanceMetadata:
 
+class TestProvenanceMetadata:
     def _make_report_df(self):
         """Minimal DataFrame for generate_report."""
-        return pd.DataFrame({
-            "model": ["model_a"],
-            "results_total_samples": [100],
-            "score_match_accuracy": [0.75],
-        })
+        return pd.DataFrame(
+            {
+                "model": ["model_a"],
+                "results_total_samples": [100],
+                "score_match_accuracy": [0.75],
+            }
+        )
 
     def test_generated_by_in_header_and_footer(self, tmp_path):
         """generated_by appears in both header and footer."""
@@ -367,15 +392,17 @@ class TestProvenanceMetadata:
 # compute_section parameter
 # =============================================================================
 
-class TestComputeSection:
 
+class TestComputeSection:
     def _make_report_df(self):
         """Minimal DataFrame for generate_report."""
-        return pd.DataFrame({
-            "model": ["model_a"],
-            "results_total_samples": [100],
-            "score_match_accuracy": [0.75],
-        })
+        return pd.DataFrame(
+            {
+                "model": ["model_a"],
+                "results_total_samples": [100],
+                "score_match_accuracy": [0.75],
+            }
+        )
 
     def test_compute_section_none_unchanged(self, tmp_path):
         """compute_section=None produces output without compute section."""
@@ -420,8 +447,8 @@ class TestComputeSection:
 # _format_inspect_view_commands()
 # =============================================================================
 
-class TestFormatInspectViewCommands:
 
+class TestFormatInspectViewCommands:
     def test_empty_paths(self):
         """Empty list returns empty string."""
         assert _format_inspect_view_commands([]) == ""
@@ -475,7 +502,7 @@ class TestFormatInspectViewCommands:
             Path("/exp/alpha/logs/log.eval"),
         ]
         result = _format_inspect_view_commands(paths)
-        lines = [l for l in result.split("\n") if "inspect view start" in l]
+        lines = [line for line in result.split("\n") if "inspect view start" in line]
         assert "alpha" in lines[0]
         assert "zebra" in lines[1]
 
@@ -484,8 +511,8 @@ class TestFormatInspectViewCommands:
 # expand_details_for_pdf()
 # =============================================================================
 
-class TestExpandDetailsForPdf:
 
+class TestExpandDetailsForPdf:
     def test_summary_becomes_bold(self):
         """<summary> text becomes a **bold** label."""
         text = "<details>\n<summary>My Section</summary>\n\nSome content.\n\n</details>"
@@ -532,11 +559,13 @@ class TestExpandDetailsForPdf:
 
     def test_real_report_round_trip(self, tmp_path):
         """Expanding a generated report removes all HTML details tags."""
-        df = pd.DataFrame({
-            "model": ["model_a"],
-            "results_total_samples": [100],
-            "score_match_accuracy": [0.75],
-        })
+        df = pd.DataFrame(
+            {
+                "model": ["model_a"],
+                "results_total_samples": [100],
+                "score_match_accuracy": [0.75],
+            }
+        )
         log_paths = [
             Path("/exp/run1/eval/logs/log1.eval"),
             Path("/exp/run2/eval/logs/log2.eval"),

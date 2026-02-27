@@ -32,14 +32,22 @@ def temp_run_dir(tmp_path):
 def run_setup_finetune(run_dir, model_name="Llama-3.2-1B-Instruct", extra_args=None):
     """Helper to run setup_finetune.py and return generated slurm content."""
     cmd = [
-        "python", str(SCRIPT_PATH),
-        "--torchtune_model_name", model_name,
-        "--dataset_label", "test_dataset",
-        "--dataset_ext", ".json",
-        "--input_dir_base", "/fake/path/",
-        "--output_dir_base", "/fake/output/",
-        "--models_dir", "/fake/models/",
-        "--my_wandb_run_name", "test_run",
+        "python",
+        str(SCRIPT_PATH),
+        "--torchtune_model_name",
+        model_name,
+        "--dataset_label",
+        "test_dataset",
+        "--dataset_ext",
+        ".json",
+        "--input_dir_base",
+        "/fake/path/",
+        "--output_dir_base",
+        "/fake/output/",
+        "--models_dir",
+        "/fake/models/",
+        "--my_wandb_run_name",
+        "test_run",
     ]
     if extra_args:
         cmd.extend(extra_args)
@@ -52,7 +60,9 @@ def run_setup_finetune(run_dir, model_name="Llama-3.2-1B-Instruct", extra_args=N
     )
 
     if result.returncode != 0:
-        pytest.fail(f"setup_finetune.py failed:\nstderr: {result.stderr}\nstdout: {result.stdout}")
+        pytest.fail(
+            f"setup_finetune.py failed:\nstderr: {result.stderr}\nstdout: {result.stdout}"
+        )
 
     slurm_file = run_dir / "finetune.slurm"
     if not slurm_file.exists():
@@ -84,8 +94,7 @@ class TestModelAwareSlurmResources:
     def test_1b_constraint_via_cli(self, temp_run_dir):
         """1B model with --constraint sets constraint in SLURM script."""
         slurm = run_setup_finetune(
-            temp_run_dir, "Llama-3.2-1B-Instruct",
-            extra_args=["--constraint", "gpu80"]
+            temp_run_dir, "Llama-3.2-1B-Instruct", extra_args=["--constraint", "gpu80"]
         )
         assert "#SBATCH --constraint=gpu80" in slurm
 
@@ -161,7 +170,7 @@ class TestMigSupport:
         slurm = run_setup_finetune(
             temp_run_dir,
             "Llama-3.2-1B-Instruct",
-            extra_args=["--partition", "", "--mem", "16G"]
+            extra_args=["--partition", "", "--mem", "16G"],
         )
         assert "##SBATCH --partition=<PART>" in slurm
 
@@ -170,7 +179,7 @@ class TestMigSupport:
         slurm = run_setup_finetune(
             temp_run_dir,
             "Llama-3.2-1B-Instruct",
-            extra_args=["--partition", "", "--mem", "16G"]
+            extra_args=["--partition", "", "--mem", "16G"],
         )
         assert "#SBATCH --mem=16G" in slurm
 
@@ -181,9 +190,7 @@ class TestUserOverrides:
     def test_mem_override(self, temp_run_dir):
         """Custom --mem overrides model default."""
         slurm = run_setup_finetune(
-            temp_run_dir,
-            "Llama-3.2-1B-Instruct",
-            extra_args=["--mem", "64G"]
+            temp_run_dir, "Llama-3.2-1B-Instruct", extra_args=["--mem", "64G"]
         )
         assert "#SBATCH --mem=64G" in slurm
         assert "#SBATCH --mem=40G" not in slurm
@@ -193,16 +200,14 @@ class TestUserOverrides:
         slurm = run_setup_finetune(
             temp_run_dir,
             "Llama-3.2-1B-Instruct",
-            extra_args=["--partition", "gpu-debug"]
+            extra_args=["--partition", "gpu-debug"],
         )
         assert "#SBATCH --partition=gpu-debug" in slurm
 
     def test_constraint_override(self, temp_run_dir):
         """Custom --constraint sets constraint in SLURM script."""
         slurm = run_setup_finetune(
-            temp_run_dir,
-            "Llama-3.2-1B-Instruct",
-            extra_args=["--constraint", "gpu40"]
+            temp_run_dir, "Llama-3.2-1B-Instruct", extra_args=["--constraint", "gpu40"]
         )
         assert "#SBATCH --constraint=gpu40" in slurm
 

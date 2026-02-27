@@ -44,7 +44,7 @@ def bit_sequences(
     system_prompt: str = "",
     temperature: float = 1e-7,
     split: str = "validation",
-    max_tokens: int = 10
+    max_tokens: int = 10,
 ) -> Task:
     """
     Evaluation task for bit_sequences sanity check.
@@ -81,25 +81,27 @@ def bit_sequences(
                 f"Make sure config_dir points to an epoch directory with ../setup_finetune.yaml"
             )
 
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             config = yaml.safe_load(f)
 
         try:
             # Extract dataset path from config
-            dataset_ext = config['dataset_ext']
-            if dataset_ext == '.json':
-                data_path = config['input_dir_base'] + config['dataset_label'] + '.json'
+            dataset_ext = config["dataset_ext"]
+            if dataset_ext == ".json":
+                data_path = config["input_dir_base"] + config["dataset_label"] + ".json"
             else:
                 # For parquet or other formats
-                data_path = config['input_dir_base'] + config['dataset_label'] + dataset_ext
+                data_path = (
+                    config["input_dir_base"] + config["dataset_label"] + dataset_ext
+                )
 
             # Use system prompt from config unless overridden
             if not system_prompt:
-                system_prompt = config.get('system_prompt', '')
+                system_prompt = config.get("system_prompt", "")
 
             # For conditional_completion datasets: wrap input with training prompt to match format
             # Falls back to '{input}' (no wrapping) if not specified
-            eval_prompt = config.get('prompt', '{input}')
+            eval_prompt = config.get("prompt", "{input}")
 
         except KeyError as e:
             raise KeyError(f"Missing required key in setup_finetune.yaml: {e}")
@@ -107,7 +109,7 @@ def bit_sequences(
     elif dataset_path:
         # Mode 2: Direct dataset path
         data_path = dataset_path
-        eval_prompt = '{input}'  # Default: no wrapping
+        eval_prompt = "{input}"  # Default: no wrapping
 
         if not Path(data_path).exists():
             raise FileNotFoundError(f"Dataset file not found: {data_path}")
@@ -127,15 +129,12 @@ def bit_sequences(
     # Define record to sample conversion
     def record_to_sample(record, prompt_template=eval_prompt):
         # Wrap input with training prompt to match fine-tuning format
-        if '{input}' in prompt_template:
-            formatted_input = prompt_template.replace('{input}', record["input"])
+        if "{input}" in prompt_template:
+            formatted_input = prompt_template.replace("{input}", record["input"])
         else:
             # Append input if no placeholder
             formatted_input = prompt_template + record["input"]
-        return Sample(
-            input=formatted_input,
-            target=record["output"]
-        )
+        return Sample(input=formatted_input, target=record["output"])
 
     # Load dataset
     # Assumes JSON format with structure: {"train": [...], "validation": [...]}
@@ -144,24 +143,21 @@ def bit_sequences(
         data_files=data_path,
         field=split,  # Access the specified split (e.g., "validation")
         split="train",  # Top-level split (HuggingFace quirk - always use "train" here)
-        sample_fields=record_to_sample
+        sample_fields=record_to_sample,
     )
 
     # Build solver chain
     solver_chain = chain(
         system_message(system_prompt),
         prompt_template("{prompt}"),
-        generate(
-            temperature=temperature,
-            max_tokens=max_tokens
-        )
+        generate(temperature=temperature, max_tokens=max_tokens),
     )
 
     # Configure scorers for binary classification
     # Using both exact match and includes for robustness
     scorers = [
         match(location="exact", ignore_case=False),  # Exact match: "0" or "1"
-        includes(ignore_case=False)  # Substring match (for verbose responses)
+        includes(ignore_case=False),  # Substring match (for verbose responses)
     ]
 
     return Task(

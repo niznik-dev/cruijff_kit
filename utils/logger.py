@@ -29,7 +29,7 @@ def setup_logger(
     level: int = logging.INFO,
     log_file: Optional[str] = None,
     console: bool = True,
-    format_string: Optional[str] = None
+    format_string: Optional[str] = None,
 ) -> logging.Logger:
     """
     Configure and return a logger for cruijff_kit scripts.
@@ -66,12 +66,9 @@ def setup_logger(
     # Default format: [timestamp] [cruijff_kit] LEVEL: message
     # The [cruijff_kit] prefix helps identify cruijff_kit logs vs other packages
     if format_string is None:
-        format_string = '[%(asctime)s] [cruijff_kit] %(levelname)s: %(message)s'
+        format_string = "[%(asctime)s] [cruijff_kit] %(levelname)s: %(message)s"
 
-    formatter = logging.Formatter(
-        format_string,
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+    formatter = logging.Formatter(format_string, datefmt="%Y-%m-%d %H:%M:%S")
 
     # Console handler with auto-flush
     if console:
@@ -97,8 +94,8 @@ def setup_logger(
 
         # File logs include logger name for more context
         file_formatter = logging.Formatter(
-            '[%(asctime)s] %(name)s - %(levelname)s: %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            "[%(asctime)s] %(name)s - %(levelname)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)

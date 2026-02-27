@@ -197,6 +197,7 @@ MODEL_CONFIGS = {
     },
 }
 
+
 def configure_tokenizer(config, model_config, model_dir, model_name):
     """Configure tokenizer settings based on model family.
 
@@ -218,7 +219,9 @@ def configure_tokenizer(config, model_config, model_dir, model_name):
     if model_family == "llama":
         # Llama models use SentencePiece tokenizer
         config["tokenizer"]["_component_"] = tokenizer_config["component"]
-        config["tokenizer"]["path"] = f"${{models_dir}}/{model_dir}/original/tokenizer.model"
+        config["tokenizer"]["path"] = (
+            f"${{models_dir}}/{model_dir}/original/tokenizer.model"
+        )
     elif model_family == "mistral":
         # Mistral models use SentencePiece tokenizer (at model root, not in original/)
         config["tokenizer"]["_component_"] = tokenizer_config["component"]

@@ -60,7 +60,9 @@ def parse_seff_output(seff_text: str) -> dict:
         result["mem_used_gb"] = round(val, 2)
 
     # Parse memory requested from "Memory Efficiency: X% of 40.00 GB"
-    mem_req_match = re.search(r"Memory Efficiency:.*?of\s+([\d.]+)\s*(GB|MB|KB)", seff_text)
+    mem_req_match = re.search(
+        r"Memory Efficiency:.*?of\s+([\d.]+)\s*(GB|MB|KB)", seff_text
+    )
     if mem_req_match:
         val = float(mem_req_match.group(1))
         unit = mem_req_match.group(2)
@@ -173,10 +175,14 @@ def summarize_gpu_metrics(csv_path: Path) -> dict:
         }
 
     return {
-        "gpu_util_mean": round(sum(gpu_utils) / len(gpu_utils), 1) if gpu_utils else None,
+        "gpu_util_mean": round(sum(gpu_utils) / len(gpu_utils), 1)
+        if gpu_utils
+        else None,
         "gpu_util_max": round(max(gpu_utils), 1) if gpu_utils else None,
         "gpu_util_min": round(min(gpu_utils), 1) if gpu_utils else None,
-        "gpu_mem_used_mean_gb": round(sum(mem_useds) / len(mem_useds), 1) if mem_useds else None,
+        "gpu_mem_used_mean_gb": round(sum(mem_useds) / len(mem_useds), 1)
+        if mem_useds
+        else None,
         "gpu_mem_total_gb": round(mem_totals[0], 1) if mem_totals else None,
         "power_mean_w": round(sum(powers) / len(powers), 0) if powers else None,
         "sample_count": data_rows,
@@ -354,9 +360,9 @@ def extract_jobstats_notes(formatted_output: str) -> list[str]:
 
     # Discard line patterns (separators, URLs, boilerplate closers)
     _discard = re.compile(
-        r"^[-=]+$"            # separator lines
-        r"|https?://"         # URLs
-        r"|^See the .* below" # Grafana link preamble
+        r"^[-=]+$"  # separator lines
+        r"|https?://"  # URLs
+        r"|^See the .* below"  # Grafana link preamble
         r"|^Have a nice day",
         re.IGNORECASE,
     )
@@ -508,7 +514,11 @@ def format_compute_table(
             gpu_mem_str = "-"
 
         # GPU util: prefer jobstats average with nvidia-smi min–max range
-        if gpu_util_js is not None and gpu_util_min is not None and gpu_util_max is not None:
+        if (
+            gpu_util_js is not None
+            and gpu_util_min is not None
+            and gpu_util_max is not None
+        ):
             gpu_util_str = f"{gpu_util_js}% ({gpu_util_min}–{gpu_util_max}%)"
         elif gpu_util_js is not None:
             gpu_util_str = f"{gpu_util_js}%"

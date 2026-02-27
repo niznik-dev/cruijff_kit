@@ -35,7 +35,8 @@ def _binned_ece(predicted: list[float], actual: list[float], n_bins: int) -> flo
         hi = lo + bin_width
         # Include right edge in the last bin
         in_bin = [
-            (p, a) for p, a in zip(predicted, actual)
+            (p, a)
+            for p, a in zip(predicted, actual)
             if (lo < p <= hi) or (i == 0 and p == 0.0)
         ]
         if not in_bin:
@@ -57,6 +58,7 @@ def expected_calibration_error(n_bins: int = 10) -> Metric:
     via value_to_float() to handle both pre-reduction ("C"/"I") and
     post-reduction (1.0/0.0) representations.
     """
+
     def compute(scores: list[Score]) -> float:
         vtf = value_to_float()
         confidences = []
@@ -83,6 +85,7 @@ def risk_calibration_error(n_bins: int = 10) -> Metric:
     Score.value at all, so it is immune to the inspect-ai value-reduction bug.
     Binary tasks only (requires risk_score).
     """
+
     def compute(scores: list[Score]) -> float:
         risks = []
         actuals = []
@@ -114,6 +117,7 @@ def brier_score() -> Metric:
     Requires risk_score and target in Score.metadata (binary tasks only).
     Returns NaN for multiclass tasks where risk_score is not set.
     """
+
     def compute(scores: list[Score]) -> float:
         y_true = []
         y_prob = []
@@ -149,6 +153,7 @@ def auc_score() -> Metric:
     Returns NaN if only one class is present, fewer than 2 samples, or
     for multiclass tasks where risk_score is not set.
     """
+
     def compute(scores: list[Score]) -> float:
         y_true = []
         y_score = []

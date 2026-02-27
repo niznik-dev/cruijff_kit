@@ -11,6 +11,7 @@ from cruijff_kit.utils.logger import setup_logger
 # Set up logging
 logger = setup_logger(__name__)
 
+
 def compute_perplexity(logits, input_ids):
     shift_logits = logits[..., :-1, :].contiguous()
     shift_labels = input_ids[..., 1:].contiguous()
@@ -18,11 +19,14 @@ def compute_perplexity(logits, input_ids):
         shift_logits.view(-1, shift_logits.size(-1)),
         shift_labels.view(-1),
         ignore_index=-100,
-        reduction='mean'
+        reduction="mean",
     )
     return torch.exp(loss).item()
 
-def compare_models(base_model_path, adapter_path, prompt):
+
+def compare_models(
+    base_model_path, adapter_path, prompt, ppl_threshold=0.5, mse_threshold=0.01
+):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     tokenizer = AutoTokenizer.from_pretrained(base_model_path)
@@ -32,7 +36,7 @@ def compare_models(base_model_path, adapter_path, prompt):
     base_model = AutoModelForCausalLM.from_pretrained(
         base_model_path,
         torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-        device_map="auto"
+        device_map="auto",
     )
     base_model.eval()
 
@@ -40,7 +44,7 @@ def compare_models(base_model_path, adapter_path, prompt):
     adapter_model = AutoModelForCausalLM.from_pretrained(
         base_model_path,
         torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-        device_map="auto"
+        device_map="auto",
     )
     adapter_model = PeftModel.from_pretrained(adapter_model, adapter_path)
     adapter_model.eval()
@@ -60,16 +64,23 @@ def compare_models(base_model_path, adapter_path, prompt):
     logger.info(f"Logit MSE Difference:     {mse_diff:.6f}")
 
     if abs(base_ppl - adapter_ppl) < ppl_threshold and mse_diff < mse_threshold:
-        logger.warning("⚠️  Adapter model appears very similar to base model — fine-tuning might not have taken effect.")
+        logger.warning(
+            "⚠️  Adapter model appears very similar to base model — fine-tuning might not have taken effect."
+        )
     else:
         logger.info("✅ Adapter model is different — likely fine-tuned.")
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compare base vs adapter model using perplexity and logits.")
+    parser = argparse.ArgumentParser(
+        description="Compare base vs adapter model using perplexity and logits."
+    )
     parser.add_argument("--base_model_path", required=True, help="Path to base model")
     parser.add_argument("--ppl_threshold", required=True, help="Perplexity threshold")
     parser.add_argument("--mse_threshold", required=True, help="MSE threshold")
-    parser.add_argument("--adapter_path", required=True, help="Path to adapter (PEFT) model")
+    parser.add_argument(
+        "--adapter_path", required=True, help="Path to adapter (PEFT) model"
+    )
     parser.add_argument("--prompt", required=True, help="Input string to evaluate")
     args = parser.parse_args()
 

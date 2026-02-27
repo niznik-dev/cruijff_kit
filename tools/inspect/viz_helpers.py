@@ -61,27 +61,29 @@ def deduplicate_eval_files(eval_files: list[str]) -> tuple[list[str], list[str]]
             log = read_eval_log(filepath)
             # Extract timestamp from filename (format: YYYYMMDDTHHMMSS_...)
             filename = os.path.basename(filepath)
-            timestamp_str = filename.split('_')[0]
+            timestamp_str = filename.split("_")[0]
 
             # Get epoch from metadata if available
             metadata = {}
-            if hasattr(log.eval, 'metadata') and log.eval.metadata:
+            if hasattr(log.eval, "metadata") and log.eval.metadata:
                 metadata = log.eval.metadata
-            epoch = metadata.get('epoch', 'unknown')
+            epoch = metadata.get("epoch", "unknown")
 
-            file_details.append({
-                'path': filepath,
-                'timestamp': timestamp_str,
-                'model': log.eval.model,
-                'epoch': epoch,
-            })
+            file_details.append(
+                {
+                    "path": filepath,
+                    "timestamp": timestamp_str,
+                    "model": log.eval.model,
+                    "epoch": epoch,
+                }
+            )
         except Exception as e:
             # If we can't read the file, skip it
             print(f"Warning: Could not read {filepath}: {e}")
             continue
 
     # Sort by timestamp descending (most recent first)
-    file_details.sort(key=lambda x: x['timestamp'], reverse=True)
+    file_details.sort(key=lambda x: x["timestamp"], reverse=True)
 
     # Keep most recent per model+epoch combination
     seen_keys = set()
@@ -89,12 +91,12 @@ def deduplicate_eval_files(eval_files: list[str]) -> tuple[list[str], list[str]]
     skipped = []
 
     for fd in file_details:
-        key = (fd['model'], fd['epoch'])
+        key = (fd["model"], fd["epoch"])
         if key not in seen_keys:
             seen_keys.add(key)
-            kept.append(fd['path'])
+            kept.append(fd["path"])
         else:
-            skipped.append(fd['path'])
+            skipped.append(fd["path"])
 
     return kept, skipped
 
@@ -121,6 +123,7 @@ def parse_eval_metadata(logs_df: pd.DataFrame) -> pd.DataFrame:
         logs_df = parse_eval_metadata(logs_df)
         print(logs_df['epoch'].unique())  # [1, 2, 3]
     """
+
     def _parse_metadata(meta_str):
         """Parse JSON metadata string into dict."""
         # Handle pandas NA/None values
@@ -136,20 +139,20 @@ def parse_eval_metadata(logs_df: pd.DataFrame) -> pd.DataFrame:
         return {}
 
     # Parse metadata columns
-    if 'metadata' in logs_df.columns:
-        logs_df['epoch'] = logs_df['metadata'].apply(
-            lambda x: _parse_metadata(x).get('epoch', None)
+    if "metadata" in logs_df.columns:
+        logs_df["epoch"] = logs_df["metadata"].apply(
+            lambda x: _parse_metadata(x).get("epoch", None)
         )
-        logs_df['finetuned'] = logs_df['metadata'].apply(
-            lambda x: _parse_metadata(x).get('finetuned', None)
+        logs_df["finetuned"] = logs_df["metadata"].apply(
+            lambda x: _parse_metadata(x).get("finetuned", None)
         )
-        logs_df['source_model'] = logs_df['metadata'].apply(
-            lambda x: _parse_metadata(x).get('source_model', None)
+        logs_df["source_model"] = logs_df["metadata"].apply(
+            lambda x: _parse_metadata(x).get("source_model", None)
         )
 
     # Use vis_label for task_name
-    if 'task_arg_vis_label' in logs_df.columns:
-        logs_df['task_name'] = logs_df['task_arg_vis_label']
+    if "task_arg_vis_label" in logs_df.columns:
+        logs_df["task_name"] = logs_df["task_arg_vis_label"]
 
     return logs_df
 
@@ -220,19 +223,19 @@ def detect_metrics(logs_df: pd.DataFrame) -> DetectedMetrics:
             # ... generate supplementary plot
     """
     accuracy_cols = [
-        c for c in logs_df.columns
-        if c.startswith('score_') and c.endswith('_accuracy')
+        c for c in logs_df.columns if c.startswith("score_") and c.endswith("_accuracy")
     ]
     accuracy_names = [
-        c.replace('score_', '').replace('_accuracy', '') for c in accuracy_cols
+        c.replace("score_", "").replace("_accuracy", "") for c in accuracy_cols
     ]
 
     supplementary_names = [
-        c[len('score_'):] for c in logs_df.columns
-        if c.startswith('score_')
-        and not c.endswith('_accuracy')
-        and not c.endswith('_stderr')
-        and not c.startswith('score_headline_')
+        c[len("score_") :]
+        for c in logs_df.columns
+        if c.startswith("score_")
+        and not c.endswith("_accuracy")
+        and not c.endswith("_stderr")
+        and not c.startswith("score_headline_")
     ]
 
     # Sort into a deliberate presentation order:
@@ -242,8 +245,8 @@ def detect_metrics(logs_df: pd.DataFrame) -> DetectedMetrics:
         "auc_score": 0,
         "brier_score": 1,
         "expected_calibration_error": 2,  # C-ECE
-        "ece": 2,                         # C-ECE alias
-        "risk_calibration_error": 3,      # R-ECE
+        "ece": 2,  # C-ECE alias
+        "risk_calibration_error": 3,  # R-ECE
         "mean_risk_score": 4,
     }
 
@@ -277,11 +280,7 @@ def sanitize_columns_for_viz(df: pd.DataFrame) -> pd.DataFrame:
         viz_df = sanitize_columns_for_viz(logs_df)
         data = Data.from_dataframe(viz_df)  # safe for inspect-viz views
     """
-    rename_map = {
-        col: col.replace("/", "__")
-        for col in df.columns
-        if "/" in col
-    }
+    rename_map = {col: col.replace("/", "__") for col in df.columns if "/" in col}
     if not rename_map:
         return df
     return df.rename(columns=rename_map)
@@ -298,8 +297,7 @@ def evals_df_prep(logs: list[str]) -> pd.DataFrame:
         DataFrame with evaluation-level metrics and metadata
     """
     logs_df = evals_df(
-        logs=logs,
-        columns=(EvalInfo + EvalTask + EvalModel + EvalResults + EvalScores)
+        logs=logs, columns=(EvalInfo + EvalTask + EvalModel + EvalResults + EvalScores)
     )
     return logs_df
 
@@ -307,6 +305,7 @@ def evals_df_prep(logs: list[str]) -> pd.DataFrame:
 # =============================================================================
 # Per-sample risk data extraction and plotting
 # =============================================================================
+
 
 @dataclass
 class PerSampleRiskData:
@@ -335,23 +334,23 @@ def _extract_risk_from_log(log) -> PerSampleRiskData | None:
     """
     # Determine display name
     task_args = {}
-    if hasattr(log.eval, 'task_args') and log.eval.task_args:
+    if hasattr(log.eval, "task_args") and log.eval.task_args:
         task_args = log.eval.task_args
-    model_name = task_args.get('vis_label', log.eval.model)
+    model_name = task_args.get("vis_label", log.eval.model)
 
     y_true: list[float] = []
     y_score: list[float] = []
     n_total = len(log.samples) if log.samples else 0
 
-    for sample in (log.samples or []):
+    for sample in log.samples or []:
         scores = sample.scores or {}
-        risk_score_obj = scores.get('risk_scorer') or scores.get('numeric_risk_scorer')
+        risk_score_obj = scores.get("risk_scorer") or scores.get("numeric_risk_scorer")
         if risk_score_obj is None:
             continue
         meta = risk_score_obj.metadata or {}
-        risk = meta.get('risk_score')
-        target = meta.get('target')
-        option_probs = meta.get('option_probs')
+        risk = meta.get("risk_score")
+        target = meta.get("target")
+        option_probs = meta.get("option_probs")
         if risk is None or target is None or option_probs is None:
             continue
 
@@ -364,7 +363,9 @@ def _extract_risk_from_log(log) -> PerSampleRiskData | None:
     if n_valid < 2 or len(set(y_true)) < 2:
         logger.info(
             "Skipping %s: %d valid samples, %d classes",
-            model_name, n_valid, len(set(y_true)),
+            model_name,
+            n_valid,
+            len(set(y_true)),
         )
         return None
 
@@ -418,6 +419,7 @@ def generate_roc_overlay(
         return None
 
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from sklearn.metrics import roc_curve, auc
@@ -465,6 +467,7 @@ def generate_prediction_histogram(
         return None
 
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import numpy as np
@@ -482,8 +485,20 @@ def generate_prediction_histogram(
         base_rate = len(pos_scores) / len(y_score)
 
         bins = np.linspace(0, 1, n_bins + 1)
-        ax.hist(neg_scores, bins=bins, alpha=0.5, label=f"Negative (n={len(neg_scores)})", color="tab:blue")
-        ax.hist(pos_scores, bins=bins, alpha=0.5, label=f"Positive (n={len(pos_scores)})", color="tab:orange")
+        ax.hist(
+            neg_scores,
+            bins=bins,
+            alpha=0.5,
+            label=f"Negative (n={len(neg_scores)})",
+            color="tab:blue",
+        )
+        ax.hist(
+            pos_scores,
+            bins=bins,
+            alpha=0.5,
+            label=f"Positive (n={len(pos_scores)})",
+            color="tab:orange",
+        )
         ax.set_xlabel("Predicted P(positive)")
         ax.set_ylabel("Count")
         ax.set_title(f"{rd.model_name}  (base rate = {base_rate:.1%})")
@@ -497,6 +512,7 @@ def generate_prediction_histogram(
     fig.savefig(out, dpi=150, bbox_inches="tight")
     plt.close(fig)
     return out
+
 
 def generate_calibration_overlay(
     risk_data: list[PerSampleRiskData],
@@ -517,6 +533,7 @@ def generate_calibration_overlay(
         return None
 
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from sklearn.calibration import calibration_curve
@@ -524,10 +541,16 @@ def generate_calibration_overlay(
     fig, ax = plt.subplots(figsize=(7, 6))
     for rd in risk_data:
         fraction_pos, mean_predicted = calibration_curve(
-            rd.y_true, rd.y_score, n_bins=n_bins, strategy="uniform",
+            rd.y_true,
+            rd.y_score,
+            n_bins=n_bins,
+            strategy="uniform",
         )
         ax.plot(
-            mean_predicted, fraction_pos, "s-", linewidth=2,
+            mean_predicted,
+            fraction_pos,
+            "s-",
+            linewidth=2,
             label=f"{rd.model_name} (n={rd.n_valid})",
         )
 

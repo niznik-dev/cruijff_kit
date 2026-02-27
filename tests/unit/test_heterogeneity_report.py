@@ -1,8 +1,6 @@
 """Tests for cruijff_kit.tools.inspect.heterogeneity.heterogeneity_report."""
 
 import json
-import tempfile
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -20,37 +18,44 @@ from cruijff_kit.tools.inspect.heterogeneity.heterogeneity_report import (
 @pytest.fixture
 def basic_df():
     """A simple DataFrame with two groups and clear performance difference."""
-    return pd.DataFrame({
-        "INPUT": ["a"] * 100 + ["b"] * 100,
-        "TRUE_LABEL": [1, 0] * 50 + [1, 0] * 50,
-        "PREDICTION": [1, 0] * 50 + [0, 1] * 50,  # group A perfect, group B inverted
-        "P(TRUE LABEL)": [0.9, 0.9] * 50 + [0.1, 0.1] * 50,
-        "GROUP": ["A"] * 100 + ["B"] * 100,
-    })
+    return pd.DataFrame(
+        {
+            "INPUT": ["a"] * 100 + ["b"] * 100,
+            "TRUE_LABEL": [1, 0] * 50 + [1, 0] * 50,
+            "PREDICTION": [1, 0] * 50
+            + [0, 1] * 50,  # group A perfect, group B inverted
+            "P(TRUE LABEL)": [0.9, 0.9] * 50 + [0.1, 0.1] * 50,
+            "GROUP": ["A"] * 100 + ["B"] * 100,
+        }
+    )
 
 
 @pytest.fixture
 def uniform_df():
     """A DataFrame where all groups perform identically."""
-    return pd.DataFrame({
-        "INPUT": ["x"] * 60,
-        "TRUE_LABEL": [1, 0] * 30,
-        "PREDICTION": [1, 0] * 30,
-        "P(TRUE LABEL)": [0.8] * 60,
-        "GROUP": ["X"] * 20 + ["Y"] * 20 + ["Z"] * 20,
-    })
+    return pd.DataFrame(
+        {
+            "INPUT": ["x"] * 60,
+            "TRUE_LABEL": [1, 0] * 30,
+            "PREDICTION": [1, 0] * 30,
+            "P(TRUE LABEL)": [0.8] * 60,
+            "GROUP": ["X"] * 20 + ["Y"] * 20 + ["Z"] * 20,
+        }
+    )
 
 
 @pytest.fixture
 def single_class_group_df():
     """A DataFrame where one group has only one class (AUC undefined)."""
-    return pd.DataFrame({
-        "INPUT": ["a"] * 40,
-        "TRUE_LABEL": [1, 0] * 10 + [1] * 20,  # group B is all 1s
-        "PREDICTION": [1, 0] * 10 + [1] * 20,
-        "P(TRUE LABEL)": [0.8] * 40,
-        "GROUP": ["A"] * 20 + ["B"] * 20,
-    })
+    return pd.DataFrame(
+        {
+            "INPUT": ["a"] * 40,
+            "TRUE_LABEL": [1, 0] * 10 + [1] * 20,  # group B is all 1s
+            "PREDICTION": [1, 0] * 10 + [1] * 20,
+            "P(TRUE LABEL)": [0.8] * 40,
+            "GROUP": ["A"] * 20 + ["B"] * 20,
+        }
+    )
 
 
 @pytest.fixture
@@ -71,19 +76,44 @@ def multi_group_df():
     """
     good_rows = []
     for label in ["A", "B", "C", "D"]:
-        good_rows.extend([
-            {"INPUT": "x", "TRUE_LABEL": 1, "PREDICTION": 1,
-             "P(TRUE LABEL)": 0.9, "GROUP": label}
-        ] * 25 + [
-            {"INPUT": "x", "TRUE_LABEL": 0, "PREDICTION": 0,
-             "P(TRUE LABEL)": 0.9, "GROUP": label}
-        ] * 25)
+        good_rows.extend(
+            [
+                {
+                    "INPUT": "x",
+                    "TRUE_LABEL": 1,
+                    "PREDICTION": 1,
+                    "P(TRUE LABEL)": 0.9,
+                    "GROUP": label,
+                }
+            ]
+            * 25
+            + [
+                {
+                    "INPUT": "x",
+                    "TRUE_LABEL": 0,
+                    "PREDICTION": 0,
+                    "P(TRUE LABEL)": 0.9,
+                    "GROUP": label,
+                }
+            ]
+            * 25
+        )
     bad_rows = [
-        {"INPUT": "x", "TRUE_LABEL": 1, "PREDICTION": 0,
-         "P(TRUE LABEL)": 0.1, "GROUP": "E"}
+        {
+            "INPUT": "x",
+            "TRUE_LABEL": 1,
+            "PREDICTION": 0,
+            "P(TRUE LABEL)": 0.1,
+            "GROUP": "E",
+        }
     ] * 25 + [
-        {"INPUT": "x", "TRUE_LABEL": 0, "PREDICTION": 1,
-         "P(TRUE LABEL)": 0.1, "GROUP": "E"}
+        {
+            "INPUT": "x",
+            "TRUE_LABEL": 0,
+            "PREDICTION": 1,
+            "P(TRUE LABEL)": 0.1,
+            "GROUP": "E",
+        }
     ] * 25
     return pd.DataFrame(good_rows + bad_rows)
 
@@ -97,13 +127,15 @@ class TestLoadData:
         assert "GROUP" in df.columns
 
     def test_custom_group_column(self, tmp_path):
-        df = pd.DataFrame({
-            "INPUT": ["a", "b"],
-            "TRUE_LABEL": [1, 0],
-            "PREDICTION": [1, 0],
-            "P(TRUE LABEL)": [0.9, 0.9],
-            "state": ["NJ", "NY"],
-        })
+        df = pd.DataFrame(
+            {
+                "INPUT": ["a", "b"],
+                "TRUE_LABEL": [1, 0],
+                "PREDICTION": [1, 0],
+                "P(TRUE LABEL)": [0.9, 0.9],
+                "state": ["NJ", "NY"],
+            }
+        )
         path = tmp_path / "custom.csv"
         df.to_csv(path, index=False)
 
@@ -112,12 +144,14 @@ class TestLoadData:
         assert set(result["GROUP"]) == {"NJ", "NY"}
 
     def test_missing_group_column_raises(self, tmp_path):
-        df = pd.DataFrame({
-            "INPUT": ["a"],
-            "TRUE_LABEL": [1],
-            "PREDICTION": [1],
-            "P(TRUE LABEL)": [0.9],
-        })
+        df = pd.DataFrame(
+            {
+                "INPUT": ["a"],
+                "TRUE_LABEL": [1],
+                "PREDICTION": [1],
+                "P(TRUE LABEL)": [0.9],
+            }
+        )
         path = tmp_path / "no_group.csv"
         df.to_csv(path, index=False)
 
@@ -125,12 +159,14 @@ class TestLoadData:
             load_data(str(path), group_column="nonexistent")
 
     def test_missing_default_group_raises(self, tmp_path):
-        df = pd.DataFrame({
-            "INPUT": ["a"],
-            "TRUE_LABEL": [1],
-            "PREDICTION": [1],
-            "P(TRUE LABEL)": [0.9],
-        })
+        df = pd.DataFrame(
+            {
+                "INPUT": ["a"],
+                "TRUE_LABEL": [1],
+                "PREDICTION": [1],
+                "P(TRUE LABEL)": [0.9],
+            }
+        )
         path = tmp_path / "no_default.csv"
         df.to_csv(path, index=False)
 
@@ -202,13 +238,15 @@ class TestFindHeterogeneity:
 
     def test_single_group(self):
         """Single group should report no heterogeneity."""
-        df = pd.DataFrame({
-            "INPUT": ["a"] * 20,
-            "TRUE_LABEL": [1, 0] * 10,
-            "PREDICTION": [1, 0] * 10,
-            "P(TRUE LABEL)": [0.8] * 20,
-            "GROUP": ["only"] * 20,
-        })
+        df = pd.DataFrame(
+            {
+                "INPUT": ["a"] * 20,
+                "TRUE_LABEL": [1, 0] * 10,
+                "PREDICTION": [1, 0] * 10,
+                "P(TRUE LABEL)": [0.8] * 20,
+                "GROUP": ["only"] * 20,
+            }
+        )
         metrics = calculate_group_metrics(df)
         results = find_heterogeneity(df, metrics)
         assert results["accuracy_heterogeneity"]["p_value"] == 1.0
