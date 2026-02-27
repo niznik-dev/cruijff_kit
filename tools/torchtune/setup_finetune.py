@@ -301,9 +301,9 @@ def create_parser():
     parser.add_argument("--dataset_ext", type=str, default="", help="Extension of the dataset file (e.g. .json or .parquet)")
 
     parser.add_argument("--experiment_name", type=str, default="", help="Name of the experiment/sanity_check (used to group outputs in ck-outputs/{experiment_name}/). If not provided, outputs go directly to output_dir_base.")
-    parser.add_argument("--output_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/", help="Full path to the output file folders (final output folder will be 'ck-out-' + my_wandb_name within this folder)")
-    parser.add_argument("--input_dir_base", type=str, default="/scratch/gpfs/MSALGANIK/$USER/zyg_in/", help="Full path to the input file folders")
-    parser.add_argument("--models_dir", type=str, default="/scratch/gpfs/MSALGANIK/pretrained-llms/", help="Full path to the model file folders")
+    parser.add_argument("--output_dir_base", type=str, default=None, help="Full path to the output file folders (final output folder will be 'ck-out-' + my_wandb_name within this folder)")
+    parser.add_argument("--input_dir_base", type=str, default=None, help="Full path to the input file folders")
+    parser.add_argument("--models_dir", type=str, default=None, help="Full path to the model file folders")
 
     # ----- Optional YAML Args -----
     parser.add_argument("--batch_size", type=int, default=4, help="Batch size for training")
@@ -421,6 +421,16 @@ def main():
             epochs=args.epochs,
         )
         warn_on_low_steps(step_info, args.num_warmup_steps)
+
+    # Validate required path arguments (no hardcoded defaults — must come from
+    # config file, CLI, or scaffold agent via claude.local.md)
+    missing = [name for name in ("output_dir_base", "input_dir_base", "models_dir")
+               if getattr(args, name) is None]
+    if missing:
+        raise SystemExit(
+            f"ERROR: Required path argument(s) not provided: {', '.join('--' + m for m in missing)}\n"
+            "Set these in your setup_finetune.yaml or pass them on the command line."
+        )
 
     model_run_name = args.my_wandb_run_name if args.my_wandb_run_name else RANDOM_MODEL_RUN_NAME
     username = os.environ.get("USER")
