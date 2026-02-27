@@ -38,6 +38,7 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-cov",
+    "ruff",
     # Note: GitHub CLI (gh) must be installed via conda separately:
     # conda install -c conda-forge gh -y
 ]
@@ -55,6 +56,13 @@ packages = [
   "cruijff_kit.tools.inspect.scorers",
   "cruijff_kit.tools.slurm",
 ]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -21,6 +21,11 @@ jobs:
         run: |
           pip install -e ".[dev]"
 
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+
       - name: Run unit tests
         run: |
-          pytest tests/ -v
+          pytest tests/ -v --cov=cruijff_kit --cov-fail-under=67
