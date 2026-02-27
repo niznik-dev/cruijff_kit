@@ -26,5 +26,5 @@ Executes torchtune fine-tuning jobs for all runs in an experiment.
 
 ## Output
 
-- Creates run-torchtune.log with detailed execution history
+- Creates logs/run-torchtune.log with detailed execution history
 - Model checkpoints in `{output_dir_base}/ck-out-{run_name}/epoch_{N}/`

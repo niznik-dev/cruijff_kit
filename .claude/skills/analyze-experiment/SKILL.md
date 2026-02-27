@@ -15,7 +15,7 @@ Generate visualizations from evaluation results:
 2. Load evaluation logs from run directories
 3. Infer appropriate visualization types based on experimental variables
 4. Generate interactive HTML plots using inspect-viz
-5. Log the process in analyze-experiment.log
+5. Log the process in logs/analyze-experiment.log
 
 ## Prerequisites
 
@@ -114,7 +114,7 @@ report = generate_report(
 
 ### 6b. Compute Utilization Report → `generation.md`
 
-If run logs exist (`run-torchtune.log` and/or `run-inspect.log`), generate a compute utilization section:
+If run logs exist (`logs/run-torchtune.log` and/or `logs/run-inspect.log`), generate a compute utilization section:
 
 1. Extract job IDs from logs (regex: `Result: Job ID (\d+)`)
 2. Run `seff` for each job and parse with `tools/slurm/compute_metrics.py`
@@ -127,7 +127,7 @@ If run logs exist (`run-torchtune.log` and/or `run-inspect.log`), generate a com
 
 ### 7. Logging → `logging.md`
 
-Document process in `{experiment_dir}/analyze-experiment.log`
+Document process in `{experiment_dir}/logs/analyze-experiment.log`
 
 **See `logging.md` for:**
 - JSONL format specification
@@ -213,7 +213,8 @@ After running, the experiment directory will contain:
 │   ├── calibration_curves.png  (if risk_scorer used)
 │   ├── prediction_histogram.png (if risk_scorer used)
 │   └── ...
-├── analyze-experiment.log
+├── logs/
+│   └── analyze-experiment.log
 └── experiment_summary.yaml
 ```
 
@@ -247,7 +248,7 @@ Before reporting success, verify:
 - ✓ At least one visualization was generated
 - ✓ HTML files exist in analysis/ directory
 - ✓ report.md was generated in analysis/ directory
-- ✓ Log file created (analyze-experiment.log)
+- ✓ Log file created (logs/analyze-experiment.log)
 
 ## Output Summary
 
@@ -288,7 +289,7 @@ cd {experiment_dir}/analysis && python -m http.server 8080
 
 ### Log
 
-Details recorded in `analyze-experiment.log`
+Details recorded in `logs/analyze-experiment.log`
 
 ### Report Path
 

@@ -8,11 +8,11 @@ This document covers scaffold-experiment-specific logging practices for the orch
 
 Scaffold-experiment creates an orchestration log:
 
-- `{experiment_dir}/scaffold-experiment.log`
+- `{experiment_dir}/logs/scaffold-experiment.log`
 
 This log records the high-level orchestration process. Individual subagents create their own detailed logs:
-- `{experiment_dir}/scaffold-torchtune.log` (created by scaffold-torchtune subagent)
-- `{experiment_dir}/scaffold-inspect.log` (created by scaffold-inspect subagent)
+- `{experiment_dir}/logs/scaffold-torchtune.log` (created by scaffold-torchtune subagent)
+- `{experiment_dir}/logs/scaffold-inspect.log` (created by scaffold-inspect subagent)
 
 **Note on log formats across skills:**
 - `.jsonl` (JSON Lines) - Used by design-experiment for structured audit trails (machine-readable, reproducibility)

@@ -29,7 +29,7 @@ This ensures the entire experiment runs from training through evaluation with pr
 3. **Read tool specifications** - Parse experiment_summary.yaml "tools" section
 4. **Execute optimization** - Call optimizer module (torchtune)
 5. **Execute evaluation** - Call evaluator module (inspect) - **MUST wait for optimization**
-6. **Create orchestration log** - Document process in `run-experiment.log`
+6. **Create orchestration log** - Document process in `logs/run-experiment.log`
 7. **Report combined summary** - Show complete status
 
 ### Tool Modules
@@ -80,7 +80,7 @@ tools:
 
 ## Logging
 
-Create orchestration log at `{experiment_dir}/run-experiment.log`:
+Create orchestration log at `{experiment_dir}/logs/run-experiment.log`:
 
 **Log format:**
 ```
@@ -103,7 +103,7 @@ Result: {outcome}
 After successful execution:
 
 **Logs created:**
-- `run-experiment.log` - Orchestration log
+- `logs/run-experiment.log` - Orchestration log
 - Optimizer module logs (e.g., detailed fine-tuning execution)
 - Evaluator module logs (e.g., detailed evaluation execution)
 
@@ -115,7 +115,7 @@ After successful execution:
 - Model checkpoints from optimization
 - Evaluation logs from evaluation
 
-**Logging:** All actions logged to `{experiment_dir}/run-{torchtune|inspect}.log` (see `logging.md`)
+**Logging:** All actions logged to `{experiment_dir}/logs/run-{torchtune|inspect}.log` (see `logging.md`)
 
 ---
 

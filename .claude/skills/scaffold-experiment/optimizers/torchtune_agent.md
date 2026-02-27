@@ -35,7 +35,7 @@ Your tasks:
    - Execute setup_finetune.py to generate finetune.yaml and finetune.slurm
    - Verify outputs were created successfully
 5. For control/base model runs: Create ONLY the run directory (no training configs needed)
-6. Create a detailed log at {experiment_dir}/scaffold-torchtune.log
+6. Create a detailed log at {experiment_dir}/logs/scaffold-torchtune.log
 7. Verify that parameters in generated finetune.yaml files match directory names
 
 Report back:
@@ -79,7 +79,7 @@ After scaffold-torchtune completes, the experiment directory will contain:
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
-└── scaffold-torchtune.log
+└── logs/scaffold-torchtune.log
 ```
 
 ---

@@ -19,7 +19,6 @@ module load anaconda3/2025.6
 conda activate <CONDA_ENV>
 
 mkdir -p <OUTPUT_DIR>logs/wandb  # wandb is picky about existing dirs
-cp finetune.slurm setup_finetune.yaml <OUTPUT_DIR>/  # Copy config to output dir for reference
 
 # Start GPU monitoring in background
 # With --gres=gpu:1, SLURM cgroup isolation scopes nvidia-smi to the allocated GPU
