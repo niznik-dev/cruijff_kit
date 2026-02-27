@@ -18,9 +18,9 @@ authors = [
     {name = "Donggyu Ban"},
 ]
 dependencies = [
-    "torch",
-    "torchtune",
-    "torchao",
+    "torch>=2.9.1",
+    "torchtune>=0.6.1",  # Makefile upgrades to nightly post-install
+    "torchao>=0.14.1",
     "torchvision",
     "wandb",
     "h5py",
