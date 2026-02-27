@@ -20,20 +20,27 @@ from cruijff_kit.utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 
-"""
-Notes:
-    - **kwargs functionality built into get_logits(), get_next_tokens(), and get_embeddings() methods for forward passes.
-    - See tests/integration/test_llm_utils.py for usage examples.
-"""
+"""Experimental LLM inference utilities.
 
-"""
-TODO:
-    - Wrap load_model differently for base and PEFT models
-    - Emphasizing accessibility / usability for newer users.
-    - Functions should check incoming / outcoming things! Maybe not for internal functions...?
-    - New function to return distribution of prompt lengths
-    - Wrap pool_hidden_states() differently for ones requiring att. mask and not.
-    - Need to check difference between model() and model.generate() methods...
+.. warning::
+    This module is **experimental and internal**. Its API may change without
+    notice between releases. It is not covered by the project's stability
+    guarantees.
+
+History:
+    Written by Dan during summer 2025 fieldwork in the Netherlands as a
+    rapid-prototyping toolkit for GPU inference. It served its purpose well
+    for early exploration, but cruijff_kit has since moved to inspect-ai for
+    evaluation and torchtune for fine-tuning, which cover most of what this
+    module does. Only ``spot_check.py`` still imports from here (load_model,
+    get_next_tokens).
+
+    Long-term this module is likely to be retired or substantially narrowed
+    once spot_check is migrated to use inspect-ai or a lighter-weight
+    alternative. Until then, treat it as frozen — fix bugs but don't build
+    new features on top of it.
+
+See ``tests/integration/gpu/test_llm_utils.py`` for usage examples.
 """
 
 
@@ -506,8 +513,23 @@ def get_embeddings(
                 if attention_mask is None:
                     attention_mask = batch_mask
                 else:
+                    # Fix for #234: pad masks to the same sequence length before
+                    # concatenating. Mirrors how pooled_embeds are concatenated above.
+                    # Note: this module was written by Dan and this fix hasn't been
+                    # reviewed by him yet. Currently no production callers use
+                    # get_embeddings() with return_mask=True, so this is untested
+                    # outside of integration tests.
+                    max_len = max(attention_mask.shape[1], batch_mask.shape[1])
+                    if attention_mask.shape[1] < max_len:
+                        attention_mask = torch.nn.functional.pad(
+                            attention_mask, (0, max_len - attention_mask.shape[1])
+                        )
+                    if batch_mask.shape[1] < max_len:
+                        batch_mask = torch.nn.functional.pad(
+                            batch_mask, (0, max_len - batch_mask.shape[1])
+                        )
                     attention_mask = torch.cat((attention_mask, batch_mask), dim=0)
-                    # shape: (B*i, T)
+                    # shape: (B*i, max_T)
 
     return pooled_embeds, attention_mask
 
