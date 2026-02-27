@@ -20,20 +20,18 @@ from cruijff_kit.utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 
-"""
-Notes:
-    - **kwargs functionality built into get_logits(), get_next_tokens(), and get_embeddings() methods for forward passes.
-    - See tests/integration/test_llm_utils.py for usage examples.
-"""
+"""Experimental LLM inference utilities.
 
-"""
-TODO:
-    - Wrap load_model differently for base and PEFT models
-    - Emphasizing accessibility / usability for newer users.
-    - Functions should check incoming / outcoming things! Maybe not for internal functions...?
-    - New function to return distribution of prompt lengths
-    - Wrap pool_hidden_states() differently for ones requiring att. mask and not.
-    - Need to check difference between model() and model.generate() methods...
+.. warning::
+    This module is **experimental and internal**. Its API may change without
+    notice between releases. It is not covered by the project's stability
+    guarantees.
+
+Provides GPU-accelerated helpers for loading models (base and PEFT-adapted),
+extracting logits, generating tokens, computing embeddings, and saving/loading
+tensors with HDF5.
+
+See ``tests/integration/gpu/test_llm_utils.py`` for usage examples.
 """
 
 
@@ -506,8 +504,18 @@ def get_embeddings(
                 if attention_mask is None:
                     attention_mask = batch_mask
                 else:
+                    # Pad masks to the same sequence length before concatenating
+                    max_len = max(attention_mask.shape[1], batch_mask.shape[1])
+                    if attention_mask.shape[1] < max_len:
+                        attention_mask = torch.nn.functional.pad(
+                            attention_mask, (0, max_len - attention_mask.shape[1])
+                        )
+                    if batch_mask.shape[1] < max_len:
+                        batch_mask = torch.nn.functional.pad(
+                            batch_mask, (0, max_len - batch_mask.shape[1])
+                        )
                     attention_mask = torch.cat((attention_mask, batch_mask), dim=0)
-                    # shape: (B*i, T)
+                    # shape: (B*i, max_T)
 
     return pooled_embeds, attention_mask
 
