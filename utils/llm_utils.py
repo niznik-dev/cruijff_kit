@@ -27,9 +27,18 @@ logger = setup_logger(__name__)
     notice between releases. It is not covered by the project's stability
     guarantees.
 
-Provides GPU-accelerated helpers for loading models (base and PEFT-adapted),
-extracting logits, generating tokens, computing embeddings, and saving/loading
-tensors with HDF5.
+History:
+    Written by Dan during summer 2025 fieldwork in the Netherlands as a
+    rapid-prototyping toolkit for GPU inference. It served its purpose well
+    for early exploration, but cruijff_kit has since moved to inspect-ai for
+    evaluation and torchtune for fine-tuning, which cover most of what this
+    module does. Only ``spot_check.py`` still imports from here (load_model,
+    get_next_tokens).
+
+    Long-term this module is likely to be retired or substantially narrowed
+    once spot_check is migrated to use inspect-ai or a lighter-weight
+    alternative. Until then, treat it as frozen — fix bugs but don't build
+    new features on top of it.
 
 See ``tests/integration/gpu/test_llm_utils.py`` for usage examples.
 """
