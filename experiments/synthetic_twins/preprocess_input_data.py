@@ -16,8 +16,12 @@ import json
 import numpy as np
 from pathlib import Path
 
-parser = argparse.ArgumentParser(description="Preprocess synthetic twin data for fine-tuning.")
-parser.add_argument('--input_file', type=str, required=True, help='Path to raw twin data CSV')
+parser = argparse.ArgumentParser(
+    description="Preprocess synthetic twin data for fine-tuning."
+)
+parser.add_argument(
+    "--input_file", type=str, required=True, help="Path to raw twin data CSV"
+)
 args = parser.parse_args()
 
 # Define paths relative to repo root

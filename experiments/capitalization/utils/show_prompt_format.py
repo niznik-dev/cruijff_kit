@@ -5,8 +5,12 @@ from torchtune.models.llama3 import llama3_tokenizer
 
 from cruijff_kit.utils.logger import setup_logger
 
-parser = argparse.ArgumentParser(description="Show tokenized prompt format for a model.")
-parser.add_argument('--model_path', type=str, required=True, help='Path to the model directory')
+parser = argparse.ArgumentParser(
+    description="Show tokenized prompt format for a model."
+)
+parser.add_argument(
+    "--model_path", type=str, required=True, help="Path to the model directory"
+)
 args = parser.parse_args()
 
 # Set up logging
