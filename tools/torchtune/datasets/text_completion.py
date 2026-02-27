@@ -144,9 +144,7 @@ def text_completion_dataset(
     elif isinstance(data, list):
         rows = data
     else:
-        raise ValueError(
-            f"Unexpected JSON structure: expected list or dict with '{split}' key"
-        )
+        raise ValueError(f"Unexpected JSON structure: expected list or dict with '{split}' key")
 
     cfg = TextCompletionConfig(
         model_path=model_path,

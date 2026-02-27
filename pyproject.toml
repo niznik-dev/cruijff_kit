@@ -59,6 +59,8 @@ packages = [
 
 [tool.ruff]
 line-length = 88
+# Exclude files derived from external repos (e.g., torchtune) to preserve diffability
+exclude = ["tools/torchtune/custom_recipes/", "tools/torchtune/datasets/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W"]

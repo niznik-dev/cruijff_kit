@@ -17,9 +17,7 @@ from omegaconf import DictConfig, ListConfig
 
 # !--- cruijff_kit patch ---!
 # Feature: stash_adapter_files - Helper function for checkpoint cleanup
-from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
-    stash_adapter_files,
-)
+from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import stash_adapter_files
 # !--- end cruijff_kit patch ---!
 
 from torch import nn
@@ -56,7 +54,6 @@ logger = setup_logger(__name__)
 # Conditional import of custom metrics
 try:
     from utils.finetune_custom_metrics import calculate_custom_metrics
-
     CUSTOM_METRICS_AVAILABLE = True
 except ImportError:
     CUSTOM_METRICS_AVAILABLE = False
@@ -193,12 +190,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Both save_last_epoch_only and epochs_to_save are in use. The value for save_last_epoch_only takes precedence but will be removed in a future release.",
             )
         self._save_last_epoch_only = cfg.get("save_last_epoch_only", False)
-        self._epochs_to_save = (
-            [self.total_epochs - 1]
-            if self._save_last_epoch_only
-            else cfg.get("epochs_to_save", "all")
-        )
-        if self._epochs_to_save == "all":
+        self._epochs_to_save = [self.total_epochs - 1] if self._save_last_epoch_only else cfg.get("epochs_to_save", 'all')
+        if self._epochs_to_save == 'all':
             self._epochs_to_save = list(range(self.total_epochs))
         self._stash_adapter_weights = cfg.get("stash_adapter_weights", False)
         # !--- end cruijff_kit patch ---!
@@ -459,9 +452,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             assert (
                 cfg_profiler.get("_component_")
                 == "torchtune.training.setup_torch_profiler"
-            ), (
-                "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
-            )
+            ), "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
@@ -703,9 +694,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Feature: custom_metrics - Calculate custom metrics before computing loss
         # We do this here because the logits are needed for custom metrics
         if self._calculate_custom_metrics:
-            metrics = calculate_custom_metrics(
-                logits, labels, self._tokenizer, self._loss_fn.ignore_index
-            )
+            metrics = calculate_custom_metrics(logits, labels, self._tokenizer, self._loss_fn.ignore_index)
             for metric_name, metric_value in metrics.items():
                 if isinstance(metric_value, torch.Tensor):
                     self._custom_metrics[metric_name] = metric_value.detach().item()
@@ -794,7 +783,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         loss_to_log = running_loss.item() / num_tokens
                         pbar.set_description(
                             f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}",
-                            refresh=False,
+                            refresh=False
                         )
                         pbar.update(1)
 
@@ -869,13 +858,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     )
 
                     # Stash adapter files if configured (to avoid confusing inspect-ai)
-                    if (
-                        self._stash_adapter_weights
-                        and not self._save_adapter_weights_only
-                    ):
-                        log.info(
-                            "Stashing adapter files from merged model checkpoint..."
-                        )
+                    if self._stash_adapter_weights and not self._save_adapter_weights_only:
+                        log.info("Stashing adapter files from merged model checkpoint...")
                         stash_adapter_files(self._output_dir, curr_epoch, log)
                 else:
                     log.info(f"Skipping checkpoint save for epoch {curr_epoch}...")
