@@ -34,4 +34,4 @@ TUNE_EXIT_CODE=$?
 kill $GPU_MONITOR_PID 2>/dev/null
 wait $GPU_MONITOR_PID 2>/dev/null
 
-[ $TUNE_EXIT_CODE == 0 ] && mv slurm-${SLURM_JOB_ID}.out <OUTPUT_DIR>/  # Move SLURM log to output dir if successful to avoid clutter
+exit $TUNE_EXIT_CODE
