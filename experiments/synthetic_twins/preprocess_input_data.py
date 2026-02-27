@@ -4,21 +4,25 @@ Preprocess synthetic twin data for fine-tuning.
 Reads raw twin data CSV and converts to JSON format with train/validation/test splits.
 Uses raw twin values (not absolute differences) for each trait.
 
-Input: /scratch/gpfs/MSALGANIK/inputs/zyg/raw/twindat_sim_100k_24.csv
 Output: data/yellow/synthetic_twins/twin_zygosity.json
 
 IMPORTANT: This dataset is for use by the MSALGANIK research group only.
 Sharing this data with others requires explicit permission from the research group.
 """
 
+import argparse
 import pandas as pd
 import json
 import numpy as np
 from pathlib import Path
 
+parser = argparse.ArgumentParser(description="Preprocess synthetic twin data for fine-tuning.")
+parser.add_argument('--input_file', type=str, required=True, help='Path to raw twin data CSV')
+args = parser.parse_args()
+
 # Define paths relative to repo root
 REPO_ROOT = Path(__file__).parent.parent.parent
-INPUT_FILE = Path("/scratch/gpfs/MSALGANIK/inputs/zyg/raw/twindat_sim_100k_24.csv")
+INPUT_FILE = Path(args.input_file)
 OUTPUT_FILE = REPO_ROOT / "data" / "yellow" / "synthetic_twins" / "twin_zygosity.json"
 
 # Load the CSV file
