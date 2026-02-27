@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description="Process a JSON file to calculate token statistics.")
 parser.add_argument('--json_filename', type=str, help='Name of the input file (should be in the same directory as this script).')
+parser.add_argument('--model_path', type=str, required=True, help='Path to the model directory (e.g. /path/to/pretrained-llms/Llama-3.2-1B-Instruct)')
 args = parser.parse_args()
 
 with open(args.json_filename, 'r') as file:
@@ -14,7 +15,7 @@ with open(args.json_filename, 'r') as file:
 # Count tokens for each word in "input"
 token_dist = {}
 
-tokenizer = AutoTokenizer.from_pretrained("/scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct")
+tokenizer = AutoTokenizer.from_pretrained(args.model_path)
 for entry in data:
     input = entry['input']
     output = entry['output']

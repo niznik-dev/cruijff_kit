@@ -30,12 +30,10 @@ from cruijff_kit.utils.llm_utils import (
 
 
 # ─── Configuration ────────────────────────────────────────────────────────────
-# These can be overridden via environment variables for different clusters
+# Set CK_MODELS_DIR to your cluster's shared model directory.
+# GPU tests skip automatically if unset. See test_llm_utils.slurm for example.
 
-MODELS_BASE_DIR = os.environ.get(
-    "CK_MODELS_DIR",
-    "/scratch/gpfs/MSALGANIK/pretrained-llms"
-)
+MODELS_BASE_DIR = os.environ.get("CK_MODELS_DIR", "")
 BASE_MODEL_NAME = os.environ.get(
     "CK_TEST_MODEL",
     "Llama-3.2-1B-Instruct"

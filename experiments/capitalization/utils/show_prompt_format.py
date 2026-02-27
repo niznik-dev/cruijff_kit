@@ -1,7 +1,13 @@
+import argparse
+
 from torchtune.data import Message
 from torchtune.models.llama3 import llama3_tokenizer
 
 from cruijff_kit.utils.logger import setup_logger
+
+parser = argparse.ArgumentParser(description="Show tokenized prompt format for a model.")
+parser.add_argument('--model_path', type=str, required=True, help='Path to the model directory')
+args = parser.parse_args()
 
 # Set up logging
 logger = setup_logger(__name__)
@@ -12,7 +18,7 @@ msgs = [
     Message(role="assistant", content="Apple"),
 ]
 
-tokenizer_path = "/scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct/original/tokenizer.model"
+tokenizer_path = args.model_path + "/original/tokenizer.model"
 tok = llama3_tokenizer(path=tokenizer_path)
 tok_ids, mask = tok.tokenize_messages(msgs)
 

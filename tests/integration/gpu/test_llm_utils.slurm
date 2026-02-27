@@ -16,6 +16,9 @@ module purge
 module load anaconda3/2025.6
 conda activate cruijff
 
+# Set to your cluster's shared model directory (GPU tests skip if unset)
+export CK_MODELS_DIR="/scratch/gpfs/MSALGANIK/pretrained-llms"
+
 # Run pytest on the llm_utils integration tests
 cd "${SLURM_SUBMIT_DIR}/../../.."
 pytest tests/integration/gpu/test_llm_utils.py -v --tb=short

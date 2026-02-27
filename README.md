@@ -82,11 +82,13 @@ You'll need a model to fine-tune and evaluate. Here's how to get one via torchtu
 
 **Step 1**: Request access on HuggingFace (if required). For Meta models, navigate to `https://huggingface.co/meta-llama/<model_name>`, log in, and agree to the license. Wait for the confirmation email before proceeding.
 
-**Step 2**: Download the model:
+**Step 2**: Download the model to a shared location so others on your cluster don't need their own copies:
 
 ```bash
-tune download meta-llama/<model_name> --output-dir <model_dir> --hf-token <hf-token>
+tune download meta-llama/<model_name> --output-dir <shared_location>/pretrained-llms/<model_name> --hf-token <hf-token>
 ```
+
+Set `models_dir` in your `claude.local.md` to point to `<shared_location>/pretrained-llms/`.
 
 See [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md) for the full list of supported models and their resource requirements.
 
