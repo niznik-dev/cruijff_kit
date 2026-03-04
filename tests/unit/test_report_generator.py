@@ -25,7 +25,8 @@ from cruijff_kit.tools.inspect.report_generator import (
 def _make_df(**kwargs) -> pd.DataFrame:
     """Build a single-row DataFrame for testing."""
     defaults = {
-        "model": "test_model",
+        "model": "hf/local",
+        "task_name": "test_model",
         "results_total_samples": 500,
     }
     defaults.update(kwargs)
@@ -102,7 +103,8 @@ class TestExtractCalibrationMetrics:
         """Multiple models each get their own CalibrationResult."""
         df = pd.DataFrame(
             {
-                "model": ["model_a", "model_b"],
+                "model": ["hf/local", "hf/local"],
+                "task_name": ["model_a", "model_b"],
                 "results_total_samples": [500, 300],
                 "score_risk_scorer_cruijff_kit/ece": [0.1, 0.2],
             }
@@ -126,10 +128,11 @@ class TestExtractCalibrationMetrics:
         assert results[0].metrics["risk_scorer_cruijff_kit/brier_score"] is None
 
     def test_with_epoch_grouping(self):
-        """Results grouped by model + epoch."""
+        """Results grouped by task_name + epoch."""
         df = pd.DataFrame(
             {
-                "model": ["model_a", "model_a"],
+                "model": ["hf/local", "hf/local"],
+                "task_name": ["model_a", "model_a"],
                 "epoch": [1, 2],
                 "results_total_samples": [500, 500],
                 "score_risk_scorer_cruijff_kit/ece": [0.2, 0.15],
@@ -319,7 +322,8 @@ class TestProvenanceMetadata:
         """Minimal DataFrame for generate_report."""
         return pd.DataFrame(
             {
-                "model": ["model_a"],
+                "model": ["hf/local"],
+                "task_name": ["model_a"],
                 "results_total_samples": [100],
                 "score_match_accuracy": [0.75],
             }
@@ -398,7 +402,8 @@ class TestComputeSection:
         """Minimal DataFrame for generate_report."""
         return pd.DataFrame(
             {
-                "model": ["model_a"],
+                "model": ["hf/local"],
+                "task_name": ["model_a"],
                 "results_total_samples": [100],
                 "score_match_accuracy": [0.75],
             }
@@ -561,7 +566,8 @@ class TestExpandDetailsForPdf:
         """Expanding a generated report removes all HTML details tags."""
         df = pd.DataFrame(
             {
-                "model": ["model_a"],
+                "model": ["hf/local"],
+                "task_name": ["model_a"],
                 "results_total_samples": [100],
                 "score_match_accuracy": [0.75],
             }

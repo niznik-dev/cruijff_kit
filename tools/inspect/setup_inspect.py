@@ -104,7 +104,7 @@ def load_eval_config(config_path):
     config["config_path"] = str(config_path)
 
     # Validate required keys
-    required = ["task_script", "task_name", "model_path", "model_hf_name", "output_dir"]
+    required = ["task_script", "task_name", "model_path", "output_dir"]
     missing = [k for k in required if k not in config]
     if missing:
         raise ValueError(
@@ -216,7 +216,6 @@ def render_template(cli_args, config):
 
     script = script.replace("<EVAL_DIR>", config["eval_dir"])
     script = script.replace("<TASK_SCRIPT>", config["task_script"])
-    script = script.replace("<MODEL_HF_NAME>", config["model_hf_name"])
     script = script.replace("<MODEL_PATH>", config["model_path"])
     script = script.replace("<TASK_ARGS>", task_args)
     script = script.replace("<METADATA_ARGS>", metadata_args)

@@ -69,12 +69,17 @@ def deduplicate_eval_files(eval_files: list[str]) -> tuple[list[str], list[str]]
                 metadata = log.eval.metadata
             epoch = metadata.get("epoch", "unknown")
 
+            source_model = metadata.get("source_model", log.eval.model)
+            finetuned = metadata.get("finetuned", "unknown")
+
             file_details.append(
                 {
                     "path": filepath,
                     "timestamp": timestamp_str,
                     "model": log.eval.model,
                     "epoch": epoch,
+                    "source_model": source_model,
+                    "finetuned": finetuned,
                 }
             )
         except Exception as e:
@@ -91,7 +96,7 @@ def deduplicate_eval_files(eval_files: list[str]) -> tuple[list[str], list[str]]
     skipped = []
 
     for fd in file_details:
-        key = (fd["model"], fd["epoch"])
+        key = (fd["source_model"], fd["epoch"], fd["finetuned"])
         if key not in seen_keys:
             seen_keys.add(key)
             kept.append(fd["path"])

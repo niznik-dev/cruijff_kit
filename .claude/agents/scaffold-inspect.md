@@ -237,7 +237,6 @@ Extract the following from experiment_summary.yaml:
 task_script: /path/to/experiments/task.py@task_name
 task_name: acs_income
 model_path: /outputs/run1/epoch_0
-model_hf_name: hf/1B_ft_epoch_0
 output_dir: /outputs/run1/
 ```
 
@@ -275,7 +274,6 @@ Extract values from setup_finetune.yaml (fine-tuned runs) or experiment_summary.
 - `task_script`: From `evaluation.tasks[].script` + `@` + task name
 - `task_name`: From `evaluation.tasks[].name`
 - `model_path`: Fine-tuned: `{base_directory}/ck-out-{run_name}/epoch_{N}`. Control: original model path
-- `model_hf_name`: Fine-tuned: `hf/{run_name}_epoch_{N}`. Control: `hf/{run_name}_control`
 - `output_dir`: `{base_directory}/ck-out-{run_name}/`
 - `data_path`: From dataset path in setup_finetune.yaml or experiment_summary.yaml
 - `system_prompt`: From the run's configuration (may vary per run!)
@@ -458,7 +456,7 @@ DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="true"  # from dataset_type: chat_completion
 
 inspect eval capitalization.py@capitalization \\
-  --model hf/{run_name}_epoch_0 \\
+  --model hf/local \\
   -M model_path="$MODEL_PATH" \\
   --metadata epoch=0 \\
   --metadata finetuned=true \\
@@ -471,7 +469,7 @@ inspect eval capitalization.py@capitalization \\
 ```
 
 **Key points:**
-- The `--model` argument uses a descriptive name (`hf/{run_name}_epoch_{N}`) that gets recorded in the `.eval` file for identification
+- The `--model` argument is always `hf/local` — the HF provider uses `model_path` for actual loading; metadata flags handle identification
 - Metadata flags (`--metadata epoch`, `--metadata finetuned`, `--metadata source_model`) are stored in `log.eval.metadata` for inspect-viz filtering/grouping
 - The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_rank4`) for visualization
 - `config_path` points to `eval_config.yaml`, which is generated from `setup_finetune.yaml` and includes prompt/system_prompt and scorer configuration
@@ -491,7 +489,7 @@ DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="true"  # Instruct model, use chat template
 
 inspect eval capitalization.py@capitalization \\
-  --model hf/{run_name}_base \\
+  --model hf/local \\
   -M model_path="$MODEL_PATH" \\
   --metadata finetuned=false \\
   --metadata source_model="Llama-3.2-1B-Instruct" \\
@@ -511,7 +509,7 @@ DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="false"  # Base model, no chat template
 
 inspect eval capitalization.py@capitalization \\
-  --model hf/{run_name}_base \\
+  --model hf/local \\
   -M model_path="$MODEL_PATH" \\
   --metadata finetuned=false \\
   --metadata source_model="Llama-3.2-1B" \\
@@ -523,7 +521,7 @@ inspect eval capitalization.py@capitalization \\
 ```
 
 **Key points:**
-- The `--model` argument uses a descriptive name (`hf/{run_name}_control`) that gets recorded in the `.eval` file for identification
+- The `--model` argument is always `hf/local` — the HF provider uses `model_path` for actual loading; metadata flags handle identification
 - The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_1B_control`) for visualization
 - Control models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
 - `config_path` points to `eval_config.yaml` (generated from experiment_summary.yaml and stored in `{run_dir}/eval/`), which the task reads at runtime
