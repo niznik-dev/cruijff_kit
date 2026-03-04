@@ -111,6 +111,11 @@ These are *example* parameters that the user might vary. There may be other para
      - `model` - Model name
      - `parameters` - Dict of parameter values (lora_rank, lr, etc.)
 
+6. **Compute estimates (optional):**
+   - For each run: `runs[].compute.time`, `runs[].compute.gpus`, `runs[].compute.mem`
+   - If present, pass as `--time`, `--gpus`, `--mem` CLI args to `setup_finetune.py`
+   - If absent, omit these flags (`setup_finetune.py` uses its defaults)
+
 ### Filtering Fine-tuned Runs
 
 **Important:**
@@ -229,6 +234,12 @@ conda_env: {from claude.local.md}
 # SLURM configuration (optional - only if specified in claude.local.md)
 account: {from claude.local.md SLURM Defaults, if present}
 
+# Compute estimates (optional - from runs[].compute in experiment_summary.yaml)
+# Only include these if the run has a compute block
+time: {from runs[].compute.time, if present, e.g., "0:15:00"}
+gpus: {from runs[].compute.gpus, if present}
+mem: {from runs[].compute.mem, if present, e.g., "80G"}
+
 # System prompt (if specified)
 system_prompt: {from controls.system_prompt, often empty string ""}
 
@@ -274,9 +285,19 @@ For each run directory:
 
    The `--training_samples` flag enables the training step guard, which computes total training steps and warns if they are dangerously low (e.g., warmup never completes, or fewer than 50 steps total). The value comes from `data.training.splits.train` in experiment_summary.yaml.
 
-   **Example:**
+   **With compute estimates** (when `runs[].compute` block exists):
+   ```bash
+   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train} --time {compute.time} --gpus {compute.gpus} --mem {compute.mem}"
+   ```
+
+   **Example (without compute estimates):**
    ```bash
    bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/tools/torchtune/setup_finetune.py --training_samples 800"
+   ```
+
+   **Example (with compute estimates):**
+   ```bash
+   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/tools/torchtune/setup_finetune.py --training_samples 800 --time 0:15:00 --gpus 1 --mem 80G"
    ```
 
 3. **Why this approach:**
