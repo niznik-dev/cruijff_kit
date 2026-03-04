@@ -17,6 +17,7 @@ module purge
 module load anaconda3/2025.6
 conda activate <CONDA_ENV>
 
+<ENV_EXPORTS>
 # Start GPU monitoring in background
 # With --gres=gpu:1, SLURM cgroup isolation scopes nvidia-smi to the allocated GPU
 GPU_METRICS_DIR="<GPU_METRICS_DIR>"
