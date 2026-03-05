@@ -221,18 +221,6 @@ def render_template(cli_args, config):
     script = script.replace("<TASK_ARGS>", task_args)
     script = script.replace("<METADATA_ARGS>", metadata_args)
 
-    # Set HF offline mode when using a local model to prevent Hub access
-    # (inspect-ai's get_model_info() otherwise tries to resolve model_name via Hub)
-    if config.get("model_path"):
-        env_exports = (
-            "# Prevent HuggingFace Hub access (model loaded from local model_path)\n"
-            "export HF_HUB_OFFLINE=1\n"
-            "export TRANSFORMERS_OFFLINE=1\n"
-        )
-    else:
-        env_exports = ""
-    script = script.replace("<ENV_EXPORTS>", env_exports)
-
     # CPUs from model config
     script = script.replace(
         "#SBATCH --cpus-per-task=1", f"#SBATCH --cpus-per-task={cpus}"
