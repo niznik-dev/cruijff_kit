@@ -296,15 +296,14 @@ class TestRenderTemplate:
         assert "kill $GPU_MONITOR_PID" in script
 
     def test_inspect_eval_command(self):
-        """inspect eval command uses correct task script and model."""
+        """inspect eval command uses correct task script and model path."""
         config = make_config(
             task_script="/path/to/task.py@my_task",
             model_path="/outputs/run1/epoch_0",
         )
         script = render_template(make_cli_args(), config)
         assert "inspect eval /path/to/task.py@my_task" in script
-        assert "--model hf/local" in script
-        assert 'model_path="/outputs/run1/epoch_0"' in script
+        assert "--model hf//outputs/run1/epoch_0" in script
 
     def test_eval_dir_cd(self):
         """Script changes to eval_dir before running inspect."""

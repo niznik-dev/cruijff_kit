@@ -29,8 +29,7 @@ GPU_MONITOR_PID=$!
 cd <EVAL_DIR>
 
 inspect eval <TASK_SCRIPT> \
-  --model hf/local \
-  -M model_path="<MODEL_PATH>" \
+  --model hf/<MODEL_PATH> \
 <TASK_ARGS><METADATA_ARGS>  --log-dir ./logs \
   --log-level info
 INSPECT_EXIT_CODE=$?

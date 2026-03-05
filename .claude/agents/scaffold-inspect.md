@@ -456,8 +456,7 @@ DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="true"  # from dataset_type: chat_completion
 
 inspect eval capitalization.py@capitalization \\
-  --model hf/local \\
-  -M model_path="$MODEL_PATH" \\
+  --model hf/$MODEL_PATH \\
   --metadata epoch=0 \\
   --metadata finetuned=true \\
   --metadata source_model="Llama-3.2-1B-Instruct" \\
@@ -469,7 +468,7 @@ inspect eval capitalization.py@capitalization \\
 ```
 
 **Key points:**
-- The `--model` argument is always `hf/local` — the HF provider uses `model_path` for actual loading; metadata flags handle identification
+- The `--model` argument uses the local model path (e.g., `hf//scratch/.../epoch_0`) so HuggingFace loads directly from disk without Hub lookups
 - Metadata flags (`--metadata epoch`, `--metadata finetuned`, `--metadata source_model`) are stored in `log.eval.metadata` for inspect-viz filtering/grouping
 - The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_rank4`) for visualization
 - `config_path` points to `eval_config.yaml`, which is generated from `setup_finetune.yaml` and includes prompt/system_prompt and scorer configuration
@@ -489,8 +488,7 @@ DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="true"  # Instruct model, use chat template
 
 inspect eval capitalization.py@capitalization \\
-  --model hf/local \\
-  -M model_path="$MODEL_PATH" \\
+  --model hf/$MODEL_PATH \\
   --metadata finetuned=false \\
   --metadata source_model="Llama-3.2-1B-Instruct" \\
   -T data_path="$DATA_PATH" \\
@@ -509,8 +507,7 @@ DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="false"  # Base model, no chat template
 
 inspect eval capitalization.py@capitalization \\
-  --model hf/local \\
-  -M model_path="$MODEL_PATH" \\
+  --model hf/$MODEL_PATH \\
   --metadata finetuned=false \\
   --metadata source_model="Llama-3.2-1B" \\
   -T data_path="$DATA_PATH" \\
@@ -521,7 +518,7 @@ inspect eval capitalization.py@capitalization \\
 ```
 
 **Key points:**
-- The `--model` argument is always `hf/local` — the HF provider uses `model_path` for actual loading; metadata flags handle identification
+- The `--model` argument uses the local model path (e.g., `hf//scratch/.../Llama-3.2-1B`) so HuggingFace loads directly from disk without Hub lookups
 - The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_1B_control`) for visualization
 - Control models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
 - `config_path` points to `eval_config.yaml` (generated from experiment_summary.yaml and stored in `{run_dir}/eval/`), which the task reads at runtime
