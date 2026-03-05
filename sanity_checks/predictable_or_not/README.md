@@ -259,8 +259,7 @@ The evaluation task is defined in `inspect_task_predictable_or_not.py` and autom
 ```bash
 cd /path/to/ck-sanity-checks/sanity_check_predictable_or_not_YYYY-MM-DD/pp_output_only
 inspect eval ../../sanity_checks/predictable_or_not/inspect_task_predictable_or_not.py \
-  --model hf/local \
-  -M model_path=/path/to/ck-outputs/.../ck-out-pp_output_only/epoch_9 \
+  --model hf//path/to/ck-outputs/.../ck-out-pp_output_only/epoch_9 \
   -T config_dir=/path/to/ck-outputs/.../ck-out-pp_output_only/epoch_9
 ```
 

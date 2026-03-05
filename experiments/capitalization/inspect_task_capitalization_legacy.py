@@ -6,8 +6,7 @@ dataset types. For models trained with chat_completion (the new default),
 use inspect_task_capitalization.py instead.
 
 Usage:
-    inspect eval inspect_task_capitalization_legacy.py --model hf/local \
-        -M model_path=/path/to/checkpoint \
+    inspect eval inspect_task_capitalization_legacy.py --model hf//path/to/checkpoint \
         -T config_path=/path/to/setup_finetune.yaml
 """
 

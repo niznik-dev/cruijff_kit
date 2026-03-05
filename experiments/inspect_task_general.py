@@ -6,16 +6,16 @@ Can be used for any experiment in experiments/ directory.
 
 Usage:
     # Evaluate fine-tuned instruct model (reads from setup_finetune.yaml)
-    inspect eval experiments/inspect_task_general.py --model hf/local -M model_path=/path/to/model -T config_dir=/path/to/epoch_0
+    inspect eval experiments/inspect_task_general.py --model hf//path/to/model -T config_dir=/path/to/epoch_0
 
     # Evaluate fine-tuned base model (text_completion):
-    inspect eval experiments/inspect_task_general.py --model hf/local -M model_path=/path/to/model -T dataset_path=/path/to/data.json -T use_chat_template=false
+    inspect eval experiments/inspect_task_general.py --model hf//path/to/model -T dataset_path=/path/to/data.json -T use_chat_template=false
 
     # Standalone evaluation with direct dataset path
-    inspect eval experiments/inspect_task_general.py --model hf/local -M model_path=/path/to/model -T dataset_path=/path/to/data.json
+    inspect eval experiments/inspect_task_general.py --model hf//path/to/model -T dataset_path=/path/to/data.json
 
     # With custom parameters
-    inspect eval experiments/inspect_task_general.py --model hf/local -M model_path=/path/to/model -T dataset_path=/path/to/data.json -T temperature=0.5 -T system_prompt="You are a helpful assistant"
+    inspect eval experiments/inspect_task_general.py --model hf//path/to/model -T dataset_path=/path/to/data.json -T temperature=0.5 -T system_prompt="You are a helpful assistant"
 """
 
 from __future__ import annotations

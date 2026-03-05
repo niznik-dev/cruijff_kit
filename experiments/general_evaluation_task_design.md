@@ -137,8 +137,7 @@ For models from fine-tuning experiments:
 
 ```bash
 inspect eval experiments/inspect_task_general.py \
-  --model hf/local \
-  -M model_path=/scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-rank8/epoch_0 \
+  --model hf//scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-rank8/epoch_0 \
   -T config_dir=/scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-rank8/epoch_0
 ```
 
@@ -153,8 +152,7 @@ For evaluating any model on a specific dataset:
 
 ```bash
 inspect eval experiments/inspect_task_general.py \
-  --model hf/local \
-  -M model_path=/path/to/model \
+  --model hf//path/to/model \
   -T dataset_path=/path/to/experiments/capitalization/input/words_4L_80P_5000.json
 ```
 
@@ -172,16 +170,14 @@ This mode:
 cd /scratch/gpfs/MSALGANIK/niznik/experiment_name/run_name/epoch_0
 
 inspect eval /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/experiments/inspect_task_general.py \
-  --model hf/local \
-  -M model_path=$PWD \
+  --model hf/$PWD \
   -T config_dir=$PWD
 ```
 
 **Base model on capitalization data:**
 ```bash
 inspect eval experiments/inspect_task_general.py \
-  --model hf/local \
-  -M model_path=/scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct \
+  --model hf//scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct \
   -T dataset_path=experiments/capitalization/input/words_4L_80P_5000.json
 ```
 
@@ -189,8 +185,7 @@ inspect eval experiments/inspect_task_general.py \
 
 ```bash
 inspect eval experiments/inspect_task_general.py \
-  --model hf/local \
-  -M model_path=/path/to/model \
+  --model hf//path/to/model \
   -T dataset_path=experiments/capitalization/input/words_4L_80P_5000.json \
   --limit 10
 ```
@@ -199,8 +194,7 @@ inspect eval experiments/inspect_task_general.py \
 
 ```bash
 inspect eval experiments/inspect_task_general.py \
-  --model hf/local \
-  -M model_path=/path/to/model \
+  --model hf//path/to/model \
   -T dataset_path=experiments/capitalization/input/words_4L_80P_5000.json \
   -T system_prompt="You are a helpful assistant that capitalizes words."
 ```
@@ -220,8 +214,7 @@ sbatch finetune.slurm
 cd /path/to/experiment/run_dir/epoch_0
 
 inspect eval /path/to/cruijff_kit/experiments/inspect_task_general.py \
-  --model hf/local \
-  -M model_path=$PWD \
+  --model hf/$PWD \
   -T config_dir=$PWD
 ```
 
