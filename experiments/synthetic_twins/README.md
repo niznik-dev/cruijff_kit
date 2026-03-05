@@ -115,20 +115,17 @@ After fine-tuning completes, evaluate the model:
 ```bash
 # Option 1: Using inspect_task_twins.py (recommended)
 inspect eval experiments/synthetic_twins/inspect_task_twins.py \
-  --model hf/local \
-  -M model_path=/path/to/checkpoint \
+  --model hf//path/to/checkpoint \
   -T config_dir=/path/to/epoch_1
 
 # Option 2: Using general evaluation task
 inspect eval experiments/inspect_task_general.py \
-  --model hf/local \
-  -M model_path=/path/to/checkpoint \
+  --model hf//path/to/checkpoint \
   -T config_dir=/path/to/epoch_1
 
 # Evaluate on validation split instead of test
 inspect eval experiments/synthetic_twins/inspect_task_twins.py \
-  --model hf/local \
-  -M model_path=/path/to/checkpoint \
+  --model hf//path/to/checkpoint \
   -T config_dir=/path/to/epoch_1 \
   -T split=validation
 ```

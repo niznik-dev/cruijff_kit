@@ -418,7 +418,7 @@ inspect eval task.py -T param_name=value
 
 **Option 1: CLI specification (most flexible)**
 - User provides model at runtime
-- `inspect eval task.py --model hf/local -M model_path=/path/to/model`
+- `inspect eval task.py --model hf//path/to/model`
 - Recommended for most cases
 
 **Option 2: Integration with fine-tuning config (legacy)**
@@ -576,7 +576,7 @@ inspect eval {task_file}.py -T {param}={value}
 
 **Recommended usage:**
 ```bash
-inspect eval {task_file}.py --model hf/local -M model_path=/path/to/model
+inspect eval {task_file}.py --model hf//path/to/model
 ```
 
 {Any specific notes about model compatibility}
@@ -585,18 +585,18 @@ inspect eval {task_file}.py --model hf/local -M model_path=/path/to/model
 
 **Basic evaluation:**
 ```bash
-inspect eval {task_name}_task.py --model hf/local -M model_path=/path/to/model
+inspect eval {task_name}_task.py --model hf//path/to/model
 ```
 
 **With parameters:**
 ```bash
-inspect eval {task_name}_task.py --model hf/local -M model_path=/path/to/model -T temperature=0.5
+inspect eval {task_name}_task.py --model hf//path/to/model -T temperature=0.5
 ```
 
 **Evaluating fine-tuned model:** {if applicable}
 ```bash
 cd /path/to/experiment/run/epoch_0
-inspect eval {task_name}_task.py --model hf/local -M model_path=$PWD -T config_dir=$PWD
+inspect eval {task_name}_task.py --model hf/$PWD -T config_dir=$PWD
 ```
 
 ## Output Files
@@ -862,14 +862,13 @@ def my_task(
 **Evaluating fine-tuned model from experiment:**
 ```bash
 cd /path/to/experiment/run_dir/epoch_0
-inspect eval /path/to/my_task.py --model hf/local -M model_path=$PWD -T config_dir=$PWD
+inspect eval /path/to/my_task.py --model hf/$PWD -T config_dir=$PWD
 ```
 
 **Evaluating base model (control run):**
 ```bash
 inspect eval my_task.py \
-  --model hf/local \
-  -M model_path=/scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct \
+  --model hf//scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct \
   -T dataset_path=/path/to/dataset.json
 ```
 

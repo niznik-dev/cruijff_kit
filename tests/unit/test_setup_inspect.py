@@ -48,7 +48,6 @@ def make_config(**overrides):
         task_script="/path/to/task.py@my_task",
         task_name="my_task",
         model_path="/outputs/run1/epoch_0",
-        model_hf_name="hf/run1_epoch_0",
         output_dir="/outputs/run1/",
         eval_dir="/experiments/run1/eval",
     )
@@ -60,7 +59,6 @@ MINIMAL_EVAL_CONFIG = textwrap.dedent("""\
     task_script: /path/to/task.py@my_task
     task_name: my_task
     model_path: /outputs/run1/epoch_0
-    model_hf_name: hf/run1_epoch_0
     output_dir: /outputs/run1/
 """)
 
@@ -69,7 +67,6 @@ FULL_EVAL_CONFIG = textwrap.dedent("""\
     task_script: /path/to/task.py@acs_income
     task_name: acs_income
     model_path: /outputs/run1/epoch_0
-    model_hf_name: hf/1B_ft_epoch_0
     output_dir: /outputs/run1/
     data_path: /data/acs_income.json
     vis_label: 1B_ft
@@ -100,7 +97,6 @@ class TestLoadEvalConfig:
         assert config["task_script"] == "/path/to/task.py@my_task"
         assert config["task_name"] == "my_task"
         assert config["model_path"] == "/outputs/run1/epoch_0"
-        assert config["model_hf_name"] == "hf/run1_epoch_0"
         assert config["output_dir"] == "/outputs/run1/"
 
     def test_auto_derives_eval_dir(self, tmp_path):
@@ -300,16 +296,14 @@ class TestRenderTemplate:
         assert "kill $GPU_MONITOR_PID" in script
 
     def test_inspect_eval_command(self):
-        """inspect eval command uses correct task script and model."""
+        """inspect eval command uses correct task script and model path."""
         config = make_config(
             task_script="/path/to/task.py@my_task",
-            model_hf_name="hf/run1_epoch_0",
             model_path="/outputs/run1/epoch_0",
         )
         script = render_template(make_cli_args(), config)
         assert "inspect eval /path/to/task.py@my_task" in script
-        assert "--model hf/run1_epoch_0" in script
-        assert 'model_path="/outputs/run1/epoch_0"' in script
+        assert "--model hf//outputs/run1/epoch_0" in script
 
     def test_eval_dir_cd(self):
         """Script changes to eval_dir before running inspect."""

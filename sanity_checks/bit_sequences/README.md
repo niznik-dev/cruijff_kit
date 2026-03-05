@@ -254,8 +254,7 @@ The evaluation task is defined in `inspect_task_bit_sequences.py` and automatica
 ```bash
 cd /path/to/ck-sanity-checks/sanity_check_bit_sequences_YYYY-MM-DD/parity_run
 inspect eval ../../sanity_checks/bit_sequences/inspect_task_bit_sequences.py \
-  --model hf/local \
-  -M model_path=/path/to/ck-outputs/.../ck-out-parity_run/epoch_9 \
+  --model hf//path/to/ck-outputs/.../ck-out-parity_run/epoch_9 \
   -T config_dir=/path/to/ck-outputs/.../ck-out-parity_run/epoch_9
 ```
 

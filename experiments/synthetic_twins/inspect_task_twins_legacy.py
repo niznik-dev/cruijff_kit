@@ -10,18 +10,15 @@ from trait values.
 
 Usage:
     # Evaluate fine-tuned model (reads from setup_finetune.yaml)
-    inspect eval experiments/synthetic_twins/inspect_task_twins_legacy.py --model hf/local \\
-        -M model_path=/path/to/model \\
+    inspect eval experiments/synthetic_twins/inspect_task_twins_legacy.py --model hf//path/to/model \\
         -T config_dir=/path/to/epoch_0
 
     # Standalone evaluation with direct dataset path
-    inspect eval experiments/synthetic_twins/inspect_task_twins_legacy.py --model hf/local \\
-        -M model_path=/path/to/model \\
+    inspect eval experiments/synthetic_twins/inspect_task_twins_legacy.py --model hf//path/to/model \\
         -T dataset_path=/path/to/twin_zygosity.json
 
     # Evaluate on validation split instead of test
-    inspect eval experiments/synthetic_twins/inspect_task_twins_legacy.py --model hf/local \\
-        -M model_path=/path/to/model \\
+    inspect eval experiments/synthetic_twins/inspect_task_twins_legacy.py --model hf//path/to/model \\
         -T config_dir=/path/to/epoch_0 \\
         -T split=validation
 """

@@ -5,14 +5,12 @@ Reads prompt and system_prompt from setup_finetune.yaml to ensure train/eval par
 
 Usage:
     # For instruct models (chat_completion, default):
-    inspect eval inspect_task_predictable_or_not.py --model hf/local \
-        -M model_path=/path/to/checkpoint \
+    inspect eval inspect_task_predictable_or_not.py --model hf//path/to/checkpoint \
         -T config_path=/path/to/setup_finetune.yaml \
         -T data_path=/path/to/pp.json
 
     # For base models (text_completion):
-    inspect eval inspect_task_predictable_or_not.py --model hf/local \
-        -M model_path=/path/to/checkpoint \
+    inspect eval inspect_task_predictable_or_not.py --model hf//path/to/checkpoint \
         -T config_path=/path/to/setup_finetune.yaml \
         -T data_path=/path/to/pp.json \
         -T use_chat_template=false

@@ -42,8 +42,7 @@ All ACS tasks use a single unified inspect-ai script with task-specific aliases:
 Evaluate a fine-tuned model:
 ```bash
 inspect eval experiments/folktexts/inspect_task_acs.py@acs_income \
-    --model hf/model_name \
-    -M model_path=/path/to/checkpoint/epoch_0 \
+    --model hf//path/to/checkpoint/epoch_0 \
     -T data_path=/path/to/acs_income_condensed_50000_80P.json \
     -T config_path=/path/to/setup_finetune.yaml
 ```
@@ -51,8 +50,7 @@ inspect eval experiments/folktexts/inspect_task_acs.py@acs_income \
 Evaluate a base model (no fine-tuning):
 ```bash
 inspect eval experiments/folktexts/inspect_task_acs.py@acs_employment \
-    --model hf/Llama-3.2-1B-Instruct \
-    -M model_path=/path/to/pretrained/Llama-3.2-1B-Instruct \
+    --model hf//path/to/pretrained/Llama-3.2-1B-Instruct \
     -T data_path=/path/to/acs_employment_condensed_50000_80P.json \
     -T config_path=/path/to/eval_config.yaml
 ```

@@ -76,8 +76,8 @@ def extract_calibration_metrics(
             sample_col = col
             break
 
-    # Group by model (and epoch if present)
-    group_cols = ["model"]
+    # Group by task_name (from vis_label) and epoch if present
+    group_cols = ["task_name"] if "task_name" in df.columns else ["model"]
     if "epoch" in df.columns:
         group_cols.append("epoch")
 
@@ -246,10 +246,11 @@ def extract_metrics(
     # Get primary accuracy column
     primary_acc_col = accuracy_cols[0] if accuracy_cols else None
 
-    # Group by model (and task if present)
-    group_cols = ["model"]
+    # Group by task_name (from vis_label) if available, else model
     if "task_name" in df.columns:
-        group_cols.append("task_name")
+        group_cols = ["task_name"]
+    else:
+        group_cols = ["model"]
     if "epoch" in df.columns:
         group_cols.append("epoch")
 
@@ -258,8 +259,8 @@ def extract_metrics(
         if not isinstance(group_key, tuple):
             group_key = (group_key,)
         model_name = group_key[0]
-        task_name = group_key[1] if len(group_key) > 1 else None
-        epoch = group_key[2] if len(group_key) > 2 else None
+        task_name = group_key[0] if "task_name" in df.columns else None
+        epoch = group_key[1] if len(group_key) > 1 else None
 
         # Get accuracy
         if primary_acc_col and primary_acc_col in group_df.columns:

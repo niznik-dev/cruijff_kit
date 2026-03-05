@@ -10,18 +10,15 @@ Tests four scenarios (pp, pu, up, uu) across output_only and input_and_output mo
 
 Usage:
     # Evaluate fine-tuned model (reads from setup_finetune.yaml)
-    inspect eval sanity_checks/predictable_or_not/inspect_task_predictable_or_not_legacy.py --model hf/local \\
-        -M model_path=/path/to/model \\
+    inspect eval sanity_checks/predictable_or_not/inspect_task_predictable_or_not_legacy.py --model hf//path/to/model \\
         -T config_dir=/path/to/epoch_0
 
     # Standalone evaluation with direct dataset path
-    inspect eval sanity_checks/predictable_or_not/inspect_task_predictable_or_not_legacy.py --model hf/local \\
-        -M model_path=/path/to/model \\
+    inspect eval sanity_checks/predictable_or_not/inspect_task_predictable_or_not_legacy.py --model hf//path/to/model \\
         -T dataset_path=/path/to/pp.json
 
     # Evaluate on validation split instead of test
-    inspect eval sanity_checks/predictable_or_not/inspect_task_predictable_or_not_legacy.py --model hf/local \\
-        -M model_path=/path/to/model \\
+    inspect eval sanity_checks/predictable_or_not/inspect_task_predictable_or_not_legacy.py --model hf//path/to/model \\
         -T config_dir=/path/to/epoch_0 \\
         -T split=validation
 """
