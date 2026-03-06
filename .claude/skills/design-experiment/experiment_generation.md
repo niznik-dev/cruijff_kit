@@ -18,8 +18,8 @@ Create structured configuration in `{experiment_dir}/experiment_summary.yaml` us
 - `models`: base model(s) with paths and sizes
 - `data`: training dataset with splits
 - `output`: checkpoint directories and naming patterns
-- `runs`: complete list of fine-tuned + control runs
-- `evaluation`: system prompt, temperature, scorer (structured list with optional params), tasks, matrix
+- `runs`: complete list of fine-tuned + control runs (with optional `compute` block per run)
+- `evaluation`: system prompt, temperature, scorer (structured list with optional params), tasks, matrix (with optional `compute` block)
 
 **Important notes:**
 - Use actual paths from `claude.local.md`, not placeholders
@@ -28,6 +28,7 @@ Create structured configuration in `{experiment_dir}/experiment_summary.yaml` us
 - **Epochs are 0-indexed** - Use `[0, 1, 2]` in evaluation matrix for epochs 0, 1, 2
 - Control runs: Set `epochs: null` in evaluation matrix (no epoch suffix)
 - Fine-tuned runs: Specify epoch list `epochs: [0, 1]` for which epochs to evaluate
+- **Compute blocks (optional):** If Step 4b produced compute estimates, include `compute` block on each fine-tuned run and on the `evaluation` section. Omit entirely if no estimates were generated.
 
 **YAML formatting:**
 - Use standard YAML syntax (2-space indentation)

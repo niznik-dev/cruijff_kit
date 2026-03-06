@@ -365,7 +365,7 @@ After generating visualizations and before the report, optionally add compute me
    - **GPU utilization**: dual-source — set `gpu_util_jobstats_pct` from `parse_jobstats_json()["gpu_util_pct"]` (Prometheus average), and `gpu_util_min`/`gpu_util_max` from `summarize_gpu_metrics()` (nvidia-smi range). `format_compute_table` renders this as `avg% (min–max%)` when both are present.
    - **GPU memory / power**: from nvidia-smi CSV (`gpu_mem_used_mean_gb`, `gpu_mem_total_gb`, `power_mean_w`)
 5. Format with `format_compute_table(jobs, recommendations=recs)` → markdown table with optional recommendations
-6. Save raw metrics to `{output_dir}/compute_metrics.json`
+6. Save raw metrics to `{experiment_dir}/analysis/compute_metrics.json`
 7. Pass `compute_section=` to `generate_report()` (inserted after Analysis & Interpretation)
 
 **Key functions** from `tools.slurm.compute_metrics`:
@@ -382,6 +382,68 @@ After generating visualizations and before the report, optionally add compute me
 **Data sources:** nvidia-smi CSV for GPU memory/power and utilization range (min/max), jobstats for CPU metrics and GPU utilization average (Prometheus-sampled, more reliable than nvidia-smi's 30s polling), seff for job metadata + CPU fallback.
 
 **Error handling:** Missing seff → skip seff columns; missing gpu_metrics.csv → show `-` for GPU columns; jobstats unavailable or fails → fall back to seff for CPU data; missing run logs → skip compute analysis entirely; partial data → generate table with whatever is available.
+
+### compute_metrics.json Schema
+
+The `compute_metrics.json` file saved to `{experiment_dir}/analysis/compute_metrics.json` must follow this envelope schema. The envelope wraps the raw job list with experiment metadata, enabling downstream consumers (e.g., design-experiment) to display context and scale estimates correctly.
+
+```json
+{
+  "experiment_name": "cap_4L_2025-10-22",
+  "model": "Llama-3.2-1B-Instruct",
+  "dataset_size": 800,
+  "epochs": 2,
+  "batch_size": 4,
+  "date": "2025-10-22",
+  "jobs": [
+    {
+      "run_name": "Llama-3.2-1B-Instruct_rank4",
+      "job_type": "finetune",
+      "wall_time": "0:05:23",
+      "time_limit": "0:30:00",
+      "gpus": 1,
+      "gpu_mem_used_mean_gb": 12.5,
+      "gpu_mem_total_gb": 80.0,
+      "cpu_mem_allocated_gb": 80.0,
+      "gpu_util_mean": 75.2,
+      "power_mean_w": 85.0
+    },
+    {
+      "run_name": "Llama-3.2-1B-Instruct_rank4",
+      "job_type": "eval",
+      "wall_time": "0:00:45",
+      "time_limit": "0:10:00",
+      "gpus": 1,
+      "gpu_mem_used_mean_gb": 8.2,
+      "gpu_mem_total_gb": 80.0,
+      "cpu_mem_allocated_gb": 80.0,
+      "gpu_util_mean": 42.0,
+      "power_mean_w": 60.0
+    }
+  ]
+}
+```
+
+**Required envelope fields** (pulled from `experiment_summary.yaml` at analysis time):
+- `experiment_name`: From `experiment.name`
+- `model`: From `models.base[0].name` (primary model used)
+- `dataset_size`: From `data.training.splits.train` (number of training samples)
+- `epochs`: From `controls.epochs`
+- `batch_size`: From `controls.batch_size` (training batch size used)
+- `date`: From `experiment.date`
+
+**Required per-job fields:**
+- `run_name`: Identifies which run this job belongs to
+- `job_type`: Either `"finetune"` or `"eval"`
+- `wall_time`: Actual wall clock time (HH:MM:SS)
+- `time_limit`: SLURM time limit (HH:MM:SS)
+- `gpus`: Number of GPUs allocated
+
+**Optional per-job fields** (included when data is available):
+- `gpu_mem_used_mean_gb`, `gpu_mem_total_gb`: GPU memory from nvidia-smi
+- `cpu_mem_allocated_gb`: CPU memory from seff/jobstats
+- `gpu_util_mean`: Average GPU utilization percentage
+- `power_mean_w`: Average GPU power draw
 
 ## Logging
 
