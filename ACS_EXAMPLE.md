@@ -14,13 +14,12 @@ Before starting, make sure you have:
    cp claude.local.md.template claude.local.md
    # Edit claude.local.md with your HPC username, scratch directory, SLURM account, etc.
    ```
-3. **A model downloaded** - cruijff_kit can use any model you have downloaded locally. This guide uses Llama-3.2-1B-Instruct as its example, which you can download from HuggingFace:
+3. **A model downloaded** - A list of models supported by cruijff_kit is in [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md). This guide uses Llama-3.2-1B-Instruct as its example, which you can download from HuggingFace:
    ```bash
    tune download meta-llama/Llama-3.2-1B-Instruct \
        --output-dir <your_models_dir>/Llama-3.2-1B-Instruct \
        --hf-token <your_hf_token>
    ```
-   See [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md) for other options.
 4. **Access to an HPC cluster with GPUs** - cruijff_kit submits jobs via SLURM; by default, it requests one GPU for fine-tuning and evaluation tasks, but this scales with the size of the model and can be adjusted manually in the SLURM scripts generated during scaffolding. 
 
 ### The Dataset
@@ -53,7 +52,7 @@ HOURS_WEEK: 45 | SEX: Male | RACE: White
 Income >$50k?
 ```
 
-The model learns to respond `1` (above $50k) or `0` (at or below $50k).
+The outcome classes are `1` (above $50k) or `0` (at or below $50k).
 
 #### Balanced Sampling
 
@@ -86,7 +85,7 @@ cruijff_kit uses a [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 
 ### Step 1: Design the Experiment
 
-Run the design skill:
+Run the design skill in a `claude` session with:
 
 ```
 /design-experiment
@@ -101,9 +100,9 @@ Example:
 - **Dataset**: `data/green/acs/acs_income_condensed_1000_80P.json` (or whatever dataset size you choose to generate above)
 - **Evaluation task**: `acs_income` (from `experiments/folktexts/inspect_task_acs.py`)
 - **Epochs**: 1
-- **Scorers**: `match` (output from model should match expected class exactly for evaluation metrics)
+- **Scorers**: `match` (output from model will be correct if it exactly matches `0` or `1`)
 
-Claude will verify that the model and data exist, then create an `experiment_summary.yaml` file in your experiment directory. **This is the canonical file that is read by all downstream tasks, so make sure to review it before proceeding!**
+Claude will verify that the model and data exist, then create an `experiment_summary.yaml` file in your experiment directory. **This is the canonical file that is read by all downstream tasks, so make sure to review it before proceeding!** The agent should prompt whether you want to scaffold next.
 
 ### Step 2: Scaffold the Experiment
 
@@ -138,10 +137,10 @@ Total time: approximately 10-15 minutes for the 1B model with 1,000 samples.
 
 This skill reads the evaluation logs from both runs and generates an `analysis/` directory containing:
 
-- **`report.md`** - A markdown report with accuracy comparisons, confidence intervals, and (if `risk_scorer` is configured) calibration metrics like ECE, Brier score, and AUC
-- **Interactive HTML plots** - Side-by-side comparisons of base vs. fine-tuned performance, viewable in any browser
-- **Static PNG exports** - If playwright is installed, PNG versions of all plots are generated automatically
-- **Calibration and ROC curves** - If `risk_scorer` is configured, additional diagnostic plots show how well the model's confidence aligns with actual outcomes
+- **`report.md`** - A markdown report with accuracy comparisons, confidence intervals, and if `risk_scorer` is selected for binary tasks, calibration metrics like ECE, Brier score, and AUC
+- **HTML plots** - Side-by-side comparisons of base vs. fine-tuned performance, viewable in any browser
+- **Static PNG exports** - If `playwright` is installed, PNG versions of all plots are generated automatically
+- **Calibration and ROC curves** - If `risk_scorer` is selected, additional diagnostic plots show how well the model's confidence aligns with actual outcomes
 
 You can also run `/summarize-experiment` for a lightweight text summary of key metrics.
 
