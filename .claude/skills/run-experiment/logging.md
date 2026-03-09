@@ -92,7 +92,7 @@ Both created during job execution to record job submissions, status changes, and
 
 **State changes:** Log all state transitions with timestamps to track execution time
 
-**Staggering:** Torchtune uses 5-second stagger between submissions to prevent cache collision; inspect uses 1-second delay (cache is pre-built)
+**Staggering:** Torchtune uses 5-second stagger between submissions to prevent cache collision; inspect submits all at once (cache is pre-built)
 
 **Errors:** Log SLURM error messages when jobs fail
 

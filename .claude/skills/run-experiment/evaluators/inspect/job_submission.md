@@ -33,12 +33,7 @@ Track:
 
 ### 4. Submission Timing
 
-Brief 1-second delay between submissions:
-```bash
-sleep 1
-```
-
-We don't need a longer delay because HF datasets cache is pre-built before submission (see cache_prebuilding.md)
+Submit all evaluations without delay. HF datasets cache is pre-built before submission (see cache_prebuilding.md).
 
 ## Error Handling
 

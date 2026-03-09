@@ -10,57 +10,13 @@ After dependency checking (checkpoints verified), before job submission. This st
 
 ## Process
 
-### 1. Extract Unique Dataset Paths
-
-Parse `experiment_summary.yaml` and collect unique dataset paths from `evaluation.tasks[].dataset`:
-
-```python
-import yaml
-
-with open("experiment_summary.yaml") as f:
-    config = yaml.safe_load(f)
-
-dataset_paths = set()
-for task in config.get("evaluation", {}).get("tasks", []):
-    dataset = task.get("dataset")
-    if dataset:
-        dataset_paths.add(dataset)
-```
-
-Each unique `data_path` produces a different cache entry. Only unique paths need pre-building.
-
-### 2. Pre-build Cache for Each Dataset
-
-For each unique dataset path, run:
-
-```python
-from datasets import load_dataset
-
-for path in dataset_paths:
-    load_dataset("json", data_files=path, field="test", split="train")
-```
-
-This builds the Arrow cache files that all eval jobs will share. Run this in a Python one-liner or short script on the login node:
+Run the cache pre-build script from the experiment directory:
 
 ```bash
-python -c "
-from datasets import load_dataset
-load_dataset('json', data_files='DATA_PATH', field='test', split='train')
-print('Cache built for: DATA_PATH')
-"
+python tools/inspect/prebuild_cache.py experiment_summary.yaml
 ```
 
-Replace `DATA_PATH` with each unique dataset path.
-
-### 3. Verify Cache Built
-
-After pre-building, the cache directory should contain Arrow files:
-
-```bash
-ls ~/.cache/huggingface/datasets/json/
-```
-
-Verify that entries exist (the exact directory names are hash-based).
+The script extracts unique dataset paths from `evaluation.tasks[].dataset`, validates each file exists, and builds the Arrow cache. It prints status per dataset and a summary on completion.
 
 ## Logging
 
@@ -86,10 +42,6 @@ Unique datasets: 1
 - Log warning for the specific path
 - Continue pre-building other datasets
 - Report missing datasets in summary
-
-## Why This Matters
-
-Without pre-building, the first eval job to run triggers cache construction. If multiple jobs start simultaneously (common with SLURM), they all try to build the same cache concurrently, causing file system conflicts. Building once beforehand eliminates the race entirely.
 
 ## Next Stage
 

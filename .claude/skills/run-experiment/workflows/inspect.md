@@ -85,34 +85,14 @@ Recommendation: Check if fine-tuning job failed
 
 **Technical details:** See [evaluators/inspect/dependency_checking.md](../evaluators/inspect/dependency_checking.md)
 
-### 3. Pre-build HuggingFace Datasets Cache (CRITICAL)
+### 3. Pre-build HuggingFace Datasets Cache
 
-**⚠️ CACHE PRE-BUILDING - MANDATORY**
+Pre-build the HF datasets cache on the login node to prevent race conditions
+when parallel eval jobs launch simultaneously:
 
-When multiple eval jobs launch simultaneously, they race to build the same HF datasets cache. Pre-build it once on the login node before submitting jobs.
-
-**Extract unique dataset paths from experiment_summary.yaml:**
-```python
-import yaml
-with open("experiment_summary.yaml") as f:
-    config = yaml.safe_load(f)
-dataset_paths = set()
-for task in config.get("evaluation", {}).get("tasks", []):
-    dataset = task.get("dataset")
-    if dataset:
-        dataset_paths.add(dataset)
-```
-
-**Pre-build cache for each unique dataset:**
 ```bash
-python -c "
-from datasets import load_dataset
-load_dataset('json', data_files='DATA_PATH', field='test', split='train')
-print('Cache built for: DATA_PATH')
-"
+python tools/inspect/prebuild_cache.py experiment_summary.yaml
 ```
-
-This takes seconds and prevents `FileNotFoundError` crashes from cache race conditions.
 
 **Technical details:** See [evaluators/inspect/cache_prebuilding.md](../evaluators/inspect/cache_prebuilding.md)
 
@@ -149,7 +129,7 @@ job_id=$(sbatch {task}_epoch{N}.slurm | awk '{print $4}')
 - Record timestamp
 
 **No stagger delay needed:**
-Cache race conditions are handled by the pre-building step (Step 3). Can submit all evaluations rapidly (optional 1-second delay for rate limiting).
+No delay needed — cache is pre-built in Step 3.
 
 **Technical details:** See [evaluators/inspect/job_submission.md](../evaluators/inspect/job_submission.md)
 
