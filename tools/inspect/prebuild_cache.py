@@ -107,7 +107,6 @@ def prebuild_cache(summary_path: str) -> dict:
             print(f"CACHE_FAILED: {dataset_path} ({e})")
             paths_failed.append(dataset_path)
 
-    total = len(paths_cached) + len(paths_failed)
     print(f"CACHE_PREBUILD_COMPLETE: {len(paths_cached)} datasets cached")
 
     return {
