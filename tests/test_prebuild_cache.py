@@ -27,10 +27,13 @@ def test_happy_path(mock_load, tmp_path):
     """Valid YAML with 2 dataset paths → success, datasets_cached: 2."""
     d1 = _make_dataset(tmp_path, "a.json")
     d2 = _make_dataset(tmp_path, "b.json")
-    summary = _write_summary(tmp_path, [
-        {"name": "task1", "dataset": d1},
-        {"name": "task2", "dataset": d2},
-    ])
+    summary = _write_summary(
+        tmp_path,
+        [
+            {"name": "task1", "dataset": d1},
+            {"name": "task2", "dataset": d2},
+        ],
+    )
 
     result = prebuild_cache(summary)
 
@@ -44,10 +47,13 @@ def test_happy_path(mock_load, tmp_path):
 def test_duplicate_paths(mock_load, tmp_path):
     """Same dataset path in multiple tasks → only cached once."""
     d1 = _make_dataset(tmp_path, "shared.json")
-    summary = _write_summary(tmp_path, [
-        {"name": "task1", "dataset": d1},
-        {"name": "task2", "dataset": d1},
-    ])
+    summary = _write_summary(
+        tmp_path,
+        [
+            {"name": "task1", "dataset": d1},
+            {"name": "task2", "dataset": d1},
+        ],
+    )
 
     result = prebuild_cache(summary)
 
@@ -61,10 +67,13 @@ def test_missing_dataset_file(mock_load, tmp_path):
     """Path in YAML doesn't exist → continues, reports failure."""
     d1 = _make_dataset(tmp_path, "real.json")
     missing = str(tmp_path / "nonexistent.json")
-    summary = _write_summary(tmp_path, [
-        {"name": "task1", "dataset": d1},
-        {"name": "task2", "dataset": missing},
-    ])
+    summary = _write_summary(
+        tmp_path,
+        [
+            {"name": "task1", "dataset": d1},
+            {"name": "task2", "dataset": missing},
+        ],
+    )
 
     result = prebuild_cache(summary)
 
@@ -98,10 +107,13 @@ def test_missing_yaml_file():
 @patch("tools.inspect.prebuild_cache.load_dataset")
 def test_no_dataset_key_in_tasks(mock_load, tmp_path):
     """Tasks without dataset key are skipped gracefully."""
-    summary = _write_summary(tmp_path, [
-        {"name": "task1"},
-        {"name": "task2", "dataset": None},
-    ])
+    summary = _write_summary(
+        tmp_path,
+        [
+            {"name": "task1"},
+            {"name": "task2", "dataset": None},
+        ],
+    )
 
     result = prebuild_cache(summary)
 
@@ -114,9 +126,12 @@ def test_no_dataset_key_in_tasks(mock_load, tmp_path):
 def test_missing_datasets_package(tmp_path):
     """Missing datasets package → returns friendly error."""
     d1 = _make_dataset(tmp_path, "a.json")
-    summary = _write_summary(tmp_path, [
-        {"name": "task1", "dataset": d1},
-    ])
+    summary = _write_summary(
+        tmp_path,
+        [
+            {"name": "task1", "dataset": d1},
+        ],
+    )
 
     result = prebuild_cache(summary)
 

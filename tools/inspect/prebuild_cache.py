@@ -122,9 +122,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Pre-build HuggingFace datasets cache for inspect-ai evaluations."
     )
-    parser.add_argument(
-        "summary_path", help="Path to experiment_summary.yaml"
-    )
+    parser.add_argument("summary_path", help="Path to experiment_summary.yaml")
     parser.add_argument(
         "--pretty", "-p", action="store_true", help="Pretty-print JSON output"
     )
