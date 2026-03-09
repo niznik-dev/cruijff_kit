@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import yaml
 
-from tools.inspect.prebuild_cache import prebuild_cache
+from cruijff_kit.tools.inspect.prebuild_cache import prebuild_cache
 
 
 def _write_summary(tmp_path, tasks):
@@ -22,7 +22,7 @@ def _make_dataset(tmp_path, name="data.json"):
     return str(path)
 
 
-@patch("tools.inspect.prebuild_cache.load_dataset")
+@patch("cruijff_kit.tools.inspect.prebuild_cache.load_dataset")
 def test_happy_path(mock_load, tmp_path):
     """Valid YAML with 2 dataset paths → success, datasets_cached: 2."""
     d1 = _make_dataset(tmp_path, "a.json")
@@ -43,7 +43,7 @@ def test_happy_path(mock_load, tmp_path):
     assert mock_load.call_count == 2
 
 
-@patch("tools.inspect.prebuild_cache.load_dataset")
+@patch("cruijff_kit.tools.inspect.prebuild_cache.load_dataset")
 def test_duplicate_paths(mock_load, tmp_path):
     """Same dataset path in multiple tasks → only cached once."""
     d1 = _make_dataset(tmp_path, "shared.json")
@@ -62,7 +62,7 @@ def test_duplicate_paths(mock_load, tmp_path):
     assert mock_load.call_count == 1
 
 
-@patch("tools.inspect.prebuild_cache.load_dataset")
+@patch("cruijff_kit.tools.inspect.prebuild_cache.load_dataset")
 def test_missing_dataset_file(mock_load, tmp_path):
     """Path in YAML doesn't exist → continues, reports failure."""
     d1 = _make_dataset(tmp_path, "real.json")
@@ -84,7 +84,7 @@ def test_missing_dataset_file(mock_load, tmp_path):
     assert mock_load.call_count == 1
 
 
-@patch("tools.inspect.prebuild_cache.load_dataset")
+@patch("cruijff_kit.tools.inspect.prebuild_cache.load_dataset")
 def test_no_evaluation_tasks(mock_load, tmp_path):
     """YAML has no evaluation.tasks → success, datasets_cached: 0."""
     summary = _write_summary(tmp_path, [])
@@ -104,7 +104,7 @@ def test_missing_yaml_file():
     assert "not found" in result["message"].lower()
 
 
-@patch("tools.inspect.prebuild_cache.load_dataset")
+@patch("cruijff_kit.tools.inspect.prebuild_cache.load_dataset")
 def test_no_dataset_key_in_tasks(mock_load, tmp_path):
     """Tasks without dataset key are skipped gracefully."""
     summary = _write_summary(
@@ -122,7 +122,7 @@ def test_no_dataset_key_in_tasks(mock_load, tmp_path):
     assert mock_load.call_count == 0
 
 
-@patch("tools.inspect.prebuild_cache.load_dataset", None)
+@patch("cruijff_kit.tools.inspect.prebuild_cache.load_dataset", None)
 def test_missing_datasets_package(tmp_path):
     """Missing datasets package → returns friendly error."""
     d1 = _make_dataset(tmp_path, "a.json")
