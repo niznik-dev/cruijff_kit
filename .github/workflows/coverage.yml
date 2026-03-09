@@ -1,7 +1,8 @@
 name: Test Coverage
 
-# Only run when manually triggered from GitHub UI
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -23,7 +24,34 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest tests/ --cov=cruijff_kit.tools.torchtune.setup_finetune --cov-report=html --cov-report=term-missing
+          pytest tests/ --cov=cruijff_kit --cov-report=html --cov-report=term-missing | tee coverage_output.txt
+
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          # Parse the TOTAL line from pytest-cov output
+          COVERAGE=$(grep '^TOTAL' coverage_output.txt | awk '{print $NF}' | tr -d '%')
+          echo "percentage=$COVERAGE" >> "$GITHUB_OUTPUT"
+
+          # Set color based on thresholds
+          if [ "$COVERAGE" -ge 70 ]; then
+            echo "color=green" >> "$GITHUB_OUTPUT"
+          elif [ "$COVERAGE" -ge 50 ]; then
+            echo "color=yellow" >> "$GITHUB_OUTPUT"
+          else
+            echo "color=red" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update coverage badge
+        if: github.ref == 'refs/heads/main'
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: 446aebdc3da3cde75a7124376f985759
+          filename: cruijff_kit_coverage.json
+          label: coverage
+          message: ${{ steps.coverage.outputs.percentage }}%
+          color: ${{ steps.coverage.outputs.color }}
 
       - name: Upload coverage HTML report
         uses: actions/upload-artifact@v4

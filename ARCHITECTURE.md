@@ -24,7 +24,9 @@ cruijff_kit/
 │   │   ├── custom_recipes/    # Modified torchtune recipes
 │   │   └── templates/         # YAML/SLURM templates
 │   └── inspect/        # Evaluation setup and analysis
-│       ├── setup_inspect.py   # (Legacy) Generate evaluation SLURM scripts
+│       ├── setup_inspect.py   # Generate evaluation SLURM scripts from template
+│       ├── templates/         # SLURM templates
+│       │   └── eval_template.slurm  # Eval job template (GPU monitoring, log mgmt)
 │       ├── parse_eval_log.py  # Parse inspect-ai evaluation logs
 │       └── heterogeneity/     # Group-level fairness analysis
 │           ├── heterogeneity_eval.py    # Inspect-ai task wrapper
@@ -142,26 +144,26 @@ setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
 
 ### 2. Evaluation Workflow
 
-> **Note:** The `scaffold-inspect` agent (invoked via `scaffold-experiment` skill) is now the recommended way to set up evaluations. It generates SLURM scripts directly from `experiment_summary.yaml`. The legacy `setup_inspect.py` script below is retained for reference but may be out of date.
+> **Note:** The `scaffold-inspect` agent (invoked via `scaffold-experiment` skill) is the recommended way to set up evaluations. It writes `eval_config.yaml` and calls `setup_inspect.py` to render SLURM scripts from a template.
 
-**Entry point (legacy):** `tools/inspect/setup_inspect.py`
+**Entry point:** `tools/inspect/setup_inspect.py` (reads `eval_config.yaml`, renders `eval_template.slurm`)
 
 **Process:**
 ```
-Finetuned model checkpoint → setup_inspect.py → inspect.slurm
-                                                      ↓
-                                                sbatch inspect.slurm
-                                                      ↓
-                                              task-specific inspect task
-                                                      ↓
-                                              inspect-ai evaluation
+eval_config.yaml → setup_inspect.py → {task}_epoch{N}.slurm
+                                              ↓
+                                        sbatch {task}_epoch{N}.slurm
+                                              ↓
+                                        task-specific inspect task
+                                              ↓
+                                        inspect-ai evaluation
 ```
 
 **Key files:**
-- `tools/inspect/setup_inspect.py` - **(Legacy, may be out of date)** Generates SLURM script for evaluation
-  - Reuses SLURM parameters from `finetune.slurm`
-  - Can evaluate base model or finetuned model
-  - Points to task-specific inspect task files
+- `tools/inspect/setup_inspect.py` - Renders eval SLURM scripts from `eval_template.slurm`
+  - Reads experiment-specific config from `eval_config.yaml`
+  - Looks up GPU resources from `model_configs.py`
+  - Template includes GPU monitoring, SLURM log management
 
 - Experiment-specific inspect-ai task files (e.g., `experiments/capitalization/inspect_task_capitalization.py`)
   - Define evaluation prompts and scoring

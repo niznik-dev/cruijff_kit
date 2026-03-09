@@ -87,7 +87,6 @@ TERSE_VALUES = {
     "Working for the local government": "local_gov",
     "Working for the federal government": "fed_gov",
     "Self-employed, not incorporated": "self_emp",
-
     # Education
     "No schooling completed": "none",
     "Nursery school, preschool": "preschool",
@@ -113,14 +112,12 @@ TERSE_VALUES = {
     "Master's degree": "masters",
     "Professional school degree": "professional",
     "Doctorate degree": "doctorate",
-
     # Marital status
     "Married": "married",
     "Never married": "never_married",
     "Divorced": "divorced",
     "Widowed": "widowed",
     "Separated": "separated",
-
     # Relationship
     "The reference person itself": "self",
     "Husband/wife": "spouse",
@@ -138,11 +135,9 @@ TERSE_VALUES = {
     "Unmarried partner": "partner",
     "Foster child": "foster_child",
     "Other nonrelative": "other_nonrel",
-
     # Sex
     "Male": "M",
     "Female": "F",
-
     # Race
     "White": "white",
     "Black or African American": "black",
@@ -167,13 +162,13 @@ def parse_verbose_input(text: str) -> dict:
 
     for match in re.finditer(pattern, text):
         field_name = match.group(1).strip()
-        value = match.group(2).strip().rstrip('.')
+        value = match.group(2).strip().rstrip(".")
         # Clean up "X years old" -> just the number for age
-        if value.endswith('years old'):
-            value = value.replace(' years old', '')
+        if value.endswith("years old"):
+            value = value.replace(" years old", "")
         # Clean up "X hours" -> just the number for hours
-        if value.endswith('hours'):
-            value = value.replace(' hours', '')
+        if value.endswith("hours"):
+            value = value.replace(" hours", "")
         fields[field_name] = value
 
     return fields
@@ -283,13 +278,15 @@ def main():
         description="Convert verbose ACS data to condensed and terse formats"
     )
     parser.add_argument(
-        "--input", "-i",
+        "--input",
+        "-i",
         type=Path,
         required=True,
         help="Path to verbose format JSON file",
     )
     parser.add_argument(
-        "--output-dir", "-o",
+        "--output-dir",
+        "-o",
         type=Path,
         required=True,
         help="Output directory for converted files",
@@ -330,7 +327,9 @@ def main():
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     # Derive output filenames
-    condensed_path, terse_path = derive_output_names(args.input, args.output_dir, args.prefix)
+    condensed_path, terse_path = derive_output_names(
+        args.input, args.output_dir, args.prefix
+    )
 
     # Generate both formats
     print("=" * 60)

@@ -22,16 +22,19 @@ logger = logging.getLogger(__name__)
 
 class RecipeConfigError(Exception):
     """Base exception for recipe configuration errors."""
+
     pass
 
 
 class RecipeNotFoundError(RecipeConfigError):
     """Raised when a specified recipe cannot be found."""
+
     pass
 
 
 class RecipeExtractionError(RecipeConfigError):
     """Raised when recipe config extraction fails."""
+
     pass
 
 
@@ -48,14 +51,11 @@ def list_available_recipes() -> Dict[str, str]:
     """
     try:
         result = subprocess.run(
-            ["tune", "ls"],
-            capture_output=True,
-            text=True,
-            check=True
+            ["tune", "ls"], capture_output=True, text=True, check=True
         )
 
         recipes = {}
-        lines = result.stdout.strip().split('\n')
+        lines = result.stdout.strip().split("\n")
 
         # Parse output format:
         # RECIPE                                   CONFIG
@@ -66,7 +66,7 @@ def list_available_recipes() -> Dict[str, str]:
 
         for line in lines:
             # Skip header line
-            if 'RECIPE' in line and 'CONFIG' in line:
+            if "RECIPE" in line and "CONFIG" in line:
                 continue
 
             if not line.strip():
@@ -87,7 +87,9 @@ def list_available_recipes() -> Dict[str, str]:
 
             # If config_part has content, add it to recipes dict
             if config_part:
-                description = f"Recipe: {current_recipe}" if current_recipe else "Built-in config"
+                description = (
+                    f"Recipe: {current_recipe}" if current_recipe else "Built-in config"
+                )
                 recipes[config_part] = description
 
         logger.info(f"Found {len(recipes)} available configs")
@@ -98,9 +100,8 @@ def list_available_recipes() -> Dict[str, str]:
             "tune CLI not found. Ensure torchtune is installed and accessible."
         )
     except subprocess.CalledProcessError as e:
-        raise RecipeExtractionError(
-            f"Failed to list recipes: {e.stderr}"
-        )
+        raise RecipeExtractionError(f"Failed to list recipes: {e.stderr}")
+
 
 def extract_recipe_config(recipe_name: str, output_path: Optional[str] = None) -> str:
     """
@@ -126,7 +127,7 @@ def extract_recipe_config(recipe_name: str, output_path: Optional[str] = None) -
             cache_dir = project_root / ".claude" / "cache" / "recipes"
             cache_dir.mkdir(parents=True, exist_ok=True)
             # Use recipe name as filename (replace / with _)
-            safe_name = recipe_name.replace('/', '_')
+            safe_name = recipe_name.replace("/", "_")
             output_path = str(cache_dir / f"{safe_name}.yaml")
 
         output_file = Path(output_path)
@@ -137,12 +138,12 @@ def extract_recipe_config(recipe_name: str, output_path: Optional[str] = None) -
             ["tune", "cp", recipe_name, str(output_file)],
             capture_output=True,
             text=True,
-            check=False  # Don't raise immediately, check return code manually
+            check=False,  # Don't raise immediately, check return code manually
         )
 
         if result.returncode != 0:
             stderr_lower = result.stderr.lower()
-            if 'not found' in stderr_lower or 'does not exist' in stderr_lower:
+            if "not found" in stderr_lower or "does not exist" in stderr_lower:
                 raise RecipeNotFoundError(
                     f"Recipe '{recipe_name}' not found. Use list_available_recipes() "
                     f"to see available recipes."
@@ -186,7 +187,7 @@ def load_recipe_defaults(config_path: str) -> Dict[str, Any]:
         if not config_file.exists():
             raise RecipeExtractionError(f"Config file not found: {config_path}")
 
-        with open(config_file, 'r') as f:
+        with open(config_file, "r") as f:
             config = yaml.safe_load(f)
 
         if config is None:
@@ -201,6 +202,7 @@ def load_recipe_defaults(config_path: str) -> Dict[str, Any]:
         raise RecipeExtractionError(f"Failed to parse YAML from {config_path}: {e}")
     except Exception as e:
         raise RecipeExtractionError(f"Failed to load recipe config: {e}")
+
 
 def get_custom_recipe_path(recipe_name: str) -> Optional[str]:
     """
@@ -218,7 +220,7 @@ def get_custom_recipe_path(recipe_name: str) -> Optional[str]:
         or None if not a custom recipe or file doesn't exist
     """
     # Check if this is a custom recipe (doesn't contain /)
-    if '/' in recipe_name:
+    if "/" in recipe_name:
         # This is a torchtune built-in recipe
         return None
 
@@ -259,13 +261,14 @@ def validate_recipe_exists(recipe_name: str) -> bool:
         return recipe_name in recipes
     except RecipeExtractionError:
         # If we can't list recipes, assume it might exist
-        logger.warning(f"Could not validate recipe '{recipe_name}' - tune CLI unavailable")
+        logger.warning(
+            f"Could not validate recipe '{recipe_name}' - tune CLI unavailable"
+        )
         return True
 
 
 def get_recipe_config(
-    recipe_name: str,
-    cache_dir: Optional[str] = None
+    recipe_name: str, cache_dir: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Get recipe configuration (convenience function combining extract + load).
@@ -285,7 +288,7 @@ def get_recipe_config(
     if cache_dir:
         cache_path = Path(cache_dir)
         cache_path.mkdir(parents=True, exist_ok=True)
-        safe_name = recipe_name.replace('/', '_')
+        safe_name = recipe_name.replace("/", "_")
         output_path = str(cache_path / f"{safe_name}.yaml")
     else:
         output_path = None
@@ -298,7 +301,7 @@ def get_recipe_config(
 
 
 # Example usage and testing
-# MUST be run in a conda environment with torchtune installed 
+# MUST be run in a conda environment with torchtune installed
 if __name__ == "__main__":
     # Set up logging for testing
     logging.basicConfig(level=logging.INFO)
@@ -311,7 +314,7 @@ if __name__ == "__main__":
     try:
         recipes = list_available_recipes()
         print(f"Found {len(recipes)} recipes")
-        # print first 5 recipes 
+        # print first 5 recipes
         for name, desc in list(recipes.items())[:5]:
             print(f"  - {name}: {desc}")
     except RecipeExtractionError as e:

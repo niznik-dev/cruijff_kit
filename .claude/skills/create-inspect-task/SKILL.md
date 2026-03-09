@@ -49,7 +49,7 @@ Create evaluation tasks from scratch without experiment context. User provides a
 5. **Add task parameters** - Make the task flexible and reusable
 6. **Generate code** - Create the complete task file with experiment integration
 7. **Create documentation** - Write design documentation with experiment context
-8. **Create log** - Document all decisions in `create-inspect-task.log`
+8. **Create log** - Document all decisions in `logs/create-inspect-task.log`
 9. **Provide usage guidance** - Show user how to run the task with their models
 
 ### Mode 2: Standalone Workflow
@@ -61,7 +61,7 @@ Create evaluation tasks from scratch without experiment context. User provides a
 5. **Add task parameters** - Make the task flexible and reusable
 6. **Generate code** - Create the complete task file
 7. **Create documentation** - Write design documentation with rationale
-8. **Create log** - Document all decisions in `create-inspect-task.log`
+8. **Create log** - Document all decisions in `logs/create-inspect-task.log`
 9. **Provide usage guidance** - Show user how to run the task
 
 ## Extracting Information from experiment_summary.yaml (Mode 1)
@@ -214,7 +214,7 @@ If validation fails:
 
 ## Logging
 
-**IMPORTANT:** Create a detailed log file at `{task_directory}/create-inspect-task.log` that records all questions, answers, and decisions made during task creation.
+**IMPORTANT:** Create a detailed log file at `{task_directory}/logs/create-inspect-task.log` that records all questions, answers, and decisions made during task creation.
 
 ### Log Format
 
@@ -873,11 +873,13 @@ inspect eval my_task.py \
   -T dataset_path=/path/to/dataset.json
 ```
 
-### Integration with setup_inspect.py (Future)
+### Integration with setup_inspect.py
 
-This task pattern enables integration with the `setup_inspect.py` tool (when implemented):
+This task pattern integrates with `setup_inspect.py`, which renders eval SLURM scripts from a template. The scaffold-inspect agent writes `eval_config.yaml` (referencing the task script created here) and calls:
 ```bash
-python tools/inspect/setup_inspect.py --finetune_epoch_dir /path/to/experiment/run/epoch_0
+python tools/inspect/setup_inspect.py \
+  --config eval_config.yaml \
+  --model_name Llama-3.2-1B-Instruct
 ```
 
 ## Validation Before Completion

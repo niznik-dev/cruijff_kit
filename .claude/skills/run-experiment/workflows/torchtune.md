@@ -121,7 +121,7 @@ Verify detailed execution log exists.
 
 ## Logging
 
-Create detailed log at `{experiment_dir}/run-torchtune.log` (or similar name based on module invocation).
+Create detailed log at `{experiment_dir}/logs/run-torchtune.log` (or similar name based on module invocation).
 
 **Log entries:**
 ```

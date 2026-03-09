@@ -1,9 +1,6 @@
 import argparse
 import json
-import os
 import random
-import string
-import sys
 from pathlib import Path
 
 from cruijff_kit.utils.logger import setup_logger
@@ -11,13 +8,42 @@ from cruijff_kit.utils.logger import setup_logger
 # Set up logging
 logger = setup_logger(__name__)
 
-parser = argparse.ArgumentParser(description="Generate a JSON file of sampled words with capitalization.")
-parser.add_argument("--word-len", type=int, required=True, help="Desired word length (e.g., 5). Must be a positive integer.")
-parser.add_argument("--num-words", type=int, required=True, help="Number of words to sample. Must be a positive integer.")
-parser.add_argument("--train-fraction", type=float, default=0.8, help="Fraction of data to use for training (between 0 and 1).")
-parser.add_argument("--use-chat-template", action="store_true", help="Use chat template format.")
-parser.add_argument("--output_dir", type=Path, default=None, help="Output directory (default: data/green/capitalization/)")
-parser.add_argument("--input_file", type=Path, default=None, help="Input word list file (default: experiments/capitalization/input/words_alpha.txt)")
+parser = argparse.ArgumentParser(
+    description="Generate a JSON file of sampled words with capitalization."
+)
+parser.add_argument(
+    "--word-len",
+    type=int,
+    required=True,
+    help="Desired word length (e.g., 5). Must be a positive integer.",
+)
+parser.add_argument(
+    "--num-words",
+    type=int,
+    required=True,
+    help="Number of words to sample. Must be a positive integer.",
+)
+parser.add_argument(
+    "--train-fraction",
+    type=float,
+    default=0.8,
+    help="Fraction of data to use for training (between 0 and 1).",
+)
+parser.add_argument(
+    "--use-chat-template", action="store_true", help="Use chat template format."
+)
+parser.add_argument(
+    "--output_dir",
+    type=Path,
+    default=None,
+    help="Output directory (default: data/green/capitalization/)",
+)
+parser.add_argument(
+    "--input_file",
+    type=Path,
+    default=None,
+    help="Input word list file (default: experiments/capitalization/input/words_alpha.txt)",
+)
 
 args = parser.parse_args()
 
@@ -57,8 +83,7 @@ with open(args.input_file, "r") as f:
     words = [line.strip() for line in f if line.strip()]
 
 all_n_letter_words = [
-    word for word in words
-    if len(word) == WORD_LEN and all(c.isalpha() for c in word)
+    word for word in words if len(word) == WORD_LEN and all(c.isalpha() for c in word)
 ]
 logger.info(f"{len(all_n_letter_words)} {WORD_LEN}-letter words found.")
 
@@ -75,36 +100,42 @@ test_examples = []
 for i in range(TRAIN_CUTOFF_INDEX):
     word = n_letter_words_sample[i].lower()
     if USE_CHAT_TEMPLATE:
-        train_examples.append({
-            "messages": [
-                {"role": "user", "content": f"{word}"},
-                {"role": "assistant", "content": word.capitalize()}
-            ],
-        })
+        train_examples.append(
+            {
+                "messages": [
+                    {"role": "user", "content": f"{word}"},
+                    {"role": "assistant", "content": word.capitalize()},
+                ],
+            }
+        )
     else:
         train_examples.append({"input": word, "output": word.capitalize()})
 
 for i in range(TRAIN_CUTOFF_INDEX, VAL_CUTOFF_INDEX):
     word = n_letter_words_sample[i].lower()
     if USE_CHAT_TEMPLATE:
-        validation_examples.append({
-            "messages": [
-                {"role": "user", "content": f"{word}"},
-                {"role": "assistant", "content": word.capitalize()}
-            ],
-        })
+        validation_examples.append(
+            {
+                "messages": [
+                    {"role": "user", "content": f"{word}"},
+                    {"role": "assistant", "content": word.capitalize()},
+                ],
+            }
+        )
     else:
         validation_examples.append({"input": word, "output": word.capitalize()})
 
 for i in range(VAL_CUTOFF_INDEX, NUMBER_OF_WORDS):
     word = n_letter_words_sample[i].lower()
     if USE_CHAT_TEMPLATE:
-        test_examples.append({
-            "messages": [
-                {"role": "user", "content": f"{word}"},
-                {"role": "assistant", "content": word.capitalize()}
-            ],
-        })
+        test_examples.append(
+            {
+                "messages": [
+                    {"role": "user", "content": f"{word}"},
+                    {"role": "assistant", "content": word.capitalize()},
+                ],
+            }
+        )
     else:
         test_examples.append({"input": word, "output": word.capitalize()})
 
@@ -118,14 +149,18 @@ if USE_CHAT_TEMPLATE:
         json.dump(validation_examples, f, indent=2)
     with open(outfolder_path / "test.json", "w") as f:
         json.dump(test_examples, f, indent=2)
-    logger.info(f"✅  Generated {outfolder_path}: {len(train_examples)} train, {len(validation_examples)} validation, {len(test_examples)} test")
+    logger.info(
+        f"✅  Generated {outfolder_path}: {len(train_examples)} train, {len(validation_examples)} validation, {len(test_examples)} test"
+    )
 else:
     output_data = {
         "train": train_examples,
         "validation": validation_examples,
-        "test": test_examples
+        "test": test_examples,
     }
     output_path = args.output_dir / OUTFILE
     with open(output_path, "w") as f:
         json.dump(output_data, f, indent=2)
-    logger.info(f"✅  Generated {output_path}: {len(train_examples)} train, {len(validation_examples)} validation, {len(test_examples)} test")
+    logger.info(
+        f"✅  Generated {output_path}: {len(train_examples)} train, {len(validation_examples)} validation, {len(test_examples)} test"
+    )

@@ -9,7 +9,7 @@ This document covers analyze-experiment-specific logging practices.
 ## Log File Location
 
 ```
-{experiment_dir}/analyze-experiment.log
+{experiment_dir}/logs/analyze-experiment.log
 ```
 
 Created during analysis to record data loading, visualization selection, and generation.

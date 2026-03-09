@@ -18,35 +18,25 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 
 ## Step 1: Determine Experiment Location
 
-### Auto-Detect Based on Working Directory
+### Derive Paths from claude.local.md
 
-```python
-import os
-
-# Get current working directory
-cwd = os.getcwd()
-
-# Determine base directory based on context
-if "/sanity_checks/" in cwd or cwd.endswith("/sanity_checks"):
-    # Working from sanity_checks directory -> this is a sanity check
-    base_dir = "/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/"
-    experiment_type = "sanity_check"
-else:
-    # Default to experiments
-    base_dir = "/scratch/gpfs/MSALGANIK/niznik/ck-experiments/"
-    experiment_type = "experiment"
-
-# Full experiment directory
-experiment_dir = f"{base_dir}{experiment_name}/"
-```
+1. Read the **Scratch directory** field from `claude.local.md`
+2. Determine experiment type based on user intent or working directory context:
+   - If the user mentions "sanity check" or is working in a sanity-checks directory → `experiment_type = "sanity_check"`
+   - Otherwise → `experiment_type = "experiment"`
+3. Derive the experiment directory:
+   - **Experiments**: `{scratch_dir}/ck-experiments/{experiment_name}/`
+   - **Sanity checks**: `{scratch_dir}/ck-sanity-checks/{experiment_name}/`
+4. Derive the output directory:
+   - `{scratch_dir}/ck-outputs/{experiment_name}/`
 
 ### Directory Structure
 
-- **Experiments** (research tasks): `/scratch/gpfs/MSALGANIK/niznik/ck-experiments/{experiment_name}/`
-- **Sanity checks** (simple fine-tuning verification): `/scratch/gpfs/MSALGANIK/niznik/ck-sanity-checks/{sanity_check_name}/`
+- **Experiments** (research tasks): `{scratch_dir}/ck-experiments/{experiment_name}/`
+- **Sanity checks** (simple fine-tuning verification): `{scratch_dir}/ck-sanity-checks/{sanity_check_name}/`
 
 **Outputs are automatically grouped:**
-- Output directory: `/scratch/gpfs/MSALGANIK/niznik/ck-outputs/{experiment_or_sanity_check_name}/ck-out-{run_name}/`
+- Output directory: `{scratch_dir}/ck-outputs/{experiment_or_sanity_check_name}/ck-out-{run_name}/`
 
 ### Confirm with User
 
@@ -131,23 +121,6 @@ The experiment workflow uses an **orchestrator → worker** pattern:
 ### Should We Include Base Model Controls?
 - Controls evaluate base models without fine-tuning to measure the effect of fine-tuning
 
-### Use Model Torchtune Recipe Defaults?
-
-**Ask the user:** "Would you like to use torchtune recipe defaults for this model to control unspecified hyperparameters?"
-
-Torchtune recipes include sensible defaults for most training parameters (learning rate, gradient accumulation, warmup steps, etc.). When `base_recipe` is specified in experiment_summary.yaml, any hyperparameters not explicitly set will inherit from the recipe.
-
-**Options:**
-- **Yes (recommended):** Specify `base_recipe` (e.g., `"llama3_2/1B_lora_single_device"`) and only set parameters you're actively varying. Reduces configuration complexity.
-- **No:** Explicitly set all training parameters. Useful if you need full control or reproducibility without recipe dependencies.
-
-**If yes:** Note example appropriate recipe names based on model selection:
-- 1B models: `llama3_2/1B_lora_single_device`
-- 3B models: `llama3_2/3B_lora_single_device`
-- 8B models: `llama3_1/8B_lora_single_device`
-
-Use `tune ls` to see all available recipes if needed.
-
 ### Training Configuration
 
 **Basic settings:**
@@ -161,9 +134,6 @@ Use `tune ls` to see all available recipes if needed.
 
 When designing experiments, you can vary any of these parameters. Add varied parameters to `variables` and constant parameters to `controls` in experiment_summary.yaml.
 
-**Recipe Configuration (if user opted to use recipe defaults):**
-- `base_recipe` - Torchtune recipe name for default values (e.g., "llama3_2/1B_lora_single_device"). When specified, model recipe defaults are used for parameters not explicitly set. See "Use Recipe Defaults?" section above.
-
 **Core Training Parameters:**
 | Parameter | Description | Typical Values |
 |-----------|-------------|----------------|
@@ -175,28 +145,29 @@ When designing experiments, you can vary any of these parameters. Add varied par
 **Additional Training Parameters:**
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `gradient_accumulation_steps` | Effective batch = batch_size × this | 1 (or 8 from recipes) |
+| `gradient_accumulation_steps` | Effective batch = batch_size × this | 1 |
 | `weight_decay` | Optimizer regularization | 0.01 |
 | `lora_dropout` | Dropout for LoRA layers | 0.0 |
 | `num_warmup_steps` | LR scheduler warmup steps | 100 |
 | `max_seq_len` | Maximum sequence length | 2048 |
 
-**Note:** If user opted to use recipe defaults (see "Use Recipe Defaults?" above), unset parameters inherit from the recipe. Only specify parameters that vary across runs or differ from recipe defaults.
+**GPU Allocation (small models only):**
 
-**1B Model GPU Allocation (only for 1B models):**
-> "Allow use of MIG partitions? (uncommon, say 'no' if unsure)"
+For models that fit on a GPU partition smaller than a full GPU (1B models require ~20GB VRAM), ask:
+> "Use a full dedicated GPU for complete utilization metrics? (Recommended for experiments, optional for sanity checks)"
 
-- **No (default):** Uses `partition: nomig` with 40G memory - gets a full 40GB+ A100. This is the typical choice.
-- **Yes:** Allows MIG partitions (9GB GPU slices) with 16G memory. Can reduce queue wait times but requires careful memory management.
+- **Yes (default for experiments):** Uses the full-GPU constraint/partition from `claude.local.md` — guarantees a dedicated GPU with complete nvidia-smi metrics (GPU utilization, memory, power). This is the standard choice for experiments where compute observability matters.
+- **No (acceptable for sanity checks):** May land on a shared or MIG-partitioned GPU where GPU utilization reports as `[N/A]`. Memory and power metrics are still available. Faster queue times.
 
-If user says "yes", add `mig: true` to the run parameters in experiment_summary.yaml. If "no" (default), don't add anything - setup_finetune.py already defaults to nomig.
+If user says "yes" (default), add the constraint/partition values from `claude.local.md` SLURM Defaults to `experiment_summary.yaml` under the run's `slurm_overrides` section (e.g., `slurm_overrides: {constraint: "gpu80"}`). If "no", omit `slurm_overrides` — scaffold will not pass constraint/partition, and the SLURM lines stay commented out.
 
-**Note:** Only ask this for 1B models. 3B+ models require gpu80 constraint and don't support MIG.
+**Note:** Only ask this for models where `min_gpu_vram_gb` (from model_configs.py) is less than a full GPU's VRAM. Larger models always need full dedicated GPUs — read the constraint/partition from `claude.local.md` and include it automatically.
 
 **Advanced settings (calculate from prior runs if available):**
 - Batch sizes - estimate from GPU memory usage in prior runs
 - Dataset packing - enabled by default, affects batch size
 - For help estimating: check `{scratch_dir}/*/slurm-*.out` for similar runs
+- **Consult past compute utilization analyses** - If previous experiments have `analysis/compute_metrics.json` or a compute section in `report.md`, use that data to inform time limits, memory allocations, and GPU resource requests for new runs
 
 ### Generate Runs List
 
@@ -245,25 +216,6 @@ Create the runs list in experiment_summary.yaml:
 See `references/scorers.md` for the full list of available scorers, their parameters, design-time considerations, and common combinations.
 
 **Important:** Base models evaluate once per task (no epoch suffix), fine-tuned models evaluate per epoch.
-
-### Baseline for Comparison
-
-**If no control run is included in the experiment**, ask: "What should results be compared against in the analysis report?"
-
-**Options:**
-- **Random chance** - For classification tasks, use 1/num_classes (e.g., 0.5 for binary)
-- **Known value from prior work** - Reference a specific accuracy from a previous experiment
-- **No baseline needed** - Exploratory experiment, will compare runs to each other
-
-**Record in experiment_summary.yaml:**
-```yaml
-evaluation:
-  baseline:
-    accuracy: 0.5
-    source: "random chance (binary classification)"
-```
-
-**Note:** If a control run (type: "control") is included, it automatically serves as the baseline and this section can be omitted.
 
 ### Create Evaluation Matrix
 

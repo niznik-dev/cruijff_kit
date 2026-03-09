@@ -94,7 +94,7 @@ Before presenting plan to user (step 8), validate completeness:
 
 After user approves, create output files:
 1. `experiment_summary.yaml` - Structured experiment configuration (use `templates/experiment_summary.yaml`)
-2. `design-experiment.log` - Human-readable audit trail (see `logging.md`)
+2. `logs/design-experiment.log` - Human-readable audit trail (see `logging.md`)
 
 Then ask about next steps (scaffold-experiment?).
 
@@ -110,7 +110,7 @@ Then ask about next steps (scaffold-experiment?).
 
 ### Logging → `logging.md`
 
-**IMPORTANT:** Throughout param_selection and generation, create detailed log at `{experiment_dir}/design-experiment.log`.
+**IMPORTANT:** Throughout param_selection and generation, create detailed log at `{experiment_dir}/logs/design-experiment.log`.
 
 **What to log:**
 - ✓ Resource verification (ls, du, df commands and results)

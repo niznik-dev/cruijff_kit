@@ -7,6 +7,8 @@ import subprocess
 import pytest
 from pathlib import Path
 
+from cruijff_kit.tools.torchtune.model_configs import MODEL_CONFIGS
+
 
 # Get repo root relative to this test file
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
@@ -30,13 +32,22 @@ def temp_run_dir(tmp_path):
 def run_setup_finetune(run_dir, model_name="Llama-3.2-1B-Instruct", extra_args=None):
     """Helper to run setup_finetune.py and return generated slurm content."""
     cmd = [
-        "python", str(SCRIPT_PATH),
-        "--torchtune_model_name", model_name,
-        "--dataset_label", "test_dataset",
-        "--dataset_ext", ".json",
-        "--input_dir_base", "/fake/path/",
-        "--output_dir_base", "/fake/output/",
-        "--my_wandb_run_name", "test_run",
+        "python",
+        str(SCRIPT_PATH),
+        "--torchtune_model_name",
+        model_name,
+        "--dataset_label",
+        "test_dataset",
+        "--dataset_ext",
+        ".json",
+        "--input_dir_base",
+        "/fake/path/",
+        "--output_dir_base",
+        "/fake/output/",
+        "--models_dir",
+        "/fake/models/",
+        "--my_wandb_run_name",
+        "test_run",
     ]
     if extra_args:
         cmd.extend(extra_args)
@@ -49,7 +60,9 @@ def run_setup_finetune(run_dir, model_name="Llama-3.2-1B-Instruct", extra_args=N
     )
 
     if result.returncode != 0:
-        pytest.fail(f"setup_finetune.py failed:\nstderr: {result.stderr}\nstdout: {result.stdout}")
+        pytest.fail(
+            f"setup_finetune.py failed:\nstderr: {result.stderr}\nstdout: {result.stdout}"
+        )
 
     slurm_file = run_dir / "finetune.slurm"
     if not slurm_file.exists():
@@ -62,114 +75,113 @@ class TestModelAwareSlurmResources:
     """Test that SLURM resources are set correctly based on model size."""
 
     def test_1b_default_memory(self, temp_run_dir):
-        """1B model defaults to 40G memory."""
+        """1B model defaults to MODEL_CONFIGS memory."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-1B-Instruct")
-        assert "#SBATCH --mem=40G" in slurm
+        expected_mem = MODEL_CONFIGS["Llama-3.2-1B-Instruct"]["slurm"]["mem"]
+        assert f"#SBATCH --mem={expected_mem}" in slurm
 
-    def test_1b_default_partition_nomig(self, temp_run_dir):
-        """1B model defaults to nomig partition."""
+    def test_1b_no_partition(self, temp_run_dir):
+        """1B model without CLI partition leaves line commented."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-1B-Instruct")
-        assert "#SBATCH --partition=nomig" in slurm
+        # Partition line should remain commented out
+        assert "##SBATCH --partition=<PART>" in slurm
 
-    def test_1b_no_gpu_constraint(self, temp_run_dir):
-        """1B model should not have gpu80 constraint."""
+    def test_1b_no_constraint_by_default(self, temp_run_dir):
+        """1B model without CLI constraint leaves line commented."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-1B-Instruct")
-        # Constraint line should remain commented out
-        assert "#SBATCH --constraint=gpu80" not in slurm
+        assert "##SBATCH --constraint=<CONST>" in slurm
+
+    def test_1b_constraint_via_cli(self, temp_run_dir):
+        """1B model with --constraint sets constraint in SLURM script."""
+        slurm = run_setup_finetune(
+            temp_run_dir, "Llama-3.2-1B-Instruct", extra_args=["--constraint", "gpu80"]
+        )
+        assert "#SBATCH --constraint=gpu80" in slurm
 
     def test_3b_default_memory(self, temp_run_dir):
-        """3B model defaults to 80G memory."""
+        """3B model defaults to MODEL_CONFIGS memory."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-3B-Instruct")
-        assert "#SBATCH --mem=80G" in slurm
+        expected_mem = MODEL_CONFIGS["Llama-3.2-3B-Instruct"]["slurm"]["mem"]
+        assert f"#SBATCH --mem={expected_mem}" in slurm
 
-    def test_3b_gpu80_constraint(self, temp_run_dir):
-        """3B model requires gpu80 constraint."""
+    def test_3b_no_constraint_by_default(self, temp_run_dir):
+        """3B model without CLI constraint leaves line commented."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-3B-Instruct")
-        assert "#SBATCH --constraint=gpu80" in slurm
+        assert "##SBATCH --constraint=<CONST>" in slurm
 
     def test_3b_no_partition(self, temp_run_dir):
-        """3B model should not set a partition (uses constraint instead)."""
+        """3B model without CLI partition leaves line commented."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-3B-Instruct")
-        # Partition line should remain commented out for 3B
-        # (it uses constraint=gpu80 instead)
-        assert "#SBATCH --partition=nomig" not in slurm
+        assert "##SBATCH --partition=<PART>" in slurm
 
     def test_8b_default_memory(self, temp_run_dir):
-        """8B model defaults to 80G memory."""
+        """8B model defaults to MODEL_CONFIGS memory."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.1-8B-Instruct")
-        assert "#SBATCH --mem=80G" in slurm
+        expected_mem = MODEL_CONFIGS["Llama-3.1-8B-Instruct"]["slurm"]["mem"]
+        assert f"#SBATCH --mem={expected_mem}" in slurm
 
-    def test_8b_gpu80_constraint(self, temp_run_dir):
-        """8B model requires gpu80 constraint."""
+    def test_8b_no_constraint_by_default(self, temp_run_dir):
+        """8B model without CLI constraint leaves line commented."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.1-8B-Instruct")
-        assert "#SBATCH --constraint=gpu80" in slurm
+        assert "##SBATCH --constraint=<CONST>" in slurm
 
     def test_8b_single_gpu(self, temp_run_dir):
         """8B model uses single GPU."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.1-8B-Instruct")
-        assert "#SBATCH --gres=gpu:1" in slurm
+        expected_gpus = MODEL_CONFIGS["Llama-3.1-8B-Instruct"]["slurm"]["gpus"]
+        assert f"#SBATCH --gres=gpu:{expected_gpus}" in slurm
         assert "lora_finetune_single_device" in slurm
 
     def test_70b_default_memory(self, temp_run_dir):
-        """70B model defaults to 320G memory (4 GPUs × 80GB)."""
+        """70B model defaults to MODEL_CONFIGS memory."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
-        assert "#SBATCH --mem=320G" in slurm
+        expected_mem = MODEL_CONFIGS["Llama-3.3-70B-Instruct"]["slurm"]["mem"]
+        assert f"#SBATCH --mem={expected_mem}" in slurm
 
-    def test_70b_gpu80_constraint(self, temp_run_dir):
-        """70B model requires gpu80 constraint."""
+    def test_70b_no_constraint_by_default(self, temp_run_dir):
+        """70B model without CLI constraint leaves line commented."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
-        assert "#SBATCH --constraint=gpu80" in slurm
+        assert "##SBATCH --constraint=<CONST>" in slurm
 
     def test_70b_no_partition(self, temp_run_dir):
-        """70B model should not set a partition (uses constraint instead)."""
+        """70B model without CLI partition leaves line commented."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
-        assert "#SBATCH --partition=nomig" not in slurm
+        assert "##SBATCH --partition=<PART>" in slurm
 
     def test_70b_multi_gpu(self, temp_run_dir):
-        """70B model defaults to 4 GPUs."""
+        """70B model defaults to MODEL_CONFIGS GPU count."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
-        assert "#SBATCH --gres=gpu:4" in slurm
+        expected_gpus = MODEL_CONFIGS["Llama-3.3-70B-Instruct"]["slurm"]["gpus"]
+        assert f"#SBATCH --gres=gpu:{expected_gpus}" in slurm
 
     def test_70b_distributed_training(self, temp_run_dir):
         """70B model uses distributed training recipe."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
+        expected_gpus = MODEL_CONFIGS["Llama-3.3-70B-Instruct"]["slurm"]["gpus"]
         assert "lora_finetune_distributed" in slurm
-        assert "--nproc_per_node=4" in slurm
+        assert f"--nproc_per_node={expected_gpus}" in slurm
 
 
 class TestMigSupport:
     """Test MIG (Multi-Instance GPU) support for 1B models."""
 
-    def test_mig_enabled_no_partition_line(self, temp_run_dir):
+    def test_mig_partition_stays_commented(self, temp_run_dir):
         """When MIG enabled (partition=''), partition line stays commented."""
         slurm = run_setup_finetune(
             temp_run_dir,
             "Llama-3.2-1B-Instruct",
-            extra_args=["--partition", "", "--mem", "16G"]
+            extra_args=["--partition", "", "--mem", "16G"],
         )
-        # Should NOT have an active partition line
-        assert "#SBATCH --partition=nomig" not in slurm
-        assert "#SBATCH --partition=" not in slurm or "##SBATCH --partition=" in slurm
+        assert "##SBATCH --partition=<PART>" in slurm
 
     def test_mig_enabled_reduced_memory(self, temp_run_dir):
         """When MIG enabled, memory is set to user-specified value."""
         slurm = run_setup_finetune(
             temp_run_dir,
             "Llama-3.2-1B-Instruct",
-            extra_args=["--partition", "", "--mem", "16G"]
+            extra_args=["--partition", "", "--mem", "16G"],
         )
         assert "#SBATCH --mem=16G" in slurm
-
-    def test_mig_partition_commented_out(self, temp_run_dir):
-        """Verify the partition line remains in commented form for MIG."""
-        slurm = run_setup_finetune(
-            temp_run_dir,
-            "Llama-3.2-1B-Instruct",
-            extra_args=["--partition", "", "--mem", "16G"]
-        )
-        # The template has ##SBATCH --partition=<PART>
-        # With empty partition, it should stay commented
-        assert "##SBATCH --partition=<PART>" in slurm
 
 
 class TestUserOverrides:
@@ -178,29 +190,24 @@ class TestUserOverrides:
     def test_mem_override(self, temp_run_dir):
         """Custom --mem overrides model default."""
         slurm = run_setup_finetune(
-            temp_run_dir,
-            "Llama-3.2-1B-Instruct",
-            extra_args=["--mem", "64G"]
+            temp_run_dir, "Llama-3.2-1B-Instruct", extra_args=["--mem", "64G"]
         )
         assert "#SBATCH --mem=64G" in slurm
         assert "#SBATCH --mem=40G" not in slurm
 
     def test_partition_override(self, temp_run_dir):
-        """Custom --partition overrides model default."""
+        """Custom --partition sets partition in SLURM script."""
         slurm = run_setup_finetune(
             temp_run_dir,
             "Llama-3.2-1B-Instruct",
-            extra_args=["--partition", "gpu-debug"]
+            extra_args=["--partition", "gpu-debug"],
         )
         assert "#SBATCH --partition=gpu-debug" in slurm
-        assert "#SBATCH --partition=nomig" not in slurm
 
     def test_constraint_override(self, temp_run_dir):
-        """Custom --constraint overrides model default."""
+        """Custom --constraint sets constraint in SLURM script."""
         slurm = run_setup_finetune(
-            temp_run_dir,
-            "Llama-3.2-1B-Instruct",
-            extra_args=["--constraint", "gpu40"]
+            temp_run_dir, "Llama-3.2-1B-Instruct", extra_args=["--constraint", "gpu40"]
         )
         assert "#SBATCH --constraint=gpu40" in slurm
 
@@ -209,21 +216,25 @@ class TestCpuAllocation:
     """Test CPU allocation based on model and GPU count."""
 
     def test_1b_default_cpus(self, temp_run_dir):
-        """1B model defaults to 4 CPUs."""
+        """1B model defaults to MODEL_CONFIGS CPU count."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-1B-Instruct")
-        assert "#SBATCH --cpus-per-task=4" in slurm
+        expected_cpus = MODEL_CONFIGS["Llama-3.2-1B-Instruct"]["slurm"]["cpus"]
+        assert f"#SBATCH --cpus-per-task={expected_cpus}" in slurm
 
     def test_3b_default_cpus(self, temp_run_dir):
-        """3B model defaults to 4 CPUs."""
+        """3B model defaults to MODEL_CONFIGS CPU count."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.2-3B-Instruct")
-        assert "#SBATCH --cpus-per-task=4" in slurm
+        expected_cpus = MODEL_CONFIGS["Llama-3.2-3B-Instruct"]["slurm"]["cpus"]
+        assert f"#SBATCH --cpus-per-task={expected_cpus}" in slurm
 
     def test_8b_default_cpus(self, temp_run_dir):
-        """8B model defaults to 4 CPUs."""
+        """8B model defaults to MODEL_CONFIGS CPU count."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.1-8B-Instruct")
-        assert "#SBATCH --cpus-per-task=4" in slurm
+        expected_cpus = MODEL_CONFIGS["Llama-3.1-8B-Instruct"]["slurm"]["cpus"]
+        assert f"#SBATCH --cpus-per-task={expected_cpus}" in slurm
 
     def test_70b_default_cpus(self, temp_run_dir):
-        """70B model defaults to 16 CPUs (4 per GPU × 4 GPUs)."""
+        """70B model defaults to MODEL_CONFIGS CPU count."""
         slurm = run_setup_finetune(temp_run_dir, "Llama-3.3-70B-Instruct")
-        assert "#SBATCH --cpus-per-task=16" in slurm
+        expected_cpus = MODEL_CONFIGS["Llama-3.3-70B-Instruct"]["slurm"]["cpus"]
+        assert f"#SBATCH --cpus-per-task={expected_cpus}" in slurm

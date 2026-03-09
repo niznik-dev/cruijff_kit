@@ -30,6 +30,15 @@ Copy this file to `claude.local.md` in the repository root and customize it with
 - **Default GPUs**: `1`
 - **Default conda environment**: `cruijff` (recommended)
 
+### GPU Configuration
+
+Describe the GPU types available on your cluster so Claude can map model VRAM requirements to the correct SLURM flags.
+
+- **Available GPU types**: `<gpu_type> <vram>GB` (e.g., "A100 80GB", "H100 80GB", "A100 40GB MIG")
+- **Full GPU constraint**: `<constraint>` — SLURM constraint for requesting a full dedicated GPU (e.g., `gpu80`)
+- **Shared/MIG partition**: `<partition>` — SLURM partition for shared or MIG-partitioned GPUs, if available (e.g., `nomig`). Leave empty if not applicable.
+- **MIG notes**: On some clusters, MIG-partitioned GPUs report GPU utilization as `[N/A]` in nvidia-smi. Memory and power metrics remain available.
+
 ## Module System
 
 If your cluster uses environment modules:
@@ -106,14 +115,14 @@ sbatch finetune.slurm
 
 ### Evaluation (manual)
 ```bash
-# Setup inspect for a fine-tuned checkpoint
+# First create eval_config.yaml in the eval directory (see inspect_agent.md for schema)
+# Then render the SLURM script from the template:
+cd /path/to/experiment/<run>/eval
 python <path_to_cruijff_kit>/tools/inspect/setup_inspect.py \
-  --finetune_epoch_dir /path/to/ck-outputs/<experiment>/<run>/epoch_N/
-
-# Optionally include base model for comparison
-python <path_to_cruijff_kit>/tools/inspect/setup_inspect.py \
-  --base_model_dir /scratch/gpfs/<group>/pretrained-llms/Llama-3.2-1B-Instruct/ \
-  --finetune_epoch_dir /path/to/ck-outputs/<experiment>/<run>/epoch_N/
+  --config eval_config.yaml \
+  --model_name Llama-3.2-1B-Instruct \
+  --account <slurm_account> \
+  --time 0:10:00
 
 # Submit evaluation job
 sbatch <task>_epoch<N>.slurm
@@ -136,6 +145,10 @@ scancel <job_id>
 # Cancel all your jobs
 scancel -u <username>
 ```
+
+## Compute Observability
+
+- **jobstats**: Auto-detected at runtime via `check_jobstats_available()`. No configuration needed. When available, provides per-node CPU utilization, memory usage, and resource recommendations. Falls back to seff for CPU data when unavailable.
 
 ## Notes
 

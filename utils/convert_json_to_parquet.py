@@ -26,7 +26,7 @@ import argparse
 import json
 from pathlib import Path
 
-from datasets import Dataset, DatasetDict
+from datasets import Dataset
 
 from cruijff_kit.utils.logger import setup_logger
 
@@ -34,11 +34,7 @@ from cruijff_kit.utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 
-def convert_json_to_hf_dataset(
-    input_json: str,
-    output_dir: str,
-    verbose: bool = True
-):
+def convert_json_to_hf_dataset(input_json: str, output_dir: str, verbose: bool = True):
     """
     Convert nested JSON file to Parquet files for HuggingFace datasets.
 
@@ -51,7 +47,7 @@ def convert_json_to_hf_dataset(
     if verbose:
         logger.info(f"Loading JSON from: {input_json}")
 
-    with open(input_json, 'r') as f:
+    with open(input_json, "r") as f:
         data = json.load(f)
 
     # Check if data is a dict with split keys
@@ -77,7 +73,9 @@ def convert_json_to_hf_dataset(
             )
 
         if verbose:
-            logger.info(f"Converting split '{split_name}' with {len(examples)} examples")
+            logger.info(
+                f"Converting split '{split_name}' with {len(examples)} examples"
+            )
 
         # Convert to HF Dataset
         dataset = Dataset.from_list(examples)
@@ -105,35 +103,29 @@ def main():
     parser = argparse.ArgumentParser(
         description="Convert nested JSON to HuggingFace Dataset format",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__
+        epilog=__doc__,
     )
 
     parser.add_argument(
         "--input_json",
         type=str,
         required=True,
-        help="Path to input JSON file with nested structure"
+        help="Path to input JSON file with nested structure",
     )
 
     parser.add_argument(
         "--output_dir",
         type=str,
         required=True,
-        help="Directory to save the HuggingFace dataset"
+        help="Directory to save the HuggingFace dataset",
     )
 
-    parser.add_argument(
-        "--quiet",
-        action="store_true",
-        help="Suppress progress output"
-    )
+    parser.add_argument("--quiet", action="store_true", help="Suppress progress output")
 
     args = parser.parse_args()
 
     convert_json_to_hf_dataset(
-        input_json=args.input_json,
-        output_dir=args.output_dir,
-        verbose=not args.quiet
+        input_json=args.input_json, output_dir=args.output_dir, verbose=not args.quiet
     )
 
 

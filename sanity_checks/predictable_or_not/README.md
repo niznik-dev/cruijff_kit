@@ -67,8 +67,9 @@ data/green/predictable_or_not/
     ├── uu_output_only/
     ├── uu_input_and_output/
     ├── experiment_summary.yaml
-    ├── design-experiment.log
-    └── scaffold-experiment.log
+    └── logs/
+        ├── design-experiment.log
+        └── scaffold-experiment.log
 ```
 
 **Outputs** (grouped by sanity check name):

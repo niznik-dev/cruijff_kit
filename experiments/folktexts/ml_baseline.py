@@ -60,30 +60,30 @@ def parse_verbose_example(text: str) -> dict:
     features = {}
 
     # Find all "- The X is: Y" patterns
-    pattern = r'- The ([^:]+) is: ([^\n]+)'
+    pattern = r"- The ([^:]+) is: ([^\n]+)"
     matches = re.findall(pattern, text)
 
     for field_name, value in matches:
         field_name = field_name.strip().lower()
-        value = value.strip().rstrip('.')
+        value = value.strip().rstrip(".")
 
         # Map to short name
-        short_name = FIELD_MAPPING.get(field_name, field_name.upper().replace(' ', '_'))
+        short_name = FIELD_MAPPING.get(field_name, field_name.upper().replace(" ", "_"))
 
         # Parse numeric values
         if short_name == "AGE":
             # "37 years old" -> 37
-            match = re.search(r'(\d+)', value)
+            match = re.search(r"(\d+)", value)
             if match:
                 value = match.group(1)
         elif short_name == "HOURS_WEEK":
             # "45 hours" -> 45
-            match = re.search(r'(\d+)', value)
+            match = re.search(r"(\d+)", value)
             if match:
                 value = match.group(1)
         elif short_name == "COMMUTE":
             # "25 minutes" -> 25
-            match = re.search(r'(\d+)', value)
+            match = re.search(r"(\d+)", value)
             if match:
                 value = match.group(1)
 
@@ -237,7 +237,9 @@ def print_metrics(name: str, metrics: dict):
     print(f"  Recall:            {metrics['recall']:.1%}")
     print(f"  F1:                {metrics['f1']:.2f}")
     cm = metrics["confusion_matrix"]
-    print(f"  Confusion Matrix:  TN={cm[0,0]}, FP={cm[0,1]}, FN={cm[1,0]}, TP={cm[1,1]}")
+    print(
+        f"  Confusion Matrix:  TN={cm[0, 0]}, FP={cm[0, 1]}, FN={cm[1, 0]}, TP={cm[1, 1]}"
+    )
 
 
 def main():
@@ -272,13 +274,17 @@ def main():
     # Load data
     if not args.json:
         print("\nLoading data...")
-    train_raw, test_raw, y_train, y_test, numeric_cols, categorical_cols = load_data(args.data_path)
+    train_raw, test_raw, y_train, y_test, numeric_cols, categorical_cols = load_data(
+        args.data_path
+    )
 
     if not args.json:
         print(f"  Train: {len(train_raw)} samples")
         print(f"  Test:  {len(test_raw)} samples")
         print(f"  Numeric features ({len(numeric_cols)}): {', '.join(numeric_cols)}")
-        print(f"  Categorical features ({len(categorical_cols)}): {', '.join(categorical_cols[:5])}{'...' if len(categorical_cols) > 5 else ''}")
+        print(
+            f"  Categorical features ({len(categorical_cols)}): {', '.join(categorical_cols[:5])}{'...' if len(categorical_cols) > 5 else ''}"
+        )
 
     results = {}
 
@@ -310,7 +316,7 @@ def main():
             "data_path": args.data_path,
             "train_samples": len(train_raw),
             "test_samples": len(test_raw),
-            "results": {}
+            "results": {},
         }
         for name, metrics in results.items():
             output["results"][name] = {
@@ -338,15 +344,25 @@ def main():
         print("-" * 40)
         print(f"{'Metric':<20} {'CatBoost':>10} {'XGBoost':>10}")
         print("-" * 40)
-        print(f"{'Accuracy':<20} {results['CatBoost']['accuracy']:>10.1%} {results['XGBoost']['accuracy']:>10.1%}")
-        print(f"{'Balanced Accuracy':<20} {results['CatBoost']['balanced_accuracy']:>10.1%} {results['XGBoost']['balanced_accuracy']:>10.1%}")
-        print(f"{'F1':<20} {results['CatBoost']['f1']:>10.2f} {results['XGBoost']['f1']:>10.2f}")
+        print(
+            f"{'Accuracy':<20} {results['CatBoost']['accuracy']:>10.1%} {results['XGBoost']['accuracy']:>10.1%}"
+        )
+        print(
+            f"{'Balanced Accuracy':<20} {results['CatBoost']['balanced_accuracy']:>10.1%} {results['XGBoost']['balanced_accuracy']:>10.1%}"
+        )
+        print(
+            f"{'F1':<20} {results['CatBoost']['f1']:>10.2f} {results['XGBoost']['f1']:>10.2f}"
+        )
 
     # Class distribution
     y_test_arr = np.array(y_test)
-    print(f"\nClass distribution (test):")
-    print(f"  Class 0: {sum(y_test_arr == 0)} ({sum(y_test_arr == 0)/len(y_test_arr):.1%})")
-    print(f"  Class 1: {sum(y_test_arr == 1)} ({sum(y_test_arr == 1)/len(y_test_arr):.1%})")
+    print("\nClass distribution (test):")
+    print(
+        f"  Class 0: {sum(y_test_arr == 0)} ({sum(y_test_arr == 0) / len(y_test_arr):.1%})"
+    )
+    print(
+        f"  Class 1: {sum(y_test_arr == 1)} ({sum(y_test_arr == 1) / len(y_test_arr):.1%})"
+    )
 
     return 0
 

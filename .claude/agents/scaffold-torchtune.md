@@ -30,31 +30,35 @@ When invoked:
    - **EXECUTE `setup_finetune.py` AUTOMATICALLY using conda run** - This generates `finetune.yaml` and `finetune.slurm`
    - Verify outputs exist (finetune.yaml and finetune.slurm must be present)
    - Report status
-6. **Create scaffold log** - Document all actions taken in `scaffold-torchtune.log`
+6. **Create scaffold log** - Document all actions taken in `logs/scaffold-torchtune.log`
 7. **Report summary** - Show user what was created and any issues
 
 **CRITICAL: You must execute setup_finetune.py automatically. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.**
 
 ## Model-Aware SLURM Resources
 
-The `setup_finetune.py` script automatically sets SLURM resources based on model size (RAM=VRAM rule):
+The `setup_finetune.py` script automatically sets SLURM resources for memory, CPUs, and GPUs based on model size (from `model_configs.py`). **Partition and constraint are NOT set by model_configs** — they come from the caller.
 
-| Model | Memory | Partition | Constraint | CPUs |
-|-------|--------|-----------|------------|------|
-| 1B | 40G | nomig | - | 4 |
-| 3B | 80G | - | gpu80 | 4 |
-| 8B | 80G | - | gpu80 | 8 |
-| 70B | 320G | - | gpu80 | 8 |
+| Model | Memory | CPUs | GPUs | min_gpu_vram_gb |
+|-------|--------|------|------|-----------------|
+| 1B    | 80G    | 1    | 1    | 20              |
+| 3B    | 80G    | 1    | 1    | 40              |
+| 8B    | 80G    | 1    | 1    | 40              |
+| 70B   | 320G   | 4    | 4    | 320             |
 
-### MIG Support for 1B Models
+### Setting Partition and Constraint
 
-**MIG is configured during design-experiment, not here.** If the user opted into MIG during experiment design, the run will have `mig: true` in experiment_summary.yaml.
+**Read `claude.local.md` for the user's default partition and constraint values.** Pass these to `setup_finetune.py` via `--partition` and `--constraint` CLI args.
 
-**When parsing experiment_summary.yaml:**
-- If `mig: true` is present for a run: Set `partition: ""` and `mem: 16G` in setup_finetune.yaml
-- If `mig` is not present (default): Do nothing - setup_finetune.py defaults to `partition: nomig` and `mem: 40G`
+- If `experiment_summary.yaml` has `slurm_overrides` for a run (e.g., `slurm_overrides: {constraint: "gpu80"}`), use those values
+- Otherwise, use the defaults from `claude.local.md` SLURM Defaults section
+- If neither is available, omit the flags — the SLURM lines will stay commented out
 
-**Do NOT ask the user about MIG during scaffolding.** This decision is made during experiment design.
+### Shared/MIG GPU Support
+
+**Shared GPU allocation is configured during design-experiment, not here.** If the user opted for shared GPUs during experiment design, the run may have specific `slurm_overrides` in experiment_summary.yaml (e.g., reduced memory, different partition).
+
+**Do NOT ask the user about GPU allocation during scaffolding.** This decision is made during experiment design.
 
 ## Input Format 
 
@@ -82,7 +86,6 @@ Extract the following information from the YAML structure:
 
 3. **Control hyperparameters (held constant):**
 These are *example* parameters that the user might vary. There may be other parameters under `controls`, so check all of them that apply to `setup_finetune.yaml`:
-   - `models.base[0].base_recipe` - Torchtune recipe name for defaults (optional, e.g., "llama3_2/1B_lora_single_device")
    - `controls.epochs` - Number of training epochs
    - `controls.batch_size` - Batch size (if not varied)
    - `controls.system_prompt` - Training system prompt
@@ -200,10 +203,6 @@ dataset_ext: {from data.training.format, convert: "json" → ".json", "parquet" 
 torchtune_model_name: {from models.base[0].name, e.g., "Llama-3.2-1B-Instruct"}
 model_checkpoint: {from models.base[0].path}
 
-# Base Recipe (optional - provides default hyperparameter values from a torchtune config)
-# Only include if base_recipe is specified in experiment_summary.yaml
-base_recipe: {from models.base[0].base_recipe, if present}
-
 # Varying parameters (optional, run-specific)
 lora_rank: {from run.parameters.lora_rank, if present}
 lr: {from run.parameters.lr, format as 1e-5 or 5e-5, if present}
@@ -270,12 +269,14 @@ For each run directory:
 
    Instead, use `bash -c` with a single compound command:
    ```bash
-   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/tools/torchtune/setup_finetune.py"
+   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train}"
    ```
+
+   The `--training_samples` flag enables the training step guard, which computes total training steps and warns if they are dangerously low (e.g., warmup never completes, or fewer than 50 steps total). The value comes from `data.training.splits.train` in experiment_summary.yaml.
 
    **Example:**
    ```bash
-   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/tools/torchtune/setup_finetune.py"
+   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/tools/torchtune/setup_finetune.py --training_samples 800"
    ```
 
 3. **Why this approach:**
@@ -340,7 +341,7 @@ For each run directory:
 
 ## Logging
 
-Create a detailed log file at `{experiment_dir}/scaffold-torchtune.log`:
+Create a detailed log file at `{experiment_dir}/logs/scaffold-torchtune.log`:
 
 ### Log Format
 

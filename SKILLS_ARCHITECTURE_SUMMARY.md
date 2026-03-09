@@ -43,13 +43,13 @@ Skills that coordinate other skills and track high-level workflow:
 2. **scaffold-experiment**
    - Directly implements torchtune and inspect-ai scaffolding logic
    - Modularized into optimizers/ and evaluators/ subdirectories
-   - Creates scaffold.log (unified scaffolding tracking)
+   - Creates logs/scaffold-experiment.log (unified scaffolding tracking)
    - Status: ✅ Modularized (Issue #196)
 
 3. **run-experiment**
    - Calls run-torchtune (waits for completion)
    - Calls run-inspect (sequential, after fine-tuning)
-   - Creates run-experiment.log (orchestration tracking)
+   - Creates logs/run-experiment.log (orchestration tracking)
    - Status: ✅ Updated
 
 4. **analyze-experiment**
@@ -76,7 +76,7 @@ Skills that handle torchtune-specific operations:
    - Submits finetune.slurm jobs to SLURM
    - Monitors jobs until completion (1-min polling)
    - Updates experiment_summary.yaml status table
-   - Creates run-torchtune.log
+   - Creates logs/run-torchtune.log
    - Status: ✅ Created (extracted from run-experiment)
 
 ### Workers (Evaluation)
@@ -87,7 +87,7 @@ Skills that handle inspect-ai-specific operations:
    - Submits evaluation SLURM jobs
    - Monitors jobs until completion (1-min polling)
    - Updates experiment_summary.yaml evaluation status table
-   - Creates run-inspect.log
+   - Creates logs/run-inspect.log
    - Status: ✅ Created (new)
 
 ### Supporting Skills
@@ -140,8 +140,8 @@ Skills can be run standalone for targeted operations:
 
 ### 5. Comprehensive Logging
 Three levels of logs:
-- **Orchestration logs**: run-experiment.log
-- **Skill logs**: scaffold.log, run-torchtune.log, run-inspect.log
+- **Orchestration logs**: logs/run-experiment.log
+- **Skill logs**: logs/scaffold-experiment.log, logs/run-torchtune.log, logs/run-inspect.log
 - **Tool logs**: SLURM logs, inspect-ai logs, WandB logs
 
 ### 6. Tool Documentation
@@ -155,24 +155,31 @@ design-experiment documents which tools are used:
 ```
 experiment_name/
 ├── experiment_summary.yaml         # Design (from design-experiment)
-├── design-experiment.log         # Planning log
-├── scaffold.log                  # Scaffolding log (from scaffold-experiment)
-├── run-experiment.log            # Execution orchestration log
-├── run-torchtune.log             # Fine-tuning execution details
-├── run-inspect.log               # Evaluation execution details
-├── rank8_lr1e-5/                 # Run directory
-│   ├── setup_finetune.yaml       # From scaffold-torchtune
-│   ├── finetune.yaml             # From scaffold-torchtune
-│   ├── finetune.slurm            # From scaffold-torchtune
-│   ├── slurm-12345.out           # From run-torchtune
-│   └── eval/                     # From scaffold-inspect
+├── summary.md                      # Post-run results summary
+├── logs/                            # All skill pipeline logs
+│   ├── design-experiment.log        # Planning log
+│   ├── scaffold-experiment.log      # Scaffolding orchestration
+│   ├── scaffold-torchtune.log       # Fine-tuning config generation
+│   ├── scaffold-inspect.log         # Evaluation config generation
+│   ├── run-torchtune.log            # Fine-tuning execution details
+│   ├── run-inspect.log              # Evaluation execution details
+│   ├── analyze-experiment.log       # Visualization generation
+│   └── summarize-experiment.log     # Results summary
+├── rank8_lr1e-5/                    # Run directory
+│   ├── setup_finetune.yaml          # From scaffold-torchtune
+│   ├── finetune.yaml                # From scaffold-torchtune
+│   ├── finetune.slurm               # From scaffold-torchtune
+│   ├── slurm-12345.out              # From run-torchtune
+│   └── eval/                        # From scaffold-inspect
 │       ├── capitalization_epoch0.slurm  # From scaffold-inspect
-│       ├── slurm-12346.out       # From run-inspect
-│       └── logs/                 # From run-inspect
-│           └── result.eval       # inspect-ai output
+│       ├── slurm-12346.out          # From run-inspect
+│       └── logs/                    # From run-inspect
+│           └── result.eval          # inspect-ai output
 ├── rank8_lr5e-5/
 │   └── ...
-└── analyze-experiment.log        # Future: Analysis details
+└── analysis/                        # Visualizations and reports
+    ├── report.md
+    └── *.html
 ```
 
 ## Typical Workflow
@@ -290,7 +297,7 @@ experiment_name/
 
 **Developer impact:**
 - Must understand modular documentation pattern
-- New logging structure (scaffold.log instead of scaffold-torchtune.log + scaffold-inspect.log)
+- New logging structure (all logs in logs/ subdirectory)
 - Can reference specific modules for targeted information
 
 ## Future Enhancements

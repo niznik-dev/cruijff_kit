@@ -15,7 +15,7 @@ Create a lightweight summary of experiment results:
 2. Extract final training loss from SLURM stdout
 3. Extract accuracy from inspect-ai .eval files
 4. Generate summary.md in experiment directory
-5. Log the process in summarize-experiment.log
+5. Log the process in logs/summarize-experiment.log
 
 ## Prerequisites
 
@@ -62,7 +62,8 @@ For each COMPLETED fine-tuning run:
 2. Extract final loss using regex: `(\d+)\|(\d+)\|Loss: ([0-9.]+)`
    - Pattern matches: `{epoch}|{step}|Loss: {value}`
    - Take the LAST match to get final loss
-3. Record: run_name, final_loss, epoch, step
+   - The step number (group 2) from the last match is the total training steps
+3. Record: run_name, final_loss, total_steps, epoch, step
 
 **Note:** Training SLURM outputs are in the output directory, NOT the run directory.
 
@@ -186,10 +187,10 @@ Create `{experiment_dir}/summary.md` with the following structure:
 
 ## Training Results
 
-| Run | Final Loss | Epochs | Duration |
-|-----|------------|--------|----------|
-| rank4_lr1e-5 | 0.234 | 2 | 8m 15s |
-| rank8_lr1e-5 | 0.198 | 2 | 9m 02s |
+| Run | Final Loss | Total Steps | Epochs | Duration |
+|-----|------------|-------------|--------|----------|
+| rank4_lr1e-5 | 0.234 | 250 | 2 | 8m 15s |
+| rank8_lr1e-5 | 0.198 | 250 | 2 | 9m 02s |
 
 **Notes:**
 - Base model runs have no training loss (control)
@@ -225,7 +226,7 @@ Create `{experiment_dir}/summary.md` with the following structure:
 
 ### 6. Create Log
 
-Document the process in `{experiment_dir}/summarize-experiment.log`.
+Document the process in `{experiment_dir}/logs/summarize-experiment.log`.
 
 See [logging.md](logging.md) for action types and format.
 
@@ -262,7 +263,8 @@ Running summarize-experiment multiple times overwrites summary.md. This is inten
 ```
 {experiment_dir}/
 ├── summary.md                    # Human-readable summary (new)
-└── summarize-experiment.log      # Process log (new)
+└── logs/
+    └── summarize-experiment.log  # Process log (new)
 ```
 
 ## Relationship to Other Skills

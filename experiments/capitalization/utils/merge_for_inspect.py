@@ -1,4 +1,6 @@
-import argparse, torch, os
+import argparse
+import torch
+import os
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
 from peft import PeftModel
 
@@ -7,16 +9,33 @@ from cruijff_kit.utils.logger import setup_logger
 # Set up logging
 logger = setup_logger(__name__)
 
+
 def main():
-    p = argparse.ArgumentParser(description="Merge a PEFT/LoRA adapter into a base HF model.")
-    p.add_argument("--base_model", required=True, help="HF model id or local path to base")
-    p.add_argument("--adapter_path", required=True, help="Path or HF id for the LoRA/PEFT adapter")
-    p.add_argument("--dtype", default="auto", choices=["auto", "float16", "bfloat16", "float32"],
-                   help="Compute dtype for loading before merge")
-    p.add_argument("--device", default="auto",
-                   help="e.g. 'cuda:0', 'cpu', or 'auto' (lets HF place on available GPU)")
-    p.add_argument("--output_dir", default="inspect_merged_model",
-                   help="Directory to save merged model (default: inspect_merged_model)")
+    p = argparse.ArgumentParser(
+        description="Merge a PEFT/LoRA adapter into a base HF model."
+    )
+    p.add_argument(
+        "--base_model", required=True, help="HF model id or local path to base"
+    )
+    p.add_argument(
+        "--adapter_path", required=True, help="Path or HF id for the LoRA/PEFT adapter"
+    )
+    p.add_argument(
+        "--dtype",
+        default="auto",
+        choices=["auto", "float16", "bfloat16", "float32"],
+        help="Compute dtype for loading before merge",
+    )
+    p.add_argument(
+        "--device",
+        default="auto",
+        help="e.g. 'cuda:0', 'cpu', or 'auto' (lets HF place on available GPU)",
+    )
+    p.add_argument(
+        "--output_dir",
+        default="inspect_merged_model",
+        help="Directory to save merged model (default: inspect_merged_model)",
+    )
     args = p.parse_args()
 
     OUTPUT_DIR = args.output_dir
@@ -28,7 +47,9 @@ def main():
     else:
         dtype = getattr(torch, args.dtype)
 
-    device_map = "auto" if (args.device == "auto" and torch.cuda.is_available()) else None
+    device_map = (
+        "auto" if (args.device == "auto" and torch.cuda.is_available()) else None
+    )
 
     logger.info(f"[1/4] Loading base model: {args.base_model}")
     base_model = AutoModelForCausalLM.from_pretrained(
@@ -45,7 +66,9 @@ def main():
     )
 
     logger.info("[3/4] Merging adapter into base...")
-    merged = peft_model.merge_and_unload()  # returns a standard HF model (no PEFT wrapper)
+    merged = (
+        peft_model.merge_and_unload()
+    )  # returns a standard HF model (no PEFT wrapper)
 
     logger.info("[4/4] Saving merged model and tokenizer...")
     # Save model

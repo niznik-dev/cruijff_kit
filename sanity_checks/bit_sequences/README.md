@@ -45,8 +45,9 @@ data/green/bit_sequences/
     ├── parity_run/
     ├── probabilistic_run/
     ├── experiment_summary.yaml
-    ├── design-experiment.log
-    └── scaffold-experiment.log
+    └── logs/
+        ├── design-experiment.log
+        └── scaffold-experiment.log
 ```
 
 **Outputs** (grouped by sanity check name):

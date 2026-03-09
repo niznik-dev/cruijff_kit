@@ -15,6 +15,7 @@ Parity dataset, ~30K samples of length 15, noiseless, 4 000-example validation s
 Probabilistic dataset, p = 0.5, ~30K samples of length 15, 4 000-example validation set
     python generate_input_data.py --bit_length 15 --N 33000 --p 0.5 --bit_parity False --val_size 4000 --output prob_p05.json
 """
+
 import argparse
 import itertools
 import json
@@ -51,7 +52,9 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Generate binary-sequence datasets (parity or Bernoulli labelling)."
     )
-    p.add_argument("--bit_length", type=int, required=True, help="Sequence length n ≥ 1")
+    p.add_argument(
+        "--bit_length", type=int, required=True, help="Sequence length n ≥ 1"
+    )
     p.add_argument(
         "--N", type=int, required=True, help="Number of samples to generate (N ≥ 1)"
     )
@@ -163,7 +166,9 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------#
     # 4. strict separation at the sequence level
     # ---------------------------------------------------------------------#
-    assert val_seq_set.isdisjoint(train_seqs), "Leakage: sequence appears in both splits"
+    assert val_seq_set.isdisjoint(train_seqs), (
+        "Leakage: sequence appears in both splits"
+    )
 
     # ---------------------------------------------------------------------#
     # 5. Label and create nested structure
@@ -172,19 +177,14 @@ if __name__ == "__main__":
     val_data = label_sequences(val_seqs, args.bit_parity, args.p, rng)
 
     # Create single JSON file with train/validation splits as top-level keys
-    output = {
-        'train': train_data,
-        'validation': val_data
-    }
+    output = {"train": train_data, "validation": val_data}
 
     # Write to specified output file in output directory
     output_path = args.output_dir / args.output
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(output, f, indent=2)
 
     logger.info(
         f"✅  Generated {output_path}: {len(train_data)} train, {len(val_data)} validation "
         f"(bit_parity={args.bit_parity}, p={args.p})"
     )
-
-

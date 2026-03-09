@@ -8,6 +8,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+"></a>
   <a href="#-alpha-release-"><img src="https://img.shields.io/badge/status-alpha-orange.svg" alt="Status: Alpha"></a>
+  <a href="https://github.com/niznik-dev/cruijff_kit/actions/workflows/coverage.yml"><img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/niznik-dev/446aebdc3da3cde75a7124376f985759/raw/cruijff_kit_coverage.json" alt="Coverage"></a>
 </p>
 
 cruijff_kit is a toolkit for doing research with social data and LLMs. It is designed for software agents guided by humans, but supports fully manual operation. The toolkit emphasizes the values of science: correctness, provenance of results, and continual learning and improvement.
@@ -81,11 +82,13 @@ You'll need a model to fine-tune and evaluate. Here's how to get one via torchtu
 
 **Step 1**: Request access on HuggingFace (if required). For Meta models, navigate to `https://huggingface.co/meta-llama/<model_name>`, log in, and agree to the license. Wait for the confirmation email before proceeding.
 
-**Step 2**: Download the model:
+**Step 2**: Download the model to a shared location so others on your cluster don't need their own copies:
 
 ```bash
-tune download meta-llama/<model_name> --output-dir <model_dir> --hf-token <hf-token>
+tune download meta-llama/<model_name> --output-dir <shared_location>/pretrained-llms/<model_name> --hf-token <hf-token>
 ```
+
+Set `models_dir` in your `claude.local.md` to point to `<shared_location>/pretrained-llms/`.
 
 See [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md) for the full list of supported models and their resource requirements.
 
@@ -122,6 +125,7 @@ See the [Workflow Guide](WORKFLOW_GUIDE.md) for step-by-step manual instructions
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, skill diagrams |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | Current limitations and workarounds |
+| [ARTIFACT_LOCATIONS.md](ARTIFACT_LOCATIONS.md) | Where experiment files are created |
 | [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) | How skills are organized |
 | `experiments/*/README.md` | Experiment-specific instructions |
 

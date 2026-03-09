@@ -211,6 +211,7 @@ Each tier directory contains a `CLAUDE.md` file with detailed access rules. See:
 - **SUPPORTED_MODELS.md**: Supported models and resource requirements
 - **PREREQUISITES.md**: Required skills, accounts, and tutorial links
 - **WORKFLOW_GUIDE.md**: Manual workflow instructions (without Claude Code)
+- **ARTIFACT_LOCATIONS.md**: Canonical experiment directory layout and file locations
 - **SKILLS_ARCHITECTURE_SUMMARY.md**: How skills are organized and orchestrated
 - **CHANGELOG.md**: Release history
 - **KNOWN_ISSUES.md**: Current limitations and workarounds

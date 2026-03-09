@@ -25,5 +25,5 @@ Every step is required. Execute steps in order — each step depends on the outp
 
 ## Output
 
-- Creates run-inspect.log with detailed execution history
+- Creates logs/run-inspect.log with detailed execution history
 - Evaluation logs in `{run_dir}/eval/logs/*.eval`
