@@ -80,7 +80,10 @@ tools:
 
 ## Logging
 
-Create orchestration log at `{experiment_dir}/logs/run-experiment.log`:
+Execution is logged in tool-specific log files (see logging.md for details).
+All logs live under the `logs/` subdirectory per the canonical artifact layout:
+- `{experiment_dir}/logs/run-torchtune.log` - Fine-tuning execution
+- `{experiment_dir}/logs/run-inspect.log` - Evaluation execution
 
 **Log format:**
 ```
@@ -102,10 +105,9 @@ Result: {outcome}
 
 After successful execution:
 
-**Logs created:**
-- `logs/run-experiment.log` - Orchestration log
-- Optimizer module logs (e.g., detailed fine-tuning execution)
-- Evaluator module logs (e.g., detailed evaluation execution)
+**Logs created** (in `{experiment_dir}/logs/`):
+- `run-torchtune.log` - Fine-tuning execution log
+- `run-inspect.log` - Evaluation execution log
 
 **Status updated:**
 - Run tracking logs updated with job IDs, timestamps, states
@@ -114,8 +116,6 @@ After successful execution:
 **Artifacts created:**
 - Model checkpoints from optimization
 - Evaluation logs from evaluation
-
-**Logging:** All actions logged to `{experiment_dir}/logs/run-{torchtune|inspect}.log` (see `logging.md`)
 
 ---
 

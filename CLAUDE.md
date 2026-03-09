@@ -143,6 +143,17 @@ More detailed explanation if needed. Explain what and why, not how.
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
+### Pre-commit Checks
+
+Before committing, always run linting on changed files to catch issues before CI does:
+
+```bash
+ruff check <changed files>
+ruff format --check <changed files>
+```
+
+Fix any errors before committing. CI runs these checks and will fail the build on lint violations.
+
 ## Data Access Policies
 
 cruijff_kit implements a three-tier data access system for Claude Code, using a traffic light metaphor:
