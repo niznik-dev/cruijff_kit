@@ -1,6 +1,8 @@
 # Folktexts Experiments
 
-Experiments using US Census (ACS) data via the folktexts framework for LLM calibration and prediction research.
+Experiments using US Census (ACS) data with tabular-to-semantic mappings from the [folktexts](https://github.com/socialfoundations/folktexts) package (Cruz et al., NeurIPS 2024) for LLM calibration and prediction research.
+
+**New to cruijff_kit?** Start with the [ACS Example](../../ACS_EXAMPLE.md), which walks through a complete ACS income experiment from scratch.
 
 ## Available Tasks
 
