@@ -11,9 +11,9 @@ input_formatting: ""
 
 dataset_label: ""
 
-output_dir: /scratch/gpfs/MSALGANIK/$USER/zyg_out_${my_wandb_run_name}/
-input_dir: /scratch/gpfs/MSALGANIK/$USER/zyg_in/${input_formatting}/
-models_dir: /scratch/gpfs/MSALGANIK/$USER/pretrained-llms/
+output_dir: ""  # Set by setup_finetune.py
+input_dir: ""  # Set by setup_finetune.py
+models_dir: ""  # Set by setup_finetune.py
 
 batch_size: 4
 
