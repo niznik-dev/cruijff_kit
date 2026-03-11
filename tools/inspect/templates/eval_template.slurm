@@ -25,6 +25,9 @@ nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.memory,memory.used,
     --format=csv -l 30 > "${GPU_METRICS_DIR}/gpu_metrics.csv" 2>/dev/null &
 GPU_MONITOR_PID=$!
 
+# Prevent HF Hub lookups on offline compute nodes (inspect-ai >= 0.3.180)
+export HF_HUB_OFFLINE=1
+
 # Run inspect-ai evaluation
 cd <EVAL_DIR>
 
