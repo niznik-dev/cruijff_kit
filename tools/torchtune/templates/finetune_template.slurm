@@ -9,6 +9,7 @@
 #SBATCH --mail-type=end # Email when job ends
 #SBATCH --mail-user=<NETID>@princeton.edu
 #SBATCH --gres=gpu:1 # Request 1 GPU
+#SBATCH --output=<OUTPUT_DIR>slurm-%j.out
 ##SBATCH --array=0-<ARRAY_MAX> # Uncomment if using job arrays
 ##SBATCH --account=<ACT>
 ##SBATCH --partition=<PART>
