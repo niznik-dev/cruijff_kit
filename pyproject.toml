@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cruijff_kit"
-version = "0.1.1"
+version = "0.2.0"
 description = "A toolkit for research with social data and LLMs"
 readme = "README.md"
 license = {text = "MIT"}
@@ -20,7 +20,7 @@ authors = [
 dependencies = [
     "torch>=2.9.1",
     "torchtune>=0.6.1",  # Makefile upgrades to nightly post-install
-    "torchao>=0.14.1",
+    "torchao>=0.14.1,<0.15",  # 0.15 removed int4_weight_only (torchtune nightly needs it)
     "torchvision",
     "wandb",
     "h5py",
