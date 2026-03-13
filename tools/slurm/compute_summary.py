@@ -1,20 +1,22 @@
-"""Envelope wrapper for compute_metrics.json.
+"""Summary wrapper for compute_metrics.json.
 
 Wraps the raw job metrics list with experiment-level metadata,
-producing the envelope format consumed by design-experiment for
+producing the summary format consumed by design-experiment for
 compute estimation.
 
-The envelope schema adds context (model, dataset size, epochs, etc.)
+The summary schema adds context (model, dataset size, epochs, etc.)
 that allows downstream scaling logic to compare prior runs against
 new experiment parameters.
 """
+
+from __future__ import annotations
 
 import json
 from pathlib import Path
 import yaml
 
 
-def build_envelope(
+def build_summary(
     jobs: list[dict],
     experiment_summary_path: str | Path,
 ) -> dict:
@@ -30,7 +32,7 @@ def build_envelope(
         experiment_summary_path: Path to experiment_summary.yaml.
 
     Returns:
-        Envelope dict with ``experiment_name``, ``model``,
+        Summary dict with ``experiment_name``, ``model``,
         ``dataset_size``, ``epochs``, ``batch_size``, ``date``,
         and ``jobs`` keys.
 
@@ -62,14 +64,14 @@ def build_envelope(
     }
 
 
-def save_envelope(
-    envelope: dict,
+def save_summary(
+    summary: dict,
     output_path: str | Path,
 ) -> Path:
-    """Write envelope to a JSON file.
+    """Write summary to a JSON file.
 
     Args:
-        envelope: Envelope dict from ``build_envelope``.
+        summary: Summary dict from ``build_summary``.
         output_path: Destination file path.
 
     Returns:
@@ -78,22 +80,22 @@ def save_envelope(
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
-        json.dump(envelope, f, indent=2, default=str)
+        json.dump(summary, f, indent=2, default=str)
     return output_path
 
 
-def load_envelope(path: str | Path) -> dict:
-    """Load and validate a compute_metrics.json envelope.
+def load_summary(path: str | Path) -> dict:
+    """Load and validate a compute_metrics.json summary.
 
     Args:
         path: Path to compute_metrics.json.
 
     Returns:
-        Parsed envelope dict.
+        Parsed summary dict.
 
     Raises:
         ValueError: If the file contains a bare list (old format)
-            instead of the envelope dict.
+            instead of the summary dict.
     """
     with open(path) as f:
         data = json.load(f)
@@ -101,7 +103,7 @@ def load_envelope(path: str | Path) -> dict:
     if isinstance(data, list):
         raise ValueError(
             f"{path} contains a bare job list (old format). "
-            "Re-run analyze-experiment to generate the envelope format."
+            "Re-run analyze-experiment to generate the summary format."
         )
 
     return data

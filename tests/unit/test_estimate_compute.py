@@ -350,9 +350,9 @@ class TestRecommendBatchSize:
 
 
 class TestEstimateFromPrior:
-    """Integration tests using realistic envelope data."""
+    """Integration tests using realistic summary data."""
 
-    SAMPLE_ENVELOPE = {
+    SAMPLE_SUMMARY = {
         "experiment_name": "cap_4L_2025-10-22",
         "model": "Llama-3.2-1B-Instruct",
         "dataset_size": 800,
@@ -391,7 +391,7 @@ class TestEstimateFromPrior:
     def test_same_experiment_params(self):
         """Same model/dataset/epochs → estimates are safety-margined."""
         result = estimate_from_prior(
-            self.SAMPLE_ENVELOPE,
+            self.SAMPLE_SUMMARY,
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
@@ -408,13 +408,13 @@ class TestEstimateFromPrior:
     def test_larger_dataset(self):
         """Double dataset → approximately double time."""
         result_base = estimate_from_prior(
-            self.SAMPLE_ENVELOPE,
+            self.SAMPLE_SUMMARY,
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
         )
         result_2x = estimate_from_prior(
-            self.SAMPLE_ENVELOPE,
+            self.SAMPLE_SUMMARY,
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=1600,
             new_epochs=2,
@@ -428,13 +428,13 @@ class TestEstimateFromPrior:
     def test_different_model(self):
         """3B model → longer time than 1B."""
         result_1b = estimate_from_prior(
-            self.SAMPLE_ENVELOPE,
+            self.SAMPLE_SUMMARY,
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
         )
         result_3b = estimate_from_prior(
-            self.SAMPLE_ENVELOPE,
+            self.SAMPLE_SUMMARY,
             new_model="Llama-3.2-3B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
@@ -446,7 +446,7 @@ class TestEstimateFromPrior:
 
     def test_batch_size_recommendation_present(self):
         result = estimate_from_prior(
-            self.SAMPLE_ENVELOPE,
+            self.SAMPLE_SUMMARY,
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
@@ -457,7 +457,7 @@ class TestEstimateFromPrior:
 
     def test_scaling_details_logged(self):
         result = estimate_from_prior(
-            self.SAMPLE_ENVELOPE,
+            self.SAMPLE_SUMMARY,
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
@@ -466,7 +466,7 @@ class TestEstimateFromPrior:
         assert "Finetune" in result["scaling_details"][0]
 
     def test_empty_jobs(self):
-        envelope = {**self.SAMPLE_ENVELOPE, "jobs": []}
+        envelope = {**self.SAMPLE_SUMMARY, "jobs": []}
         result = estimate_from_prior(
             envelope,
             new_model="Llama-3.2-1B-Instruct",
@@ -479,7 +479,7 @@ class TestEstimateFromPrior:
     def test_output_format(self):
         """Verify output structure matches what design-experiment needs."""
         result = estimate_from_prior(
-            self.SAMPLE_ENVELOPE,
+            self.SAMPLE_SUMMARY,
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,

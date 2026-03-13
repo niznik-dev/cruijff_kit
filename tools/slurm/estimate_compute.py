@@ -295,19 +295,19 @@ def recommend_batch_size(
 
 
 def estimate_from_prior(
-    prior_envelope: dict,
+    prior_summary: dict,
     new_model: str,
     new_dataset_size: int,
     new_epochs: int,
     new_eval_dataset_size: int | None = None,
 ) -> dict:
-    """Top-level estimation from a prior compute_metrics.json envelope.
+    """Top-level estimation from a prior compute_metrics.json summary.
 
     Finds the best-matching finetune and eval jobs in the prior data,
     scales their wall times, and returns structured estimates.
 
     Args:
-        prior_envelope: Parsed envelope dict from ``load_envelope``.
+        prior_summary: Parsed summary dict from ``load_summary``.
         new_model: Model name for the new experiment.
         new_dataset_size: Training samples in new experiment.
         new_epochs: Number of training epochs.
@@ -328,11 +328,11 @@ def estimate_from_prior(
     if new_eval_dataset_size is None:
         new_eval_dataset_size = new_dataset_size
 
-    prior_model = prior_envelope.get("model")
-    prior_dataset_size = prior_envelope.get("dataset_size", 0)
-    prior_epochs = prior_envelope.get("epochs", 1)
-    prior_batch_size = prior_envelope.get("batch_size")
-    jobs = prior_envelope.get("jobs", [])
+    prior_model = prior_summary.get("model")
+    prior_dataset_size = prior_summary.get("dataset_size", 0)
+    prior_epochs = prior_summary.get("epochs", 1)
+    prior_batch_size = prior_summary.get("batch_size")
+    jobs = prior_summary.get("jobs", [])
 
     # Split by job type
     finetune_jobs = [j for j in jobs if j.get("job_type") == "finetune"]
@@ -342,7 +342,7 @@ def estimate_from_prior(
         "finetune": None,
         "eval": None,
         "batch_size": None,
-        "prior_experiment": prior_envelope.get("experiment_name"),
+        "prior_experiment": prior_summary.get("experiment_name"),
         "scaling_details": [],
     }
 
@@ -391,9 +391,9 @@ def estimate_from_prior(
         ]
         if wall_times:
             # Use the prior test split size for scaling base. If not in
-            # envelope, fall back to average eval wall time with dataset ratio.
+            # summary, fall back to average eval wall time with dataset ratio.
             avg_wall = sum(wall_times) // len(wall_times)
-            # Eval dataset size in prior: not always in envelope.
+            # Eval dataset size in prior: not always in summary.
             # Use the test split if available, otherwise assume same as new.
             prior_eval_size = new_eval_dataset_size  # conservative fallback
 

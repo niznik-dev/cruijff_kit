@@ -178,7 +178,7 @@ Create the runs list in experiment_summary.yaml:
 
 ### Step 4b: Compute Estimation (from prior runs)
 
-Estimate SLURM time limits, GPU counts, and memory allocations using compute data from prior experiments. This step is **optional** — if no prior data is found, skip silently and omit `compute` blocks from the YAML (scaffold will use its defaults).
+Estimate SLURM time limits, GPU counts, and memory allocations using `tools/slurm/estimate_compute.py` with data from prior `compute_metrics.json` files. This step is **optional** — if no prior data is found, skip silently and omit `compute` blocks from the YAML (scaffold will use its defaults).
 
 #### 1. Discovery
 
@@ -190,85 +190,48 @@ Search for `compute_metrics.json` files from past experiments:
 
 If none found, skip this entire step silently.
 
-#### 2. Read & filter
+#### 2. Select the best prior summary
 
-Load all discovered `compute_metrics.json` files. For each, read the metadata envelope (model name, dataset size, epochs, job types). Separate jobs by `job_type`:
-- `"finetune"` jobs → inform fine-tuning time estimates
-- `"eval"` jobs → inform evaluation time estimates
-
-**Selecting relevant data:** For each run in the new experiment, find the most relevant prior data:
+Load all discovered `compute_metrics.json` files and select the most relevant one for the new experiment:
 1. **Same model** is the strongest match — prefer prior runs with the same model name
 2. **Same model family/size** is next best (e.g., any 1B model for a 1B run)
 3. **Different model size** can still inform estimates with parameter-count scaling
 
-If multiple prior experiments are equally relevant (e.g., same model), average their wall times before scaling. If none are relevant (completely different model family, no overlap), skip compute estimation silently.
+If none are relevant (completely different model family, no overlap), skip compute estimation silently.
 
-#### 3. Scale + reason (fine-tuning)
+#### 3. Run estimate_compute.py
 
-For each fine-tuning run in the new experiment:
+Use the `estimate_from_prior()` function from `tools/slurm/estimate_compute.py` to compute estimates. Run it via Python:
 
-1. Start with the best-matching prior finetune job's `wall_time` (or average if multiple are equally relevant)
-2. Scale by dataset and epoch differences:
-   ```
-   scaled_time = prior_wall_time * (new_epochs / old_epochs) * (new_dataset_size / old_dataset_size)
-   ```
-3. Apply 1.5x safety margin: `estimated_time = scaled_time * 1.5`
-4. Apply Claude judgment for additional factors:
-   - Model size changes (larger model = slower per step)
-   - Batch size differences (larger batch = fewer steps but more compute per step)
-   - LoRA rank changes (higher rank = slightly more compute)
-5. Round up to nearest 5-minute increment
-6. Use prior job's GPU count and memory allocation as baseline (adjust for model size changes)
+```python
+import json, sys
+sys.path.insert(0, "{cruijff_kit_dir}/tools/slurm")
+from compute_summary import load_summary
+from estimate_compute import estimate_from_prior
 
-#### 3c. Batch size recommendation (from GPU memory)
+prior_summary = load_summary("{path_to_compute_metrics.json}")
 
-When prior `compute_metrics.json` data is available, use GPU memory utilization to recommend a safe batch size for new runs. This addresses the common problem of OOM failures requiring manual batch size reduction and resubmission.
+result = estimate_from_prior(
+    prior_summary=prior_summary,
+    new_model="{new_model_name}",
+    new_dataset_size={new_training_dataset_size},
+    new_epochs={new_epochs},
+    new_eval_dataset_size={new_eval_dataset_size},  # optional, defaults to new_dataset_size
+)
 
-**Data needed from prior run:**
-- `gpu_mem_used_mean_gb` and `gpu_mem_total_gb` from finetune jobs
-- `batch_size` from the compute_metrics.json envelope
-- Model name from the envelope
+print(json.dumps(result, indent=2))
+```
 
-**Estimation logic:**
+The function returns a dict with:
+- `finetune`: `{time, gpus, mem}` — estimated fine-tuning resources
+- `eval`: `{time, gpus, mem}` — estimated evaluation resources
+- `batch_size`: `{batch_size, reason, mem_ratio, estimated_mem_gb}` — batch size recommendation (or None)
+- `prior_experiment`: name of the prior experiment used
+- `scaling_details`: human-readable list of scaling calculations
 
-1. Calculate the prior run's memory utilization ratio:
-   ```
-   mem_ratio = gpu_mem_used_mean_gb / gpu_mem_total_gb
-   ```
+**Do not** manually implement scaling logic — `estimate_compute.py` handles all scaling (linear by epochs/dataset size, cross-model parameter-count ratios, safety margins, rounding).
 
-2. **Same model → same or larger batch size:**
-   - If `mem_ratio < 0.7`: prior batch size has headroom; suggest increasing (e.g., double it)
-   - If `0.7 ≤ mem_ratio < 0.9`: prior batch size is well-fitted; reuse it
-   - If `mem_ratio ≥ 0.9`: prior batch size is near the limit; reuse but warn about OOM risk
-
-3. **Scaling to a larger model:**
-   - GPU memory for LoRA fine-tuning scales roughly with model parameter count
-   - Estimate: `new_mem ≈ prior_mem * (new_model_params / prior_model_params)`
-   - If `new_mem > 0.85 * gpu_mem_total_gb`: halve the batch size
-   - If still too large: halve again (minimum batch_size = 1)
-   - Example: 1B model used 12.5GB/80GB with batch_size=8 → 3B model (~3x params) would use ~37.5GB → batch_size=8 still fits. But 8B model (~8x params) would use ~100GB → reduce to batch_size=4 or 2.
-
-4. **Present recommendation** alongside the compute estimates table:
-   ```
-   Batch size recommendation based on prior GPU memory usage:
-   - Prior: Llama-3.2-1B-Instruct, batch_size=8, used 12.5/80.0 GB (16%)
-   - Recommended for Llama-3.2-1B-Instruct: batch_size=8 (same model, headroom available)
-   - Recommended for Llama-3.2-3B-Instruct: batch_size=4 (estimated ~37 GB usage)
-   ```
-
-5. **User confirmation:** Present as a suggestion, not a mandate. The user may override.
-
-**If batch_size is not in the compute_metrics.json envelope** (older data without this field): skip batch size recommendation and fall back to the conservative defaults (batch_size=4 for 1B, 2 for 3B, 1 for 8B+).
-
-#### 4. Scale + reason (evaluation)
-
-Take the prior eval job's `wall_time` and apply the same scaling logic:
-- Scale by dataset size differences
-- Apply 1.5x safety margin
-- Round up to nearest 5-minute increment
-- Use prior eval job's GPU count and memory
-
-#### 5. Present to user
+#### 4. Present to user
 
 Show estimated compute as a table for confirmation. Note which prior experiments informed the estimates (for transparency), but this is explanatory context, not configuration:
 

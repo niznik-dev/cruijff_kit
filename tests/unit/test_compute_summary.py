@@ -1,7 +1,7 @@
-"""Unit tests for tools/slurm/compute_envelope.py
+"""Unit tests for tools/slurm/compute_summary.py
 
 Run with:
-    pytest tests/unit/test_compute_envelope.py -v
+    pytest tests/unit/test_compute_summary.py -v
 
 Tests use fixture data — no cluster or GPU required.
 """
@@ -11,10 +11,10 @@ import json
 import pytest
 import yaml
 
-from cruijff_kit.tools.slurm.compute_envelope import (
-    build_envelope,
-    load_envelope,
-    save_envelope,
+from cruijff_kit.tools.slurm.compute_summary import (
+    build_summary,
+    load_summary,
+    save_summary,
 )
 
 
@@ -62,24 +62,24 @@ SAMPLE_JOBS = [
 ]
 
 
-class TestBuildEnvelope:
+class TestBuildSummary:
     def test_basic(self, tmp_path):
         yaml_path = tmp_path / "experiment_summary.yaml"
         with open(yaml_path, "w") as f:
             yaml.dump(SAMPLE_EXPERIMENT_SUMMARY, f)
 
-        envelope = build_envelope(SAMPLE_JOBS, yaml_path)
-        assert envelope["experiment_name"] == "cap_test_2025-10-22"
-        assert envelope["model"] == "Llama-3.2-1B-Instruct"
-        assert envelope["dataset_size"] == 800
-        assert envelope["epochs"] == 2
-        assert envelope["batch_size"] == 4
-        assert envelope["date"] == "2025-10-22"
-        assert len(envelope["jobs"]) == 2
+        summary = build_summary(SAMPLE_JOBS, yaml_path)
+        assert summary["experiment_name"] == "cap_test_2025-10-22"
+        assert summary["model"] == "Llama-3.2-1B-Instruct"
+        assert summary["dataset_size"] == 800
+        assert summary["epochs"] == 2
+        assert summary["batch_size"] == 4
+        assert summary["date"] == "2025-10-22"
+        assert len(summary["jobs"]) == 2
 
     def test_missing_yaml(self, tmp_path):
         with pytest.raises(FileNotFoundError):
-            build_envelope(SAMPLE_JOBS, tmp_path / "nonexistent.yaml")
+            build_summary(SAMPLE_JOBS, tmp_path / "nonexistent.yaml")
 
     def test_no_base_models(self, tmp_path):
         """If no base models listed, model should be None."""
@@ -89,13 +89,13 @@ class TestBuildEnvelope:
         with open(yaml_path, "w") as f:
             yaml.dump(config, f)
 
-        envelope = build_envelope(SAMPLE_JOBS, yaml_path)
-        assert envelope["model"] is None
+        summary = build_summary(SAMPLE_JOBS, yaml_path)
+        assert summary["model"] is None
 
 
-class TestSaveAndLoadEnvelope:
+class TestSaveAndLoadSummary:
     def test_roundtrip(self, tmp_path):
-        envelope = {
+        summary = {
             "experiment_name": "test",
             "model": "Llama-3.2-1B-Instruct",
             "dataset_size": 800,
@@ -105,14 +105,14 @@ class TestSaveAndLoadEnvelope:
             "jobs": SAMPLE_JOBS,
         }
         out_path = tmp_path / "analysis" / "compute_metrics.json"
-        save_envelope(envelope, out_path)
-        loaded = load_envelope(out_path)
-        assert loaded == envelope
+        save_summary(summary, out_path)
+        loaded = load_summary(out_path)
+        assert loaded == summary
 
     def test_creates_parent_dirs(self, tmp_path):
-        envelope = {"experiment_name": "test", "jobs": []}
+        summary = {"experiment_name": "test", "jobs": []}
         out_path = tmp_path / "deep" / "nested" / "compute_metrics.json"
-        result = save_envelope(envelope, out_path)
+        result = save_summary(summary, out_path)
         assert result.exists()
 
     def test_rejects_old_format(self, tmp_path):
@@ -122,4 +122,4 @@ class TestSaveAndLoadEnvelope:
             json.dump(SAMPLE_JOBS, f)
 
         with pytest.raises(ValueError, match="bare job list"):
-            load_envelope(old_path)
+            load_summary(old_path)

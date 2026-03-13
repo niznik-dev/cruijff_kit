@@ -120,7 +120,7 @@ If run logs exist (`logs/run-torchtune.log` and/or `logs/run-inspect.log`), gene
 2. Run `seff` for each job and parse with `tools/slurm/compute_metrics.py`
 3. Read `gpu_metrics.csv` files and summarize with `summarize_gpu_metrics()`
 4. Generate compute table with `format_compute_table()`
-5. Save raw metrics to `analysis/compute_metrics.json` (see `generation.md` for required envelope schema)
+5. Save raw metrics to `analysis/compute_metrics.json` using `compute_summary.py` (see `generation.md`)
 6. Pass formatted table as `compute_section` to `generate_report()`
 
 **Skip silently** if no run logs exist (e.g., analyzing results without having run the experiment locally).
