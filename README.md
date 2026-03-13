@@ -136,6 +136,25 @@ The example builds on the [folktexts](https://github.com/socialfoundations/folkt
 | [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) | How skills are organized |
 | `experiments/*/README.md` | Experiment-specific instructions |
 
+## Contributors
+
+Listed by date of first commit:
+
+- [Mattie Niznik](https://github.com/niznik-dev)
+- [Alessandra Rister Portinari Maranca](https://github.com/alessandramaranca)
+- [Matthew Salganik](https://github.com/msalganik)
+- [Daniel Rigobon](https://github.com/drigobon)
+- [Donggyu Ban](https://github.com/DonggyuBan)
+- [Sarah Pedersen](https://github.com/sarahepedersen)
+- [Shelby Tisdale Bussey](https://github.com/shelby-tisdale)
+
+## Acknowledgments
+
+We thank the following people for helpful conversations that shaped this project:
+
+- [Stephan Rabanser](https://github.com/steverab)
+- [Colin Swaney](https://github.com/cswaney)
+
 ## How to Cite
 
 If you use cruijff_kit in your research, please cite our package. But remember we are still in alpha.  If you are using cruijff_kit in your research, please contact us.
