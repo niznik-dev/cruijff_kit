@@ -9,6 +9,7 @@ from inspect_ai.scorer import match, includes
 from .risk_scorer import risk_scorer
 from .numeric_risk_scorer import numeric_risk_scorer
 from .calibration_metrics import expected_calibration_error, brier_score, auc_score
+from .continuous_scorer import continuous_scorer
 
 # Registry of available scorers and their constructors.
 # Task files use build_scorers() to instantiate scorers from YAML config.
@@ -17,6 +18,7 @@ SCORER_REGISTRY = {
     "includes": lambda params: includes(**params) if params else includes(ignore_case=False),
     "risk_scorer": lambda params: risk_scorer(**params) if params else risk_scorer(),
     "numeric_risk_scorer": lambda params: numeric_risk_scorer(**params) if params else numeric_risk_scorer(),
+    "continuous_scorer": lambda params: continuous_scorer(**params) if params else continuous_scorer(),  # <-- ADD THIS LINE
 }
 
 # Default scorers when no config is provided
