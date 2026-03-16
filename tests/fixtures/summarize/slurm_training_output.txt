@@ -1,0 +1,33 @@
+Loading checkpoint from /scratch/gpfs/MSALGANIK/testuser/pretrained-llms/Llama-3.2-1B-Instruct
+Tokenizer loaded successfully.
+Dataset loaded: 800 training samples, 100 validation samples.
+Writing logs to /scratch/gpfs/MSALGANIK/testuser/ck-outputs/workflow_test_2026-03-16/ck-out-Llama-3.2-1B-Instruct_rank4
+
+Training started at 2026-03-16 10:00:00
+1|1|Loss: 2.3456
+1|2|Loss: 2.1234
+1|3|Loss: 1.9876
+1|4|Loss: 1.8543
+1|5|Loss: 1.7210
+1|6|Loss: 1.5987
+1|7|Loss: 1.4321
+1|8|Loss: 1.3456
+1|9|Loss: 1.2345
+1|10|Loss: 1.1234
+Running validation...
+Validation loss: 1.3210
+1|11|Loss: 1.0567
+1|12|Loss: 0.9876
+1|13|Loss: 0.9234
+1|14|Loss: 0.8765
+1|15|Loss: 0.8234
+1|16|Loss: 0.7654
+1|17|Loss: 0.7123
+1|18|Loss: 0.6789
+1|19|Loss: 0.6543
+1|20|Loss: 0.6234
+Running validation...
+Validation loss: 0.7890
+Saving checkpoint to epoch_0/
+Training completed at 2026-03-16 10:08:32
+Total training time: 512 seconds

@@ -1,0 +1,12 @@
+{
+  "status": "success",
+  "task": "capitalization",
+  "model": "hf/Llama-3.2-1B-Instruct_rank4_epoch_0",
+  "samples": 100,
+  "scorer": "match",
+  "accuracy": 0.85,
+  "metrics": {
+    "accuracy": 0.85
+  },
+  "path": "__SCRATCH__/ck-experiments/workflow_test_2026-03-16/Llama-3.2-1B-Instruct_rank4/eval/logs/test.eval"
+}
