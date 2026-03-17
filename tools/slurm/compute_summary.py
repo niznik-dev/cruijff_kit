@@ -24,7 +24,7 @@ def build_summary(
 
     Reads experiment_summary.yaml to extract the metadata fields
     needed for downstream compute estimation (model name, dataset
-    size, epochs, batch size, date).
+    size, epochs, batch size, gradient accumulation steps, date).
 
     Args:
         jobs: List of job metric dicts (same format as
@@ -33,7 +33,8 @@ def build_summary(
 
     Returns:
         Summary dict with ``experiment_name``, ``model``,
-        ``dataset_size``, ``epochs``, ``batch_size``, ``date``,
+        ``dataset_size``, ``epochs``, ``batch_size``,
+        ``gradient_accumulation_steps``, ``date``,
         and ``jobs`` keys.
 
     Raises:
@@ -48,17 +49,30 @@ def build_summary(
     models = config["models"]
     data = config["data"]
     controls = config["controls"]
+    variables = config.get("variables") or {}
 
     # Primary model is the first base model listed
     base_models = models.get("base", [])
     model_name = base_models[0]["name"] if base_models else None
+
+    # If batch_size or gradient_accumulation_steps were varied across
+    # runs, store None so downstream estimation skips recommendations
+    # (no single prior value to scale from).
+    batch_size = controls["batch_size"]
+    if "batch_size" in variables:
+        batch_size = None
+
+    gas = controls.get("gradient_accumulation_steps", 1)
+    if "gradient_accumulation_steps" in variables:
+        gas = None
 
     return {
         "experiment_name": experiment["name"],
         "model": model_name,
         "dataset_size": data["training"]["splits"]["train"],
         "epochs": controls["epochs"],
-        "batch_size": controls["batch_size"],
+        "batch_size": batch_size,
+        "gradient_accumulation_steps": gas,
         "date": experiment.get("date", None),
         "jobs": jobs,
     }

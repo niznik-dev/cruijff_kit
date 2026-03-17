@@ -140,12 +140,10 @@ When designing experiments, you can vary any of these parameters. Add varied par
 | `lora_rank` | LoRA adapter rank (higher = more capacity, more memory) | 4, 8, 16, 32, 64 |
 | `lr` | Learning rate | 1e-5, 5e-5, 1e-4, 3e-4 |
 | `batch_size` | Batch size per GPU | 1, 2, 4, 8 |
+| `gradient_accumulation_steps` | Effective batch = batch_size × this (default 1) | 1, 4, 8, 16 |
 | `epochs` | Number of training epochs | 1, 2, 3 |
 
 **Additional Training Parameters:**
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `gradient_accumulation_steps` | Effective batch = batch_size × this | 1 |
 | `weight_decay` | Optimizer regularization | 0.01 |
 | `lora_dropout` | Dropout for LoRA layers | 0.0 |
 | `num_warmup_steps` | LR scheduler warmup steps | 100 |

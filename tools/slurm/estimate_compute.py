@@ -178,18 +178,22 @@ def recommend_batch_size(
     prior_batch_size: int,
     prior_model: str | None = None,
     new_model: str | None = None,
+    prior_gradient_accumulation_steps: int = 1,
 ) -> dict:
-    """Recommend batch size based on prior GPU memory utilization.
+    """Recommend batch size and gradient accumulation based on GPU memory.
 
-    For same-model runs, uses memory headroom to suggest adjustments.
-    For cross-model runs, scales memory estimate by parameter count
-    ratio and adjusts batch size to stay within GPU capacity.
+    Memory is driven primarily by model size (weights dominate in LoRA).
+    Batch size may increase within the memory envelope, but only
+    conservatively — larger effective batch sizes should be achieved
+    via ``gradient_accumulation_steps`` once batch size hits the memory
+    ceiling. When batch size must decrease (e.g., scaling to a larger
+    model), gradient accumulation is increased to preserve the prior
+    effective batch size.
 
-    Memory scaling note: In LoRA fine-tuning, model weights dominate
-    GPU memory. Activation memory (which scales with batch size) is
-    a smaller fraction. Doubling batch size does NOT double total
-    memory usage. The recommendations here are conservative to avoid
-    OOM — they may leave headroom.
+    The memory envelope target is 85% GPU utilization. Activation
+    memory (which scales with batch size) is estimated at ~15% of
+    total GPU memory for LoRA workloads, with model weights making
+    up the rest.
 
     Args:
         prior_gpu_mem_used_gb: Mean GPU memory used in prior run.
@@ -197,19 +201,26 @@ def recommend_batch_size(
         prior_batch_size: Batch size used in prior run.
         prior_model: Model name from prior run.
         new_model: Model name for new experiment.
+        prior_gradient_accumulation_steps: Gradient accumulation steps
+            from prior run (default 1).
 
     Returns:
         Dict with keys:
         - ``batch_size``: Recommended batch size (int).
+        - ``gradient_accumulation_steps``: Recommended grad accum steps.
+        - ``effective_batch_size``: batch_size × gradient_accumulation_steps.
         - ``reason``: Human-readable explanation.
         - ``mem_ratio``: Prior memory utilization ratio.
-        - ``estimated_mem_gb``: Estimated memory for new config
-          (None if same model).
+        - ``estimated_mem_gb``: Estimated GPU memory for new config.
     """
+    prior_effective = prior_batch_size * prior_gradient_accumulation_steps
+
     if prior_gpu_mem_total_gb <= 0:
         return {
             "batch_size": prior_batch_size,
-            "reason": "No GPU memory data available; using prior batch size.",
+            "gradient_accumulation_steps": prior_gradient_accumulation_steps,
+            "effective_batch_size": prior_effective,
+            "reason": "No GPU memory data available; using prior settings.",
             "mem_ratio": None,
             "estimated_mem_gb": None,
         }
@@ -217,80 +228,119 @@ def recommend_batch_size(
     mem_ratio = prior_gpu_mem_used_gb / prior_gpu_mem_total_gb
     model_ratio = _model_size_ratio(prior_model, new_model)
 
-    # Cross-model: estimate memory for new model at prior batch size
-    if model_ratio != 1.0:
-        estimated_mem = prior_gpu_mem_used_gb * model_ratio
-        estimated_ratio = estimated_mem / prior_gpu_mem_total_gb
+    # Estimate memory for new model at prior batch size.
+    # Model weights scale with model_ratio; activation memory stays
+    # roughly constant at the same batch size.
+    estimated_mem = prior_gpu_mem_used_gb * model_ratio
+    estimated_ratio = estimated_mem / prior_gpu_mem_total_gb
 
-        recommended = prior_batch_size
-        reason_parts = [
+    recommended_bs = prior_batch_size
+    reason_parts = []
+
+    if model_ratio != 1.0:
+        reason_parts.append(
             f"Prior: {prior_model}, batch_size={prior_batch_size}, "
             f"used {prior_gpu_mem_used_gb:.1f}/{prior_gpu_mem_total_gb:.0f} GB "
-            f"({mem_ratio:.0%}).",
+            f"({mem_ratio:.0%}). "
             f"Estimated for {new_model}: ~{estimated_mem:.0f} GB "
-            f"({estimated_ratio:.0%}).",
-        ]
+            f"({estimated_ratio:.0%})."
+        )
+    else:
+        reason_parts.append(
+            f"GPU memory at {mem_ratio:.0%} ({prior_gpu_mem_used_gb:.1f}/"
+            f"{prior_gpu_mem_total_gb:.0f} GB)."
+        )
 
-        # Halve batch size until estimated memory fits within 85% of GPU
-        while estimated_ratio > 0.85 and recommended > 1:
-            recommended = max(1, recommended // 2)
-            # Rough estimate: halving batch reduces activation memory,
-            # but model weights stay constant. Assume ~15% reduction
-            # per halving (conservative for LoRA where weights dominate).
+    # --- Fit within memory envelope (target <85% utilization) ---
+
+    if estimated_ratio > 0.85:
+        # Over budget — reduce batch size until it fits
+        while estimated_ratio > 0.85 and recommended_bs > 1:
+            recommended_bs = max(1, recommended_bs // 2)
+            # Halving batch reduces activation memory but model weights
+            # stay constant. Assume ~15% total reduction per halving
+            # (conservative for LoRA where weights dominate).
             estimated_mem *= 0.85
             estimated_ratio = estimated_mem / prior_gpu_mem_total_gb
 
-        if recommended != prior_batch_size:
+        if recommended_bs < prior_batch_size:
             reason_parts.append(
-                f"Reduced batch_size to {recommended} to stay within "
+                f"Reduced batch_size to {recommended_bs} to fit within "
                 f"GPU memory (target <85% utilization)."
             )
         else:
-            reason_parts.append(f"Prior batch_size={prior_batch_size} should fit.")
-
-        return {
-            "batch_size": recommended,
-            "reason": " ".join(reason_parts),
-            "mem_ratio": round(mem_ratio, 3),
-            "estimated_mem_gb": round(estimated_mem, 1),
-        }
-
-    # Same model: adjust based on memory headroom
-    recommended = prior_batch_size
-    if mem_ratio < 0.5:
-        # Lots of headroom — suggest doubling
-        recommended = prior_batch_size * 2
-        reason = (
-            f"GPU memory at {mem_ratio:.0%} ({prior_gpu_mem_used_gb:.1f}/"
-            f"{prior_gpu_mem_total_gb:.0f} GB). Significant headroom — "
-            f"consider batch_size={recommended} (doubled from {prior_batch_size})."
-        )
-    elif mem_ratio < 0.7:
-        # Moderate headroom — suggest modest increase
-        recommended = prior_batch_size + max(1, prior_batch_size // 2)
-        reason = (
-            f"GPU memory at {mem_ratio:.0%} ({prior_gpu_mem_used_gb:.1f}/"
-            f"{prior_gpu_mem_total_gb:.0f} GB). Some headroom — "
-            f"consider batch_size={recommended} (up from {prior_batch_size})."
-        )
-    elif mem_ratio < 0.9:
-        reason = (
-            f"GPU memory at {mem_ratio:.0%} ({prior_gpu_mem_used_gb:.1f}/"
-            f"{prior_gpu_mem_total_gb:.0f} GB). Well-fitted — "
-            f"reuse batch_size={prior_batch_size}."
+            # batch_size is already 1 (or was 1) and still over budget
+            reason_parts.append(
+                f"Near GPU limit — keeping batch_size={recommended_bs}. "
+                f"Watch for OOM."
+            )
+    elif estimated_ratio < 0.5:
+        # Significant headroom — try doubling batch size if it still
+        # fits under the 85% ceiling.
+        # Estimate: doubling batch increases activation memory (~15%
+        # of total), so total increases by ~15%.
+        doubled_mem = estimated_mem * 1.15
+        doubled_ratio = doubled_mem / prior_gpu_mem_total_gb
+        if doubled_ratio < 0.85:
+            recommended_bs = prior_batch_size * 2
+            estimated_mem = doubled_mem
+            estimated_ratio = doubled_ratio
+            reason_parts.append(
+                f"Significant headroom — increased batch_size to "
+                f"{recommended_bs} (doubled from {prior_batch_size})."
+            )
+        else:
+            reason_parts.append(
+                f"Significant headroom but doubling batch_size would "
+                f"approach GPU limit. Keeping batch_size={recommended_bs}."
+            )
+    elif estimated_ratio < 0.7:
+        # Moderate headroom — try a modest increase (+50%) if it fits.
+        candidate = prior_batch_size + max(1, prior_batch_size // 2)
+        # Rough scale: increasing by 50% adds ~7.5% total memory
+        increased_mem = estimated_mem * 1.075
+        increased_ratio = increased_mem / prior_gpu_mem_total_gb
+        if increased_ratio < 0.85:
+            recommended_bs = candidate
+            estimated_mem = increased_mem
+            estimated_ratio = increased_ratio
+            reason_parts.append(
+                f"Some headroom — increased batch_size to "
+                f"{recommended_bs} (up from {prior_batch_size})."
+            )
+        else:
+            reason_parts.append(
+                f"Some headroom but increasing batch_size would "
+                f"approach GPU limit. Keeping batch_size={recommended_bs}."
+            )
+    elif estimated_ratio >= 0.9:
+        reason_parts.append(
+            f"Near GPU limit — keeping batch_size={recommended_bs}. "
+            f"Watch for OOM."
         )
     else:
-        reason = (
-            f"GPU memory at {mem_ratio:.0%} ({prior_gpu_mem_used_gb:.1f}/"
-            f"{prior_gpu_mem_total_gb:.0f} GB). Near GPU limit — "
-            f"reuse batch_size={prior_batch_size} but watch for OOM."
+        # 70-85%: well-fitted
+        reason_parts.append(
+            f"Well-fitted — keeping batch_size={recommended_bs}."
+        )
+
+    # --- Compute gradient accumulation to preserve effective batch size ---
+    recommended_gas = max(1, prior_effective // recommended_bs)
+    effective = recommended_bs * recommended_gas
+
+    if recommended_gas != prior_gradient_accumulation_steps:
+        reason_parts.append(
+            f"Set gradient_accumulation_steps={recommended_gas} "
+            f"to maintain effective batch size of {effective}."
         )
 
     return {
-        "batch_size": recommended,
-        "reason": reason,
+        "batch_size": recommended_bs,
+        "gradient_accumulation_steps": recommended_gas,
+        "effective_batch_size": effective,
+        "reason": " ".join(reason_parts),
         "mem_ratio": round(mem_ratio, 3),
-        "estimated_mem_gb": None,
+        "estimated_mem_gb": round(estimated_mem, 1),
     }
 
 
@@ -332,6 +382,7 @@ def estimate_from_prior(
     prior_dataset_size = prior_summary.get("dataset_size", 0)
     prior_epochs = prior_summary.get("epochs", 1)
     prior_batch_size = prior_summary.get("batch_size")
+    prior_gas = prior_summary.get("gradient_accumulation_steps", 1)
     jobs = prior_summary.get("jobs", [])
 
     # Split by job type
@@ -433,6 +484,7 @@ def estimate_from_prior(
                     prior_batch_size=prior_batch_size,
                     prior_model=prior_model,
                     new_model=new_model,
+                    prior_gradient_accumulation_steps=prior_gas,
                 )
                 break
 

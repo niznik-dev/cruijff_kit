@@ -74,8 +74,62 @@ class TestBuildSummary:
         assert summary["dataset_size"] == 800
         assert summary["epochs"] == 2
         assert summary["batch_size"] == 4
+        assert summary["gradient_accumulation_steps"] == 1  # default
         assert summary["date"] == "2025-10-22"
         assert len(summary["jobs"]) == 2
+
+    def test_gradient_accumulation_steps_explicit(self, tmp_path):
+        """Explicit gradient_accumulation_steps is preserved."""
+        config = {**SAMPLE_EXPERIMENT_SUMMARY}
+        config["controls"] = {**config["controls"], "gradient_accumulation_steps": 8}
+        yaml_path = tmp_path / "experiment_summary.yaml"
+        with open(yaml_path, "w") as f:
+            yaml.dump(config, f)
+
+        summary = build_summary(SAMPLE_JOBS, yaml_path)
+        assert summary["gradient_accumulation_steps"] == 8
+
+    def test_batch_size_variable_nulled(self, tmp_path):
+        """batch_size in variables → stored as None."""
+        config = {
+            **SAMPLE_EXPERIMENT_SUMMARY,
+            "variables": {"batch_size": [2, 4, 8]},
+        }
+        yaml_path = tmp_path / "experiment_summary.yaml"
+        with open(yaml_path, "w") as f:
+            yaml.dump(config, f)
+
+        summary = build_summary(SAMPLE_JOBS, yaml_path)
+        assert summary["batch_size"] is None
+
+    def test_gas_variable_nulled(self, tmp_path):
+        """gradient_accumulation_steps in variables → stored as None."""
+        config = {
+            **SAMPLE_EXPERIMENT_SUMMARY,
+            "controls": {
+                **SAMPLE_EXPERIMENT_SUMMARY["controls"],
+                "gradient_accumulation_steps": 4,
+            },
+            "variables": {"gradient_accumulation_steps": [1, 4, 8]},
+        }
+        yaml_path = tmp_path / "experiment_summary.yaml"
+        with open(yaml_path, "w") as f:
+            yaml.dump(config, f)
+
+        summary = build_summary(SAMPLE_JOBS, yaml_path)
+        assert summary["gradient_accumulation_steps"] is None
+
+    def test_no_variables_section(self, tmp_path):
+        """Missing variables section → batch_size and gas from controls."""
+        config = {**SAMPLE_EXPERIMENT_SUMMARY}
+        config.pop("variables", None)
+        yaml_path = tmp_path / "experiment_summary.yaml"
+        with open(yaml_path, "w") as f:
+            yaml.dump(config, f)
+
+        summary = build_summary(SAMPLE_JOBS, yaml_path)
+        assert summary["batch_size"] == 4
+        assert summary["gradient_accumulation_steps"] == 1
 
     def test_missing_yaml(self, tmp_path):
         with pytest.raises(FileNotFoundError):
