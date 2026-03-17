@@ -53,8 +53,7 @@ fixtures/
 | Test | Location | What it validates |
 |------|----------|-------------------|
 | `test_experiment_summary_schema.py` | `tests/unit/` | Structure of experiment_summary.yaml |
-| `test_scaffold_fixtures.py` | `tests/integration/cpu/` | setup_finetune + setup_inspect produce valid output |
-| `test_summarize_fixtures.py` | `tests/unit/` | Loss regex + eval JSON parsing |
+| `test_summarize_fixtures.py` | `tests/unit/` | Loss extraction module + eval JSON parsing |
 
 ## Manual Usage
 

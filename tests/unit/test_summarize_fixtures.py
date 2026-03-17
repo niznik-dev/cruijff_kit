@@ -1,19 +1,21 @@
 """Tests for summarize-experiment data extraction against realistic fixtures.
 
-Tests loss regex extraction from SLURM stdout and eval result JSON parsing.
+Tests loss extraction module against SLURM stdout and eval result JSON parsing.
 Pure unit tests — no GPU, SLURM, or inspect-ai required.
 """
 
 import json
-import re
 from pathlib import Path
 
 import pytest
 
-FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "summarize"
+from cruijff_kit.tools.torchtune.extract_loss import (
+    LOSS_PATTERN,
+    extract_losses,
+    final_loss,
+)
 
-# Loss regex from summarize-experiment skill (SKILL.md line 63)
-LOSS_PATTERN = re.compile(r"(\d+)\|(\d+)\|Loss: ([0-9.]+)")
+FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "summarize"
 
 
 @pytest.fixture
@@ -31,39 +33,39 @@ def eval_result():
 
 class TestLossExtraction:
     def test_finds_loss_lines(self, slurm_output):
-        matches = LOSS_PATTERN.findall(slurm_output)
-        assert len(matches) > 0, "Should find at least one loss line"
+        losses = extract_losses(slurm_output)
+        assert len(losses) > 0, "Should find at least one loss line"
 
-    def test_final_loss_is_last_match(self, slurm_output):
-        matches = LOSS_PATTERN.findall(slurm_output)
-        epoch, step, loss = matches[-1]
-        assert float(loss) == pytest.approx(0.26427456736564636)
-        assert int(step) == 500
+    def test_final_loss_returns_last_match(self, slurm_output):
+        result = final_loss(slurm_output)
+        assert result is not None
+        epoch, step, loss = result
+        assert loss == pytest.approx(0.26427456736564636)
+        assert step == 500
+
+    def test_final_loss_empty_input(self):
+        assert final_loss("no loss lines here") is None
 
     def test_first_loss_is_higher(self, slurm_output):
-        matches = LOSS_PATTERN.findall(slurm_output)
-        first_loss = float(matches[0][2])
-        last_loss = float(matches[-1][2])
-        assert first_loss > last_loss, "Loss should decrease during training"
+        losses = extract_losses(slurm_output)
+        assert losses[0][2] > losses[-1][2], "Loss should decrease during training"
 
     def test_all_losses_are_positive(self, slurm_output):
-        matches = LOSS_PATTERN.findall(slurm_output)
-        for _, _, loss_str in matches:
-            assert float(loss_str) > 0
+        for _, _, loss in extract_losses(slurm_output):
+            assert loss > 0
 
     def test_epoch_numbers_are_valid(self, slurm_output):
-        matches = LOSS_PATTERN.findall(slurm_output)
-        for epoch_str, _, _ in matches:
-            assert int(epoch_str) >= 1
+        for epoch, _, _ in extract_losses(slurm_output):
+            assert epoch >= 1
 
     def test_step_numbers_increase(self, slurm_output):
-        matches = LOSS_PATTERN.findall(slurm_output)
-        steps = [int(m[1]) for m in matches]
+        steps = [step for _, step, _ in extract_losses(slurm_output)]
         assert steps == sorted(steps), "Steps should monotonically increase"
 
     def test_total_loss_count(self, slurm_output):
-        matches = LOSS_PATTERN.findall(slurm_output)
-        assert len(matches) == 18, "Fixture has 18 loss line matches"
+        assert len(extract_losses(slurm_output)) == 18, (
+            "Fixture has 18 loss line matches"
+        )
 
     def test_does_not_match_validation_loss(self, slurm_output):
         """The regex should not match 'Validation loss: ...' lines."""
@@ -73,12 +75,11 @@ class TestLossExtraction:
 
     def test_multi_epoch_step_continuation(self, slurm_output):
         """Steps continue across epochs (no reset at epoch boundary)."""
-        matches = LOSS_PATTERN.findall(slurm_output)
-        epochs = {int(m[0]) for m in matches}
+        losses = extract_losses(slurm_output)
+        epochs = {epoch for epoch, _, _ in losses}
         assert 1 in epochs and 2 in epochs, "Both epochs should be present"
-        # Epoch 2 steps should be > epoch 1's max step
-        epoch1_max = max(int(m[1]) for m in matches if m[0] == "1")
-        epoch2_min = min(int(m[1]) for m in matches if m[0] == "2")
+        epoch1_max = max(step for epoch, step, _ in losses if epoch == 1)
+        epoch2_min = min(step for epoch, step, _ in losses if epoch == 2)
         assert epoch2_min > epoch1_max, "Epoch 2 steps should continue from epoch 1"
 
     def test_ignores_tqdm_suffix(self, slurm_output):
