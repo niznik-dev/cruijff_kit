@@ -36,5 +36,8 @@ finetune.slurm
 finetune.yaml
 setup_finetune.yaml
 inspect.slurm
+
+# Allow generated config files inside test fixtures
+!tests/fixtures/**
 *G/
 *.eval

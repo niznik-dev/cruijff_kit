@@ -59,10 +59,15 @@ For each COMPLETED fine-tuning run:
    - Parse experiment_summary.yaml "Output" section for `output_dir_base`
    - Look in: `{output_dir_base}/ck-out-{run_name}/slurm-*.out`
    - If multiple files, use most recent by modification time
-2. Extract final loss using regex: `(\d+)\|(\d+)\|Loss: ([0-9.]+)`
-   - Pattern matches: `{epoch}|{step}|Loss: {value}`
-   - Take the LAST match to get final loss
-   - The step number (group 2) from the last match is the total training steps
+2. Extract final loss using `cruijff_kit.tools.torchtune.extract_loss`:
+   ```python
+   from cruijff_kit.tools.torchtune.extract_loss import final_loss
+   result = final_loss(slurm_text)  # returns (epoch, step, loss) or None
+   ```
+   - The canonical regex and helpers live in `tools/torchtune/extract_loss.py`
+   - `final_loss()` returns the last match (epoch, step, loss) or None
+   - `extract_losses()` returns all matches as a list
+   - The step number from the last match is the total training steps
 3. Record: run_name, final_loss, total_steps, epoch, step
 
 **Note:** Training SLURM outputs are in the output directory, NOT the run directory.

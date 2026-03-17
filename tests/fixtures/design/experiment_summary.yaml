@@ -1,0 +1,85 @@
+# Reference experiment_summary.yaml for testing
+# Based on workflow_test.yaml parameters (LoRA rank comparison)
+#
+# Path convention: __SCRATCH__ and __REPO__ are placeholders replaced at test
+# time with tmp_path subdirectories. See tests/fixtures/README.md.
+
+experiment:
+  name: "workflow_test_2026-03-16"
+  question: "Verify that the complete workflow executes correctly for a minimal fine-tuning experiment with two LoRA ranks."
+  date: "2026-03-16"
+  hypothesis: "Both LoRA ranks produce functional fine-tuned models."
+  purpose: "Integration test to validate skills are working after architecture changes."
+  directory: "__SCRATCH__/ck-experiments/workflow_test_2026-03-16"
+
+tools:
+  preparation: "torchtune"
+  evaluation: "inspect-ai"
+
+variables:
+  lora_rank: [4, 8]
+
+controls:
+  system_prompt: "You are a helpful assistant."
+  prompt: "Capitalize the given word: {input}\n"
+  epochs: 1
+  batch_size: 4
+  validation_during_training: true
+
+models:
+  base:
+    - name: "Llama-3.2-1B-Instruct"
+      path: "__SCRATCH__/pretrained-llms/Llama-3.2-1B-Instruct"
+      size_gb: 2.5
+
+data:
+  training:
+    path: "__REPO__/data/green/capitalization/words_5L_80P_1000.json"
+    label: "words_5L_80P_1000"
+    format: "json"
+    size_kb: 120
+    splits:
+      train: 800
+      validation: 100
+      test: 100
+
+output:
+  base_directory: "__SCRATCH__/ck-outputs/workflow_test_2026-03-16"
+  checkpoint_pattern: "ck-out-{run_name}/epoch_{N}"
+  wandb_project: "cruijff_kit_tests"
+
+runs:
+  - name: "Llama-3.2-1B-Instruct_rank4"
+    type: "fine-tuned"
+    model: "Llama-3.2-1B-Instruct"
+    parameters:
+      lora_rank: 4
+
+  - name: "Llama-3.2-1B-Instruct_rank8"
+    type: "fine-tuned"
+    model: "Llama-3.2-1B-Instruct"
+    parameters:
+      lora_rank: 8
+
+evaluation:
+  system_prompt: "You are a helpful assistant."
+  temperature: 0.0
+  scorer:
+    - name: "match"
+
+  tasks:
+    - name: "capitalization"
+      script: "__REPO__/experiments/capitalization/inspect_task_capitalization.py"
+      dataset: "same"
+      description: "Tests word capitalization accuracy"
+
+  matrix:
+    - run: "Llama-3.2-1B-Instruct_rank4"
+      vis_label: "rank4"
+      tasks: ["capitalization"]
+      epochs: [0]
+
+    - run: "Llama-3.2-1B-Instruct_rank8"
+      vis_label: "rank8"
+      tasks: ["capitalization"]
+      epochs: [0]
