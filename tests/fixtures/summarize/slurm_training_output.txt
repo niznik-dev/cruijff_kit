@@ -32,8 +32,8 @@ Setting `pad_token_id` to `eos_token_id`:128001 for open-end generation.
 1|240|Loss: 0.24889333546161652:  96%|█████████▌| 240/250 [01:50<00:04,  2.18it/s]
 1|250|Loss: 0.22619308531284332: 100%|██████████| 250/250 [01:55<00:00,  2.22it/s]
 Starting checkpoint save for epoch 0...
-Model checkpoint saved to /output/dir/epoch_0
-Adapter checkpoint of size 0.02 GiB saved to /output/dir/epoch_0/adapter_model.pt
+Model checkpoint saved to /path/to/experiment/run/epoch_0
+Adapter checkpoint of size 0.02 GiB saved to /path/to/experiment/run/epoch_0/adapter_model.pt
 Checkpoint saved in 33.06 seconds.
 Stashing adapter files from merged model checkpoint...
   0%|          | 0/250 [00:00<?, ?it/s]
@@ -47,7 +47,7 @@ Setting `pad_token_id` to `eos_token_id`:128001 for open-end generation.
 2|490|Loss: 0.30295905470848083:  96%|█████████▌| 240/250 [01:49<00:04,  2.20it/s]
 2|500|Loss: 0.26427456736564636: 100%|██████████| 250/250 [01:53<00:00,  2.22it/s]
 Starting checkpoint save for epoch 1...
-Model checkpoint saved to /output/dir/epoch_1
+Model checkpoint saved to /path/to/experiment/run/epoch_1
 Checkpoint saved in 32.51 seconds.
 2|500|Loss: 0.26427456736564636: 100%|██████████| 250/250 [02:26<00:00,  1.71it/s]
 wandb:
@@ -63,4 +63,4 @@ wandb:                        lr 0
 wandb:        peak_memory_active 18.77768
 wandb:
 wandb: You can sync this run to the cloud by running:
-wandb: wandb sync /output/dir/logs/wandb/offline-run-20260312_115918-av9kk1bx
+wandb: wandb sync /path/to/experiment/run/logs/wandb/offline-run-20260101_120000-abc12xyz
