@@ -4,7 +4,7 @@ Reference artifacts at each pipeline stage for testing skill contracts in isolat
 
 ## Path Placeholder Convention
 
-All fixture YAML/JSON files use placeholder tokens instead of real paths:
+All fixture files use placeholder tokens instead of real paths:
 
 | Token | Replaced with | Represents |
 |-------|--------------|------------|
@@ -45,7 +45,7 @@ fixtures/
 | `design/experiment_summary.yaml` | Template + workflow_test.yaml | Reference design; validates schema |
 | `scaffold/torchtune/*/setup_finetune.yaml` | test_setup_finetune_main.py pattern | Input to setup_finetune.py |
 | `scaffold/inspect/*/eval/eval_config.yaml` | test_setup_inspect.py pattern | Input to setup_inspect.py |
-| `summarize/slurm_training_output.txt` | Synthetic | Loss regex extraction testing |
+| `summarize/slurm_training_output.txt` | Synthetic (uses `__SCRATCH__` placeholders) | Loss regex extraction testing |
 | `summarize/eval_result.json` | parse_eval_log output format | Eval parsing without .eval files |
 
 ## Test Files
