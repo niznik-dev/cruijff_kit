@@ -154,7 +154,7 @@ We thank the following people for helpful conversations that shaped this project
 
 - [Stephan Rabanser](https://github.com/steverab)
 - [Colin Swaney](https://github.com/cswaney)
-- [Emnet Sisay](https://github.com/esisay)
+- [Emnet Sisay](https://github.com/EmnetSy)
 
 ## How to Cite
 
