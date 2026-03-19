@@ -20,6 +20,7 @@ jobs:
 
       - name: Check GPU visibility
         run: |
+          source /etc/profile.d/modules.sh
           module load anaconda3/2025.12
           conda activate cruijff
           python -c "
@@ -32,12 +33,14 @@ jobs:
 
       - name: Load model and generate tokens
         run: |
+          source /etc/profile.d/modules.sh
           module load anaconda3/2025.12
           conda activate cruijff
           python tests/integration/gpu/smoke_test_model_load.py
 
       - name: Verify scaffolding tools
         run: |
+          source /etc/profile.d/modules.sh
           module load anaconda3/2025.12
           conda activate cruijff
           python tests/integration/gpu/smoke_test_scaffolding.py
