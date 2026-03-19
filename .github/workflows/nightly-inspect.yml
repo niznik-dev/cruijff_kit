@@ -1,0 +1,26 @@
+name: Nightly Inspect Smoke Test
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 2 * * *'
+
+jobs:
+  inspect-smoke:
+    runs-on: [self-hosted, della-cruijff-gpu]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select GPU
+        run: |
+          source ~/scripts/select_gpu.sh
+          echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES" >> "$GITHUB_ENV"
+
+      - name: Run inspect-ai smoke test
+        run: |
+          source /etc/profile.d/modules.sh
+          module load anaconda3/2025.12
+          conda activate cruijff
+          python tests/integration/gpu/smoke_test_inspect.py
