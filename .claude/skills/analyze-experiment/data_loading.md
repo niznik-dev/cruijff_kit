@@ -4,7 +4,7 @@ This module describes how to load evaluation logs and prepare data for visualiza
 
 ## Automatic Deduplication
 
-When multiple evaluations exist for the same model+epoch (e.g., from re-runs), use `deduplicate_eval_files()` to keep only the most recent:
+When multiple evaluations exist for the same model+epoch+vis_label (e.g., from re-runs), use `deduplicate_eval_files()` to keep only the most recent:
 
 ```python
 from tools.inspect.viz_helpers import deduplicate_eval_files
@@ -23,7 +23,7 @@ logs_df = evals_df_prep(kept)
 **How deduplication works:**
 1. Reads model and epoch from each eval file
 2. Extracts timestamp from filename (format: `YYYYMMDDTHHMMSS_...`)
-3. Groups by (model, epoch) combination
+3. Groups by (model, epoch, vis_label) combination
 4. Keeps only the most recent timestamp per group
 5. Returns tuple of (kept_files, skipped_files) for logging
 
