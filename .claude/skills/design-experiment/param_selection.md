@@ -140,12 +140,10 @@ When designing experiments, you can vary any of these parameters. Add varied par
 | `lora_rank` | LoRA adapter rank (higher = more capacity, more memory) | 4, 8, 16, 32, 64 |
 | `lr` | Learning rate | 1e-5, 5e-5, 1e-4, 3e-4 |
 | `batch_size` | Batch size per GPU | 1, 2, 4, 8 |
+| `gradient_accumulation_steps` | Effective batch = batch_size × this (default 1) | 1, 4, 8, 16 |
 | `epochs` | Number of training epochs | 1, 2, 3 |
 
 **Additional Training Parameters:**
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `gradient_accumulation_steps` | Effective batch = batch_size × this | 1 |
 | `weight_decay` | Optimizer regularization | 0.01 |
 | `lora_dropout` | Dropout for LoRA layers | 0.0 |
 | `num_warmup_steps` | LR scheduler warmup steps | 100 |
@@ -163,11 +161,10 @@ If user says "yes" (default), add the constraint/partition values from `claude.l
 
 **Note:** Only ask this for models where `min_gpu_vram_gb` (from model_configs.py) is less than a full GPU's VRAM. Larger models always need full dedicated GPUs — read the constraint/partition from `claude.local.md` and include it automatically.
 
-**Advanced settings (calculate from prior runs if available):**
-- Batch sizes - estimate from GPU memory usage in prior runs
+**Advanced settings (informed by prior runs when available):**
+- **Batch sizes** - Use GPU memory data from Step 4b to recommend safe batch sizes (see batch size estimation below)
 - Dataset packing - enabled by default, affects batch size
-- For help estimating: check `{scratch_dir}/*/slurm-*.out` for similar runs
-- **Consult past compute utilization analyses** - If previous experiments have `analysis/compute_metrics.json` or a compute section in `report.md`, use that data to inform time limits, memory allocations, and GPU resource requests for new runs
+- If no prior data is available, start conservative (batch_size=4 for 1B, 2 for 3B, 1 for 8B+)
 
 ### Generate Runs List
 
@@ -176,6 +173,109 @@ Create the runs list in experiment_summary.yaml:
 - For control runs: Include `name`, `type: "control"`, `model`, and empty `parameters: {}`
 - Run names should include model and varying parameter values (e.g., `Llama-3.2-1B-Instruct_rank4`)
 - Parameters dict should only include values that vary across runs (e.g., `lora_rank: 4`)
+
+### Step 4b: Compute Estimation (from prior runs)
+
+Estimate SLURM time limits, GPU counts, and memory allocations using `tools/slurm/estimate_compute.py` with data from prior `compute_metrics.json` files. This step is **optional** — if no prior data is found, skip silently and omit `compute` blocks from the YAML (scaffold will use its defaults).
+
+#### 1. Discovery
+
+Search for `compute_metrics.json` files from past experiments:
+- `{scratch_dir}/ck-experiments/*/analysis/compute_metrics.json`
+- `{scratch_dir}/ck-sanity-checks/*/analysis/compute_metrics.json`
+
+**Note:** `compute_metrics.json` lives in `{experiment_dir}/analysis/`, NOT in the output directory.
+
+If none found, skip this entire step silently.
+
+#### 2. Select the best prior summary
+
+Load all discovered `compute_metrics.json` files and select the most relevant one for the new experiment:
+1. **Same model** is the strongest match — prefer prior runs with the same model name
+2. **Same model family/size** is next best (e.g., any 1B model for a 1B run)
+3. **Different model size** can still inform estimates with parameter-count scaling
+
+If none are relevant (completely different model family, no overlap), skip compute estimation silently.
+
+#### 3. Run estimate_compute.py
+
+Use the `estimate_from_prior()` function from `tools/slurm/estimate_compute.py` to compute estimates. Run it via Python:
+
+```python
+import json, sys
+sys.path.insert(0, "{cruijff_kit_dir}/tools/slurm")
+from compute_summary import load_summary
+from estimate_compute import estimate_from_prior
+
+prior_summary = load_summary("{path_to_compute_metrics.json}")
+
+result = estimate_from_prior(
+    prior_summary=prior_summary,
+    new_model="{new_model_name}",
+    new_dataset_size={new_training_dataset_size},
+    new_epochs={new_epochs},
+    new_eval_dataset_size={new_eval_dataset_size},  # optional, defaults to new_dataset_size
+)
+
+print(json.dumps(result, indent=2))
+```
+
+The function returns a dict with:
+- `finetune`: `{time, gpus, mem}` — estimated fine-tuning resources
+- `eval`: `{time, gpus, mem}` — estimated evaluation resources
+- `batch_size`: `{batch_size, reason, mem_ratio, estimated_mem_gb}` — batch size recommendation (or None)
+- `prior_experiment`: name of the prior experiment used
+- `scaling_details`: human-readable list of scaling calculations
+
+**Do not** manually implement scaling logic — `estimate_compute.py` handles all scaling (linear by epochs/dataset size, cross-model parameter-count ratios, safety margins, rounding).
+
+#### 4. Present to user
+
+Show estimated compute as a table for confirmation. Note which prior experiments informed the estimates (for transparency), but this is explanatory context, not configuration:
+
+```
+## Compute Estimates (informed by 2 prior experiments)
+
+| Run | Time | GPUs | Memory |
+|-----|------|------|--------|
+| Llama-3.2-1B-Instruct_rank4 | 0:15:00 | 1 | 80G |
+| Llama-3.2-1B-Instruct_rank8 | 0:15:00 | 1 | 80G |
+| Eval jobs | 0:05:00 | 1 | 80G |
+
+Based on: cap_4L_2025-10-22, cap_8L_2025-11-05
+These estimates include a 1.5x safety margin. Adjust if needed.
+```
+
+#### 6. Write compute blocks
+
+If confirmed, add `compute` blocks to:
+- Each fine-tuned run in the `runs` section
+- The `evaluation` section (shared across all eval jobs)
+
+**Do not** include provenance metadata (which prior experiments informed the estimate) in the YAML. That information is logged in `design-experiment.log` (see `logging.md`).
+
+Example:
+```yaml
+runs:
+  - name: "Llama-3.2-1B-Instruct_rank4"
+    type: "fine-tuned"
+    model: "Llama-3.2-1B-Instruct"
+    parameters:
+      lora_rank: 4
+    compute:
+      time: "0:15:00"
+      gpus: 1
+      mem: "80G"
+
+evaluation:
+  # ... existing fields ...
+  compute:
+    time: "0:05:00"
+    gpus: 1
+    mem: "80G"
+```
+
+If the user declines estimates or no prior data exists, omit `compute` blocks entirely.
 
 ---
 

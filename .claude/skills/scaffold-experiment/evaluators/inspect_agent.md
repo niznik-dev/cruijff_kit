@@ -63,9 +63,12 @@ For each evaluation, create `eval_config.yaml` in the eval directory with all ex
 
 After writing `eval_config.yaml`, call `setup_inspect.py` to render the SLURM script from the template. See `agents/scaffold-inspect.md` for full CLI reference and details on what the renderer handles.
 
-### Eval time limit (ask user)
+### Eval time limit
 
-Eval time depends on multiple factors (model size, holdout set size, evaluation task complexity, hardware), so it is **not** a model property. Ask the user during scaffolding:
+**First check** if `experiment_summary.yaml` has `evaluation.compute`:
+1. If `evaluation.compute.time` is present: use that value for `--time` (don't ask the user). Log that the time estimate came from the experiment design step.
+2. If `evaluation.compute.mem` is present: pass as `--mem` to `setup_inspect.py`.
+3. If `evaluation.compute` is absent: **ask the user** during scaffolding:
 
 > What time limit should eval jobs use? (HH:MM:SS)
 >
