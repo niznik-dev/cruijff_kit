@@ -21,7 +21,7 @@ REPO_ROOT = Path(__file__).parent.parent.parent.parent
 TASK_SCRIPT = (
     REPO_ROOT / "experiments" / "capitalization" / "inspect_task_capitalization.py"
 )
-DATA_PATH = REPO_ROOT / "data" / "green" / "capitalization" / "words_5L_80P_1000.json"
+DATA_PATH = REPO_ROOT / "tests" / "fixtures" / "words_5L_80P_50.json"
 MODELS_DIR = os.environ.get("CK_MODELS_DIR", "/scratch/gpfs/MSALGANIK/pretrained-llms")
 MODEL_NAME = "Llama-3.2-1B-Instruct"
 MODEL_PATH = os.path.join(MODELS_DIR, MODEL_NAME)
