@@ -59,17 +59,7 @@ sbatch finetune.slurm
 
 **Note:** Parquet format requires `dataset_type: instruct_dataset` (legacy mode) because `chat_completion` only supports JSON files.
 
-If you prefer Parquet format instead of JSON, first convert the JSON file:
-
-```
-python utils/convert_json_to_parquet.py \
-  --input_json data/green/capitalization/words_5L_80P_1000.json \
-  --output_dir data/green/capitalization/words_5L_80P_1000_parquet
-```
-
-This will create Parquet files (train.parquet, validation.parquet, test.parquet) in the output directory.
-
-Then overwrite the default config with the Parquet example:
+Overwrite the default config with the Parquet example:
 
 ```
 cp templates/finetuning/setup_finetune_parquet.yaml setup_finetune.yaml

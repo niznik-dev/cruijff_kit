@@ -49,7 +49,6 @@ cruijff_kit/
 │   └── predictable_or_not/  # Stochastic prediction sanity checks for data leakage validation
 │
 ├── utils/              # Shared utilities and helpers
-│   ├── llm_utils.py    # Model loading and inference utilities
 │   ├── run_names.py    # Random name generation for experiments
 │   ├── finetune_custom_metrics.py  # Custom metrics for torchtune
 │   ├── check_if_model_is_finetuned.py  # Model state inspection
@@ -231,7 +230,6 @@ cruijff_kit is installed as an editable package (`pip install -e .`), making uti
 
 ```python
 from cruijff_kit.utils import run_names
-from cruijff_kit.utils import llm_utils
 ```
 
 **Packaged modules** (defined in `pyproject.toml`):
@@ -272,8 +270,6 @@ from cruijff_kit.utils import llm_utils
    ├── validation.parquet
    └── test.parquet
    ```
-
-Conversion utilities: `utils/convert_json_to_parquet.py`, `utils/convert_arrow_to_parquet.py`
 
 ### Output Structure
 
@@ -433,10 +429,8 @@ For users who prefer direct control or don't have Claude Code access. This workf
 
 Common utilities in `utils/`:
 - `run_names.py` - Generate random experiment names
-- `llm_utils.py` - Load models, run inference
 - `finetune_custom_metrics.py` - Define training metrics
 - `check_if_model_is_finetuned.py` - Inspect model state
-- Format converters for datasets
 
 ## HPC Integration
 
@@ -479,7 +473,7 @@ Common utilities in `utils/`:
 
 - **torchtune** - Fine-tuning framework (supports stable release and nightly)
 - **inspect-ai** - Evaluation framework
-- **transformers** - Model loading (via llm_utils)
+- **transformers** - Model loading
 - **datasets** - HuggingFace dataset integration
 - **wandb** - Experiment tracking
 - **PyTorch** - Underlying ML framework
