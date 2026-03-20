@@ -1,12 +1,12 @@
-name: Nightly Torchtune Smoke Test
+name: Nightly Inspect Smoke Test
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 7 * * *'  # 2:00 AM EST / 3:00 AM EDT
+    - cron: '30 7 * * *'  # 2:30 AM EST / 3:30 AM EDT
 
 jobs:
-  torchtune-smoke:
+  inspect-smoke:
     runs-on: [self-hosted, della-cruijff-gpu]
 
     steps:
@@ -18,9 +18,9 @@ jobs:
           source ~/scripts/select_gpu.sh
           echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES" >> "$GITHUB_ENV"
 
-      - name: Run torchtune smoke test
+      - name: Run inspect-ai smoke test
         run: |
           source /etc/profile.d/modules.sh
           module load anaconda3/2025.12
           conda activate cruijff
-          python tests/integration/gpu/smoke_test_torchtune.py
+          python tests/integration/gpu/smoke_test_inspect.py
