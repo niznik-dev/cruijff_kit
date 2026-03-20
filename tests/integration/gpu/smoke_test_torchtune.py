@@ -19,7 +19,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
 SETUP_FINETUNE = REPO_ROOT / "tools" / "torchtune" / "setup_finetune.py"
-DATA_PATH = REPO_ROOT / "data" / "green" / "capitalization" / "words_5L_80P_1000.json"
+DATA_PATH = REPO_ROOT / "tests" / "fixtures" / "words_5L_80P_50.json"
 MODELS_DIR = os.environ.get("CK_MODELS_DIR", "/scratch/gpfs/MSALGANIK/pretrained-llms")
 MODEL_NAME = "Llama-3.2-1B-Instruct"
 MAX_STEPS = 10
@@ -50,11 +50,11 @@ def main():
                 "--torchtune_model_name",
                 MODEL_NAME,
                 "--dataset_label",
-                "words_5L_80P_1000",
+                "words_5L_80P_50",
                 "--dataset_ext",
                 ".json",
                 "--input_dir_base",
-                str(REPO_ROOT / "data" / "green" / "capitalization"),
+                str(REPO_ROOT / "tests" / "fixtures"),
                 "--output_dir_base",
                 str(output_dir),
                 "--models_dir",
