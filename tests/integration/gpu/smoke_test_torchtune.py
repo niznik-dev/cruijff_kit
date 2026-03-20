@@ -85,7 +85,13 @@ def main():
         # Step 2: Run torchtune (~10 steps)
         print(f"Running torchtune for {MAX_STEPS} steps...")
         run_command(
-            ["tune", "run", "lora_finetune_single_device", "--config", "finetune.yaml"],
+            [
+                "tune",
+                "run",
+                "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable.__main__",
+                "--config",
+                "finetune.yaml",
+            ],
             cwd=work_dir,
             label="tune run",
         )
