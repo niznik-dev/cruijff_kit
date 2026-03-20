@@ -55,6 +55,8 @@ def main():
                 ".json",
                 "--input_dir_base",
                 str(REPO_ROOT / "tests" / "fixtures"),
+                "--input_formatting",
+                "",
                 "--output_dir_base",
                 str(output_dir),
                 "--models_dir",
