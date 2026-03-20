@@ -1,7 +1,7 @@
 """Tests for cruijff_kit.utils.spot_check.
 
 Only tests the data loading function (load_data), since spot_check() and main()
-require GPU access via llm_utils.
+require GPU access.
 """
 
 import json
