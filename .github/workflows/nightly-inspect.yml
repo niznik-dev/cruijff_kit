@@ -3,7 +3,7 @@ name: Nightly Inspect Smoke Test
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 2 * * *'
+    - cron: '30 7 * * *'  # 2:30 AM EST / 3:30 AM EDT
 
 jobs:
   inspect-smoke:

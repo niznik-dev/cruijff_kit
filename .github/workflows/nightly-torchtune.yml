@@ -3,7 +3,7 @@ name: Nightly Torchtune Smoke Test
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '0 7 * * *'  # 2:00 AM EST / 3:00 AM EDT
 
 jobs:
   torchtune-smoke:
