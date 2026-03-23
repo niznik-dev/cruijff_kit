@@ -4,6 +4,9 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- `archive-experiment` skill and `tools/experiment/archive_experiment.py` — archive completed experiments preserving metadata while freeing checkpoint storage (#351)
+
 ## [0.2.0] - 2026-03-11
 
 ### Added
