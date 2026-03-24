@@ -156,6 +156,13 @@ We thank the following people for helpful conversations that shaped this project
 - [Colin Swaney](https://github.com/cswaney)
 - [Emnet Sisay](https://github.com/EmnetSy)
 
+## Contact
+
+cruijff_kit is maintained by [Mattie Niznik](https://github.com/niznik-dev).
+
+- **Bug reports and feature requests:** [GitHub Issues](https://github.com/niznik-dev/cruijff_kit/issues)
+- **Email:** niznik@princeton.edu
+
 ## How to Cite
 
 If you use cruijff_kit in your research, please cite our package. But remember we are still in alpha.  If you are using cruijff_kit in your research, please contact us.
