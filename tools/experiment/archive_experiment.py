@@ -258,6 +258,14 @@ def delete_originals(experiment_dir, output_dir_base, run_names):
             except Exception as e:
                 errors.append({"path": str(out_dir), "error": str(e)})
 
+    # Clean up output base directory if now empty
+    if out_base.exists() and not any(out_base.iterdir()):
+        try:
+            out_base.rmdir()
+            deleted.append(str(out_base))
+        except Exception as e:
+            errors.append({"path": str(out_base), "error": str(e)})
+
     # Delete experiment directory (now archived)
     exp_dir = Path(experiment_dir)
     if exp_dir.exists():
