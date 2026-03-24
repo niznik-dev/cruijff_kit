@@ -61,7 +61,7 @@ def deduplicate_eval_files(eval_files: list[str]) -> tuple[list[str], list[str]]
     file_details = []
     for filepath in eval_files:
         try:
-            log = read_eval_log(filepath)
+            log = read_eval_log(filepath, header_only=True)
             # Extract timestamp from filename (format: YYYYMMDDTHHMMSS_...)
             filename = os.path.basename(filepath)
             timestamp_str = filename.split("_")[0]
