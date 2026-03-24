@@ -104,8 +104,11 @@ def test_inventory_complete_experiment(tmp_path):
     assert "experiment_summary.yaml" in archive_paths
     assert "summary.md" in archive_paths
     assert "logs/design-experiment.log" in archive_paths
-    assert "eval_logs/run_rank4/test_task_epoch0.eval" in archive_paths
-    assert "findings.md" in archive_paths  # from summary.md fallback
+    # Entire experiment dir is kept, so eval logs use their original paths
+    assert "run_rank4/eval/logs/test_task_epoch0.eval" in archive_paths
+    # Configs and SLURM scripts are also kept
+    assert "run_rank4/finetune.yaml" in archive_paths
+    assert "run_rank4/finetune.slurm" in archive_paths
 
 
 def test_inventory_incomplete_experiment(tmp_path):
@@ -193,13 +196,19 @@ def test_create_archive(tmp_path):
     assert (
         tmp_path / "ck-archive" / "test_experiment" / "experiment_summary.yaml"
     ).exists()
+    # Eval logs preserved at original paths
     assert (
         tmp_path
         / "ck-archive"
         / "test_experiment"
-        / "eval_logs"
         / "run_rank4"
+        / "eval"
+        / "logs"
         / "test_task_epoch0.eval"
+    ).exists()
+    # Configs preserved too
+    assert (
+        tmp_path / "ck-archive" / "test_experiment" / "run_rank4" / "finetune.yaml"
     ).exists()
 
 
@@ -253,18 +262,20 @@ def test_verify_archive_missing_file(tmp_path):
 
 
 def test_delete_originals(tmp_path):
-    """Cleanup removes experiment dir and output dirs."""
+    """Cleanup removes only checkpoint dirs, experiment dir preserved."""
     exp_dir, out_base = _make_experiment(tmp_path)
     inventory = inventory_experiment(exp_dir, out_base)
     run_names = inventory["runs"]
 
-    result = delete_originals(exp_dir, out_base, run_names)
+    result = delete_originals(out_base, run_names)
 
     assert result["status"] == "success"
     assert result["freed_bytes"] > 0
     from pathlib import Path
 
-    assert not Path(exp_dir).exists()
+    # Experiment dir still exists
+    assert Path(exp_dir).exists()
+    # Checkpoint dirs are gone
     for rn in run_names:
         assert not (Path(out_base) / f"ck-out-{rn}").exists()
 
@@ -282,6 +293,7 @@ def test_dry_run_no_side_effects(tmp_path):
     assert result["status"] == "success"
     assert result["mode"] == "dry-run"
     assert result["keep"]["files"] > 0
+    assert result["delete"]["checkpoint_dirs"] == 2
     assert result["delete"]["size_mb"] >= 0
 
     # Nothing created or deleted
@@ -311,11 +323,15 @@ def test_archive_full_workflow(tmp_path):
     # Archive exists with expected files
     archive_dir = Path(result["archive_dir"])
     assert (archive_dir / "experiment_summary.yaml").exists()
-    assert (archive_dir / "findings.md").exists()
     assert (archive_dir / "analysis" / "report.md").exists()
+    # Configs preserved in archive
+    assert (archive_dir / "run_rank4" / "finetune.yaml").exists()
 
-    # Originals gone
-    assert not Path(exp_dir).exists()
+    # Experiment dir still exists (only checkpoints deleted)
+    assert Path(exp_dir).exists()
+    # But checkpoint dirs are gone
+    out_base = tmp_path / "ck-outputs" / "test_experiment_2026-03-23"
+    assert not (out_base / "ck-out-run_rank4").exists()
 
 
 def test_archive_incomplete_without_force(tmp_path):

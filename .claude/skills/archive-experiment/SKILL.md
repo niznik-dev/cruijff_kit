@@ -1,11 +1,11 @@
 ---
 name: archive-experiment
-description: Archive a completed experiment, preserving metadata and evaluation results while deleting bulk artifacts (checkpoints, configs, SLURM scripts). Use after summarize-experiment or analyze-experiment when an experiment is complete and results have been reviewed.
+description: Archive a completed experiment, preserving all experiment files while deleting bulk checkpoint artifacts. Use after summarize-experiment or analyze-experiment when an experiment is complete and results have been reviewed.
 ---
 
 # Archive Experiment
 
-Archive a completed experiment down to its irreplaceable metadata, freeing storage occupied by reproducible artifacts (model checkpoints, generated configs, SLURM scripts).
+Archive a completed experiment by copying the entire experiment directory and deleting only the large checkpoint directories (`ck-out-*/`).
 
 ## Your Task
 
@@ -52,8 +52,8 @@ If the default archive location is wrong, the user can specify `--archive-base <
 **Default archive location:** `ck-archive/` as sibling of the experiment's grandparent directory. For an experiment at `__SCRATCH__/ck-experiments/my_experiment/`, the archive lands at `__SCRATCH__/ck-archive/my_experiment/`.
 
 Show the user:
-- Number of files and total size to KEEP
-- Number of files and total size to DELETE
+- Number of files and total size to archive (entire experiment directory)
+- Number of checkpoint directories and total size to delete
 - Archive destination path
 - Any incomplete runs (if `--force` would be needed)
 
@@ -73,8 +73,8 @@ Present the plan clearly:
 
 ```
 Archive plan for: {experiment_name}
-  Keep:   {N} files ({X} MB) → {archive_path}
-  Delete: {M} files ({Y} MB)
+  Archive: {N} files ({X} MB) → {archive_path}
+  Delete:  {M} checkpoint dirs ({Y} MB)
 
 Proceed? (y/n)
 ```
@@ -90,9 +90,9 @@ python tools/experiment/archive_experiment.py <experiment_dir> [--force] [--arch
 ```
 
 The script will:
-1. Copy all KEEP files to the archive directory
+1. Copy the entire experiment directory to the archive
 2. Verify the archive (file existence + size check)
-3. Delete original experiment directory and output directories
+3. Delete checkpoint directories (`ck-out-*/`) — experiment directory is preserved in place
 4. Report results
 
 ### 6. Report Results
@@ -105,7 +105,7 @@ Show the user:
 
 ### 7. Create Log
 
-Write `archive-experiment.log` to the **archive directory** (since the experiment directory is deleted):
+Write `archive-experiment.log` to the **archive directory**:
 
 ```
 {archive_dir}/archive.log
@@ -115,25 +115,13 @@ See [logging.md](logging.md) for action types and format.
 
 ## What Gets Kept
 
-| Artifact | Archive Path | Why |
-|----------|-------------|-----|
-| `experiment_summary.yaml` | `experiment_summary.yaml` | Reproduces the entire experiment |
-| `findings.md` | `findings.md` | What we learned |
-| `summary.md` | `summary.md` | Quick results reference |
-| `logs/*.log` | `logs/` | Audit trail of all skill operations |
-| `{run}/eval/logs/*.eval` | `eval_logs/{run}/` | Actual evaluation results |
-| `analysis/*` | `analysis/` | Reports, visualizations |
+The **entire experiment directory** is copied to the archive, preserving its original structure. This includes configs, SLURM scripts, eval logs, analysis, logs, and any other files. Since these are all small (KB-scale), there's no reason to selectively delete them.
 
 ## What Gets Deleted
 
 | Artifact | Why Safe |
 |----------|---------|
-| Model checkpoints (`ck-out-*/`) | Reproducible via fine-tuning |
-| `finetune.yaml`, `finetune.slurm` | Reproducible via scaffold-torchtune |
-| `setup_finetune.yaml` | Reproducible via scaffold-torchtune |
-| Eval SLURM scripts (`*.slurm`) | Reproducible via scaffold-inspect |
-| `eval_config.yaml` | Reproducible via scaffold-inspect |
-| SLURM output logs (`slurm-*.out`) | Debugging artifacts, not archival |
+| Model checkpoints (`ck-out-*/`) | Reproducible via fine-tuning; these are the only large artifacts |
 
 ## Error Handling
 
@@ -157,6 +145,8 @@ See [logging.md](logging.md) for action types and format.
 
 ## Output Files
 
+The archive mirrors the original experiment directory structure:
+
 ```
 {archive_base}/{experiment_name}/
 ├── experiment_summary.yaml
@@ -166,10 +156,12 @@ See [logging.md](logging.md) for action types and format.
 │   ├── design-experiment.log
 │   ├── scaffold-torchtune.log
 │   └── ...
-├── eval_logs/
-│   ├── {run_name}/
-│   │   └── *.eval
-│   └── ...
+├── {run_name}/
+│   ├── finetune.yaml
+│   ├── finetune.slurm
+│   ├── setup_finetune.yaml
+│   └── eval/
+│       └── logs/*.eval
 ├── analysis/
 │   ├── report.md
 │   └── *.html

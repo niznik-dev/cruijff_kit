@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-Archive a completed experiment, preserving metadata and deleting bulk artifacts.
+Archive a completed experiment, preserving all experiment files and deleting
+only bulk checkpoint artifacts.
 
 Usage:
     python archive_experiment.py <experiment_dir> [--dry-run] [--force] [--archive-base <path>]
 
-Keeps: experiment_summary.yaml, logs, eval logs, analysis, findings.
-Deletes: model checkpoints, generated configs, SLURM scripts/outputs.
+Keeps: entire experiment directory (configs, SLURM scripts, eval logs, analysis, etc.)
+Deletes: model checkpoint directories (ck-out-{run_name}/)
 
 Output:
     JSON to stdout with archive results.
@@ -91,69 +92,20 @@ def inventory_experiment(experiment_dir, output_dir_base):
     run_names = [r["name"] for r in runs]
     eval_matrix = config.get("evaluation", {}).get("matrix", [])
 
-    # --- KEEP files ---
+    # --- KEEP files: entire experiment directory ---
     keep_files = []
-
-    # experiment_summary.yaml
-    keep_files.append(
-        {
-            "source": str(summary_path),
-            "archive_path": "experiment_summary.yaml",
-            "size_bytes": _file_size_bytes(summary_path),
-        }
-    )
-
-    # summary.md
-    summary_md = exp_dir / "summary.md"
-    if summary_md.exists():
-        keep_files.append(
-            {
-                "source": str(summary_md),
-                "archive_path": "summary.md",
-                "size_bytes": _file_size_bytes(summary_md),
-            }
-        )
-
-    # logs/*.log
-    logs_dir = exp_dir / "logs"
-    if logs_dir.exists():
-        for log_file in sorted(logs_dir.glob("*.log")):
+    for f in sorted(exp_dir.rglob("*")):
+        if f.is_file():
+            rel = f.relative_to(exp_dir)
             keep_files.append(
                 {
-                    "source": str(log_file),
-                    "archive_path": f"logs/{log_file.name}",
-                    "size_bytes": _file_size_bytes(log_file),
+                    "source": str(f),
+                    "archive_path": str(rel),
+                    "size_bytes": _file_size_bytes(f),
                 }
             )
 
-    # eval logs: {run_name}/eval/logs/*.eval
-    for run_name in run_names:
-        eval_logs_dir = exp_dir / run_name / "eval" / "logs"
-        if eval_logs_dir.exists():
-            for eval_file in sorted(eval_logs_dir.glob("*.eval")):
-                keep_files.append(
-                    {
-                        "source": str(eval_file),
-                        "archive_path": f"eval_logs/{run_name}/{eval_file.name}",
-                        "size_bytes": _file_size_bytes(eval_file),
-                    }
-                )
-
-    # analysis/ directory
-    analysis_dir = exp_dir / "analysis"
-    if analysis_dir.exists():
-        for f in sorted(analysis_dir.rglob("*")):
-            if f.is_file():
-                rel = f.relative_to(analysis_dir)
-                keep_files.append(
-                    {
-                        "source": str(f),
-                        "archive_path": f"analysis/{rel}",
-                        "size_bytes": _file_size_bytes(f),
-                    }
-                )
-
-    # Resolve findings.md source
+    # Resolve findings.md source (for reporting which file serves as findings)
     findings_source = None
     if (exp_dir / "findings.md").exists():
         findings_source = str(exp_dir / "findings.md")
@@ -162,22 +114,8 @@ def inventory_experiment(experiment_dir, output_dir_base):
     elif (exp_dir / "summary.md").exists():
         findings_source = str(exp_dir / "summary.md")
 
-    if findings_source:
-        # Only add if not already in keep_files under a different archive_path
-        already_kept = any(kf["archive_path"] == "findings.md" for kf in keep_files)
-        if not already_kept:
-            keep_files.append(
-                {
-                    "source": findings_source,
-                    "archive_path": "findings.md",
-                    "size_bytes": _file_size_bytes(findings_source),
-                }
-            )
-
-    # --- DELETE paths ---
+    # --- DELETE paths: only checkpoint directories ---
     delete_paths = []
-
-    # Output directories: ck-out-{run_name}/
     out_base = Path(output_dir_base)
     for run_name in run_names:
         out_dir = out_base / f"ck-out-{run_name}"
@@ -189,22 +127,6 @@ def inventory_experiment(experiment_dir, output_dir_base):
                     "description": f"Model checkpoints for {run_name}",
                 }
             )
-
-    # The experiment directory itself (after extracting KEEP files)
-    # Calculate size of everything in exp_dir that isn't being kept
-    kept_sources = {kf["source"] for kf in keep_files}
-    exp_delete_size = 0
-    for f in exp_dir.rglob("*"):
-        if f.is_file() and str(f) not in kept_sources:
-            exp_delete_size += f.stat().st_size
-
-    delete_paths.append(
-        {
-            "path": str(exp_dir),
-            "size_bytes": exp_delete_size,
-            "description": "Experiment directory (configs, SLURM scripts, outputs)",
-        }
-    )
 
     # --- Check completeness ---
     incomplete_runs = []
@@ -307,12 +229,14 @@ def verify_archive(archive_dir, inventory):
     }
 
 
-def delete_originals(experiment_dir, output_dir_base, run_names):
+def delete_originals(output_dir_base, run_names):
     """
-    Remove the experiment directory and output directories.
+    Remove checkpoint output directories (the bulk artifacts).
+
+    The experiment directory itself is preserved — configs, SLURM scripts,
+    and other small files are kept in place.
 
     Args:
-        experiment_dir: Path to the experiment directory.
         output_dir_base: Path to the output directory base.
         run_names: List of run names.
 
@@ -323,7 +247,6 @@ def delete_originals(experiment_dir, output_dir_base, run_names):
     errors = []
     freed_bytes = 0
 
-    # Delete output directories first (the big ones)
     out_base = Path(output_dir_base)
     for run_name in run_names:
         out_dir = out_base / f"ck-out-{run_name}"
@@ -335,17 +258,6 @@ def delete_originals(experiment_dir, output_dir_base, run_names):
                 freed_bytes += size
             except Exception as e:
                 errors.append({"path": str(out_dir), "error": str(e)})
-
-    # Delete experiment directory
-    exp_dir = Path(experiment_dir)
-    if exp_dir.exists():
-        size = _dir_size_bytes(exp_dir)
-        try:
-            shutil.rmtree(str(exp_dir))
-            deleted.append(str(exp_dir))
-            freed_bytes += size
-        except Exception as e:
-            errors.append({"path": str(exp_dir), "error": str(e)})
 
     return {
         "status": "success" if not errors else "partial",
@@ -431,8 +343,7 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
                 "size_mb": _bytes_to_mb(inventory["keep_total_bytes"]),
             },
             "delete": {
-                "files": sum(1 for _ in Path(experiment_dir).rglob("*") if _.is_file())
-                - len(inventory["keep_files"]),
+                "checkpoint_dirs": len(inventory["delete_paths"]),
                 "size_mb": _bytes_to_mb(inventory["delete_total_bytes"]),
             },
             "archive_path": archive_dir,
@@ -456,8 +367,8 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
             "archive_dir": archive_dir,
         }
 
-    # Delete originals
-    delete_result = delete_originals(str(exp_dir), output_dir_base, inventory["runs"])
+    # Delete checkpoint directories (experiment dir is preserved)
+    delete_result = delete_originals(output_dir_base, inventory["runs"])
 
     return {
         "status": "success",
@@ -479,8 +390,8 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Archive a completed experiment, preserving metadata and "
-        "deleting bulk artifacts."
+        description="Archive a completed experiment, preserving all experiment "
+        "files and deleting only checkpoint directories."
     )
     parser.add_argument("experiment_dir", help="Path to the experiment directory")
     parser.add_argument(
