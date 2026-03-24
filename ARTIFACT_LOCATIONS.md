@@ -65,6 +65,28 @@ The `output_dir_base` is configured in `experiment_summary.yaml` under `output.b
 | run-experiment | SLURM outputs, checkpoints, eval logs, `logs/run-*.log` | Experiment dir + output dir |
 | summarize-experiment | `summary.md`, `logs/summarize-experiment.log` | Experiment dir |
 | analyze-experiment | `analysis/` directory, `logs/analyze-experiment.log` | Experiment dir |
+| archive-experiment | `archive.log`, archived metadata | Archive dir (originals deleted) |
+
+## Archive Directory
+
+After archiving with `archive-experiment`, the experiment is reduced to its irreplaceable metadata:
+
+```
+{archive_base}/{experiment_name}/
+├── experiment_summary.yaml      # Reproduces the experiment via scaffold + run
+├── findings.md                  # What was learned (from findings/report/summary)
+├── summary.md                   # Quick results reference
+├── logs/                        # Skill pipeline logs
+│   ├── design-experiment.log
+│   └── ...
+├── eval_logs/                   # Evaluation results
+│   └── {run_name}/
+│       └── *.eval
+├── analysis/                    # Reports and visualizations
+│   ├── report.md
+│   └── *.html
+└── archive.log                  # Archive process log
+```
 
 ## Where SLURM `.out` Files Land
 
