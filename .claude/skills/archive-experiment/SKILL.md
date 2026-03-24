@@ -92,7 +92,7 @@ python tools/experiment/archive_experiment.py <experiment_dir> [--force] [--arch
 The script will:
 1. Copy the entire experiment directory to the archive
 2. Verify the archive (file existence + size check)
-3. Delete checkpoint directories (`ck-out-*/`) — experiment directory is preserved in place
+3. Delete originals: checkpoint directories (`ck-out-*/`) and experiment directory
 4. Report results
 
 ### 6. Report Results

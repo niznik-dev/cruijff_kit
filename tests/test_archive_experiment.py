@@ -262,20 +262,18 @@ def test_verify_archive_missing_file(tmp_path):
 
 
 def test_delete_originals(tmp_path):
-    """Cleanup removes only checkpoint dirs, experiment dir preserved."""
+    """Cleanup removes experiment dir and checkpoint dirs."""
     exp_dir, out_base = _make_experiment(tmp_path)
     inventory = inventory_experiment(exp_dir, out_base)
     run_names = inventory["runs"]
 
-    result = delete_originals(out_base, run_names)
+    result = delete_originals(exp_dir, out_base, run_names)
 
     assert result["status"] == "success"
     assert result["freed_bytes"] > 0
     from pathlib import Path
 
-    # Experiment dir still exists
-    assert Path(exp_dir).exists()
-    # Checkpoint dirs are gone
+    assert not Path(exp_dir).exists()
     for rn in run_names:
         assert not (Path(out_base) / f"ck-out-{rn}").exists()
 
@@ -327,11 +325,8 @@ def test_archive_full_workflow(tmp_path):
     # Configs preserved in archive
     assert (archive_dir / "run_rank4" / "finetune.yaml").exists()
 
-    # Experiment dir still exists (only checkpoints deleted)
-    assert Path(exp_dir).exists()
-    # But checkpoint dirs are gone
-    out_base = tmp_path / "ck-outputs" / "test_experiment_2026-03-23"
-    assert not (out_base / "ck-out-run_rank4").exists()
+    # Originals gone
+    assert not Path(exp_dir).exists()
 
 
 def test_archive_incomplete_without_force(tmp_path):

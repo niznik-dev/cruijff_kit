@@ -229,14 +229,12 @@ def verify_archive(archive_dir, inventory):
     }
 
 
-def delete_originals(output_dir_base, run_names):
+def delete_originals(experiment_dir, output_dir_base, run_names):
     """
-    Remove checkpoint output directories (the bulk artifacts).
-
-    The experiment directory itself is preserved — configs, SLURM scripts,
-    and other small files are kept in place.
+    Remove the experiment directory and checkpoint output directories.
 
     Args:
+        experiment_dir: Path to the experiment directory.
         output_dir_base: Path to the output directory base.
         run_names: List of run names.
 
@@ -247,6 +245,7 @@ def delete_originals(output_dir_base, run_names):
     errors = []
     freed_bytes = 0
 
+    # Delete checkpoint directories (the big ones)
     out_base = Path(output_dir_base)
     for run_name in run_names:
         out_dir = out_base / f"ck-out-{run_name}"
@@ -258,6 +257,17 @@ def delete_originals(output_dir_base, run_names):
                 freed_bytes += size
             except Exception as e:
                 errors.append({"path": str(out_dir), "error": str(e)})
+
+    # Delete experiment directory (now archived)
+    exp_dir = Path(experiment_dir)
+    if exp_dir.exists():
+        size = _dir_size_bytes(exp_dir)
+        try:
+            shutil.rmtree(str(exp_dir))
+            deleted.append(str(exp_dir))
+            freed_bytes += size
+        except Exception as e:
+            errors.append({"path": str(exp_dir), "error": str(e)})
 
     return {
         "status": "success" if not errors else "partial",
@@ -367,8 +377,8 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
             "archive_dir": archive_dir,
         }
 
-    # Delete checkpoint directories (experiment dir is preserved)
-    delete_result = delete_originals(output_dir_base, inventory["runs"])
+    # Delete originals (checkpoints + experiment dir, now archived)
+    delete_result = delete_originals(str(exp_dir), output_dir_base, inventory["runs"])
 
     return {
         "status": "success",
