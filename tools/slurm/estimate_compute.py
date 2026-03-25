@@ -271,8 +271,7 @@ def recommend_batch_size(
         else:
             # batch_size is already 1 (or was 1) and still over budget
             reason_parts.append(
-                f"Near GPU limit — keeping batch_size={recommended_bs}. "
-                f"Watch for OOM."
+                f"Near GPU limit — keeping batch_size={recommended_bs}. Watch for OOM."
             )
     elif estimated_ratio < 0.5:
         # Significant headroom — try doubling batch size if it still
@@ -315,14 +314,11 @@ def recommend_batch_size(
             )
     elif estimated_ratio >= 0.9:
         reason_parts.append(
-            f"Near GPU limit — keeping batch_size={recommended_bs}. "
-            f"Watch for OOM."
+            f"Near GPU limit — keeping batch_size={recommended_bs}. Watch for OOM."
         )
     else:
         # 70-85%: well-fitted
-        reason_parts.append(
-            f"Well-fitted — keeping batch_size={recommended_bs}."
-        )
+        reason_parts.append(f"Well-fitted — keeping batch_size={recommended_bs}.")
 
     # --- Compute gradient accumulation to preserve effective batch size ---
     recommended_gas = max(1, prior_effective // recommended_bs)

@@ -364,7 +364,10 @@ class TestRecommendBatchSize:
             prior_gradient_accumulation_steps=1,
         )
         # Effective batch size should be preserved
-        assert result["effective_batch_size"] == result["batch_size"] * result["gradient_accumulation_steps"]
+        assert (
+            result["effective_batch_size"]
+            == result["batch_size"] * result["gradient_accumulation_steps"]
+        )
         assert result["gradient_accumulation_steps"] > 1
 
     def test_cross_model_same_when_fits(self):
