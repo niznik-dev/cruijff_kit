@@ -2,10 +2,12 @@
 """
 Quick spot-check inference on fine-tuned models.
 
+Uses the same model-loading pattern as inspect-ai's HF backend so that
+"what you see in spot_check" matches "what inspect would do."
+
 Usage:
     python -m cruijff_kit.utils.spot_check \
-        --model /path/to/base/model \
-        --adapter /path/to/adapter \
+        --model /path/to/checkpoint \
         --data /path/to/eval_data.json \
         --n 5
 
@@ -24,8 +26,8 @@ Or from Python:
 import argparse
 import json
 
-
-from cruijff_kit.utils.llm_utils import load_model, get_next_tokens
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 def load_data(data_path: str, n: int, split: str = None):
@@ -67,14 +69,69 @@ def load_data(data_path: str, n: int, split: str = None):
     return prompts, targets
 
 
+def _load_model(model_path: str):
+    """
+    Load model and tokenizer using the same pattern as inspect-ai's HF backend.
+
+    Returns:
+        tuple: (tokenizer, model)
+    """
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = "left"
+
+    model = AutoModelForCausalLM.from_pretrained(model_path, device_map="auto")
+    model.eval()
+
+    return tokenizer, model
+
+
+def _generate_one(
+    model,
+    tokenizer,
+    prompt: str,
+    sysprompt: str = "",
+    use_chat_template: bool = True,
+    max_new_tokens: int = 10,
+) -> str:
+    """
+    Generate a response for a single prompt, mirroring inspect-ai's HF flow.
+
+    Returns:
+        The generated text (input tokens stripped).
+    """
+    if use_chat_template:
+        messages = []
+        if sysprompt:
+            messages.append({"role": "system", "content": sysprompt})
+        messages.append({"role": "user", "content": prompt})
+        text = tokenizer.apply_chat_template(
+            messages, add_generation_prompt=True, tokenize=False
+        )
+    else:
+        text = prompt
+
+    inputs = tokenizer(text, return_tensors="pt").to(model.device)
+    input_len = inputs["input_ids"].shape[1]
+
+    with torch.inference_mode():
+        output_ids = model.generate(
+            **inputs,
+            max_new_tokens=max_new_tokens,
+            do_sample=False,
+        )
+
+    # Strip input tokens, decode only generated portion
+    generated_ids = output_ids[0][input_len:]
+    return tokenizer.decode(generated_ids, skip_special_tokens=True)
+
+
 def spot_check(
     model_path: str,
     data_path: str,
-    adapter_path: str = None,
     n: int = 5,
     split: str = None,
     max_new_tokens: int = 10,
-    preprompt: str = "",
     sysprompt: str = "",
     use_chat_template: bool = True,
     show_full_prompt: bool = False,
@@ -83,13 +140,11 @@ def spot_check(
     Run quick inference on n samples and display results.
 
     Args:
-        model_path: Path to base model
+        model_path: Path to HF model or checkpoint directory
         data_path: Path to JSON data file with 'input' and 'output' keys
-        adapter_path: Optional path to PEFT adapter
         n: Number of samples to evaluate
         split: Data split to use (e.g., "train", "validation"). Auto-detects if None.
         max_new_tokens: Max tokens to generate
-        preprompt: Text to prepend to each prompt
         sysprompt: System prompt
         use_chat_template: Whether to use chat template
         show_full_prompt: If True, show full prompt text (can be long)
@@ -101,40 +156,31 @@ def spot_check(
     print("SPOT CHECK")
     print(f"{'=' * 60}")
     print(f"Model: {model_path}")
-    if adapter_path:
-        print(f"Adapter: {adapter_path}")
     print(f"Data: {data_path}")
     print(f"Samples: {n}")
     print(f"{'=' * 60}\n")
 
     # Load model
     print("Loading model...")
-    tokenizer, model = load_model(
-        model_path=model_path,
-        adapter_path=adapter_path,
-    )
+    tokenizer, model = _load_model(model_path)
     print(f"Model loaded on {model.device}\n")
 
     # Load data
     prompts, targets = load_data(data_path, n=n, split=split)
 
-    # Generate one at a time to avoid tensor concat issues with variable output lengths
+    # Generate one at a time
     print("Generating responses...")
     outputs = []
     for i, prompt in enumerate(prompts):
-        tokens = get_next_tokens(
+        generated = _generate_one(
             model=model,
             tokenizer=tokenizer,
-            prompts=[prompt],
-            preprompt=preprompt,
+            prompt=prompt,
             sysprompt=sysprompt,
             use_chat_template=use_chat_template,
             max_new_tokens=max_new_tokens,
-            batch_size=1,
-            do_sample=False,
         )
-        decoded = tokenizer.decode(tokens[0], skip_special_tokens=True)
-        outputs.append(decoded)
+        outputs.append(generated)
         print(f"  [{i + 1}/{n}] done")
 
     # Display results
@@ -177,9 +223,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="Quick spot-check inference on fine-tuned models"
     )
-    parser.add_argument("--model", required=True, help="Path to base model")
     parser.add_argument(
-        "--adapter", default=None, help="Path to PEFT adapter (optional)"
+        "--model", required=True, help="Path to HF model or checkpoint directory"
     )
     parser.add_argument("--data", required=True, help="Path to JSON data file")
     parser.add_argument(
@@ -194,7 +239,6 @@ def main():
         default=10,
         help="Max tokens to generate (default: 10)",
     )
-    parser.add_argument("--preprompt", default="", help="Text to prepend to prompts")
     parser.add_argument("--sysprompt", default="", help="System prompt")
     parser.add_argument(
         "--no-chat-template", action="store_true", help="Disable chat template"
@@ -207,12 +251,10 @@ def main():
 
     spot_check(
         model_path=args.model,
-        adapter_path=args.adapter,
         data_path=args.data,
         n=args.n,
         split=args.split,
         max_new_tokens=args.max_new_tokens,
-        preprompt=args.preprompt,
         sysprompt=args.sysprompt,
         use_chat_template=not args.no_chat_template,
         show_full_prompt=args.show_full_prompt,

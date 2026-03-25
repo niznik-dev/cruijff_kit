@@ -453,7 +453,28 @@ For control models:
 **Task args (`-T`) - passed to task function:**
 | Flag | Value | Source |
 |------|-------|--------|
-| `-T vis_label` | `"{vis_label}"` | From `matrix[].vis_label` or defaults to `matrix[].run` |
+| `-T vis_label` | `"{vis_label}"` | From `matrix[].vis_label` or defaults to `matrix[].run`. Auto-composed for multi-task entries (see below) |
+
+### Multi-Task vis_label Composition
+
+When a matrix entry has `tasks` with more than one item, compose a unique vis_label for each eval_config as `"{vis_label} ({task_name})"`. When a matrix entry has exactly one task, use the original vis_label unchanged.
+
+**Example:**
+```yaml
+matrix:
+  - run: "original_trained"
+    vis_label: "original"
+    tasks: ["acs_income", "acs_income_shuffled"]
+    epochs: [0]
+```
+
+This produces two eval_configs with vis_labels:
+- `"original (acs_income)"`
+- `"original (acs_income_shuffled)"`
+
+If the entry had only one task, the vis_label would remain `"original"`.
+
+**Why:** Without this, cross-evaluation experiments (same model evaluated on multiple datasets) get identical vis_labels, causing `deduplicate_eval_files()` to collapse distinct evals and reports to show duplicate model names with no way to distinguish evaluation conditions.
 
 ## Handling Different Evaluation Scenarios
 
@@ -709,6 +730,7 @@ Before reporting success, verify:
 - ✓ Control model scripts include `--metadata finetuned=false` (no epoch)
 - ✓ All scripts include `--metadata source_model="{model_name}"`
 - ✓ All scripts include `-T vis_label="{label}"`
+- ✓ vis_labels are unique across all eval configs within a run (auto-composed for multi-task entries)
 - ✓ All scripts set USE_CHAT_TEMPLATE
 - ✓ No errors in log
 - ✓ Log file created
@@ -724,6 +746,6 @@ Before reporting success, verify:
 - This subagent is typically called by `scaffold-experiment` orchestrator but can be run standalone
 - Evaluation logs will be written to `{run_dir}/eval/logs/` subdirectories
 - **Metadata flags (`--metadata`) are critical for inspect-viz** - stored in `log.eval.metadata` for filtering/grouping
-- `vis_label` defaults to run name if not specified in matrix
+- `vis_label` defaults to run name if not specified in matrix. For multi-task matrix entries (>1 task), vis_label is auto-composed as `"{vis_label} ({task_name})"` per eval_config
 - `source_model` should be the human-readable model name (e.g., "Llama-3.2-1B-Instruct"), not the path
 - **Never pass prompt or system_prompt via `-T` CLI args.** Always use `-T config_path` instead. inspect-ai's CLI parser runs `yaml.safe_load()` on `-T` values, which misparses strings containing curly braces (e.g., `{input}\n` is interpreted as a YAML flow mapping and causes errors).

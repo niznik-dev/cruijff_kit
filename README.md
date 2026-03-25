@@ -115,10 +115,17 @@ See `.claude/skills/*/SKILL.md` for detailed documentation on each skill.
 
 See the [Workflow Guide](WORKFLOW_GUIDE.md) for step-by-step manual instructions covering single-run and multi-run experiments.
 
+## Sample Experiment: ACS Income Prediction
+
+New to cruijff_kit? The [ACS Example](ACS_EXAMPLE.md) walks you through a complete experiment end-to-end: fine-tuning a local model to predict income from US Census data, then evaluating the results. It covers the full pipeline from data preparation through analysis, including how scoring and calibration metrics work.
+
+The example builds on the [folktexts](https://github.com/socialfoundations/folktexts) framework (Cruz et al., NeurIPS 2024) for LLM prediction on American Community Survey data.
+
 ## Further Reading
 
 | Document | Description |
 |----------|-------------|
+| [ACS_EXAMPLE.md](ACS_EXAMPLE.md) | Step-by-step first experiment walkthrough |
 | [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md) | Supported models and resource requirements |
 | [PREREQUISITES.md](PREREQUISITES.md) | Required skills, accounts, and tutorials |
 | [WORKFLOW_GUIDE.md](WORKFLOW_GUIDE.md) | Manual workflow instructions |
@@ -129,6 +136,33 @@ See the [Workflow Guide](WORKFLOW_GUIDE.md) for step-by-step manual instructions
 | [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) | How skills are organized |
 | `experiments/*/README.md` | Experiment-specific instructions |
 
+## Contributors
+
+Listed by date of first commit:
+
+- [Mattie Niznik](https://github.com/niznik-dev)
+- [Alessandra Rister Portinari Maranca](https://github.com/alessandramaranca)
+- [Matthew Salganik](https://github.com/msalganik)
+- [Daniel Rigobon](https://github.com/drigobon)
+- [Donggyu Ban](https://github.com/DonggyuBan)
+- [Sarah Pedersen](https://github.com/sarahepedersen)
+- [Shelby Tisdale Bussey](https://github.com/shelby-tisdale)
+
+## Acknowledgments
+
+We thank the following people for helpful conversations that shaped this project:
+
+- [Stephan Rabanser](https://github.com/steverab)
+- [Colin Swaney](https://github.com/cswaney)
+- [Emnet Sisay](https://github.com/EmnetSy)
+
+## Contact
+
+cruijff_kit is maintained by [Mattie Niznik](https://github.com/niznik-dev).
+
+- **Bug reports and feature requests:** [GitHub Issues](https://github.com/niznik-dev/cruijff_kit/issues)
+- **Email:** niznik@princeton.edu
+
 ## How to Cite
 
-If you use cruijff_kit in your research, please cite our package. But remeber we are still in alpha.  If you are using cruijff_kit in your research please contact us.
+If you use cruijff_kit in your research, please cite our package. But remember we are still in alpha.  If you are using cruijff_kit in your research, please contact us.

@@ -9,6 +9,7 @@
 #SBATCH --mail-type=end # Email when job ends
 #SBATCH --mail-user=<NETID>@princeton.edu
 #SBATCH --gres=gpu:1 # Request 1 GPU
+#SBATCH --output=<GPU_METRICS_DIR>/slurm-%j.out
 ##SBATCH --account=<ACT>
 ##SBATCH --partition=<PART>
 ##SBATCH --constraint=<CONST>
@@ -24,6 +25,9 @@ mkdir -p "$GPU_METRICS_DIR"
 nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu \
     --format=csv -l 30 > "${GPU_METRICS_DIR}/gpu_metrics.csv" 2>/dev/null &
 GPU_MONITOR_PID=$!
+
+# Prevent HF Hub lookups on offline compute nodes (inspect-ai >= 0.3.180)
+export HF_HUB_OFFLINE=1
 
 # Run inspect-ai evaluation
 cd <EVAL_DIR>

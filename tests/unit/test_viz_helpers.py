@@ -1,9 +1,12 @@
 """Unit tests for tools/inspect/viz_helpers.py — detect_metrics() and friends."""
 
+from unittest.mock import MagicMock, patch
+
 import pandas as pd
 
 from cruijff_kit.tools.inspect.viz_helpers import (
     DetectedMetrics,
+    deduplicate_eval_files,
     detect_metrics,
     display_name,
     sanitize_columns_for_viz,
@@ -172,3 +175,60 @@ class TestSanitizeColumnsForViz:
         df = pd.DataFrame({"a/b/c": [1]})
         result = sanitize_columns_for_viz(df)
         assert "a__b__c" in result.columns
+
+
+# =============================================================================
+# deduplicate_eval_files()
+# =============================================================================
+
+
+def _mock_eval_log(model, epoch, vis_label=""):
+    """Create a mock eval log with the given model, epoch, and vis_label."""
+    log = MagicMock()
+    log.eval.model = model
+    log.eval.metadata = {"epoch": epoch}
+    log.eval.task_args = {"vis_label": vis_label} if vis_label else {}
+    return log
+
+
+class TestDeduplicateEvalFiles:
+    @patch("cruijff_kit.tools.inspect.viz_helpers.read_eval_log")
+    def test_different_vis_labels_both_kept(self, mock_read):
+        """Same (model, epoch) but different vis_label → both kept."""
+        mock_read.side_effect = [
+            _mock_eval_log("hf/model_epoch_0", 0, "original (acs_income)"),
+            _mock_eval_log("hf/model_epoch_0", 0, "original (acs_income_shuffled)"),
+        ]
+        files = [
+            "/logs/20260319T100000_abc.eval",
+            "/logs/20260319T100001_def.eval",
+        ]
+        kept, skipped = deduplicate_eval_files(files)
+        assert len(kept) == 2
+        assert len(skipped) == 0
+
+    @patch("cruijff_kit.tools.inspect.viz_helpers.read_eval_log")
+    def test_same_key_keeps_newer(self, mock_read):
+        """Same (model, epoch, vis_label) → only the newer file kept."""
+        mock_read.side_effect = [
+            _mock_eval_log("hf/model_epoch_0", 0, "rank4"),
+            _mock_eval_log("hf/model_epoch_0", 0, "rank4"),
+        ]
+        files = [
+            "/logs/20260319T090000_old.eval",
+            "/logs/20260319T100000_new.eval",
+        ]
+        kept, skipped = deduplicate_eval_files(files)
+        assert len(kept) == 1
+        assert len(skipped) == 1
+        assert kept[0] == "/logs/20260319T100000_new.eval"
+        assert skipped[0] == "/logs/20260319T090000_old.eval"
+
+    @patch("cruijff_kit.tools.inspect.viz_helpers.read_eval_log")
+    def test_single_file_kept(self, mock_read):
+        """Single file is always kept."""
+        mock_read.return_value = _mock_eval_log("hf/model_epoch_0", 0, "rank4")
+        files = ["/logs/20260319T100000_abc.eval"]
+        kept, skipped = deduplicate_eval_files(files)
+        assert len(kept) == 1
+        assert len(skipped) == 0

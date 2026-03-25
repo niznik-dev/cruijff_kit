@@ -90,6 +90,37 @@ else:
     print("Skipping heatmap: each model maps to a single task (diagonal matrix)")
 ```
 
+**Compound vis_labels (cross-evaluation experiments):**
+
+When vis_labels encode both model and condition (e.g., `"original (acs_income_shuf_s1)"`),
+`task_name` will be unique per row and the heatmap check above will see a diagonal.
+To produce a useful heatmap, split the compound label into separate columns:
+
+```python
+# Split "original (acs_income_shuf_s1)" into training="original", eval_condition="acs_income_shuf_s1"
+hm_df = df.copy()
+hm_df['training'] = hm_df['task_name'].apply(lambda x: x.split(' (')[0] if ' (' in x else x)
+hm_df['eval_condition'] = hm_df['task_name'].apply(
+    lambda x: x.split('(')[1].rstrip(')') if '(' in x else x
+)
+
+# Now check for heatmap eligibility using the split columns
+models_per_condition = hm_df.groupby('eval_condition')['training'].nunique()
+if models_per_condition.max() > 1:
+    viz_hm = sanitize_columns_for_viz(hm_df)
+    data_hm = Data.from_dataframe(viz_hm)
+    plot = scores_heatmap(
+        data_hm,
+        task_name='eval_condition',
+        model_name='training',
+        model_label='Training',
+        score_value='score_match_accuracy',
+        tip=True,
+        title='',
+        orientation='vertical'
+    )
+```
+
 ### scores_radar_by_task
 
 Radar plot for multiple metrics comparison.

@@ -37,17 +37,20 @@ logger = logging.getLogger(__name__)
 
 def deduplicate_eval_files(eval_files: list[str]) -> tuple[list[str], list[str]]:
     """
-    Keep most recent eval file per model+epoch combination.
+    Keep most recent eval file per model+epoch+vis_label combination.
 
-    When multiple evaluations exist for the same model and epoch (e.g., from
-    re-runs), this keeps only the most recent one based on timestamp in filename.
+    When multiple evaluations exist for the same model, epoch, and vis_label
+    (e.g., from re-runs), this keeps only the most recent one based on
+    timestamp in filename. Including vis_label in the key ensures that
+    cross-evaluation experiments (where the same model is evaluated on
+    different tasks/datasets) are never collapsed.
 
     Args:
         eval_files: List of paths to .eval log files
 
     Returns:
         Tuple of (kept_files, skipped_files) where:
-        - kept_files: List of paths to keep (most recent per model+epoch)
+        - kept_files: List of paths to keep (most recent per model+epoch+vis_label)
         - skipped_files: List of paths that were duplicates
 
     Example:
@@ -58,7 +61,7 @@ def deduplicate_eval_files(eval_files: list[str]) -> tuple[list[str], list[str]]
     file_details = []
     for filepath in eval_files:
         try:
-            log = read_eval_log(filepath)
+            log = read_eval_log(filepath, header_only=True)
             # Extract timestamp from filename (format: YYYYMMDDTHHMMSS_...)
             filename = os.path.basename(filepath)
             timestamp_str = filename.split("_")[0]
@@ -69,12 +72,18 @@ def deduplicate_eval_files(eval_files: list[str]) -> tuple[list[str], list[str]]
                 metadata = log.eval.metadata
             epoch = metadata.get("epoch", "unknown")
 
+            # Extract vis_label from task_args for dedup key
+            vis_label = ""
+            if hasattr(log.eval, "task_args") and log.eval.task_args:
+                vis_label = log.eval.task_args.get("vis_label", "")
+
             file_details.append(
                 {
                     "path": filepath,
                     "timestamp": timestamp_str,
                     "model": log.eval.model,
                     "epoch": epoch,
+                    "vis_label": vis_label,
                 }
             )
         except Exception as e:
@@ -91,7 +100,7 @@ def deduplicate_eval_files(eval_files: list[str]) -> tuple[list[str], list[str]]
     skipped = []
 
     for fd in file_details:
-        key = (fd["model"], fd["epoch"])
+        key = (fd["model"], fd["epoch"], fd["vis_label"])
         if key not in seen_keys:
             seen_keys.add(key)
             kept.append(fd["path"])

@@ -345,6 +345,8 @@ matrix:
 - Run names are verbose (e.g., `Llama-3.2-1B-Instruct_rank4` → `rank4`)
 - You want to group by a specific dimension (e.g., sample size only, not model size)
 
+**Multi-task auto-composition:** When a matrix entry has more than one task, scaffold-inspect automatically appends the task name: `"{vis_label} ({task_name})"`. Keep base vis_labels short to avoid truncation in plots.
+
 ---
 
 ## Step 6: Establish Naming
