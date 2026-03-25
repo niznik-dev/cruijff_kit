@@ -40,8 +40,9 @@ controls:
   system_prompt: string            # Training system prompt ("" for blank)
   prompt: string                   # Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
   # Common hyperparameters (see param_selection.md for full list)
-  epochs: int                      # Number of training epochs
-  batch_size: int                  # Batch size (if not varied)
+  epochs: int                      # REQUIRED: Number of training epochs
+  batch_size: int                  # REQUIRED: Batch size per GPU (even if also in variables)
+  gradient_accumulation_steps: int # REQUIRED: Effective batch = batch_size × this (default 1)
   validation_during_training: bool # Whether to run validation during training
   # Additional parameters can be added as needed (lora_rank, lr, weight_decay, etc.)
 
@@ -100,6 +101,16 @@ runs:
     model: string
     parameters: {}                 # Empty for control runs
 
+  # OPTIONAL: Compute estimates (from prior runs via compute_metrics.json)
+  # Only present when design-experiment finds and uses prior compute data.
+  # If omitted, scaffold falls back to default time/resource allocations.
+  #
+  # Per-run compute block (for fine-tuned runs only):
+  #   compute:
+  #     time: "HH:MM:SS"            # Estimated SLURM time limit
+  #     gpus: int                    # Number of GPUs
+  #     mem: "80G"                   # Memory allocation
+
 # =============================================================================
 # EVALUATION CONFIGURATION
 # =============================================================================
@@ -118,6 +129,15 @@ evaluation:
       script: string               # REQUIRED: Full path to inspect-ai task script
       dataset: string              # OPTIONAL: Path to eval dataset (if different from training)
       description: string          # REQUIRED: Human-readable task description
+
+  # OPTIONAL: Compute estimates for evaluation jobs (from prior runs)
+  # Only present when design-experiment finds and uses prior compute data.
+  # If omitted, scaffold-inspect asks the user for eval time (current default behavior).
+  #
+  # compute:
+  #   time: "HH:MM:SS"              # Estimated SLURM time limit for eval jobs
+  #   gpus: int                      # Number of GPUs
+  #   mem: "80G"                     # Memory allocation
 
   matrix:
     # REQUIRED: Which runs evaluate on which tasks at which epochs
