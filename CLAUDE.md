@@ -66,10 +66,14 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 - **scaffold-experiment** ✅ - Create organized directory structures, configs, and SLURM scripts for all runs
 - **run-experiment** ✅ - Submit jobs to SLURM and monitor their progress until completion
 - **summarize-experiment** ✅ - Generate summary.md with key metrics (loss, accuracy) after experiment completion
-- **create-inspect-task** ✅ - Create custom inspect-ai evaluation tasks with guided workflow (supports experiment-guided and standalone modes)
 - **analyze-experiment** ✅ - Generate interactive HTML visualizations from evaluation logs using inspect-viz (currently supports capitalization experiments)
 - **analyze-to-pdf** ✅ - Convert analysis reports (markdown) to PDF using pandoc
 - **archive-experiment** ✅ - Archive completed experiments, preserving all experiment files while deleting checkpoint directories
+
+### Utility
+- **check-release** ✅ - Weekly release check: review changes since last tag, draft changelog, optionally cut a new release
+- **create-meeting-agenda** ✅ - Create weekly software meeting agenda in the wiki repo
+- **create-inspect-task** ✅ - Create custom inspect-ai evaluation tasks with guided workflow (supports experiment-guided and standalone modes)
 
 **Note**: All skills are optional convenience tools. Users can perform the same operations manually by running the underlying Python scripts and shell commands directly.
 
