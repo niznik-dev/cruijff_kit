@@ -162,7 +162,7 @@ If user says "yes" (default), add the constraint/partition values from `claude.l
 **Note:** Only ask this for models where `min_gpu_vram_gb` (from model_configs.py) is less than a full GPU's VRAM. Larger models always need full dedicated GPUs — read the constraint/partition from `claude.local.md` and include it automatically.
 
 **Advanced settings (informed by prior runs when available):**
-- **Batch sizes** - Use GPU memory data from Step 4b to recommend safe batch sizes (see batch size estimation below)
+- Batch sizes - Use GPU memory data from Step 4b to recommend safe batch sizes.
 - Dataset packing - enabled by default, affects batch size
 - If no prior data is available, start conservative (batch_size=4 for 1B, 2 for 3B, 1 for 8B+)
 
@@ -229,13 +229,16 @@ The function returns a dict with:
 
 **Do not** manually implement scaling logic — `estimate_compute.py` handles all scaling (linear by epochs/dataset size, cross-model parameter-count ratios, safety margins, rounding).
 
-#### 4. Present to user
+#### 4. Present to user and get explicit approval
 
-Show estimated compute as a table for confirmation. Note which prior experiments informed the estimates (for transparency), but this is explanatory context, not configuration:
+**CRITICAL:** Compute estimation may recommend changes to training parameters (e.g., batch size). These recommendations MUST be presented explicitly to the user for approval — do not silently adopt them.
+
+Show estimated compute and any parameter recommendations as separate sections:
 
 ```
 ## Compute Estimates (informed by 2 prior experiments)
 
+### Resource Allocation
 | Run | Time | GPUs | Memory |
 |-----|------|------|--------|
 | Llama-3.2-1B-Instruct_rank4 | 0:15:00 | 1 | 80G |
@@ -244,7 +247,24 @@ Show estimated compute as a table for confirmation. Note which prior experiments
 
 Based on: cap_4L_2025-10-22, cap_8L_2025-11-05
 These estimates include a 1.5x safety margin. Adjust if needed.
+
+### Parameter Recommendations
+Based on prior GPU memory usage, the following parameter changes are recommended:
+- **Batch size: 4 → 8** (prior peak GPU memory was 12.3 GB / 80 GB, leaving headroom to double batch size)
+
+Do you want to adopt these recommendations?
 ```
+
+**What to present:**
+- **Resource allocation** (time, GPUs, memory): Always show for confirmation
+- **Batch size recommendation**: If `estimate_from_prior()` returns a `batch_size` result, show the current default, the recommended value, and the reason (e.g., memory headroom ratio)
+- **Any other parameter changes**: If compute analysis suggests changes to parameters the user already specified or that differ from defaults, list each change explicitly with reasoning
+
+**Wait for user approval** before incorporating parameter recommendations into the experiment design. The user may:
+- Accept all recommendations
+- Accept some and reject others
+- Override with different values
+- Ask for more detail about the reasoning
 
 #### 6. Write compute blocks
 
