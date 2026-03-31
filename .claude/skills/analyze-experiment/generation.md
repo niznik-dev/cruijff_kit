@@ -383,7 +383,10 @@ After generating visualizations and before the report, optionally add compute me
 
 **Workflow:**
 
-1. Extract job IDs from `run-torchtune.log` and `run-inspect.log` (regex: `SUBMIT_JOB|SUBMIT_EVAL` → Job ID)
+1. Extract job IDs from `run-torchtune.log` and `run-inspect.log`. The log format places `Job ID:` on its own line after the SUBMIT action (see `run-experiment/logging.md`). Use these regexes:
+   - Fine-tuning: `r'SUBMIT_JOB: ([\w.-]+)\n.*?\nJob ID: (\d+)'` → captures (run_name, job_id)
+   - Evaluation: `r'SUBMIT_EVAL: ([\w./-]+)\n.*?\nJob ID: (\d+)'` → captures (run/task/epoch, job_id)
+   - Both require `re.DOTALL` or explicit `\n` matching since the job ID is on a separate line from the action type.
 2. Check if jobstats is available with `check_jobstats_available()`
 3. For each job:
    a. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
