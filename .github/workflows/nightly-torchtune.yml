@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '0 7 * * *'  # 2:00 AM EST / 3:00 AM EDT
 
+permissions:
+  contents: read
+
 jobs:
   torchtune-smoke:
     runs-on: [self-hosted, della-cruijff-gpu]

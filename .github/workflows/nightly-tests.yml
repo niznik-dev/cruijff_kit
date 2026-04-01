@@ -9,6 +9,9 @@ on:
   # Allow manual triggering for testing
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

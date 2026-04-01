@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '30 6 * * *'  # 1:30 AM EST / 2:30 AM EDT
 
+permissions:
+  contents: read
+
 jobs:
   gpu-test:
     runs-on: [self-hosted, della-cruijff-gpu]
