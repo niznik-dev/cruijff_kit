@@ -73,6 +73,12 @@ def create_parser():
         help="SLURM constraint (overrides model_configs default)",
     )
     parser.add_argument(
+        "--gpus",
+        type=int,
+        default=None,
+        help="Number of GPUs (overrides model_configs default)",
+    )
+    parser.add_argument(
         "--conda_env", type=str, default="cruijff", help="Conda environment name"
     )
 
@@ -175,6 +181,10 @@ def render_template(cli_args, config):
     mem = cli_args.mem if cli_args.mem else slurm_config.get("mem", "32G")
     cpus = slurm_config.get("cpus", 4)
 
+    # GPU count: CLI override > model_configs > 1
+    model_gpus = slurm_config.get("gpus", 1)
+    gpus = cli_args.gpus if cli_args.gpus is not None else model_gpus
+
     # Ensure output_dir ends with /
     output_dir = config["output_dir"]
     if not output_dir.endswith("/"):
@@ -225,6 +235,13 @@ def render_template(cli_args, config):
     script = script.replace(
         "#SBATCH --cpus-per-task=1", f"#SBATCH --cpus-per-task={cpus}"
     )
+
+    # Multi-GPU: update SLURM gres and add device="auto" for HF provider
+    if gpus > 1:
+        script = script.replace("#SBATCH --gres=gpu:1", f"#SBATCH --gres=gpu:{gpus}")
+        script = script.replace("<DEVICE_ARGS>", '  -M device="auto" \\\n')
+    else:
+        script = script.replace("<DEVICE_ARGS>", "")
 
     # Activate ##SBATCH lines when values provided
     # Account: CLI only (not a model property)
