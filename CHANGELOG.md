@@ -4,6 +4,40 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-03
+
+### Added
+
+#### Skills & Workflows
+- `archive-experiment` skill and CLI tool (#400)
+- `check-release` skill for weekly release workflow (#404)
+
+#### Observability & Testing
+- GPU smoke test workflow for self-hosted della runner (#383)
+- Nightly torchtune integration smoke test (#393)
+- Nightly inspect-ai eval smoke test (#394)
+- Extended GPU smoke test with model loading and scaffolding verification (#392)
+- Tracked test fixtures for nightly GPU smoke tests (#396)
+- Skill output checkpoint fixtures and tests (#377)
+
+#### Documentation & Data
+- Contributors and acknowledgments sections in README (#376)
+- Maintainer contact information in README (#381)
+
+### Changed
+
+- SHA-pin and upgrade all GitHub Actions (#405, #411)
+- Add Dependabot for GitHub Actions (#405)
+- Bump actions/checkout 4→6 (#406), schneegans/dynamic-badges-action 1.7.0→1.8.0 (#409)
+- Rewrite `spot_check` to use inspect-ai-style HF model loading (#397)
+- Remove orphaned files and references (#397)
+
+### Fixed
+
+- Route SLURM output logs into experiment directories, fix double-slash in output path (#361)
+- Include `vis_label` in dedup key to prevent cross-evaluation collapse (#390)
+- `header_only=True` in `deduplicate_eval_files()` for ~300x speedup (#403)
+
 ## [0.2.0] - 2026-03-11
 
 ### Added
