@@ -19,7 +19,7 @@ module load anaconda3/2025.6
 conda activate <CONDA_ENV>
 
 # Start GPU monitoring in background
-# With --gres=gpu:1, SLURM cgroup isolation scopes nvidia-smi to the allocated GPU
+# SLURM cgroup isolation scopes nvidia-smi to the allocated GPU(s)
 GPU_METRICS_DIR="<GPU_METRICS_DIR>"
 mkdir -p "$GPU_METRICS_DIR"
 nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu \
@@ -35,7 +35,7 @@ cd <EVAL_DIR>
 inspect eval <TASK_SCRIPT> \
   --model <MODEL_HF_NAME> \
   -M model_path="<MODEL_PATH>" \
-<TASK_ARGS><METADATA_ARGS>  --log-dir ./logs \
+<DEVICE_ARGS><TASK_ARGS><METADATA_ARGS>  --log-dir ./logs \
   --log-level info
 INSPECT_EXIT_CODE=$?
 

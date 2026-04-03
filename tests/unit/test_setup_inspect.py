@@ -31,6 +31,7 @@ def make_cli_args(**overrides):
         mem=None,
         partition=None,
         constraint=None,
+        gpus=None,
         conda_env="cruijff",
         output_slurm=None,
     )
@@ -473,6 +474,47 @@ class TestModelConfigLookup:
         cli = make_cli_args(model_name="NonExistentModel")
         with pytest.raises(ValueError, match="Unknown model"):
             render_template(cli, make_config())
+
+
+# ---------------------------------------------------------------------------
+# Multi-GPU / device="auto"
+# ---------------------------------------------------------------------------
+
+
+class TestMultiGpu:
+    def test_single_gpu_no_device_arg(self):
+        """Single-GPU model gets no -M device arg."""
+        cli = make_cli_args(model_name="Llama-3.2-1B-Instruct")
+        script = render_template(cli, make_config())
+        assert 'device="auto"' not in script
+        assert "#SBATCH --gres=gpu:1" in script
+
+    def test_multi_gpu_adds_device_auto(self):
+        """Multi-GPU model (70B) gets -M device="auto"."""
+        cli = make_cli_args(model_name="Llama-3.3-70B-Instruct")
+        script = render_template(cli, make_config())
+        assert '-M device="auto"' in script
+
+    def test_multi_gpu_updates_gres(self):
+        """Multi-GPU model (70B) gets gres=gpu:4."""
+        cli = make_cli_args(model_name="Llama-3.3-70B-Instruct")
+        script = render_template(cli, make_config())
+        assert "#SBATCH --gres=gpu:4" in script
+        assert "#SBATCH --gres=gpu:1" not in script
+
+    def test_gpus_cli_override(self):
+        """CLI --gpus=2 overrides model_configs default of 1."""
+        cli = make_cli_args(model_name="Llama-3.2-1B-Instruct", gpus=2)
+        script = render_template(cli, make_config())
+        assert "#SBATCH --gres=gpu:2" in script
+        assert '-M device="auto"' in script
+
+    def test_gpus_cli_override_single(self):
+        """CLI --gpus=1 on a multi-GPU model forces single GPU."""
+        cli = make_cli_args(model_name="Llama-3.3-70B-Instruct", gpus=1)
+        script = render_template(cli, make_config())
+        assert "#SBATCH --gres=gpu:1" in script
+        assert 'device="auto"' not in script
 
 
 # ---------------------------------------------------------------------------
