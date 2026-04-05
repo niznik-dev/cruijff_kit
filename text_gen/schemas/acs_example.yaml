@@ -1,0 +1,131 @@
+# acs_example.yaml — Example schema for American Community Survey data
+#
+# This schema demonstrates all supported column metadata fields.
+# Copy and adapt for your own datasets.
+
+dataset:
+  name: "ACS 2018"
+  description: "American Community Survey 2018 1-year PUMS"
+
+columns:
+  AGEP:
+    display_name: "age"
+    type: numeric
+    unit: "years old"
+    synonyms:
+      - "age"
+      - "years of age"
+    shorthand_map: {}
+    restatements:
+      - "This person is {value} years old"
+      - "The respondent is in their {decade}s"
+
+  COW:
+    display_name: "class of worker"
+    type: categorical
+    unit: null
+    synonyms:
+      - "class of worker"
+      - "employment type"
+      - "worker classification"
+    shorthand_map: {}
+    restatements:
+      - "This person's employment classification is {value}"
+
+  SCHL:
+    display_name: "highest educational attainment"
+    type: categorical
+    unit: null
+    synonyms:
+      - "highest educational attainment"
+      - "education level"
+      - "level of education"
+    shorthand_map: {}
+    restatements:
+      - "The respondent's highest education is {value}"
+
+  MAR:
+    display_name: "marital status"
+    type: categorical
+    unit: null
+    synonyms:
+      - "marital status"
+      - "marriage status"
+    shorthand_map: {}
+    restatements:
+      - "This person is {value}"
+
+  OCCP:
+    display_name: "occupation"
+    type: categorical
+    unit: null
+    synonyms:
+      - "occupation"
+      - "job"
+      - "profession"
+      - "line of work"
+    shorthand_map: {}
+    restatements:
+      - "This person works as a {value}"
+
+  POBP:
+    display_name: "place of birth"
+    type: categorical
+    unit: null
+    synonyms:
+      - "place of birth"
+      - "birthplace"
+      - "country of origin"
+    shorthand_map: {}
+    restatements:
+      - "This person was born in {value}"
+
+  SEX:
+    display_name: "sex"
+    type: categorical
+    unit: null
+    synonyms:
+      - "sex"
+      - "gender"
+    shorthand_map: {}
+    restatements: []
+
+  RAC1P:
+    display_name: "race"
+    type: categorical
+    unit: null
+    synonyms:
+      - "race"
+      - "racial identity"
+    shorthand_map: {}
+    restatements:
+      - "The respondent identifies as {value}"
+
+  ST:
+    display_name: "state"
+    type: categorical
+    unit: null
+    synonyms:
+      - "state"
+      - "state of residence"
+      - "home state"
+    shorthand_map:
+      "New York": "NY"
+      "California": "CA"
+      "Texas": "TX"
+      "Florida": "FL"
+      "Pennsylvania": "PA"
+    restatements:
+      - "This person lives in {value}"
+      - "The respondent is a {value} resident"
+
+  PINCP:
+    display_name: "income"
+    type: numeric
+    unit: "dollars"
+    synonyms:
+      - "income"
+      - "yearly earnings"
+      - "annual salary"
+    shorthand_map: {}
+    restatements: []
