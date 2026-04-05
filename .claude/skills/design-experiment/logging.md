@@ -35,6 +35,8 @@ Created during the planning workflow to record all verification steps, calculati
 | `USER_QUESTION` | Ask user for input during design |
 | `USER_RESPONSE` | Capture user input and decisions |
 | `DESIGN_DECISION` | Record key design choices with rationale |
+| `DATA_GEN_CONFIG` | Record data generation configuration (source, schema, target, context) |
+| `DATA_GEN_CONDITION` | Record a data generation condition (features, template, perturbations) |
 | `GENERATE_RUNS` | Generate list of runs from variables |
 | `GENERATE_EVAL_MATRIX` | Generate evaluation matrix |
 | `CREATE_YAML` | Write experiment_summary.yaml |
@@ -52,6 +54,8 @@ Created during the planning workflow to record all verification steps, calculati
 - Prior run searches and training speed extraction
 - Time and disk space calculations
 - User questions, responses, and design decisions
+- Data generation configuration (source, schema, target, context, subsampling, missing value handling)
+- Data generation conditions (features, template style, perturbations per condition)
 
 ### During Generation
 - Run list generation
@@ -255,6 +259,46 @@ Result: success
 ```
 
 Common decision types: `variable_selection`, `control_run_design`, `dataset_selection`, `evaluation_strategy`, `resource_allocation`
+
+### DATA_GEN_CONFIG
+
+```
+[2025-10-22 14:30:06] DATA_GEN_CONFIG
+Details: Recording data generation configuration
+Source: /scratch/gpfs/MSALGANIK/sarahep/folktexts-2018-data/folktables/2018/1-Year/psam_p39.csv
+Schema: /scratch/gpfs/MSALGANIK/sarahep/ck-data/schemas/acs_pums_oh_2018.yaml
+Target: PINCP > 50000 (binary threshold)
+Context placement: system_prompt
+Question: Is this person's income above $50,000?
+Subsampling: 0.1 (10% of source)
+Missing value handling: skip
+Seed: 42
+Split ratio: 0.8
+Result: success
+```
+
+### DATA_GEN_CONDITION
+
+```
+[2025-10-22 14:30:06] DATA_GEN_CONDITION
+Details: Recording data generation condition
+Condition: dict_full
+Features: [AGEP, COW, SCHL, MAR, OCCP, SEX, RAC1P, ST]
+Template: dictionary
+Perturbations: none
+Result: success
+```
+
+```
+[2025-10-22 14:30:06] DATA_GEN_CONDITION
+Details: Recording data generation condition
+Condition: narr_full
+Features: [AGEP, COW, SCHL, MAR, OCCP, SEX, RAC1P, ST]
+Template: narrative (custom Jinja2)
+Perturbations: none
+Style guidance: "Natural, readable prose suitable for evaluation. 2-3 sentences..."
+Result: success
+```
 
 ### GENERATE_RUNS
 

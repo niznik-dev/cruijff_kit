@@ -60,7 +60,7 @@ Follow the three-stage process:
 
 Guide the user through 9 interactive steps to gather all experiment parameters:
 1. Determine experiment purpose and location (sanity check vs research experiment)
-2. Understand the experiment (scientific question, variables)
+2. Understand the experiment (scientific question, variables, and whether tabular-to-text data generation is needed)
 3. Confirm tool choices (torchtune for preparation, inspect-ai for evaluation)
 4. Design training runs (models, datasets, hyperparameters)
 5. Design evaluation runs (tasks, epochs, evaluation matrix)

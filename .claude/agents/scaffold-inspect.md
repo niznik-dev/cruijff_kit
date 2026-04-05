@@ -277,7 +277,7 @@ Extract values from setup_finetune.yaml (fine-tuned runs) or experiment_summary.
 - `model_path`: Fine-tuned: `{base_directory}/ck-out-{run_name}/epoch_{N}`. Control: original model path
 - `model_hf_name`: Fine-tuned: `hf/{run_name}_epoch_{N}`. Control: `hf/{run_name}_control`
 - `output_dir`: `{base_directory}/ck-out-{run_name}/`
-- `data_path`: From dataset path in setup_finetune.yaml or experiment_summary.yaml
+- `data_path`: **Check for per-run override first.** If `eval_dataset_path` exists in the run's `parameters` (from experiment_summary.yaml), use that path. Otherwise, fall back to the dataset path in setup_finetune.yaml (fine-tuned runs) or `data.training.path` in experiment_summary.yaml (control runs). This override enables text_gen experiments where different runs evaluate on different generated datasets.
 - `system_prompt`: From the run's configuration (may vary per run!)
 - `scorer`: From `evaluation.scorer` in experiment_summary.yaml
 

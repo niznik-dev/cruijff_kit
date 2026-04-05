@@ -67,6 +67,40 @@ data:
       validation: int
       test: int
 
+  # OPTIONAL: Include when using convert-tabular-to-text to generate datasets
+  # from tabular source data.
+  data_generation:
+    tool: text_gen                 # Generator tool identifier
+    source: string                 # Full path to source tabular file
+    schema: string                 # Full path to schema YAML in ck-data/schemas/
+    target:
+      column: string               # Target column name (e.g., "PINCP")
+      threshold: float             # For binary classification (use threshold OR mapping)
+      # mapping:                   # For categorical targets
+      #   "value1": "label1"
+      #   "value2": "label2"
+    context: string                # Preamble/system prompt text
+    context_placement: string      # "preamble" or "system_prompt"
+    question: string               # Question appended to each entry
+    split_ratio: float             # Train fraction (e.g., 0.8)
+    seed: int                      # Random seed (must be same for all conditions)
+    subsampling_ratio: float       # OPTIONAL: Fraction of source rows to use (e.g., 0.33 for 33%)
+    missing_value_handling: string # OPTIONAL: "skip" (default) or "include" — how to handle NaN/missing feature values
+    missing_value_text: string     # OPTIONAL: Text for missing values when handling is "include" (default: "missing")
+
+    conditions:                    # Per-condition text generation specs
+      # condition_name:
+      #   features: [COL1, COL2, COL3]
+      #   template: dictionary     # dictionary | narrative | llm_narrative
+      #   template_file: string   # OPTIONAL: Path to existing Jinja2 template file (narrative only).
+                                   #   If omitted for narrative, uses the built-in generic template.
+                                   #   If omitted and style_guidance is set, convert-tabular-to-text
+                                   #   will generate a custom template via the generate-jinja-template agent.
+      #   perturbations: []        # synonym, shorthand, reorder, clause_addition
+      #   style_guidance: string   # OPTIONAL: Style instructions for narrative/llm_narrative
+                                   #   (token density, tone, intended use). Passed to
+                                   #   generate-jinja-template or --style-guidance at generation time.
+
 output:
   base_directory: string           # REQUIRED: Full path to this experiment's output directory
                                    # Construction: read "Scratch directory" from claude.local.md, append "ck-outputs/" and experiment name
@@ -93,6 +127,9 @@ runs:
       lora_rank: int               # Include all varied parameters
       lr: float
       # Empty dict {} for control runs
+      # OPTIONAL per-run dataset overrides (for text_gen experiments):
+      # dataset_path: string       # Full path to training dataset file (overrides data.training.path)
+      # eval_dataset_path: string  # Full path to evaluation dataset file
 
   # Example control run:
   - name: string                   # e.g., "Llama-3.2-1B-Instruct_base"
