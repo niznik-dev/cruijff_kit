@@ -344,6 +344,7 @@ def main(argv: list[str] | None = None):
         context=args.context,
         context_placement=args.context_placement,
         question=args.question,
+        template_file=args.template_file,
     )
     logger.info("Done. Output: %s", args.output)
 

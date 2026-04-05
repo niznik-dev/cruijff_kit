@@ -548,6 +548,38 @@ def _format_inspect_view_commands(
     return "\n".join(lines)
 
 
+def _read_splits_from_metadata(training_path: str) -> dict:
+    """Read split row counts from .meta.json sidecar files.
+
+    When datasets are generated via text_gen, experiment_summary.yaml may
+    have placeholder zeros for split counts. The actual counts are recorded
+    in .meta.json sidecar files alongside each generated JSON file.
+
+    Given the training dataset path (e.g., .../dict_full_train_s42.json),
+    derives sibling test/validation paths by replacing the split name and
+    reads row_count from each sidecar.
+    """
+    import json as _json
+
+    splits: dict[str, int] = {}
+    base = Path(training_path)
+
+    for split_name in ("train", "validation", "test"):
+        # Derive the path for this split by replacing _train_ with _{split}_
+        candidate = str(base).replace("_train_", f"_{split_name}_")
+        meta_path = candidate.replace(".json", ".meta.json")
+        try:
+            with open(meta_path) as f:
+                meta = _json.load(f)
+            row_count = meta.get("row_count", 0)
+            if row_count:
+                splits[split_name] = row_count
+        except (FileNotFoundError, _json.JSONDecodeError):
+            continue
+
+    return splits
+
+
 def generate_report(
     df: pd.DataFrame,
     experiment_name: str,
@@ -611,16 +643,24 @@ def generate_report(
     training_raw = (config or {}).get("data", {}).get("training", {})
     data_config = training_raw if isinstance(training_raw, dict) else {}
     splits = data_config.get("splits", {})
+
+    # If splits are zeros (generated data), try to read from .meta.json sidecars
+    splits_all_zero = splits and all(
+        (v is None or v == 0) for v in splits.values()
+    )
+    if splits_all_zero and data_config.get("path"):
+        splits = _read_splits_from_metadata(data_config["path"])
+
     if splits:
         train_n = splits.get("train")
         val_n = splits.get("validation")
         test_n = splits.get("test")
         split_parts = []
-        if train_n is not None:
+        if train_n:
             split_parts.append(f"{train_n:,} train")
-        if val_n is not None:
+        if val_n:
             split_parts.append(f"{val_n:,} validation")
-        if test_n is not None:
+        if test_n:
             split_parts.append(f"{test_n:,} eval")
         if split_parts:
             header_parts.append(f"**Dataset splits:** {' / '.join(split_parts)}")

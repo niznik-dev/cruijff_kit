@@ -11,8 +11,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-VERSION = "0.1.0"
-
 
 def compute_label(
     target_value,
@@ -125,6 +123,7 @@ def write_metadata(
     context: str,
     context_placement: str,
     question: str,
+    template_file: str | None = None,
 ) -> None:
     """Write the .meta.json sidecar file alongside the output."""
     meta_path = output_path.replace(".json", ".meta.json")
@@ -149,8 +148,10 @@ def write_metadata(
         "context_placement": context_placement,
         "question": question,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "text_gen_version": VERSION,
     }
+
+    if template_file:
+        metadata["template_file"] = os.path.abspath(template_file)
 
     with open(meta_path, "w") as f:
         json.dump(metadata, f, indent=2)

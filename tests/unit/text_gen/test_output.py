@@ -186,4 +186,3 @@ class TestWriteMetadata:
         assert meta["features"] == ["AGEP", "ST"]
         assert meta["size_bytes"] > 0
         assert "generated_at" in meta
-        assert meta["text_gen_version"] == "0.1.0"
