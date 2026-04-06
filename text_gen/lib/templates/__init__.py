@@ -31,7 +31,9 @@ def get_template(
     elif template_type == "llm_narrative":
         from .llm_narrative import LLMNarrativeTemplate
 
-        return LLMNarrativeTemplate(cache_path=cache_path, style_guidance=style_guidance)
+        return LLMNarrativeTemplate(
+            cache_path=cache_path, style_guidance=style_guidance
+        )
     else:
         raise ValueError(
             f"Unknown template type '{template_type}'. "

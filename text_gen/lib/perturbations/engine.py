@@ -25,7 +25,9 @@ PERTURBATION_REGISTRY: dict[str, Callable] = {
 }
 
 
-def _make_row_rng(seed: int | None, perturbation_name: str, row_index: int) -> random.Random:
+def _make_row_rng(
+    seed: int | None, perturbation_name: str, row_index: int
+) -> random.Random:
     """Create a deterministic Random instance for a specific
     perturbation on a specific row.
 
@@ -56,9 +58,7 @@ def build_perturbation_chain(
     unknown = [n for n in perturbation_names if n not in PERTURBATION_REGISTRY]
     if unknown:
         available = ", ".join(sorted(PERTURBATION_REGISTRY.keys()))
-        raise ValueError(
-            f"Unknown perturbation(s): {unknown}. Available: {available}"
-        )
+        raise ValueError(f"Unknown perturbation(s): {unknown}. Available: {available}")
 
     funcs = [(name, PERTURBATION_REGISTRY[name]) for name in perturbation_names]
 

@@ -60,10 +60,15 @@ class TestSchemaFromYaml:
 
     def test_value_map_loaded(self, tmp_path):
         """value_map is loaded and keys are stringified."""
-        data = {"columns": {"SEX": {
-            "display_name": "sex", "type": "categorical",
-            "value_map": {1: "Male", 2: "Female"},
-        }}}
+        data = {
+            "columns": {
+                "SEX": {
+                    "display_name": "sex",
+                    "type": "categorical",
+                    "value_map": {1: "Male", 2: "Female"},
+                }
+            }
+        }
         path = tmp_path / "vm.yaml"
         with open(path, "w") as f:
             yaml.dump(data, f)

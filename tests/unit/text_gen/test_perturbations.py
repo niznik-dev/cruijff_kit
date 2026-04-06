@@ -19,14 +19,14 @@ from text_gen.lib.perturbations.synonym import synonym_perturbation
 # Synonym
 # ---------------------------------------------------------------------------
 
+
 class TestSynonymPerturbation:
     def test_swaps_display_name(self, sample_segments):
         rng = random.Random(42)
         result = synonym_perturbation(sample_segments, rng)
         # At least one segment should have a different display name
         changed = any(
-            r.display_name != o.display_name
-            for r, o in zip(result, sample_segments)
+            r.display_name != o.display_name for r, o in zip(result, sample_segments)
         )
         assert changed
 
@@ -37,8 +37,15 @@ class TestSynonymPerturbation:
             assert r.value == o.value
 
     def test_no_synonyms_unchanged(self):
-        seg = make_segment(metadata={"synonyms": ["only_one"], "shorthand_map": {},
-                                     "restatements": [], "type": "numeric", "unit": None})
+        seg = make_segment(
+            metadata={
+                "synonyms": ["only_one"],
+                "shorthand_map": {},
+                "restatements": [],
+                "type": "numeric",
+                "unit": None,
+            }
+        )
         result = synonym_perturbation([seg], random.Random(42))
         assert result[0].display_name == seg.display_name
 
@@ -52,6 +59,7 @@ class TestSynonymPerturbation:
 # Shorthand
 # ---------------------------------------------------------------------------
 
+
 class TestShorthandPerturbation:
     def test_full_to_short(self, sample_segments):
         # sample_segments[1] is state="New York" with shorthand_map {"New York": "NY"}
@@ -62,22 +70,36 @@ class TestShorthandPerturbation:
 
     def test_short_to_full(self):
         seg = make_segment(
-            field="ST", display_name="state", value="NY",
+            field="ST",
+            display_name="state",
+            value="NY",
             text="The state is: NY.",
-            metadata={"type": "categorical", "unit": None,
-                      "synonyms": [], "shorthand_map": {"New York": "NY"},
-                      "restatements": []},
+            metadata={
+                "type": "categorical",
+                "unit": None,
+                "synonyms": [],
+                "shorthand_map": {"New York": "NY"},
+                "restatements": [],
+            },
         )
-        result = shorthand_perturbation([seg], random.Random(42), direction="short_to_full")
+        result = shorthand_perturbation(
+            [seg], random.Random(42), direction="short_to_full"
+        )
         assert result[0].value == "New York"
 
     def test_no_match_unchanged(self):
         seg = make_segment(
-            field="ST", display_name="state", value="Texas",
+            field="ST",
+            display_name="state",
+            value="Texas",
             text="The state is: Texas.",
-            metadata={"type": "categorical", "unit": None,
-                      "synonyms": [], "shorthand_map": {"New York": "NY"},
-                      "restatements": []},
+            metadata={
+                "type": "categorical",
+                "unit": None,
+                "synonyms": [],
+                "shorthand_map": {"New York": "NY"},
+                "restatements": [],
+            },
         )
         result = shorthand_perturbation([seg], random.Random(42))
         assert result[0].value == "Texas"
@@ -86,6 +108,7 @@ class TestShorthandPerturbation:
 # ---------------------------------------------------------------------------
 # Reorder
 # ---------------------------------------------------------------------------
+
 
 class TestReorderPerturbation:
     def test_same_elements(self, sample_segments):
@@ -108,9 +131,12 @@ class TestReorderPerturbation:
 # Clause addition
 # ---------------------------------------------------------------------------
 
+
 class TestClauseAdditionPerturbation:
     def test_adds_one_clause(self, sample_segments):
-        result = clause_addition_perturbation(sample_segments, random.Random(42), n_clauses=1)
+        result = clause_addition_perturbation(
+            sample_segments, random.Random(42), n_clauses=1
+        )
         assert len(result) == len(sample_segments) + 1
 
     def test_added_clause_marked(self, sample_segments):
@@ -119,22 +145,34 @@ class TestClauseAdditionPerturbation:
         assert len(added) == 1
 
     def test_adds_multiple_clauses(self, sample_segments):
-        result = clause_addition_perturbation(sample_segments, random.Random(42), n_clauses=3)
+        result = clause_addition_perturbation(
+            sample_segments, random.Random(42), n_clauses=3
+        )
         assert len(result) == len(sample_segments) + 3
 
     def test_no_restatements_unchanged(self):
-        seg = make_segment(metadata={"type": "numeric", "unit": None,
-                                     "synonyms": [], "shorthand_map": {},
-                                     "restatements": []})
+        seg = make_segment(
+            metadata={
+                "type": "numeric",
+                "unit": None,
+                "synonyms": [],
+                "shorthand_map": {},
+                "restatements": [],
+            }
+        )
         result = clause_addition_perturbation([seg], random.Random(42))
         assert len(result) == 1
 
     def test_decade_placeholder(self):
         seg = make_segment(
             value="51 years old",
-            metadata={"type": "numeric", "unit": "years old",
-                      "synonyms": [], "shorthand_map": {},
-                      "restatements": ["The respondent is in their {decade}s"]},
+            metadata={
+                "type": "numeric",
+                "unit": "years old",
+                "synonyms": [],
+                "shorthand_map": {},
+                "restatements": ["The respondent is in their {decade}s"],
+            },
         )
         result = clause_addition_perturbation([seg], random.Random(42))
         added = [s for s in result if s.is_added][0]
@@ -144,6 +182,7 @@ class TestClauseAdditionPerturbation:
 # ---------------------------------------------------------------------------
 # Engine
 # ---------------------------------------------------------------------------
+
 
 class TestPerturbationEngine:
     def test_build_chain_validates_names(self):

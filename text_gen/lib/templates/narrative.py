@@ -47,9 +47,7 @@ class NarrativeTemplate(BaseTemplate):
             template_path = candidate if candidate.exists() else Path(template_file)
 
         if not template_path.exists():
-            raise FileNotFoundError(
-                f"Template file not found: {template_path}"
-            )
+            raise FileNotFoundError(f"Template file not found: {template_path}")
 
         self._template_path = template_path
         self._template = jinja2.Template(template_path.read_text())

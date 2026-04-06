@@ -52,9 +52,7 @@ class Schema:
                     f"Column '{key}' missing required field 'display_name'"
                 )
             if "type" not in col_data:
-                raise ValueError(
-                    f"Column '{key}' missing required field 'type'"
-                )
+                raise ValueError(f"Column '{key}' missing required field 'type'")
             if col_data["type"] not in ("numeric", "categorical"):
                 raise ValueError(
                     f"Column '{key}' has invalid type '{col_data['type']}'. "
@@ -82,8 +80,7 @@ class Schema:
         if key not in self.columns:
             available = ", ".join(sorted(self.columns.keys()))
             raise KeyError(
-                f"Column '{key}' not found in schema. "
-                f"Available columns: {available}"
+                f"Column '{key}' not found in schema. Available columns: {available}"
             )
         return self.columns[key]
 
@@ -105,9 +102,7 @@ class Schema:
         # Validate requested columns exist
         missing = set(columns) - set(df.columns)
         if missing:
-            raise ValueError(
-                f"Columns not found in source data: {sorted(missing)}"
-            )
+            raise ValueError(f"Columns not found in source data: {sorted(missing)}")
 
         sample = df[columns].head(sample_rows)
 

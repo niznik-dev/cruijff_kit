@@ -11,7 +11,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-
 def compute_label(
     target_value,
     target_threshold: float | None = None,

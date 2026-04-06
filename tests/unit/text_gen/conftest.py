@@ -13,6 +13,7 @@ from text_gen.lib.segments import Segment
 # Schema fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def column_age():
     return ColumnSchema(
@@ -86,9 +87,15 @@ def schema(column_age, column_state, column_occupation, column_income):
 # Segment fixtures
 # ---------------------------------------------------------------------------
 
-def make_segment(field="AGEP", display_name="age", value="51 years old",
-                 text="The age is: 51 years old.", metadata=None,
-                 is_added=False):
+
+def make_segment(
+    field="AGEP",
+    display_name="age",
+    value="51 years old",
+    text="The age is: 51 years old.",
+    metadata=None,
+    is_added=False,
+):
     """Helper to create a Segment with sensible defaults."""
     if metadata is None:
         metadata = {
@@ -113,31 +120,42 @@ def sample_segments():
     """Three segments representing age, state, and occupation."""
     return [
         make_segment(
-            field="AGEP", display_name="age", value="51 years old",
+            field="AGEP",
+            display_name="age",
+            value="51 years old",
             text="The age is: 51 years old.",
             metadata={
-                "type": "numeric", "unit": "years old",
+                "type": "numeric",
+                "unit": "years old",
                 "synonyms": ["age", "years of age"],
                 "shorthand_map": {},
-                "restatements": ["This person is {value} years old",
-                                 "The respondent is in their {decade}s"],
+                "restatements": [
+                    "This person is {value} years old",
+                    "The respondent is in their {decade}s",
+                ],
             },
         ),
         make_segment(
-            field="ST", display_name="state", value="New York",
+            field="ST",
+            display_name="state",
+            value="New York",
             text="The state is: New York.",
             metadata={
-                "type": "categorical", "unit": None,
+                "type": "categorical",
+                "unit": None,
                 "synonyms": ["state", "state of residence", "home state"],
                 "shorthand_map": {"New York": "NY", "California": "CA"},
                 "restatements": ["This person lives in {value}"],
             },
         ),
         make_segment(
-            field="OCCP", display_name="occupation", value="Teacher",
+            field="OCCP",
+            display_name="occupation",
+            value="Teacher",
             text="The occupation is: Teacher.",
             metadata={
-                "type": "categorical", "unit": None,
+                "type": "categorical",
+                "unit": None,
                 "synonyms": ["occupation", "job", "profession"],
                 "shorthand_map": {},
                 "restatements": ["This person works as a {value}"],
@@ -149,6 +167,7 @@ def sample_segments():
 # ---------------------------------------------------------------------------
 # File-based fixtures (tmp_path scoped)
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def sample_csv(tmp_path):
@@ -175,25 +194,33 @@ def schema_yaml(tmp_path):
         "dataset": {"name": "Test", "description": "Test dataset"},
         "columns": {
             "AGEP": {
-                "display_name": "age", "type": "numeric", "unit": "years old",
-                "synonyms": ["age", "years of age"], "shorthand_map": {},
+                "display_name": "age",
+                "type": "numeric",
+                "unit": "years old",
+                "synonyms": ["age", "years of age"],
+                "shorthand_map": {},
                 "restatements": ["This person is {value} years old"],
             },
             "ST": {
-                "display_name": "state", "type": "categorical",
+                "display_name": "state",
+                "type": "categorical",
                 "synonyms": ["state", "state of residence", "home state"],
                 "shorthand_map": {"New York": "NY", "California": "CA"},
                 "restatements": ["This person lives in {value}"],
             },
             "OCCP": {
-                "display_name": "occupation", "type": "categorical",
+                "display_name": "occupation",
+                "type": "categorical",
                 "synonyms": ["occupation", "job", "profession"],
                 "shorthand_map": {},
                 "restatements": ["This person works as a {value}"],
             },
             "PINCP": {
-                "display_name": "income", "type": "numeric", "unit": "dollars",
-                "synonyms": ["income", "earnings"], "shorthand_map": {},
+                "display_name": "income",
+                "type": "numeric",
+                "unit": "dollars",
+                "synonyms": ["income", "earnings"],
+                "shorthand_map": {},
                 "restatements": [],
             },
         },

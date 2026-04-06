@@ -28,8 +28,7 @@ def validate_features(
     if missing:
         available = ", ".join(sorted(schema.columns.keys()))
         raise ValueError(
-            f"Features not found in schema: {missing}. "
-            f"Available columns: {available}"
+            f"Features not found in schema: {missing}. Available columns: {available}"
         )
 
     if target_column and target_column in feature_keys:

@@ -12,8 +12,12 @@ class TestSegmentDataclass:
 
     def test_explicit_fields(self):
         seg = Segment(
-            field="AGEP", display_name="age", value="51",
-            text="age: 51", metadata={"unit": "years"}, is_added=True,
+            field="AGEP",
+            display_name="age",
+            value="51",
+            text="age: 51",
+            metadata={"unit": "years"},
+            is_added=True,
         )
         assert seg.field == "AGEP"
         assert seg.is_added is True
@@ -51,9 +55,8 @@ class TestRenderSegments:
             make_segment(text="Sentence one."),
             make_segment(text="Sentence two."),
         ]
-        assert (
-            render_segments(segments, "llm_narrative")
-            == render_segments(segments, "narrative")
+        assert render_segments(segments, "llm_narrative") == render_segments(
+            segments, "narrative"
         )
 
     def test_custom_separator(self, sample_segments):

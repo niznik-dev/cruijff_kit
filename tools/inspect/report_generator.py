@@ -645,9 +645,7 @@ def generate_report(
     splits = data_config.get("splits", {})
 
     # If splits are zeros (generated data), try to read from .meta.json sidecars
-    splits_all_zero = splits and all(
-        (v is None or v == 0) for v in splits.values()
-    )
+    splits_all_zero = splits and all((v is None or v == 0) for v in splits.values())
     if splits_all_zero and data_config.get("path"):
         splits = _read_splits_from_metadata(data_config["path"])
 

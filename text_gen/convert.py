@@ -32,7 +32,10 @@ import yaml
 
 from text_gen.lib.features import select_features, validate_features
 from text_gen.lib.output import build_output_entry, write_metadata, write_output
-from text_gen.lib.perturbations.engine import apply_perturbations, build_perturbation_chain
+from text_gen.lib.perturbations.engine import (
+    apply_perturbations,
+    build_perturbation_chain,
+)
 from text_gen.lib.readers import read_tabular
 from text_gen.lib.schema import Schema
 from text_gen.lib.segments import render_segments
@@ -98,7 +101,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         choices=["preamble", "system_prompt"],
         help="Where to place context (default: preamble)",
     )
-    parser.add_argument("--question", default="", help="Question text appended to input")
+    parser.add_argument(
+        "--question", default="", help="Question text appended to input"
+    )
 
     # Split
     parser.add_argument(
@@ -120,7 +125,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Fraction of data for validation split. When provided, "
         "enables three-way split (train/validation/test).",
     )
-    parser.add_argument("--seed", type=int, default=42, help="Random seed (default: 42)")
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed (default: 42)"
+    )
     parser.add_argument(
         "--subsampling-ratio",
         type=float,
@@ -160,7 +167,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def split_dataframe(df, seed: int, split: str, split_ratio: float, validation_ratio: float | None):
+def split_dataframe(
+    df, seed: int, split: str, split_ratio: float, validation_ratio: float | None
+):
     """Deterministically split a DataFrame by shuffling row indices.
 
     Returns the rows for the requested split.
@@ -229,7 +238,9 @@ def main(argv: list[str] | None = None):
             sys.exit(1)
         features = [f.strip() for f in args.features.split(",")]
         template_type = args.template
-        perturbation_names = [p.strip() for p in args.perturbations.split(",") if p.strip()]
+        perturbation_names = [
+            p.strip() for p in args.perturbations.split(",") if p.strip()
+        ]
 
     # Parse target mapping if provided
     target_mapping = None
@@ -245,12 +256,19 @@ def main(argv: list[str] | None = None):
     # Subsample if requested
     if args.subsampling_ratio is not None:
         if not 0 < args.subsampling_ratio <= 1:
-            logger.error("--subsampling-ratio must be between 0 (exclusive) and 1 (inclusive)")
+            logger.error(
+                "--subsampling-ratio must be between 0 (exclusive) and 1 (inclusive)"
+            )
             sys.exit(1)
         n = int(len(df) * args.subsampling_ratio)
         df = df.sample(n=n, random_state=args.seed).reset_index(drop=True)
-        logger.info("Subsampled to %d rows (%.0f%% of %d, seed=%d)",
-                     len(df), args.subsampling_ratio * 100, source_rows_total, args.seed)
+        logger.info(
+            "Subsampled to %d rows (%.0f%% of %d, seed=%d)",
+            len(df),
+            args.subsampling_ratio * 100,
+            source_rows_total,
+            args.seed,
+        )
 
     # Load schema
     logger.info("Loading schema: %s", args.schema)
@@ -262,7 +280,9 @@ def main(argv: list[str] | None = None):
         logger.warning(w)
 
     # Split data
-    split_df = split_dataframe(df, args.seed, args.split, args.split_ratio, args.validation_ratio)
+    split_df = split_dataframe(
+        df, args.seed, args.split, args.split_ratio, args.validation_ratio
+    )
     logger.info("Split '%s': %d rows", args.split, len(split_df))
 
     # Initialize template and perturbation chain
@@ -281,7 +301,9 @@ def main(argv: list[str] | None = None):
 
         # Select features
         feature_pairs = select_features(
-            row_dict, features, schema,
+            row_dict,
+            features,
+            schema,
             missing_value_handling=args.missing_value_handling,
             missing_value_text=args.missing_value_text,
         )

@@ -11,18 +11,17 @@ from text_gen.lib.templates.narrative import NarrativeTemplate
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_features(schema):
     """Build a feature list from schema columns (excluding PINCP)."""
     row = {"AGEP": "51", "ST": "New York", "OCCP": "Teacher"}
-    return [
-        (schema.get_column(k), row[k])
-        for k in ["AGEP", "ST", "OCCP"]
-    ]
+    return [(schema.get_column(k), row[k]) for k in ["AGEP", "ST", "OCCP"]]
 
 
 # ---------------------------------------------------------------------------
 # DictionaryTemplate
 # ---------------------------------------------------------------------------
+
 
 class TestDictionaryTemplate:
     def test_template_type(self):
@@ -59,6 +58,7 @@ class TestDictionaryTemplate:
 # NarrativeTemplate
 # ---------------------------------------------------------------------------
 
+
 class TestNarrativeTemplate:
     def test_template_type(self):
         assert NarrativeTemplate().template_type == "narrative"
@@ -82,7 +82,9 @@ class TestNarrativeTemplate:
 
     def test_custom_template_file(self, tmp_path, schema):
         j2 = tmp_path / "custom.j2"
-        j2.write_text("{% for feat in features %}{{ feat.display_name }}: {{ feat.value }}. {% endfor %}")
+        j2.write_text(
+            "{% for feat in features %}{{ feat.display_name }}: {{ feat.value }}. {% endfor %}"
+        )
         t = NarrativeTemplate(template_file=str(j2))
         segments = t.render_row(_make_features(schema), schema)
         assert len(segments) > 0
@@ -95,6 +97,7 @@ class TestNarrativeTemplate:
 # ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
+
 
 class TestGetTemplate:
     def test_dictionary(self):

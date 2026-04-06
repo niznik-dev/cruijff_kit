@@ -46,7 +46,9 @@ class LLMNarrativeTemplate(BaseTemplate):
 
     MODEL = "claude-sonnet-4-20250514"
 
-    def __init__(self, cache_path: str | None = None, style_guidance: str | None = None):
+    def __init__(
+        self, cache_path: str | None = None, style_guidance: str | None = None
+    ):
         """Initialize with optional cache path and style guidance.
 
         Args:
@@ -67,7 +69,9 @@ class LLMNarrativeTemplate(BaseTemplate):
         if self._cache_path and self._cache_path.exists():
             with open(self._cache_path) as f:
                 self._cache = json.load(f)
-            logger.info("Loaded %d cached entries from %s", len(self._cache), self._cache_path)
+            logger.info(
+                "Loaded %d cached entries from %s", len(self._cache), self._cache_path
+            )
 
     @property
     def template_type(self) -> str:

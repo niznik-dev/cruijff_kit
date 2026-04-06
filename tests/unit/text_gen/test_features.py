@@ -50,7 +50,9 @@ class TestSelectFeatures:
         """When missing_value_handling='include', missing values use placeholder text."""
         row = {"AGEP": "51"}
         result = select_features(
-            row, ["AGEP", "ST"], schema,
+            row,
+            ["AGEP", "ST"],
+            schema,
             missing_value_handling="include",
         )
         assert len(result) == 2
@@ -61,7 +63,9 @@ class TestSelectFeatures:
         """When missing_value_handling='include', NaN values use placeholder text."""
         row = {"AGEP": "51", "ST": float("nan")}
         result = select_features(
-            row, ["AGEP", "ST"], schema,
+            row,
+            ["AGEP", "ST"],
+            schema,
             missing_value_handling="include",
             missing_value_text="not reported",
         )
@@ -74,7 +78,9 @@ class TestSelectFeatures:
         from text_gen.lib.schema import ColumnSchema, Schema
 
         col = ColumnSchema(
-            key="SEX", display_name="sex", type="categorical",
+            key="SEX",
+            display_name="sex",
+            type="categorical",
             value_map={"1": "Male", "2": "Female"},
         )
         schema = Schema(name="t", description="", columns={"SEX": col})
@@ -87,7 +93,9 @@ class TestSelectFeatures:
         from text_gen.lib.schema import ColumnSchema, Schema
 
         col = ColumnSchema(
-            key="SEX", display_name="sex", type="categorical",
+            key="SEX",
+            display_name="sex",
+            type="categorical",
             value_map={"1": "Male", "2": "Female"},
         )
         schema = Schema(name="t", description="", columns={"SEX": col})
