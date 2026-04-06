@@ -2,7 +2,6 @@
 
 import pytest
 
-from text_gen.lib.schema import ColumnSchema, Schema
 from text_gen.lib.templates import get_template
 from text_gen.lib.templates.dictionary import DictionaryTemplate
 from text_gen.lib.templates.narrative import NarrativeTemplate

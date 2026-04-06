@@ -1,8 +1,6 @@
 """Shared fixtures for text_gen tests."""
 
 import csv
-import os
-from pathlib import Path
 
 import pytest
 import yaml

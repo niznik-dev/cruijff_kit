@@ -3,7 +3,7 @@
 import pytest
 import yaml
 
-from text_gen.lib.schema import ColumnSchema, Schema
+from text_gen.lib.schema import Schema
 
 
 class TestSchemaFromYaml:
