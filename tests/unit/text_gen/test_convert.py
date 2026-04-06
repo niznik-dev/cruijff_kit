@@ -277,7 +277,9 @@ class TestEndToEnd:
         assert "train" in data
         assert len(data["train"]) == 4
 
-    def test_narrative_template(self, tmp_path, sample_csv, schema_yaml):
+    def test_narrative_template(
+        self, tmp_path, sample_csv, schema_yaml, narrative_template
+    ):
         output_path = str(tmp_path / "narr_output.json")
         main(
             [
@@ -291,6 +293,8 @@ class TestEndToEnd:
                 "AGEP,ST,OCCP",
                 "--template",
                 "narrative",
+                "--template-file",
+                narrative_template,
                 "--target-column",
                 "PINCP",
                 "--target-threshold",

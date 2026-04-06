@@ -60,22 +60,25 @@ class TestDictionaryTemplate:
 
 
 class TestNarrativeTemplate:
-    def test_template_type(self):
-        assert NarrativeTemplate().template_type == "narrative"
+    def test_template_type(self, narrative_template):
+        assert (
+            NarrativeTemplate(template_file=narrative_template).template_type
+            == "narrative"
+        )
 
-    def test_produces_segments(self, schema):
-        t = NarrativeTemplate()
+    def test_produces_segments(self, schema, narrative_template):
+        t = NarrativeTemplate(template_file=narrative_template)
         segments = t.render_row(_make_features(schema), schema)
         assert len(segments) > 0
 
-    def test_no_bullet_prefix(self, schema):
-        t = NarrativeTemplate()
+    def test_no_bullet_prefix(self, schema, narrative_template):
+        t = NarrativeTemplate(template_file=narrative_template)
         segments = t.render_row(_make_features(schema), schema)
         for seg in segments:
             assert not seg.text.startswith("- ")
 
-    def test_segments_end_with_period(self, schema):
-        t = NarrativeTemplate()
+    def test_segments_end_with_period(self, schema, narrative_template):
+        t = NarrativeTemplate(template_file=narrative_template)
         segments = t.render_row(_make_features(schema), schema)
         for seg in segments:
             assert seg.text.endswith(".")
@@ -104,8 +107,8 @@ class TestGetTemplate:
         t = get_template("dictionary")
         assert t.template_type == "dictionary"
 
-    def test_narrative(self):
-        t = get_template("narrative")
+    def test_narrative(self, narrative_template):
+        t = get_template("narrative", template_file=narrative_template)
         assert t.template_type == "narrative"
 
     def test_unknown_raises(self):

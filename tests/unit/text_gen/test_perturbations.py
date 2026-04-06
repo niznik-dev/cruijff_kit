@@ -4,7 +4,6 @@ import random
 
 import pytest
 
-from tests.unit.text_gen.conftest import make_segment
 from text_gen.lib.perturbations.clause_addition import clause_addition_perturbation
 from text_gen.lib.perturbations.engine import (
     apply_perturbations,
@@ -36,7 +35,7 @@ class TestSynonymPerturbation:
         for r, o in zip(result, sample_segments):
             assert r.value == o.value
 
-    def test_no_synonyms_unchanged(self):
+    def test_no_synonyms_unchanged(self, make_segment):
         seg = make_segment(
             metadata={
                 "synonyms": ["only_one"],
@@ -68,7 +67,7 @@ class TestShorthandPerturbation:
         state_seg = result[1]
         assert state_seg.value == "NY"
 
-    def test_short_to_full(self):
+    def test_short_to_full(self, make_segment):
         seg = make_segment(
             field="ST",
             display_name="state",
@@ -87,7 +86,7 @@ class TestShorthandPerturbation:
         )
         assert result[0].value == "New York"
 
-    def test_no_match_unchanged(self):
+    def test_no_match_unchanged(self, make_segment):
         seg = make_segment(
             field="ST",
             display_name="state",
@@ -150,7 +149,7 @@ class TestClauseAdditionPerturbation:
         )
         assert len(result) == len(sample_segments) + 3
 
-    def test_no_restatements_unchanged(self):
+    def test_no_restatements_unchanged(self, make_segment):
         seg = make_segment(
             metadata={
                 "type": "numeric",
@@ -163,7 +162,7 @@ class TestClauseAdditionPerturbation:
         result = clause_addition_perturbation([seg], random.Random(42))
         assert len(result) == 1
 
-    def test_decade_placeholder(self):
+    def test_decade_placeholder(self, make_segment):
         seg = make_segment(
             value="51 years old",
             metadata={

@@ -1,7 +1,6 @@
 """Tests for text_gen/lib/segments.py — Segment dataclass and rendering."""
 
 from text_gen.lib.segments import Segment, render_segments
-from tests.unit.text_gen.conftest import make_segment
 
 
 class TestSegmentDataclass:
@@ -34,7 +33,7 @@ class TestRenderSegments:
         assert lines[1] == "- The state is: New York."
         assert lines[2] == "- The occupation is: Teacher."
 
-    def test_narrative_format(self):
+    def test_narrative_format(self, make_segment):
         """Narrative format: space-separated, no prefix."""
         segments = [
             make_segment(text="The respondent is 51 years old."),
@@ -49,7 +48,7 @@ class TestRenderSegments:
         )
         assert "\n" not in result
 
-    def test_llm_narrative_uses_space_join(self):
+    def test_llm_narrative_uses_space_join(self, make_segment):
         """llm_narrative uses the same join as narrative."""
         segments = [
             make_segment(text="Sentence one."),
@@ -69,7 +68,7 @@ class TestRenderSegments:
         assert render_segments([], "dictionary") == ""
         assert render_segments([], "narrative") == ""
 
-    def test_single_segment(self):
+    def test_single_segment(self, make_segment):
         seg = make_segment(text="Hello.")
         assert render_segments([seg], "dictionary") == "- Hello."
         assert render_segments([seg], "narrative") == "Hello."

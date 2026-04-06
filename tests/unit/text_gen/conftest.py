@@ -88,7 +88,7 @@ def schema(column_age, column_state, column_occupation, column_income):
 # ---------------------------------------------------------------------------
 
 
-def make_segment(
+def _make_segment(
     field="AGEP",
     display_name="age",
     value="51 years old",
@@ -116,10 +116,16 @@ def make_segment(
 
 
 @pytest.fixture
+def make_segment():
+    """Expose _make_segment as a pytest fixture."""
+    return _make_segment
+
+
+@pytest.fixture
 def sample_segments():
     """Three segments representing age, state, and occupation."""
     return [
-        make_segment(
+        _make_segment(
             field="AGEP",
             display_name="age",
             value="51 years old",
@@ -135,7 +141,7 @@ def sample_segments():
                 ],
             },
         ),
-        make_segment(
+        _make_segment(
             field="ST",
             display_name="state",
             value="New York",
@@ -148,7 +154,7 @@ def sample_segments():
                 "restatements": ["This person lives in {value}"],
             },
         ),
-        make_segment(
+        _make_segment(
             field="OCCP",
             display_name="occupation",
             value="Teacher",
@@ -229,6 +235,26 @@ def schema_yaml(tmp_path):
     with open(path, "w") as f:
         yaml.dump(schema_dict, f)
     return str(path)
+
+
+@pytest.fixture
+def narrative_template(tmp_path):
+    """Write the default narrative Jinja2 template and return its path."""
+    j2 = tmp_path / "default_narrative.j2"
+    j2.write_text(
+        "{# default_narrative.j2 — Generic narrative template for any dataset.\n"
+        "\n"
+        "   Receives a list of features, each with: field, display_name, value, type, unit.\n"
+        "   Produces one sentence per feature with natural phrasing.\n"
+        "#}\n"
+        "{% for feat in features -%}\n"
+        "{% if loop.first -%}\n"
+        "The respondent's {{ feat.display_name }} is {{ feat.value }}.\n"
+        "{%- else %} Their {{ feat.display_name }} is {{ feat.value }}.\n"
+        "{%- endif %}\n"
+        "{%- endfor %}\n"
+    )
+    return str(j2)
 
 
 @pytest.fixture
