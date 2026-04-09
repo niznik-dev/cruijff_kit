@@ -42,9 +42,7 @@ def shorthand_perturbation(
 
         # Replace the old value in the existing text,
         # preserving whatever format the template produced.
-        new_text = re.sub(
-            re.escape(seg.value), new_value, seg.text, count=1
-        )
+        new_text = re.sub(re.escape(seg.value), new_value, seg.text, count=1)
         result.append(
             Segment(
                 field=seg.field,

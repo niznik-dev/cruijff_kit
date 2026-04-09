@@ -28,9 +28,7 @@ def synonym_perturbation(
         new_name = rng.choice(synonyms)
         # Replace the old display name in the existing text,
         # preserving whatever format the template produced.
-        new_text = re.sub(
-            re.escape(seg.display_name), new_name, seg.text, count=1
-        )
+        new_text = re.sub(re.escape(seg.display_name), new_name, seg.text, count=1)
 
         result.append(
             Segment(
