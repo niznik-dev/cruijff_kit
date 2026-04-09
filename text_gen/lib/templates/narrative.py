@@ -3,17 +3,10 @@
 Produces prose that reads more naturally than a bulleted list, using
 Jinja2 templates that live in separate .j2 files for easy editing.
 
-Templates can define segment boundaries in two ways:
-
-1. **Period-splitting (default):** Each sentence becomes one Segment,
-   mapped 1:1 to features by index. Used by the built-in
-   ``default_narrative.j2`` and any template without ``|||`` markers.
-
-2. **Explicit delimiters:** Templates emit ``|||`` between segments.
-   Each delimited block becomes one Segment, allowing a single segment
-   to reference multiple features (e.g., "lived in {city} from {year1}
-   to {year2}"). The segment is tagged with the feature at the
-   corresponding index position.
+Templates must emit ``|||`` between segments. Each delimited block
+becomes one Segment, allowing a single segment to reference multiple
+features (e.g., "lived in {city} from {year1} to {year2}"). The
+segment is tagged with the feature at the corresponding index position.
 """
 
 from pathlib import Path
@@ -77,14 +70,7 @@ class NarrativeTemplate(BaseTemplate):
 
         rendered = self._template.render(features=feat_dicts).strip()
 
-        # Choose splitting strategy based on whether the template uses
-        # explicit ||| delimiters or relies on period-splitting.
-        if "|||" in rendered:
-            chunks = [c.strip() for c in rendered.split("|||") if c.strip()]
-        else:
-            # Legacy: split on "." — one sentence per feature.
-            raw = [s.strip() for s in rendered.split(".") if s.strip()]
-            chunks = [s + "." for s in raw]
+        chunks = [c.strip() for c in rendered.split("|||") if c.strip()]
 
         segments = []
         for i, chunk in enumerate(chunks):
@@ -118,10 +104,3 @@ class NarrativeTemplate(BaseTemplate):
                 )
 
         return segments
-
-    @staticmethod
-    def _format_value(raw_value: str, col_schema: ColumnSchema) -> str:
-        """Format a raw value with its unit if applicable."""
-        if col_schema.type == "numeric" and col_schema.unit:
-            return f"{raw_value} {col_schema.unit}"
-        return raw_value

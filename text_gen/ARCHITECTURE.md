@@ -319,10 +319,10 @@ Examples:
 
 ## Test Suite
 
-Tests live in `text_gen/tests/` and run with pytest:
+Tests live in `tests/unit/text_gen/` and run with pytest:
 
 ```bash
-cd text_gen/tests && python -m pytest -v
+cd tests/unit/text_gen/ && python -m pytest -v
 ```
 
 | Test file | Module under test | Test count |

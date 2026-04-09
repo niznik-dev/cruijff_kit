@@ -45,10 +45,3 @@ class DictionaryTemplate(BaseTemplate):
                 )
             )
         return segments
-
-    @staticmethod
-    def _format_value(raw_value: str, col_schema: ColumnSchema) -> str:
-        """Format a raw value with its unit if applicable."""
-        if col_schema.type == "numeric" and col_schema.unit:
-            return f"{raw_value} {col_schema.unit}"
-        return raw_value

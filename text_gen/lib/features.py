@@ -6,6 +6,7 @@ feature list, validates against the schema, and returns ordered
 """
 
 import logging
+import math
 
 from .schema import ColumnSchema, Schema
 
@@ -46,7 +47,7 @@ def _is_missing(raw_value) -> bool:
     """Return True if raw_value represents a missing/NaN value."""
     if raw_value is None:
         return True
-    if isinstance(raw_value, float) and raw_value != raw_value:
+    if isinstance(raw_value, float) and math.isnan(raw_value):
         return True
     if isinstance(raw_value, str) and (raw_value.lower() == "nan" or raw_value == ""):
         return True

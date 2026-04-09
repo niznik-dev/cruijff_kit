@@ -4,6 +4,7 @@ Replaces full-form values with abbreviated forms (or vice versa)
 using the column's shorthand_map.
 """
 
+import re
 import random
 
 from ..segments import Segment
@@ -39,7 +40,11 @@ def shorthand_perturbation(
             result.append(seg)
             continue
 
-        new_text = f"The {seg.display_name} is: {new_value}."
+        # Replace the old value in the existing text,
+        # preserving whatever format the template produced.
+        new_text = re.sub(
+            re.escape(seg.value), new_value, seg.text, count=1
+        )
         result.append(
             Segment(
                 field=seg.field,

@@ -205,17 +205,23 @@ def split_dataframe(
 def load_condition_from_file(conditions_file: str, condition_name: str) -> dict:
     """Load a single condition's config from a conditions YAML file."""
     with open(conditions_file) as f:
-        conditions = yaml.safe_load(f)
+        raw = yaml.safe_load(f)
 
-    if condition_name not in conditions.get("conditions", conditions):
-        available = list(conditions.get("conditions", conditions).keys())
+    if not isinstance(raw, dict) or "conditions" not in raw:
+        raise ValueError(
+            f"Conditions file {conditions_file} must have a top-level "
+            f"'conditions:' key."
+        )
+
+    conditions = raw["conditions"]
+    if condition_name not in conditions:
+        available = list(conditions.keys())
         raise ValueError(
             f"Condition '{condition_name}' not found in {conditions_file}. "
             f"Available: {available}"
         )
 
-    data = conditions.get("conditions", conditions)
-    return data[condition_name]
+    return conditions[condition_name]
 
 
 def main(argv: list[str] | None = None):
@@ -241,6 +247,14 @@ def main(argv: list[str] | None = None):
         perturbation_names = [
             p.strip() for p in args.perturbations.split(",") if p.strip()
         ]
+
+    # Guardrail: perturbations are not supported with llm_narrative
+    if template_type == "llm_narrative" and perturbation_names:
+        logger.error(
+            "Perturbations cannot be applied with llm_narrative template. "
+            "LLM-generated text does not produce per-feature segments."
+        )
+        sys.exit(1)
 
     # Parse target mapping if provided
     target_mapping = None

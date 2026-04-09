@@ -1,9 +1,10 @@
 """Synonym substitution perturbation.
 
 For each Segment, randomly selects an alternative display name from
-the column's synonyms list and re-renders the segment text.
+the column's synonyms list and replaces it in the segment text.
 """
 
+import re
 import random
 
 from ..segments import Segment
@@ -25,8 +26,11 @@ def synonym_perturbation(
             continue
 
         new_name = rng.choice(synonyms)
-        # Re-render text with the new display name
-        new_text = f"The {new_name} is: {seg.value}."
+        # Replace the old display name in the existing text,
+        # preserving whatever format the template produced.
+        new_text = re.sub(
+            re.escape(seg.display_name), new_name, seg.text, count=1
+        )
 
         result.append(
             Segment(
