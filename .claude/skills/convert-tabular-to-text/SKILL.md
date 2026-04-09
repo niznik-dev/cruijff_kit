@@ -130,28 +130,32 @@ Also gather shared settings:
 
 ## Step 5: Determine Which Files to Generate
 
-**If an `experiment_summary.yaml` exists:** Scan the runs list to determine which (condition x split) pairs are needed:
+**If an `experiment_summary.yaml` exists:** Scan the runs list and evaluation matrix to determine which files are needed:
 
-- Training runs need `{train_condition}_train_s{seed}.json`
-- Evaluation runs need `{eval_condition}_test_s{seed}.json`
-- Deduplicate — multiple runs may share the same train or test file
+- **Training conditions** need `{train_condition}_train_s{seed}.json`. The file contains both `"train"` and `"validation"` top-level keys — `convert.py` generates the bundle in a single invocation when passed `--split train` alongside `--validation-ratio`.
+- **Evaluation conditions** need a separate test file: `{eval_condition}_test_s{seed}.json`. This file contains only the `"test"` key.
+- **Deduplicate:** multiple runs may share the same train or test file.
 
-**If standalone:** Ask the user which splits to generate for each condition.
+**If standalone:** Ask the user which conditions are used for training vs evaluation, and confirm `split_ratio` and `validation_ratio`.
 
 Report the plan:
 ```
-Files to generate:
-  1. dict_full_train_s42.json      (train split, 80% of source)
-  2. dict_full_test_s42.json       (test split, 20% of source)
-  3. dict_synonym_test_s42.json    (test split, 20% of source)
-  4. narrative_reduced_test_s42.json (test split, 20% of source)
+Files to generate (70% train / 10% validation / 20% test):
+  Training conditions (bundled train + validation):
+    1. dict_full_train_s42.json       {"train": ~7k rows, "validation": ~1k rows}
+  Evaluation files (test only):
+    2. dict_full_test_s42.json        {"test": ~2k rows}
+    3. dict_synonym_test_s42.json     {"test": ~2k rows}
+    4. narrative_reduced_test_s42.json {"test": ~2k rows}
 ```
 
 Get user confirmation before proceeding.
 
 ## Step 6: Generate Datasets
 
-For each (condition x split) pair, call `convert.py`:
+For each file in the plan from Step 5, call `convert.py`:
+
+**Per training condition** (one invocation produces the bundled train+validation file):
 
 ```bash
 cd {cruijff_kit_path} && python -m text_gen.convert \
@@ -166,14 +170,42 @@ cd {cruijff_kit_path} && python -m text_gen.convert \
   --context "{context_text}" \
   --context-placement {placement} \
   --question "{question_text}" \
-  --split {split} \
+  --split train \
   --split-ratio {split_ratio} \
+  --validation-ratio {validation_ratio} \
   --seed {seed} \
   --subsampling-ratio {subsampling_ratio} \
   --missing-value-handling {missing_value_handling} \
   --missing-value-text "{missing_value_text}" \
-  --output {scratch_dir}/ck-data/generated/{condition_name}_{split}_s{seed}.json
+  --output {scratch_dir}/ck-data/generated/{condition_name}_train_s{seed}.json
 ```
+
+**Per evaluation-only condition** (test-only file):
+
+```bash
+cd {cruijff_kit_path} && python -m text_gen.convert \
+  --source {source_path} \
+  --schema {schema_path} \
+  --condition-name {condition_name} \
+  --features {comma_separated_features} \
+  --template {template_type} \
+  --perturbations {comma_separated_perturbations} \
+  --target-column {target_column} \
+  --target-threshold {threshold} \
+  --context "{context_text}" \
+  --context-placement {placement} \
+  --question "{question_text}" \
+  --split test \
+  --split-ratio {split_ratio} \
+  --validation-ratio {validation_ratio} \
+  --seed {seed} \
+  --subsampling-ratio {subsampling_ratio} \
+  --missing-value-handling {missing_value_handling} \
+  --missing-value-text "{missing_value_text}" \
+  --output {scratch_dir}/ck-data/generated/{condition_name}_test_s{seed}.json
+```
+
+**For a condition that is used for BOTH training and evaluation**, call `convert.py` twice: once with `--split train` (bundled file) and once with `--split test` (test-only file). Both invocations must share the same `--seed`, `--split-ratio`, `--validation-ratio`, and `--subsampling-ratio` so they operate on the same deterministic split — use a shared argument set and only differ in `--split` and `--output`.
 
 For one-to-many expansion (e.g., multiple reorderings per row), add `--one-to-many-copies {N} --one-to-many-perturbation {perturbation}`. The one_to_many perturbation must not also appear in `--perturbations`.
 

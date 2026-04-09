@@ -46,9 +46,10 @@ Experiment-specific `data_generation` block; requires a schema.yaml to exist for
 - `emit_source_parquet`: when `true`, will also release a parquet sidecar file with the subsampled rows used to create the respective train/test json files. 
     - `emit_source_parquet_condition`: the condition name (in the case that there are multiple evaluation datasets) that we want the parquet data to match; for example, when changing data representation formats, the underlying tabular rows will be the same across the json files. 
 
-#### Training specific arguments
+#### Fine-tuning specific arguments
 
-- `split_ratio`: train split (0.8 = 80% of dataset used for training, 20% saved for evaluation step)
+- `split_ratio`: train split for fine-tuning (0.8 = 80% of dataset used for training)
+- `validation_ratio`: validation split (0.1 = 10% of dataset used for validation; remaining 10% for evaluation)
 - `seed`: when specified, ensures reproducibility because of subsampling and test/train split + random selection of perturbations (i.e., synonyms, reordering)
 - `subsampling_ratio`: when 1, will include the whole dataset; otherwise, will do a random sample of that ratio of rows
 

@@ -105,6 +105,33 @@ context_placement: "preamble"  # or "system_prompt"
 
 **Ask:** "What context/preamble should accompany each data entry? Should it appear as a preamble in the text or as the system prompt?"
 
+## Train/Validation/Test Splits
+
+When fine-tuning, the `data_generation` block must specify both `split_ratio` (train fraction) and `validation_ratio` (validation fraction). The test fraction is implicit: `1 - split_ratio - validation_ratio`.
+
+```yaml
+data_generation:
+  split_ratio: 0.7           # 70% train
+  validation_ratio: 0.1      # 10% validation
+  # test is implicit: 1 - 0.7 - 0.1 = 0.2 = 20% test
+  seed: 42
+```
+
+### Bundled file layout
+
+`convert-tabular-to-text` emits **two files per training-related condition**:
+
+```
+{condition}_train_s{seed}.json   ->  {"train": [...], "validation": [...]}
+{condition}_test_s{seed}.json    ->  {"test": [...]}
+```
+
+The training file bundles **both** the train and validation slices under their respective top-level keys. The test file stands alone. For conditions used only in the evaluation matrix (not for training), only the test file is generated.
+
+### How it splits
+
+`split_dataframe()` in `text_gen/convert.py` shuffles row indices under `random.Random(seed)` and slices deterministically: `[0:train_end]` for train, `[train_end:val_end]` for validation, `[val_end:]` for test. The same seed + ratios produce the same row assignment across conditions, so a row that lands in validation for `dict_full` lands in validation for `narr_full` too — critical for clean cross-condition comparisons.
+
 ## Subsampling
 
 Use `subsampling_ratio` to work with a fraction of the source data. Useful for large datasets where using all rows would be impractical or unnecessary.

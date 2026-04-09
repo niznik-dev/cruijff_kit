@@ -190,6 +190,79 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def render_entries(
+    split_df,
+    *,
+    features,
+    schema,
+    template,
+    template_type,
+    perturbation_names,
+    chain,
+    one_to_many,
+    otm_chain,
+    target_column: str,
+    target_threshold,
+    target_mapping,
+    context: str,
+    context_placement: str,
+    question: str,
+    missing_value_handling: str,
+    missing_value_text: str,
+) -> list[dict]:
+    """Render a DataFrame slice into JSON entries.
+
+    Walks every row of split_df, selects features, applies perturbations,
+    expands one-to-many copies, and builds the final output entries.
+    """
+    n_copies = one_to_many["copies"] if one_to_many else 1
+    entries: list[dict] = []
+    for row_idx, (_, row) in enumerate(split_df.iterrows()):
+        row_dict = row.to_dict()
+
+        feature_pairs = select_features(
+            row_dict,
+            features,
+            schema,
+            missing_value_handling=missing_value_handling,
+            missing_value_text=missing_value_text,
+        )
+
+        segments = template.render_row(feature_pairs, schema)
+
+        if perturbation_names:
+            segments = apply_perturbations(segments, chain, row_idx)
+
+        target_value = row_dict.get(target_column)
+        if target_value is None:
+            raise ValueError(
+                f"Target column '{target_column}' not found in row {row_idx}"
+            )
+
+        for copy_idx in range(n_copies):
+            if otm_chain:
+                copy_segments = apply_perturbations(
+                    segments, otm_chain, row_idx * n_copies + copy_idx
+                )
+            else:
+                copy_segments = segments
+
+            body_text = render_segments(copy_segments, template_type)
+
+            entry = build_output_entry(
+                body_text=body_text,
+                context=context,
+                context_placement=context_placement,
+                question=question,
+                target_value=target_value,
+                target_threshold=target_threshold,
+                target_mapping=target_mapping,
+            )
+            entries.append(entry)
+
+    return entries
+
+
 def split_dataframe(
     df, seed: int, split: str, split_ratio: float, validation_ratio: float | None
 ):
@@ -416,67 +489,55 @@ def main(argv: list[str] | None = None):
     )
     chain = build_perturbation_chain(perturbation_names, seed=args.seed)
 
-    # One-to-many setup
-    n_copies = one_to_many["copies"] if one_to_many else 1
+    # One-to-many setup (n_copies is read inside render_entries from one_to_many)
     otm_chain = None
     if one_to_many:
         otm_chain = build_perturbation_chain(
             [one_to_many["perturbation"]], seed=args.seed
         )
 
-    # Process each row
-    entries = []
-    for row_idx, (_, row) in enumerate(split_df.iterrows()):
-        row_dict = row.to_dict()
+    # Shared per-row rendering kwargs.
+    render_kwargs = dict(
+        features=features,
+        schema=schema,
+        template=template,
+        template_type=template_type,
+        perturbation_names=perturbation_names,
+        chain=chain,
+        one_to_many=one_to_many,
+        otm_chain=otm_chain,
+        target_column=args.target_column,
+        target_threshold=args.target_threshold,
+        target_mapping=target_mapping,
+        context=args.context,
+        context_placement=args.context_placement,
+        question=args.question,
+        missing_value_handling=args.missing_value_handling,
+        missing_value_text=args.missing_value_text,
+    )
 
-        # Select features
-        feature_pairs = select_features(
-            row_dict,
-            features,
-            schema,
-            missing_value_handling=args.missing_value_handling,
-            missing_value_text=args.missing_value_text,
+    # Render the primary split
+    entries = render_entries(split_df, **render_kwargs)
+
+    # Train-evaluation bundling: when --split train is requested alongside
+    # --validation-ratio, emit a single JSON file containing BOTH the train
+    # and validation slices under their respective top-level keys:
+    #     {"train": [...], "validation": [...]}
+    extra_splits: dict[str, list[dict]] = {}
+    if args.split == "train" and args.validation_ratio is not None:
+        val_df = split_dataframe(
+            df, args.seed, "validation", args.split_ratio, args.validation_ratio
         )
-
-        # Render to segments via template
-        segments = template.render_row(feature_pairs, schema)
-
-        # Apply top-level perturbations (same for all copies)
-        if perturbation_names:
-            segments = apply_perturbations(segments, chain, row_idx)
-
-        # Get target value (same for all copies)
-        target_value = row_dict.get(args.target_column)
-        if target_value is None:
-            raise ValueError(
-                f"Target column '{args.target_column}' not found in row {row_idx}"
-            )
-
-        # Generate one or more copies
-        for copy_idx in range(n_copies):
-            if otm_chain:
-                copy_segments = apply_perturbations(
-                    segments, otm_chain, row_idx * n_copies + copy_idx
-                )
-            else:
-                copy_segments = segments
-
-            body_text = render_segments(copy_segments, template_type)
-
-            entry = build_output_entry(
-                body_text=body_text,
-                context=args.context,
-                context_placement=args.context_placement,
-                question=args.question,
-                target_value=target_value,
-                target_threshold=args.target_threshold,
-                target_mapping=target_mapping,
-            )
-            entries.append(entry)
+        logger.info(
+            "Bundling validation split into train file: %d validation rows",
+            len(val_df),
+        )
+        extra_splits["validation"] = render_entries(val_df, **render_kwargs)
 
     # Write output
-    logger.info("Writing %d entries to %s", len(entries), args.output)
-    write_output(entries, args.output, args.split)
+    total_entries = len(entries) + sum(len(v) for v in extra_splits.values())
+    logger.info("Writing %d entries to %s", total_entries, args.output)
+    write_output(entries, args.output, args.split, extra_splits=extra_splits or None)
 
     # Build target config for metadata
     target_config = {"column": args.target_column}
@@ -485,14 +546,15 @@ def main(argv: list[str] | None = None):
     if target_mapping is not None:
         target_config["mapping"] = target_mapping
 
-    # Write metadata sidecar
+    # Write metadata sidecar. row_count is the total entry count across all
+    # splits in the file, so a bundled train+validation file reports the sum.
     write_metadata(
         output_path=args.output,
         condition_name=args.condition_name,
         split=args.split,
         seed=args.seed,
         split_ratio=args.split_ratio,
-        row_count=len(entries),
+        row_count=total_entries,
         source_path=os.path.abspath(args.source),
         source_rows_total=source_rows_total,
         schema_path=os.path.abspath(args.schema),
@@ -505,6 +567,7 @@ def main(argv: list[str] | None = None):
         question=args.question,
         template_file=args.template_file,
         one_to_many=one_to_many,
+        extra_splits={k: len(v) for k, v in extra_splits.items()} or None,
     )
     logger.info("Done. Output: %s", args.output)
 

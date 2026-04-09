@@ -552,6 +552,100 @@ class TestEndToEnd:
         assert "PINCP" in parquet_df.columns
         assert "AGEP" in parquet_df.columns
 
+    def test_bundled_train_and_validation(self, tmp_path, sample_csv, schema_yaml):
+        """--split train + --validation-ratio bundles both splits in one JSON file.
+
+        The output file should contain BOTH "train" and "validation" top-level
+        keys.
+        """
+        output_path = str(tmp_path / "bundled.json")
+        main(
+            [
+                "--source",
+                sample_csv,
+                "--schema",
+                schema_yaml,
+                "--condition-name",
+                "bundled_cond",
+                "--features",
+                "AGEP,ST,OCCP",
+                "--template",
+                "dictionary",
+                "--target-column",
+                "PINCP",
+                "--target-threshold",
+                "50000",
+                "--split",
+                "train",
+                "--split-ratio",
+                "0.6",
+                "--validation-ratio",
+                "0.2",
+                "--seed",
+                "42",
+                "--output",
+                output_path,
+            ]
+        )
+        with open(output_path) as f:
+            data = json.load(f)
+        assert set(data.keys()) == {"train", "validation"}
+        # 5 rows total * 0.6 train = 3, * 0.2 val = 1, so the file has 3 + 1 = 4 entries
+        assert len(data["train"]) == 3
+        assert len(data["validation"]) == 1
+        for entry in data["train"] + data["validation"]:
+            assert "input" in entry
+            assert "output" in entry
+            assert entry["output"] in ("0", "1")
+
+        # Metadata should record the bundled layout
+        with open(output_path.replace(".json", ".meta.json")) as f:
+            meta = json.load(f)
+        assert meta["split"] == "train"
+        assert meta["row_count"] == 4  # train + validation combined
+        assert meta["extra_splits"] == {"validation": 1}
+
+    def test_test_split_not_bundled(self, tmp_path, sample_csv, schema_yaml):
+        """--split test with --validation-ratio emits ONLY the test split.
+
+        The test file is a separate artifact from the training+validation
+        bundle, so the validation slice must not leak into the test file.
+        """
+        output_path = str(tmp_path / "test_only.json")
+        main(
+            [
+                "--source",
+                sample_csv,
+                "--schema",
+                schema_yaml,
+                "--condition-name",
+                "test_only",
+                "--features",
+                "AGEP,ST,OCCP",
+                "--template",
+                "dictionary",
+                "--target-column",
+                "PINCP",
+                "--target-threshold",
+                "50000",
+                "--split",
+                "test",
+                "--split-ratio",
+                "0.6",
+                "--validation-ratio",
+                "0.2",
+                "--seed",
+                "42",
+                "--output",
+                output_path,
+            ]
+        )
+        with open(output_path) as f:
+            data = json.load(f)
+        assert set(data.keys()) == {"test"}
+        # 5 * (1 - 0.6 - 0.2) = 1 test row
+        assert len(data["test"]) == 1
+
     def test_emit_source_parquet_deterministic(self, tmp_path, sample_csv, schema_yaml):
         """Same seed produces identical parquet rows across invocations."""
         p1 = str(tmp_path / "p1.parquet")

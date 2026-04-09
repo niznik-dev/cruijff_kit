@@ -82,13 +82,13 @@ data:
     context: string                # Preamble/system prompt text
     context_placement: string      # "preamble" or "system_prompt"
     question: string               # Question appended to each entry
-    split_ratio: float             # Train fraction (e.g., 0.8)
-    seed: int                      # Random seed (must be same for all conditions)
-    subsampling_ratio: float       # OPTIONAL: Fraction of source rows to use (e.g., 0.33 for 33%)
-    missing_value_handling: string # OPTIONAL: "skip" (default) or "include" — how to handle NaN/missing feature values
+    split_ratio: float             # REQUIRED: Train fraction of the 3-way split (e.g., 0.7).
+    validation_ratio: float        # REQUIRED: Validation fraction of the 3-way split (e.g., 0.1).
+    seed: int                      # REQUIRED: Random seed (must be same for all conditions)
+    subsampling_ratio: float       # OPTIONAL: Fraction of source rows to use (e.g., 0.33 for 33%); default 1
+    missing_value_handling: string # OPTIONAL: "skip" (default) or "include" NaN covariate values
     missing_value_text: string     # OPTIONAL: Text for missing values when handling is "include" (default: "missing")
-    emit_source_parquet: bool      # OPTIONAL: Write a parquet sidecar of each
-                                   #   split's post-subsample, post-split source DataFrame
+    emit_source_parquet: bool      # OPTIONAL: Write a parquet sidecar of each subsampled DataFrame
     emit_source_parquet_condition: string  # OPTIONAL (REQUIRED if emit_source_parquet: true):
                                    #   Name of a single canonical condition to emit the parquet from.
 

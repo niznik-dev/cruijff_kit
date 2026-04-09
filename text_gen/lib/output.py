@@ -93,13 +93,26 @@ def write_output(
     entries: list[dict],
     output_path: str,
     split: str,
+    extra_splits: dict[str, list[dict]] | None = None,
 ) -> None:
     """Write the final JSON file.
 
     Wraps entries under the split key, e.g.:
         {"train": [{...}, {...}]}
+
+    If extra_splits is provided, its entries are merged into the same file
+    under additional top-level keys. This is used to bundle training and validation slices
+    into a single file: {"train": [...], "validation": [...]}
     """
     data = {split: entries}
+    if extra_splits:
+        for extra_split_name, extra_entries in extra_splits.items():
+            if extra_split_name == split:
+                raise ValueError(
+                    f"extra_splits key {extra_split_name!r} collides with "
+                    f"primary split {split!r}"
+                )
+            data[extra_split_name] = extra_entries
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(data, f, indent=2)
@@ -124,6 +137,7 @@ def write_metadata(
     question: str,
     template_file: str | None = None,
     one_to_many: dict | None = None,
+    extra_splits: dict[str, int] | None = None,
 ) -> None:
     """Write the .meta.json sidecar file alongside the output."""
     meta_path = output_path.replace(".json", ".meta.json")
@@ -155,6 +169,12 @@ def write_metadata(
 
     if one_to_many:
         metadata["one_to_many"] = one_to_many
+
+    if extra_splits:
+        # When the output JSON bundles multiple splits (e.g. train+validation),
+        # record the row count of each additional split here. The top-level
+        # row_count field reflects the total across all splits in the file.
+        metadata["extra_splits"] = extra_splits
 
     with open(meta_path, "w") as f:
         json.dump(metadata, f, indent=2)
