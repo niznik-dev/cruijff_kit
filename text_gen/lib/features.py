@@ -8,7 +8,7 @@ feature list, validates against the schema, and returns ordered
 import logging
 import math
 
-from .schema import ColumnSchema, Schema
+from .schema import ColumnSchema, Schema, canonicalize_key
 
 logger = logging.getLogger(__name__)
 
@@ -82,8 +82,11 @@ def select_features(
             raw_value = missing_value_text
         else:
             raw_value = str(raw_value)
-        # Decode via value_map if available
+        # Decode via value_map if available. Canonicalize the lookup key
+        # so that source dtypes (int, float, zero-padded string) match the
+        # canonicalized keys stored at schema-load time.
         if col_schema.value_map:
-            raw_value = col_schema.value_map.get(raw_value, raw_value)
+            lookup_key = canonicalize_key(raw_value)
+            raw_value = col_schema.value_map.get(lookup_key, raw_value)
         result.append((col_schema, raw_value))
     return result

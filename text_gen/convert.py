@@ -138,6 +138,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     # Output
     parser.add_argument("--output", required=True, help="Output JSON file path")
+    parser.add_argument(
+        "--emit-source-parquet",
+        help="Optional path to also write the post-subsample, post-split source "
+        "DataFrame as a parquet file. Rows are in 1:1 correspondence with the "
+        "JSON entries (same seed/subsample/split). All original source columns "
+        "are preserved, including the target column, which is useful for "
+        "training downstream comparison models (e.g., logistic regression) on "
+        "the same rows.",
+    )
 
     # Missing value handling
     parser.add_argument(
@@ -152,6 +161,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="missing",
         help="Text to use for missing values when --missing-value-handling is 'include' "
         "(default: 'missing')",
+    )
+
+    # One-to-many expansion
+    parser.add_argument(
+        "--one-to-many-copies",
+        type=int,
+        default=None,
+        help="Number of copies per row (each with a different application "
+        "of --one-to-many-perturbation)",
+    )
+    parser.add_argument(
+        "--one-to-many-perturbation",
+        default=None,
+        help="Perturbation to apply differently per copy (e.g., 'reorder')",
     )
 
     # LLM narrative options
@@ -238,6 +261,7 @@ def main(argv: list[str] | None = None):
         features = condition.get("features", [])
         template_type = condition.get("template", "dictionary")
         perturbation_names = condition.get("perturbations", [])
+        one_to_many = condition.get("one_to_many")
     else:
         if not args.features:
             logger.error("Either --features or --conditions-file is required")
@@ -247,6 +271,17 @@ def main(argv: list[str] | None = None):
         perturbation_names = [
             p.strip() for p in args.perturbations.split(",") if p.strip()
         ]
+        # Build one_to_many config from CLI args
+        if (
+            args.one_to_many_copies is not None
+            or args.one_to_many_perturbation is not None
+        ):
+            one_to_many = {
+                "copies": args.one_to_many_copies,
+                "perturbation": args.one_to_many_perturbation,
+            }
+        else:
+            one_to_many = None
 
     # Guardrail: perturbations are not supported with llm_narrative
     if template_type == "llm_narrative" and perturbation_names:
@@ -255,6 +290,44 @@ def main(argv: list[str] | None = None):
             "LLM-generated text does not produce per-feature segments."
         )
         sys.exit(1)
+
+    # Validate one_to_many configuration
+    if one_to_many:
+        otm_copies = one_to_many.get("copies")
+        otm_perturbation = one_to_many.get("perturbation")
+
+        if otm_copies is None or otm_perturbation is None:
+            logger.error(
+                "one_to_many requires both 'copies' and 'perturbation' to be set."
+            )
+            sys.exit(1)
+
+        if otm_copies < 1:
+            logger.error("one_to_many.copies must be >= 1, got %d", otm_copies)
+            sys.exit(1)
+
+        from text_gen.lib.perturbations.engine import PERTURBATION_REGISTRY
+
+        if otm_perturbation not in PERTURBATION_REGISTRY:
+            available = ", ".join(sorted(PERTURBATION_REGISTRY.keys()))
+            logger.error(
+                "Unknown one_to_many perturbation: '%s'. Available: %s",
+                otm_perturbation,
+                available,
+            )
+            sys.exit(1)
+
+        if otm_perturbation in perturbation_names:
+            logger.error(
+                "one_to_many perturbation '%s' must not also appear in "
+                "top-level perturbations.",
+                otm_perturbation,
+            )
+            sys.exit(1)
+
+        if template_type == "llm_narrative":
+            logger.error("one_to_many is not supported with llm_narrative template.")
+            sys.exit(1)
 
     # Parse target mapping if provided
     target_mapping = None
@@ -266,6 +339,29 @@ def main(argv: list[str] | None = None):
     df = read_tabular(args.source)
     source_rows_total = len(df)
     logger.info("Loaded %d rows", source_rows_total)
+
+    # Drop rows with a missing target value. This must happen BEFORE
+    # subsampling so that (a) the subsample draws only from usable rows and
+    # (b) JSON entries and the optional source-parquet sidecar stay in 1:1
+    # correspondence (no row-dropping happens in the render loop below).
+    if args.target_column not in df.columns:
+        logger.error(
+            "Target column '%s' not found in source data. "
+            "Available columns (first 20): %s",
+            args.target_column,
+            list(df.columns)[:20],
+        )
+        sys.exit(1)
+    pre_drop = len(df)
+    df = df.dropna(subset=[args.target_column]).reset_index(drop=True)
+    dropped_target = pre_drop - len(df)
+    if dropped_target > 0:
+        logger.info(
+            "Dropped %d rows with missing target '%s' (%.2f%% of source)",
+            dropped_target,
+            args.target_column,
+            100 * dropped_target / pre_drop,
+        )
 
     # Subsample if requested
     if args.subsampling_ratio is not None:
@@ -299,6 +395,18 @@ def main(argv: list[str] | None = None):
     )
     logger.info("Split '%s': %d rows", args.split, len(split_df))
 
+    # Optionally emit the source parquet for this split
+    if args.emit_source_parquet:
+        parquet_path = args.emit_source_parquet
+        os.makedirs(os.path.dirname(os.path.abspath(parquet_path)), exist_ok=True)
+        split_df.to_parquet(parquet_path, index=False)
+        logger.info(
+            "Wrote source parquet for split '%s' (%d rows): %s",
+            args.split,
+            len(split_df),
+            parquet_path,
+        )
+
     # Initialize template and perturbation chain
     template = get_template(
         template_type,
@@ -307,6 +415,14 @@ def main(argv: list[str] | None = None):
         style_guidance=args.style_guidance,
     )
     chain = build_perturbation_chain(perturbation_names, seed=args.seed)
+
+    # One-to-many setup
+    n_copies = one_to_many["copies"] if one_to_many else 1
+    otm_chain = None
+    if one_to_many:
+        otm_chain = build_perturbation_chain(
+            [one_to_many["perturbation"]], seed=args.seed
+        )
 
     # Process each row
     entries = []
@@ -325,31 +441,38 @@ def main(argv: list[str] | None = None):
         # Render to segments via template
         segments = template.render_row(feature_pairs, schema)
 
-        # Apply perturbations
+        # Apply top-level perturbations (same for all copies)
         if perturbation_names:
             segments = apply_perturbations(segments, chain, row_idx)
 
-        # Render segments to text
-        body_text = render_segments(segments, template_type)
-
-        # Get target value
+        # Get target value (same for all copies)
         target_value = row_dict.get(args.target_column)
         if target_value is None:
             raise ValueError(
                 f"Target column '{args.target_column}' not found in row {row_idx}"
             )
 
-        # Build output entry
-        entry = build_output_entry(
-            body_text=body_text,
-            context=args.context,
-            context_placement=args.context_placement,
-            question=args.question,
-            target_value=target_value,
-            target_threshold=args.target_threshold,
-            target_mapping=target_mapping,
-        )
-        entries.append(entry)
+        # Generate one or more copies
+        for copy_idx in range(n_copies):
+            if otm_chain:
+                copy_segments = apply_perturbations(
+                    segments, otm_chain, row_idx * n_copies + copy_idx
+                )
+            else:
+                copy_segments = segments
+
+            body_text = render_segments(copy_segments, template_type)
+
+            entry = build_output_entry(
+                body_text=body_text,
+                context=args.context,
+                context_placement=args.context_placement,
+                question=args.question,
+                target_value=target_value,
+                target_threshold=args.target_threshold,
+                target_mapping=target_mapping,
+            )
+            entries.append(entry)
 
     # Write output
     logger.info("Writing %d entries to %s", len(entries), args.output)
@@ -381,6 +504,7 @@ def main(argv: list[str] | None = None):
         context_placement=args.context_placement,
         question=args.question,
         template_file=args.template_file,
+        one_to_many=one_to_many,
     )
     logger.info("Done. Output: %s", args.output)
 

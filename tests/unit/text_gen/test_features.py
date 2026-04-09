@@ -102,3 +102,55 @@ class TestSelectFeatures:
         row = {"SEX": "9"}
         result = select_features(row, ["SEX"], schema)
         assert result[0][1] == "9"
+
+    def test_value_map_canonicalizes_float_keys(self, tmp_path):
+        """Schema with float keys (1.0:, 14.0:) matches int-string source values."""
+        from text_gen.lib.schema import Schema
+
+        schema_path = tmp_path / "schema.yaml"
+        schema_path.write_text(
+            "dataset: {name: T, description: t}\n"
+            "columns:\n"
+            "  COW:\n"
+            "    display_name: class of worker\n"
+            "    type: categorical\n"
+            "    value_map:\n"
+            "      1.0: Private for-profit\n"
+            "      14.0: Unpaid family worker\n"
+        )
+        schema = Schema.from_yaml(str(schema_path))
+
+        # Source delivers COW as int-string (pyarrow/parquet default)
+        row = {"COW": "1"}
+        result = select_features(row, ["COW"], schema)
+        assert result[0][1] == "Private for-profit"
+
+        row = {"COW": "14"}
+        result = select_features(row, ["COW"], schema)
+        assert result[0][1] == "Unpaid family worker"
+
+    def test_value_map_canonicalizes_zero_padded_keys(self, tmp_path):
+        """Schema with int keys (8: Colorado) matches zero-padded source values ('08')."""
+        from text_gen.lib.schema import Schema
+
+        schema_path = tmp_path / "schema.yaml"
+        schema_path.write_text(
+            "dataset: {name: T, description: t}\n"
+            "columns:\n"
+            "  ST:\n"
+            "    display_name: state\n"
+            "    type: categorical\n"
+            "    value_map:\n"
+            "      8: Colorado\n"
+            "      48: Texas\n"
+        )
+        schema = Schema.from_yaml(str(schema_path))
+
+        # Source delivers ST as zero-padded strings ("08", "48")
+        row = {"ST": "08"}
+        result = select_features(row, ["ST"], schema)
+        assert result[0][1] == "Colorado"
+
+        row = {"ST": "48"}
+        result = select_features(row, ["ST"], schema)
+        assert result[0][1] == "Texas"

@@ -278,3 +278,25 @@ def conditions_yaml(tmp_path):
     with open(path, "w") as f:
         yaml.dump(conditions, f)
     return str(path)
+
+
+@pytest.fixture
+def conditions_yaml_otm(tmp_path):
+    """Write a conditions YAML file with one_to_many config and return its path."""
+    conditions = {
+        "conditions": {
+            "dict_reordered_x3": {
+                "features": ["AGEP", "ST", "OCCP"],
+                "template": "dictionary",
+                "perturbations": [],
+                "one_to_many": {
+                    "copies": 3,
+                    "perturbation": "reorder",
+                },
+            },
+        },
+    }
+    path = tmp_path / "conditions_otm.yaml"
+    with open(path, "w") as f:
+        yaml.dump(conditions, f)
+    return str(path)

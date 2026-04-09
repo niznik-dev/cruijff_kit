@@ -175,11 +175,17 @@ cd {cruijff_kit_path} && python -m text_gen.convert \
   --output {scratch_dir}/ck-data/generated/{condition_name}_{split}_s{seed}.json
 ```
 
+For one-to-many expansion (e.g., multiple reorderings per row), add `--one-to-many-copies {N} --one-to-many-perturbation {perturbation}`. The one_to_many perturbation must not also appear in `--perturbations`.
+
 For narrative templates with a custom template file, add `--template-file {path}`.
 
 For categorical target mappings, use `--target-mapping '{json_string}'` instead of `--target-threshold`.
 
 For LLM narrative mode, add `--cache-path {scratch_dir}/ck-data/generated/.llm_cache/{condition_name}.json` and `--style-guidance "{user's style instructions}"` (if provided in Step 2b).
+
+For experiments that want a parquet sidecar of the underlying source rows (e.g., to train a competing baseline model on the same train/test splits), add `--emit-source-parquet {scratch_dir}/ck-data/generated/{condition_name}_{split}_s{seed}.parquet`. This writes the post-subsample, post-split DataFrame — all original source columns (including the target) — with rows in 1:1 correspondence with the JSON entries. Trigger via `data_generation.emit_source_parquet: true` in experiment_summary.yaml.
+
+- **Only emit from one condition per split.** All conditions in an experiment share the same underlying `split_df` (same seed, subsample, split_ratio), so emitting the parquet from every condition would write redundant copies. Pick a canonical condition (typically the first, or a dictionary-format one) and pass `--emit-source-parquet` only on its train and test invocations. Leave the flag off for the other conditions.
 
 **Important:** Use the same `--seed` for all conditions in an experiment so they operate on the same underlying data rows.
 

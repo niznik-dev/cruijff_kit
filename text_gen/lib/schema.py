@@ -13,6 +13,28 @@ import yaml
 from .readers import read_tabular
 
 
+def canonicalize_key(value) -> str:
+    """Canonicalize a value into a lookup key.
+
+    Numeric-like values (ints, floats, numeric strings including ones with
+    leading zeros like "08") are reduced to their integer-string form when
+    they have no fractional part: 1.0 -> "1", 8 -> "8", "08" -> "8". Fractional
+    floats become their float string. Non-numeric values pass through str().
+
+    This is applied symmetrically to schema value_map keys at load time and
+    to row values at lookup time, so that downstream lookups succeed
+    regardless of how the source file's dtype represents categorical codes
+    (int64, float64, zero-padded string, etc.).
+    """
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if f.is_integer():
+        return str(int(f))
+    return str(f)
+
+
 @dataclass
 class ColumnSchema:
     """Metadata for a single column in the source dataset."""
@@ -58,9 +80,8 @@ class Schema:
                     f"Column '{key}' has invalid type '{col_data['type']}'. "
                     f"Must be 'numeric' or 'categorical'"
                 )
-            # Normalize value_map keys to strings for consistent lookup
             raw_value_map = col_data.get("value_map", {})
-            value_map = {str(k): str(v) for k, v in raw_value_map.items()}
+            value_map = {canonicalize_key(k): str(v) for k, v in raw_value_map.items()}
 
             columns[key] = ColumnSchema(
                 key=key,

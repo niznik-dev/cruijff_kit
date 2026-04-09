@@ -123,6 +123,7 @@ def write_metadata(
     context_placement: str,
     question: str,
     template_file: str | None = None,
+    one_to_many: dict | None = None,
 ) -> None:
     """Write the .meta.json sidecar file alongside the output."""
     meta_path = output_path.replace(".json", ".meta.json")
@@ -151,6 +152,9 @@ def write_metadata(
 
     if template_file:
         metadata["template_file"] = os.path.abspath(template_file)
+
+    if one_to_many:
+        metadata["one_to_many"] = one_to_many
 
     with open(meta_path, "w") as f:
         json.dump(metadata, f, indent=2)

@@ -43,6 +43,8 @@ Experiment-specific `data_generation` block; requires a schema.yaml to exist for
         - `preamble`: appends the context text to the front of each row-generated prompt (makes sense for base models that do not support system prompts; original usage in folktexts paper)
         - `system_prompt`: for instruction-tuned models, can specify to add as system prompt rather than appended onto each row prompt
 - `question` — question that is appended to the end of each generated row prompt
+- `emit_source_parquet`: when `true`, will also release a parquet sidecar file with the subsampled rows used to create the respective train/test json files. 
+    - `emit_source_parquet_condition`: the condition name (in the case that there are multiple evaluation datasets) that we want the parquet data to match; for example, when changing data representation formats, the underlying tabular rows will be the same across the json files. 
 
 #### Training specific arguments
 
@@ -69,6 +71,9 @@ Experiment-specific `data_generation` block; requires a schema.yaml to exist for
         - **clause_addition** — using the `restatements` defined in the schema file, will insert redundant information into the prompt
         - **shorthand** — replaces full-form values with abbreviated forms defined in the schema (i.e., "New York" to "NY")
         - **synonym** — replaces the display name of a column with synonyms defined in the schema file (i.e., "income" versus "yearly earnings"); will randomly select for rows based on the synonyms list
+    - `one_to_many` — will expand each source row into N copies (artificially inflating the size of the training set to possibly increase robustness to data format) 
+        - `copies` - N to expand each row to 
+        - `perturbation` - how the copies should vary from one another (e.g., `reorder` to have the same features but in a different ordering)
 
 ## Skills/Agent Workflow
 

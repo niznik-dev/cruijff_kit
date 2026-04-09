@@ -87,6 +87,10 @@ data:
     subsampling_ratio: float       # OPTIONAL: Fraction of source rows to use (e.g., 0.33 for 33%)
     missing_value_handling: string # OPTIONAL: "skip" (default) or "include" — how to handle NaN/missing feature values
     missing_value_text: string     # OPTIONAL: Text for missing values when handling is "include" (default: "missing")
+    emit_source_parquet: bool      # OPTIONAL: Write a parquet sidecar of each
+                                   #   split's post-subsample, post-split source DataFrame
+    emit_source_parquet_condition: string  # OPTIONAL (REQUIRED if emit_source_parquet: true):
+                                   #   Name of a single canonical condition to emit the parquet from.
 
     conditions:                    # Per-condition text generation specs
       # condition_name:
@@ -100,6 +104,12 @@ data:
       #   style_guidance: string   # OPTIONAL: Style instructions for narrative/llm_narrative
                                    #   (token density, tone, intended use). Passed to
                                    #   generate-jinja-template or --style-guidance at generation time.
+      #   one_to_many:             # OPTIONAL: Expand each source row into N copies,
+      #     copies: int            #   REQUIRED: Number of copies per source row (>= 1).
+      #     perturbation: string   #   REQUIRED: Which perturbation to vary per copy
+                                   #   (synonym, shorthand, reorder, or clause_addition).
+                                   #   MUST NOT also appear in the condition's top-level
+                                   #   perturbations list. Incompatible with llm_narrative template.
 
 output:
   base_directory: string           # REQUIRED: Full path to this experiment's output directory

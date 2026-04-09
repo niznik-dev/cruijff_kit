@@ -131,6 +131,50 @@ missing_value_text: "missing"     # Only used when handling is "include"
 - **skip** (default) — features with missing values are omitted from the text entirely
 - **include** — missing features are included with a placeholder text (e.g., "missing", "not reported", "unknown")
 
+### Missing-target rows are always dropped
+
+Independent of `missing_value_handling`, `convert.py` **always drops rows where the target column itself is NaN** before subsampling. `missing_value_handling` only affects *feature* columns.
+
+## Source Parquet Sidecar
+
+Optionally emit a parquet copy of the underlying source rows alongside each JSON output file. Useful when you want to train a baseline comparison model (logistic regression, gradient boosting, etc.) on the **exact same train/test rows** the LLM sees, without re-running the split logic yourself.
+
+Configured at the top level of `data_generation`:
+
+```yaml
+data_generation:
+  # ...
+  subsampling_ratio: 0.008
+  emit_source_parquet: true
+  emit_source_parquet_condition: "dict_full"   # must match a key in `conditions` below
+
+  conditions:
+    dict_full:
+      features: [AGEP, COW, SCHL, MAR, OCCP, SEX, RAC1P, ST]
+      template: dictionary
+    narr_full:
+      features: [AGEP, COW, SCHL, MAR, OCCP, SEX, RAC1P, ST]
+      template: narrative
+```
+
+With the config above, `convert-tabular-to-text` will emit:
+
+```
+dict_full_train_s42.json
+dict_full_train_s42.parquet   <-- sidecar, written by --emit-source-parquet
+dict_full_test_s42.json
+dict_full_test_s42.parquet    <-- sidecar
+narr_full_test_s42.json
+(no narr_full parquet — only the canonical condition emits)
+```
+
+### Semantics
+
+- **Post-subsample, post-split, post-missing-target-drop:** The parquet contains the exact DataFrame that `convert.py`'s text-rendering loop iterates over. Row count in the parquet equals row count in the JSON, in the same order.
+- **All original source columns preserved:** Not just the features selected for the text prompt — every column from the source file, including the target. This lets you fit baseline models on any feature subset without regenerating.
+
+**Ask:** "Do you want a parquet copy of the source rows alongside the JSON (for training a baseline comparison model on the same rows)? If yes, which condition should be the canonical emitter?"
+
 ## Question Text
 
 The question appended to each entry that the model should answer.
@@ -140,3 +184,42 @@ question: "Is this person's income above $50,000?"
 ```
 
 **Ask:** "What question should the model answer about each data entry?"
+
+## One-to-Many Expansion (Data Augmentation)
+
+Optionally expand each source row into **N copies**, where a single perturbation is applied differently to each copy. The underlying feature values are identical across copies — only the varying perturbation differs. This is primarily a training-time data augmentation technique: expose the model to multiple orderings, synonym choices, or shorthand substitutions of the same person, so it learns to be invariant to those surface-form changes.
+
+Configured **per condition** under the condition's `one_to_many` block:
+
+```yaml
+conditions:
+  dict_reorder_x3:
+    features: [AGEP, COW, SCHL, MAR, OCCP, SEX, RAC1P, ST]
+    template: dictionary
+    perturbations: []           # top-level perturbations (applied once, shared across all copies)
+    one_to_many:
+      copies: 3                  # each source row expanded into 3 output entries
+      perturbation: reorder      # each copy gets a different reorder
+```
+
+With the config above, a source file of 1,000 rows produces **3,000 output entries**: 3 reorderings of every row, with identical feature values in each triplet.
+
+### Semantics
+
+- **Row-level identity is preserved:** All copies of a given source row share the same feature values and the same target label. Only the output surface form (text) differs.
+- **Top-level perturbations apply once:** If the condition's `perturbations` list is non-empty, those perturbations are applied once per row (with the same result in every copy). The one_to_many perturbation is applied *on top* of the already-perturbed row, varying across copies.
+- **Deterministic under seed:** The one_to_many perturbation chain is seeded from the same `seed`, so identical configs produce identical outputs across runs.
+
+### Constraints
+
+- `one_to_many.copies` must be `>= 1`.
+- `one_to_many.perturbation` must be one of: `synonym`, `shorthand`, `reorder`, `clause_addition`.
+- `one_to_many.perturbation` **must not also appear in the condition's top-level `perturbations` list**. `convert.py` rejects this as a config error (SystemExit).
+- `one_to_many` is **incompatible with `template: llm_narrative`**. LLM-generated text does not produce per-feature segments, so perturbations have nothing to operate on.
+
+### When *not* to use it
+
+- **Evaluation sets:** Typically you want each test row to appear exactly once so metrics reflect per-person accuracy. Applying one_to_many to a test split will inflate the row count and bias metrics toward rows that happen to have more variation-sensitive outputs.
+- **When the perturbation doesn't actually vary:** Some perturbations (notably `shorthand`) have limited variation. If there are only 2 possible shorthand substitutions, `copies: 5` wastes compute.
+
+**Ask:** "Should we expand each source row into multiple copies with a varying perturbation (e.g., multiple random orderings per row for data augmentation)? If yes, which perturbation should vary across copies, and how many copies per row?"

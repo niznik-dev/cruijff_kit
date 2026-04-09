@@ -360,3 +360,208 @@ class TestEndToEnd:
         labels1 = [e["output"] for e in d1["train"]]
         labels2 = [e["output"] for e in d2["train"]]
         assert labels1 == labels2
+
+    def test_one_to_many_cli(self, tmp_path, sample_csv, schema_yaml):
+        """--one-to-many-copies expands each row into N entries."""
+        data, meta = self._run(
+            tmp_path,
+            sample_csv,
+            schema_yaml,
+            extra_args=[
+                "--one-to-many-copies",
+                "3",
+                "--one-to-many-perturbation",
+                "reorder",
+            ],
+        )
+        # 4 train rows * 3 copies = 12 entries
+        assert len(data["train"]) == 12
+
+        # Each group of 3 copies shares the same label
+        for i in range(0, 12, 3):
+            labels = {data["train"][j]["output"] for j in range(i, i + 3)}
+            assert len(labels) == 1
+
+        # At least some groups should have different input text across copies.
+        # With 3 segments and 3 copies, a given group *might* collide by chance,
+        # but across 4 groups it's extremely unlikely that all are identical.
+        any_differ = False
+        for i in range(0, 12, 3):
+            inputs = [data["train"][j]["input"] for j in range(i, i + 3)]
+            if len(set(inputs)) > 1:
+                any_differ = True
+                break
+        assert any_differ, "Expected at least one group with different orderings"
+
+        # Metadata records one_to_many config
+        assert meta["one_to_many"] == {"copies": 3, "perturbation": "reorder"}
+
+    def test_one_to_many_conditions_file(
+        self, tmp_path, sample_csv, schema_yaml, conditions_yaml_otm
+    ):
+        """one_to_many works when loaded from a conditions YAML file."""
+        output_path = str(tmp_path / "otm_cond_output.json")
+        main(
+            [
+                "--source",
+                sample_csv,
+                "--schema",
+                schema_yaml,
+                "--condition-name",
+                "dict_reordered_x3",
+                "--conditions-file",
+                conditions_yaml_otm,
+                "--target-column",
+                "PINCP",
+                "--target-threshold",
+                "50000",
+                "--split",
+                "train",
+                "--seed",
+                "42",
+                "--output",
+                output_path,
+            ]
+        )
+        with open(output_path) as f:
+            data = json.load(f)
+        # 4 train rows * 3 copies = 12
+        assert len(data["train"]) == 12
+
+    def test_one_to_many_validation_overlap(self, tmp_path, sample_csv, schema_yaml):
+        """Error when one_to_many perturbation overlaps with top-level."""
+        output_path = str(tmp_path / "overlap_output.json")
+        with pytest.raises(SystemExit):
+            main(
+                [
+                    "--source",
+                    sample_csv,
+                    "--schema",
+                    schema_yaml,
+                    "--condition-name",
+                    "overlap",
+                    "--features",
+                    "AGEP,ST,OCCP",
+                    "--template",
+                    "dictionary",
+                    "--perturbations",
+                    "reorder",
+                    "--one-to-many-copies",
+                    "2",
+                    "--one-to-many-perturbation",
+                    "reorder",
+                    "--target-column",
+                    "PINCP",
+                    "--target-threshold",
+                    "50000",
+                    "--split",
+                    "train",
+                    "--seed",
+                    "42",
+                    "--output",
+                    output_path,
+                ]
+            )
+
+    def test_one_to_many_deterministic(self, tmp_path, sample_csv, schema_yaml):
+        """Same seed produces identical one_to_many output."""
+        out1 = str(tmp_path / "det1.json")
+        out2 = str(tmp_path / "det2.json")
+        extra = [
+            "--one-to-many-copies",
+            "2",
+            "--one-to-many-perturbation",
+            "reorder",
+        ]
+        main(
+            [
+                "--source",
+                sample_csv,
+                "--schema",
+                schema_yaml,
+                "--condition-name",
+                "det1",
+                "--features",
+                "AGEP,ST,OCCP",
+                "--template",
+                "dictionary",
+                "--target-column",
+                "PINCP",
+                "--target-threshold",
+                "50000",
+                "--split",
+                "train",
+                "--seed",
+                "42",
+                "--output",
+                out1,
+            ]
+            + extra
+        )
+        main(
+            [
+                "--source",
+                sample_csv,
+                "--schema",
+                schema_yaml,
+                "--condition-name",
+                "det2",
+                "--features",
+                "AGEP,ST,OCCP",
+                "--template",
+                "dictionary",
+                "--target-column",
+                "PINCP",
+                "--target-threshold",
+                "50000",
+                "--split",
+                "train",
+                "--seed",
+                "42",
+                "--output",
+                out2,
+            ]
+            + extra
+        )
+        with open(out1) as f:
+            d1 = json.load(f)
+        with open(out2) as f:
+            d2 = json.load(f)
+        assert d1 == d2
+
+    def test_emit_source_parquet(self, tmp_path, sample_csv, schema_yaml):
+        """--emit-source-parquet writes a parquet 1:1 with JSON entries."""
+        parquet_path = str(tmp_path / "source_train.parquet")
+        data, _ = self._run(
+            tmp_path,
+            sample_csv,
+            schema_yaml,
+            extra_args=["--emit-source-parquet", parquet_path],
+        )
+
+        import os as _os
+
+        assert _os.path.exists(parquet_path)
+
+        parquet_df = pd.read_parquet(parquet_path)
+
+        # One parquet row per JSON entry
+        assert len(parquet_df) == len(data["train"])
+
+        # Original source columns are preserved (including the target)
+        assert "PINCP" in parquet_df.columns
+        assert "AGEP" in parquet_df.columns
+
+    def test_emit_source_parquet_deterministic(self, tmp_path, sample_csv, schema_yaml):
+        """Same seed produces identical parquet rows across invocations."""
+        p1 = str(tmp_path / "p1.parquet")
+        p2 = str(tmp_path / "p2.parquet")
+        self._run(
+            tmp_path, sample_csv, schema_yaml, extra_args=["--emit-source-parquet", p1]
+        )
+        self._run(
+            tmp_path, sample_csv, schema_yaml, extra_args=["--emit-source-parquet", p2]
+        )
+        df1 = pd.read_parquet(p1)
+        df2 = pd.read_parquet(p2)
+        pd.testing.assert_frame_equal(df1, df2)

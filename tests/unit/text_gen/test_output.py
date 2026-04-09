@@ -186,3 +186,36 @@ class TestWriteMetadata:
         assert meta["features"] == ["AGEP", "ST"]
         assert meta["size_bytes"] > 0
         assert "generated_at" in meta
+        assert "one_to_many" not in meta  # not set, should be absent
+
+    def test_writes_one_to_many_metadata(self, tmp_path):
+        out_path = str(tmp_path / "output_otm.json")
+        with open(out_path, "w") as f:
+            json.dump({"train": [{"input": "x", "output": "1"}]}, f)
+
+        otm_config = {"copies": 3, "perturbation": "reorder"}
+        write_metadata(
+            output_path=out_path,
+            condition_name="otm_cond",
+            split="train",
+            seed=42,
+            split_ratio=0.8,
+            row_count=3,
+            source_path="/tmp/source.csv",
+            source_rows_total=100,
+            schema_path="/tmp/schema.yaml",
+            features=["AGEP", "ST"],
+            template="dictionary",
+            perturbations=[],
+            target_config={"column": "PINCP", "threshold": 50000},
+            context="Context.",
+            context_placement="preamble",
+            question="Q?",
+            one_to_many=otm_config,
+        )
+
+        meta_path = out_path.replace(".json", ".meta.json")
+        with open(meta_path) as f:
+            meta = json.load(f)
+
+        assert meta["one_to_many"] == {"copies": 3, "perturbation": "reorder"}
