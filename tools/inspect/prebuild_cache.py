@@ -109,6 +109,10 @@ def prebuild_cache(summary_path: str) -> dict:
                     "json", data_files=dataset_path, field="validation", split="train"
                 )
                 print(f"CACHE_BUILT: {dataset_path} (field=validation)")
+                print(
+                    f"WARNING: {dataset_path} has no 'test' field — "
+                    f"fell back to 'validation'. Verify this is the intended eval split."
+                )
                 paths_cached.append(dataset_path)
             except Exception as e:
                 print(
