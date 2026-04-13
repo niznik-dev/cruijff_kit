@@ -24,7 +24,7 @@ from cruijff_kit.tools.torchtune.model_configs import MODEL_CONFIGS
 TEMPLATE_PATH = Path(__file__).parent / "templates" / "eval_template.slurm"
 
 # Keys in eval_config.yaml that become -T (task) args in the inspect command
-TASK_ARG_KEYS = ["data_path", "config_path", "vis_label", "use_chat_template"]
+TASK_ARG_KEYS = ["data_path", "config_path", "vis_label", "use_chat_template", "split"]
 
 # Keys in eval_config.yaml that become --metadata args in the inspect command
 METADATA_ARG_KEYS = ["epoch", "finetuned", "source_model"]

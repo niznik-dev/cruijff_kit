@@ -75,6 +75,7 @@ FULL_EVAL_CONFIG = textwrap.dedent("""\
     data_path: /data/acs_income.json
     vis_label: 1B_ft
     use_chat_template: "true"
+    split: validation
     epoch: 0
     finetuned: true
     source_model: Llama-3.2-1B-Instruct
@@ -199,18 +200,26 @@ class TestBuildTaskArgs:
         assert build_task_args(config) == ""
 
     def test_all_task_args(self):
-        """All four task params produce -T lines."""
+        """All five task params produce -T lines."""
         config = make_config(
             data_path="/data/test.json",
             config_path="/config/eval.yaml",
             vis_label="1B_ft",
             use_chat_template="true",
+            split="validation",
         )
         result = build_task_args(config)
         assert '-T data_path="/data/test.json"' in result
         assert '-T config_path="/config/eval.yaml"' in result
         assert '-T vis_label="1B_ft"' in result
         assert '-T use_chat_template="true"' in result
+        assert '-T split="validation"' in result
+
+    def test_split_task_arg(self):
+        """split param produces a -T line when present."""
+        config = make_config(split="test")
+        result = build_task_args(config)
+        assert '-T split="test"' in result
 
     def test_partial_task_args(self):
         """Only specified params appear."""
