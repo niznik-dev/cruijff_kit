@@ -823,3 +823,17 @@ def test_warn_on_excessive_checkpoints_unknown_model_omits_size():
         msg = str(w[0].message)
         assert "50 checkpoints" in msg
         assert "GB total" not in msg
+        assert "checkpoint size unknown" in msg
+
+
+def test_warn_on_excessive_checkpoints_unparseable_model_name():
+    """Model name that doesn't match NB pattern (e.g. 'gemma4') should still warn
+    and name the model so the user can see why size couldn't be estimated."""
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_excessive_checkpoints("all", epochs=50, model_name="gemma4")
+        assert len(w) == 1
+        msg = str(w[0].message)
+        assert "50 checkpoints" in msg
+        assert "GB total" not in msg
+        assert "checkpoint size unknown for 'gemma4'" in msg

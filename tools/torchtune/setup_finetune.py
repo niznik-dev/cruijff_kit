@@ -166,8 +166,10 @@ def warn_on_excessive_checkpoints(
             f" (conservative estimate: ~{num_checkpoints * size_gb:.0f} GB total "
             f"at ~{size_gb:.1f} GB/checkpoint)"
         )
+    elif model_name:
+        size_note = f" (checkpoint size unknown for '{model_name}')"
     else:
-        size_note = ""
+        size_note = " (checkpoint size unknown)"
 
     suggestion = _suggest_checkpoint_subset(epochs)
 
