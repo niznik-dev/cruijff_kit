@@ -658,6 +658,13 @@ def main():
             if current_value == default_value:
                 setattr(args, key, value)
 
+    # Build a map of argparse type converters so config-file values get the
+    # same parsing that CLI values receive (e.g. parse_epochs, parse_bool).
+    _type_converters = {}
+    for action in parser._actions:
+        if action.type is not None and action.dest != "help":
+            _type_converters[action.dest] = action.type
+
     # Apply config file values (higher priority than recipe)
     for key, value in config_data.items():
         # Only use config value if the argument wasn't explicitly provided on CLI
@@ -667,6 +674,10 @@ def main():
             current_value = getattr(args, key)
             # If current value equals default, use config file value
             if current_value == default_value:
+                # Apply the argparse type converter if the value is a string
+                # and a converter exists (e.g. parse_epochs, parse_bool)
+                if isinstance(value, str) and key in _type_converters:
+                    value = _type_converters[key](value)
                 setattr(args, key, value)
 
     # Validate lr_scheduler (after config file has been loaded and merged)

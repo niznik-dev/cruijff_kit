@@ -224,6 +224,31 @@ class TestMainConfigPrecedence:
         config, _ = run_main(extra_args=["--my_wandb_run_name", "my_run"])
         assert config["my_wandb_run_name"] == "my_run"
 
+    def test_epochs_to_save_string_from_config_parsed_to_list(
+        self, run_main, setup_yaml
+    ):
+        """A comma-separated string in the config file must go through
+        parse_epochs and come out as a list of ints (regression for #431)."""
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["epochs_to_save"] = "3,5"
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        config, _ = run_main()
+        assert config["epochs_to_save"] == [3, 5]
+
+    def test_quoted_bool_string_from_config_parsed_to_bool(self, run_main, setup_yaml):
+        """A quoted string like "true" in the config file must go through
+        parse_bool and land as a Python bool, not a truthy string
+        (regression for #431)."""
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["packed"] = "true"
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        config, _ = run_main()
+        assert config["dataset"]["packed"] is True
+
 
 class TestMainDatasetTypes:
     """Tests for different dataset type configurations."""
