@@ -1,17 +1,3 @@
 # Known Issues
 
-Current limitations in cruijff_kit with workarounds.
-
-## get_embeddings() Attention Mask Bug
-
-**Issue**: [#234](https://github.com/niznik-dev/cruijff_kit/issues/234)
-
-The `get_embeddings()` function has incorrect attention mask handling when processing batches with different sequence lengths.
-
-**Workaround**: Use consistent batch sizes or process sequences of similar lengths together.
-
-## Claude Code Agents Fail to Load
-
-Sometimes Claude Code doesn't properly load the scaffold or run agents on startup.
-
-**Workaround**: Restart Claude Code (`/quit` then relaunch).
+No known issues at this time. See [CHANGELOG.md](CHANGELOG.md) for recent fixes.

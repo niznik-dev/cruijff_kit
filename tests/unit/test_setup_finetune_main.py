@@ -89,6 +89,26 @@ class TestMainYamlGeneration:
         config, _ = run_main()
         assert config["batch_size"] == 2
 
+    def test_seed_default(self, run_main):
+        """When seed is not specified, the default (14 — Cruijff's number) is used."""
+        config, _ = run_main()
+        assert config["seed"] == 14
+
+    def test_seed_via_cli(self, run_main):
+        """--seed on the command line flows through to finetune.yaml."""
+        config, _ = run_main(extra_args=["--seed", "7"])
+        assert config["seed"] == 7
+
+    def test_seed_via_config_file(self, run_main, setup_yaml):
+        """seed in setup_finetune.yaml flows through to finetune.yaml."""
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["seed"] = 23
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        config, _ = run_main()
+        assert config["seed"] == 23
+
     def test_output_dir_constructed(self, run_main, tmp_path):
         config, _ = run_main()
         output_dir = config["output_dir"]

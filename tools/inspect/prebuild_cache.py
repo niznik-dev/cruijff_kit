@@ -101,11 +101,25 @@ def prebuild_cache(summary_path: str) -> dict:
 
         try:
             load_dataset("json", data_files=dataset_path, field="test", split="train")
-            print(f"CACHE_BUILT: {dataset_path}")
+            print(f"CACHE_BUILT: {dataset_path} (field=test)")
             paths_cached.append(dataset_path)
-        except Exception as e:
-            print(f"CACHE_FAILED: {dataset_path} ({e})")
-            paths_failed.append(dataset_path)
+        except Exception:
+            try:
+                load_dataset(
+                    "json", data_files=dataset_path, field="validation", split="train"
+                )
+                print(f"CACHE_BUILT: {dataset_path} (field=validation)")
+                print(
+                    f"WARNING: {dataset_path} has no 'test' field — "
+                    f"fell back to 'validation'. Verify this is the intended eval split."
+                )
+                paths_cached.append(dataset_path)
+            except Exception as e:
+                print(
+                    f"CACHE_FAILED: {dataset_path} "
+                    f"(tried field=test and field=validation, both failed: {e})"
+                )
+                paths_failed.append(dataset_path)
 
     print(f"CACHE_PREBUILD_COMPLETE: {len(paths_cached)} datasets cached")
 

@@ -31,6 +31,7 @@ def make_cli_args(**overrides):
         mem=None,
         partition=None,
         constraint=None,
+        gpus=None,
         conda_env="cruijff",
         output_slurm=None,
     )
@@ -74,6 +75,7 @@ FULL_EVAL_CONFIG = textwrap.dedent("""\
     data_path: /data/acs_income.json
     vis_label: 1B_ft
     use_chat_template: "true"
+    split: validation
     epoch: 0
     finetuned: true
     source_model: Llama-3.2-1B-Instruct
@@ -198,18 +200,26 @@ class TestBuildTaskArgs:
         assert build_task_args(config) == ""
 
     def test_all_task_args(self):
-        """All four task params produce -T lines."""
+        """All five task params produce -T lines."""
         config = make_config(
             data_path="/data/test.json",
             config_path="/config/eval.yaml",
             vis_label="1B_ft",
             use_chat_template="true",
+            split="validation",
         )
         result = build_task_args(config)
         assert '-T data_path="/data/test.json"' in result
         assert '-T config_path="/config/eval.yaml"' in result
         assert '-T vis_label="1B_ft"' in result
         assert '-T use_chat_template="true"' in result
+        assert '-T split="validation"' in result
+
+    def test_split_task_arg(self):
+        """split param produces a -T line when present."""
+        config = make_config(split="test")
+        result = build_task_args(config)
+        assert '-T split="test"' in result
 
     def test_partial_task_args(self):
         """Only specified params appear."""
@@ -473,6 +483,47 @@ class TestModelConfigLookup:
         cli = make_cli_args(model_name="NonExistentModel")
         with pytest.raises(ValueError, match="Unknown model"):
             render_template(cli, make_config())
+
+
+# ---------------------------------------------------------------------------
+# Multi-GPU / device="auto"
+# ---------------------------------------------------------------------------
+
+
+class TestMultiGpu:
+    def test_single_gpu_no_device_arg(self):
+        """Single-GPU model gets no -M device arg."""
+        cli = make_cli_args(model_name="Llama-3.2-1B-Instruct")
+        script = render_template(cli, make_config())
+        assert 'device="auto"' not in script
+        assert "#SBATCH --gres=gpu:1" in script
+
+    def test_multi_gpu_adds_device_auto(self):
+        """Multi-GPU model (70B) gets -M device="auto"."""
+        cli = make_cli_args(model_name="Llama-3.3-70B-Instruct")
+        script = render_template(cli, make_config())
+        assert '-M device="auto"' in script
+
+    def test_multi_gpu_updates_gres(self):
+        """Multi-GPU model (70B) gets gres=gpu:4."""
+        cli = make_cli_args(model_name="Llama-3.3-70B-Instruct")
+        script = render_template(cli, make_config())
+        assert "#SBATCH --gres=gpu:4" in script
+        assert "#SBATCH --gres=gpu:1" not in script
+
+    def test_gpus_cli_override(self):
+        """CLI --gpus=2 overrides model_configs default of 1."""
+        cli = make_cli_args(model_name="Llama-3.2-1B-Instruct", gpus=2)
+        script = render_template(cli, make_config())
+        assert "#SBATCH --gres=gpu:2" in script
+        assert '-M device="auto"' in script
+
+    def test_gpus_cli_override_single(self):
+        """CLI --gpus=1 on a multi-GPU model forces single GPU."""
+        cli = make_cli_args(model_name="Llama-3.3-70B-Instruct", gpus=1)
+        script = render_template(cli, make_config())
+        assert "#SBATCH --gres=gpu:1" in script
+        assert 'device="auto"' not in script
 
 
 # ---------------------------------------------------------------------------
