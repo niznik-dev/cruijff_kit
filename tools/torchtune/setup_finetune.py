@@ -550,6 +550,12 @@ def create_parser():
     parser.add_argument(
         "--lora_dropout", type=float, default=0.0, help="Dropout for LoRA layers"
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=14,
+        help="Random seed for training (passed to torchtune.training.set_seed). Default is 14 — Johan Cruijff's kit number.",
+    )
 
     # ------ Slurm Args -----
     parser.add_argument(

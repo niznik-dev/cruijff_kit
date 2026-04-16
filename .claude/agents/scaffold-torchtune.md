@@ -207,6 +207,7 @@ model_checkpoint: {from models.base[0].path}
 lora_rank: {from run.parameters.lora_rank, if present}
 lr: {from run.parameters.lr, format as 1e-5 or 5e-5, if present}
 batch_size: {from run.parameters.batch_size if varies, if present}
+seed: {from run.parameters.seed, if present}
 
 # Additional hyperparameters (optional, only if specified in controls)
 gradient_accumulation_steps: {from controls.gradient_accumulation_steps, if present}
@@ -446,6 +447,7 @@ Know where to find parameters in finetune.yaml:
 - `lr` (learning rate) → `optimizer.lr` (nested under optimizer section, note: two-space indent)
 - `batch_size` → `batch_size` (top level)
 - `epochs` → `epochs` (top level)
+- `seed` → `seed` (top level)
 - `my_wandb_run_name` → `my_wandb_run_name` (top level)
 - `output_dir` → `output_dir` (top level, should include run name)
 
