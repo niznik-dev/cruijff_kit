@@ -1,4 +1,4 @@
-"""Shuffle the order of bullet-point variables independently per training sample.
+"""Shuffle the order of survey variables independently per training sample.
 
 Unlike shuffle_acs_variables.py (which applies one fixed permutation to all
 rows), this script gives each training sample its own random permutation.
@@ -41,13 +41,13 @@ def main():
         if split == "train":
             shuffled_samples = []
             for sample in samples:
-                header, bullets, question = parse_input(sample["input"])
-                perm = list(range(len(bullets)))
+                header, variables, question = parse_input(sample["input"])
+                perm = list(range(len(variables)))
                 rng.shuffle(perm)
-                shuffled_bullets = [bullets[i] for i in perm]
+                shuffled_variables = [variables[i] for i in perm]
                 shuffled_samples.append(
                     {
-                        "input": reassemble(header, shuffled_bullets, question),
+                        "input": reassemble(header, shuffled_variables, question),
                         "output": sample["output"],
                     }
                 )

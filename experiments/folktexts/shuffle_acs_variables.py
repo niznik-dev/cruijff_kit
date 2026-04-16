@@ -1,6 +1,6 @@
-"""Shuffle the order of bullet-point variables in ACS prompts.
+"""Shuffle the order of survey variables in ACS prompts.
 
-Produces a new dataset where the survey-variable bullets appear in a
+Produces a new dataset where the survey variables appear in a
 random (but consistent across all rows) order.  Everything else — the
 header paragraph, the closing question, and the output label — stays
 identical.  Works with any ACS task (Income, PublicCoverage, etc.)
@@ -20,36 +20,36 @@ import re
 
 
 def parse_input(text: str) -> tuple[str, list[str], str]:
-    """Split a prompt into (header, bullet_lines, question)."""
+    """Split a prompt into (header, variable_lines, question)."""
     lines = text.split("\n")
 
-    bullet_indices = [i for i, line in enumerate(lines) if line.startswith("- ")]
-    if len(bullet_indices) < 2:
+    variable_indices = [i for i, line in enumerate(lines) if line.startswith("- ")]
+    if len(variable_indices) < 2:
         raise ValueError(
-            f"Expected at least 2 bullet lines, found {len(bullet_indices)}:\n{text[:200]}"
+            f"Expected at least 2 variable lines, found {len(variable_indices)}:\n{text[:200]}"
         )
 
-    first_bullet = bullet_indices[0]
-    last_bullet = bullet_indices[-1]
+    first_variable = variable_indices[0]
+    last_variable = variable_indices[-1]
 
-    header = "\n".join(lines[:first_bullet])
-    bullets = [lines[i] for i in bullet_indices]
-    question = "\n".join(lines[last_bullet + 1 :])
+    header = "\n".join(lines[:first_variable])
+    variables = [lines[i] for i in variable_indices]
+    question = "\n".join(lines[last_variable + 1 :])
 
-    return header, bullets, question
+    return header, variables, question
 
 
-def reassemble(header: str, bullets: list[str], question: str) -> str:
+def reassemble(header: str, variables: list[str], question: str) -> str:
     """Reassemble the three parts into a single prompt string."""
-    return header + "\n" + "\n".join(bullets) + "\n" + question
+    return header + "\n" + "\n".join(variables) + "\n" + question
 
 
 def shuffle_sample(sample: dict, permutation: list[int]) -> dict:
-    """Return a copy of the sample with bullet lines reordered."""
-    header, bullets, question = parse_input(sample["input"])
-    shuffled_bullets = [bullets[i] for i in permutation]
+    """Return a copy of the sample with variable lines reordered."""
+    header, variables, question = parse_input(sample["input"])
+    shuffled_variables = [variables[i] for i in permutation]
     return {
-        "input": reassemble(header, shuffled_bullets, question),
+        "input": reassemble(header, shuffled_variables, question),
         "output": sample["output"],
     }
 
@@ -70,8 +70,8 @@ def main():
 
     # Detect number of variables from first sample
     first_sample = data[next(iter(data))][0]
-    _, original_bullets, _ = parse_input(first_sample["input"])
-    n_vars = len(original_bullets)
+    _, original_variables, _ = parse_input(first_sample["input"])
+    n_vars = len(original_variables)
     print(f"Detected {n_vars} variables")
 
     # Generate a derangement (no element stays in its original position)
@@ -87,9 +87,9 @@ def main():
 
     # Log the resulting order
     var_names = []
-    for b in original_bullets:
-        m = re.match(r"- The (.+?) is:", b)
-        var_names.append(m.group(1) if m else b[:60])
+    for v in original_variables:
+        m = re.match(r"- The (.+?) is:", v)
+        var_names.append(m.group(1) if m else v[:60])
 
     print(f"Seed: {args.seed}")
     print(f"Permutation: {permutation}")
