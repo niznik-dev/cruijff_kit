@@ -1,9 +1,10 @@
-"""Shuffle the order of bullet-point variables in ACS Income prompts.
+"""Shuffle the order of bullet-point variables in ACS prompts.
 
-Produces a new dataset where the 10 survey-variable bullets appear in a
+Produces a new dataset where the survey-variable bullets appear in a
 random (but consistent across all rows) order.  Everything else — the
 header paragraph, the closing question, and the output label — stays
-identical.
+identical.  Works with any ACS task (Income, PublicCoverage, etc.)
+regardless of the number of variables.
 
 Usage:
     python experiments/folktexts/shuffle_acs_variables.py \
@@ -22,10 +23,10 @@ def parse_input(text: str) -> tuple[str, list[str], str]:
     """Split a prompt into (header, bullet_lines, question)."""
     lines = text.split("\n")
 
-    bullet_indices = [i for i, line in enumerate(lines) if line.startswith("- The ")]
-    if len(bullet_indices) != 10:
+    bullet_indices = [i for i, line in enumerate(lines) if line.startswith("- ")]
+    if len(bullet_indices) < 2:
         raise ValueError(
-            f"Expected 10 bullet lines, found {len(bullet_indices)}:\n{text[:200]}"
+            f"Expected at least 2 bullet lines, found {len(bullet_indices)}:\n{text[:200]}"
         )
 
     first_bullet = bullet_indices[0]
@@ -55,7 +56,7 @@ def shuffle_sample(sample: dict, permutation: list[int]) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Shuffle variable order in ACS Income prompts."
+        description="Shuffle variable order in ACS prompts."
     )
     parser.add_argument("--input", required=True, help="Path to source JSON")
     parser.add_argument("--output", required=True, help="Path to write shuffled JSON")
@@ -67,21 +68,28 @@ def main():
     with open(args.input) as f:
         data = json.load(f)
 
+    # Detect number of variables from first sample
+    first_sample = data[next(iter(data))][0]
+    _, original_bullets, _ = parse_input(first_sample["input"])
+    n_vars = len(original_bullets)
+    print(f"Detected {n_vars} variables")
+
     # Generate a derangement (no element stays in its original position)
     rng = random.Random(args.seed)
-    permutation = list(range(10))
+    permutation = list(range(n_vars))
     attempts = 0
     while True:
         rng.shuffle(permutation)
         attempts += 1
-        if all(permutation[i] != i for i in range(10)):
+        if all(permutation[i] != i for i in range(n_vars)):
             break
     print(f"Found derangement after {attempts} attempt(s)")
 
-    # Log the resulting order by extracting variable names from the first sample
-    first_sample = data[next(iter(data))][0]
-    _, original_bullets, _ = parse_input(first_sample["input"])
-    var_names = [re.match(r"- The (.+?) is:", b).group(1) for b in original_bullets]
+    # Log the resulting order
+    var_names = []
+    for b in original_bullets:
+        m = re.match(r"- The (.+?) is:", b)
+        var_names.append(m.group(1) if m else b[:60])
 
     print(f"Seed: {args.seed}")
     print(f"Permutation: {permutation}")
