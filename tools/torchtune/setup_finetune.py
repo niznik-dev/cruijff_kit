@@ -1,6 +1,7 @@
 import argparse
 import math
 import os
+import re
 import warnings
 import yaml
 from pathlib import Path
@@ -106,6 +107,78 @@ def warn_on_low_steps(step_info, num_warmup_steps):
             f"Consider reducing batch size or gradient accumulation, or increasing epochs.",
             stacklevel=2,
         )
+
+
+def _estimate_checkpoint_size_gb(model_name):
+    """Estimate per-checkpoint disk size in GB from the parameter count in a model name.
+
+    Uses 2.5 GB/B as a conservative rule of thumb — empirically, torchtune LoRA
+    checkpoints land around 2.0-2.7 GB/B depending on model size. This errs high
+    for larger models so the warning leans toward over-warning rather than under.
+    Returns None if the parameter count can't be parsed from the name.
+    """
+    if not model_name:
+        return None
+    match = re.search(r"(\d+(?:\.\d+)?)B", model_name, re.IGNORECASE)
+    if not match:
+        return None
+    return float(match.group(1)) * 2.5
+
+
+def _suggest_checkpoint_subset(epochs, target_count=10):
+    """Suggest ~target_count evenly-spaced 0-indexed epochs ending at epochs - 1.
+
+    Example: epochs=100, target_count=10 -> "9,19,29,39,49,59,69,79,89,99"
+    """
+    if epochs <= target_count:
+        return ",".join(str(e) for e in range(epochs))
+    step = max(1, epochs // target_count)
+    epochs_list = list(range(step - 1, epochs, step))
+    if epochs_list[-1] != epochs - 1:
+        epochs_list.append(epochs - 1)
+    return ",".join(str(e) for e in epochs_list)
+
+
+def warn_on_excessive_checkpoints(
+    epochs_to_save, epochs, model_name=None, threshold=10
+):
+    """Warn if the configured checkpoint schedule will produce many checkpoints.
+
+    Args:
+        epochs_to_save: Output of parse_epochs() — "all", a list of ints, or [].
+        epochs: Total training epochs.
+        model_name: Optional torchtune model name; used to estimate total size.
+        threshold: Warn when the number of saved checkpoints exceeds this.
+    """
+    if epochs_to_save == "all":
+        num_checkpoints = epochs
+    elif isinstance(epochs_to_save, list):
+        num_checkpoints = len(epochs_to_save)
+    else:
+        return
+
+    if num_checkpoints <= threshold:
+        return
+
+    size_gb = _estimate_checkpoint_size_gb(model_name)
+    if size_gb is not None:
+        size_note = (
+            f" (conservative estimate: ~{num_checkpoints * size_gb:.0f} GB total "
+            f"at ~{size_gb:.1f} GB/checkpoint)"
+        )
+    elif model_name:
+        size_note = f" (checkpoint size unknown for '{model_name}')"
+    else:
+        size_note = " (checkpoint size unknown)"
+
+    suggestion = _suggest_checkpoint_subset(epochs)
+
+    warnings.warn(
+        f"epochs_to_save will produce {num_checkpoints} checkpoints{size_note}. "
+        f"This may use significant disk and I/O time. "
+        f"Consider setting epochs_to_save to a subset (e.g., '{suggestion}').",
+        stacklevel=2,
+    )
 
 
 # Used for epochs_to_save to allow for all/none options
@@ -477,6 +550,12 @@ def create_parser():
     parser.add_argument(
         "--lora_dropout", type=float, default=0.0, help="Dropout for LoRA layers"
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=14,
+        help="Random seed for training (passed to torchtune.training.set_seed). Default is 14 — Johan Cruijff's kit number.",
+    )
 
     # ------ Slurm Args -----
     parser.add_argument(
@@ -579,6 +658,13 @@ def main():
             if current_value == default_value:
                 setattr(args, key, value)
 
+    # Build a map of argparse type converters so config-file values get the
+    # same parsing that CLI values receive (e.g. parse_epochs, parse_bool).
+    _type_converters = {}
+    for action in parser._actions:
+        if action.type is not None and action.dest != "help":
+            _type_converters[action.dest] = action.type
+
     # Apply config file values (higher priority than recipe)
     for key, value in config_data.items():
         # Only use config value if the argument wasn't explicitly provided on CLI
@@ -588,6 +674,10 @@ def main():
             current_value = getattr(args, key)
             # If current value equals default, use config file value
             if current_value == default_value:
+                # Apply the argparse type converter if the value is a string
+                # and a converter exists (e.g. parse_epochs, parse_bool)
+                if isinstance(value, str) and key in _type_converters:
+                    value = _type_converters[key](value)
                 setattr(args, key, value)
 
     # Validate lr_scheduler (after config file has been loaded and merged)
@@ -628,6 +718,10 @@ def main():
             f"Supported models: {', '.join(MODEL_CONFIGS.keys())}"
         )
     model_config = MODEL_CONFIGS[args.torchtune_model_name]
+
+    warn_on_excessive_checkpoints(
+        args.epochs_to_save, args.epochs, args.torchtune_model_name
+    )
 
     # Default dataset_type from MODEL_CONFIGS if not explicitly set by user or config file
     # Priority: CLI arg > config file > MODEL_CONFIGS > argparse default
