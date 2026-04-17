@@ -1,8 +1,15 @@
 """Generate model-organism datasets (inputs x rules x formats x designs).
 
-Chunk 1b supports ``design="memorization"`` and ``design="in_distribution"``
-with rules ``parity`` / ``first`` / ``constant`` / ``coin`` on ``bits``.
-Later chunks add more input types, more rules, more formats, and OOD.
+Current breadth:
+- Input types: ``bits``, ``digits``, ``letters``
+- Formats: ``spaced``
+- Rules: universal (``first``, ``last``, ``nth``, ``length``, ``constant``,
+  ``coin``) plus domain-specific (``parity`` / ``majority`` on bits,
+  ``min`` / ``max`` on digits / letters)
+- Designs: ``memorization``, ``in_distribution``
+
+OOD design, additional formats, a unified inspect task, and the
+``design-experiment`` integration land in later chunks.
 
 CLI::
 

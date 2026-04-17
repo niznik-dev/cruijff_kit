@@ -13,6 +13,7 @@ meaningful when sequences repeat.
 """
 
 import random
+from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Callable
@@ -69,3 +70,54 @@ def coin(seq: Iterable[str], *, p: float, seed: int, **kwargs) -> str:
     # which no longer accepts tuples as Random seeds.
     draw = random.Random(repr((seed, tuple(seq)))).random()
     return "1" if draw < p else "0"
+
+
+@register_rule("last", applicable={"bits", "digits", "letters"})
+def last(seq: Iterable[str], **kwargs) -> str:
+    seq_list = list(seq)
+    if not seq_list:
+        raise ValueError("last() requires a non-empty sequence")
+    return seq_list[-1]
+
+
+@register_rule("nth", applicable={"bits", "digits", "letters"})
+def nth(seq: Iterable[str], *, x: int, **kwargs) -> str:
+    seq_list = list(seq)
+    try:
+        return seq_list[x]
+    except IndexError as exc:
+        raise ValueError(
+            f"nth(x={x}) out of range for sequence of length {len(seq_list)}"
+        ) from exc
+
+
+@register_rule("length", applicable={"bits", "digits", "letters"})
+def length(seq: Iterable[str], **kwargs) -> str:
+    return str(sum(1 for _ in seq))
+
+
+@register_rule("majority", applicable={"bits"})
+def majority(seq: Iterable[str], **kwargs) -> str:
+    counts = Counter(seq)
+    if not counts:
+        raise ValueError("majority() requires a non-empty sequence")
+    max_count = max(counts.values())
+    # Lex-ascending tie-break keeps labels deterministic on ties (common for
+    # even-length bit sequences).
+    return min(tok for tok, c in counts.items() if c == max_count)
+
+
+@register_rule("min", applicable={"digits", "letters"})
+def min_token(seq: Iterable[str], **kwargs) -> str:
+    seq_list = list(seq)
+    if not seq_list:
+        raise ValueError("min() requires a non-empty sequence")
+    return min(seq_list)
+
+
+@register_rule("max", applicable={"digits", "letters"})
+def max_token(seq: Iterable[str], **kwargs) -> str:
+    seq_list = list(seq)
+    if not seq_list:
+        raise ValueError("max() requires a non-empty sequence")
+    return max(seq_list)

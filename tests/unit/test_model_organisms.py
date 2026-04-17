@@ -6,7 +6,7 @@ Run with:
 
 import pytest
 
-from cruijff_kit.sanity_checks.model_organisms import formats, inputs
+from cruijff_kit.sanity_checks.model_organisms import formats
 from cruijff_kit.sanity_checks.model_organisms.formats import (
     get_format,
     list_formats,
@@ -35,18 +35,42 @@ from cruijff_kit.sanity_checks.model_organisms.rules import (
 
 class TestRegistries:
     def test_core_names_registered(self):
-        assert "bits" in list_inputs()
-        assert set(list_rules()) >= {"parity", "first", "constant", "coin"}
+        assert set(list_inputs()) >= {"bits", "digits", "letters"}
+        assert set(list_rules()) >= {
+            "parity",
+            "first",
+            "last",
+            "nth",
+            "length",
+            "constant",
+            "coin",
+            "majority",
+            "min",
+            "max",
+        }
         assert "spaced" in list_formats()
 
     def test_bits_alphabet(self):
         assert get_input("bits").alphabet == ("0", "1")
 
-    def test_parity_applicable_to_bits_only(self):
+    def test_digits_alphabet(self):
+        assert get_input("digits").alphabet == tuple(str(i) for i in range(10))
+
+    def test_letters_alphabet(self):
+        letters = get_input("letters").alphabet
+        assert len(letters) == 26
+        assert letters[0] == "a" and letters[-1] == "z"
+
+    def test_parity_and_majority_bits_only(self):
         assert get_rule("parity").applicable == frozenset({"bits"})
+        assert get_rule("majority").applicable == frozenset({"bits"})
+
+    def test_min_max_digits_and_letters_only(self):
+        for name in ("min", "max"):
+            assert get_rule(name).applicable == frozenset({"digits", "letters"})
 
     def test_universal_rules_applicable_to_all_inputs(self):
-        for name in ("first", "constant", "coin"):
+        for name in ("first", "last", "nth", "length", "constant", "coin"):
             applicable = get_rule(name).applicable
             assert {"bits", "digits", "letters"} <= applicable
 
@@ -116,6 +140,52 @@ class TestRules:
         seqs = [["0", "0"], ["0", "1"], ["1", "1"]]
         assert all(coin(s, p=0.0, seed=1) == "0" for s in seqs)
         assert all(coin(s, p=1.0, seed=1) == "1" for s in seqs)
+
+    def test_last_returns_last_token(self):
+        last = get_rule("last").fn
+        assert last(["1", "0", "0"]) == "0"
+        assert last(("a", "b", "c")) == "c"
+
+    def test_length_returns_sequence_length(self):
+        length = get_rule("length").fn
+        assert length(["1", "0", "0"]) == "3"
+        assert length([]) == "0"
+
+    def test_nth_positive_and_negative_index(self):
+        nth = get_rule("nth").fn
+        seq = ["a", "b", "c", "d"]
+        assert nth(seq, x=0) == "a"
+        assert nth(seq, x=2) == "c"
+        assert nth(seq, x=-1) == "d"
+
+    def test_nth_out_of_range_raises(self):
+        nth = get_rule("nth").fn
+        with pytest.raises(ValueError, match="out of range"):
+            nth(["a", "b"], x=5)
+
+    def test_majority_picks_most_common(self):
+        majority = get_rule("majority").fn
+        assert majority(["0", "0", "0", "1", "1"]) == "0"
+        assert majority(["1", "1", "1", "0"]) == "1"
+
+    def test_majority_tie_breaks_lex_smallest(self):
+        majority = get_rule("majority").fn
+        # 2 zeros, 2 ones — tie. Lex smallest is "0".
+        assert majority(["0", "0", "1", "1"]) == "0"
+
+    def test_min_max_on_digits(self):
+        min_fn = get_rule("min").fn
+        max_fn = get_rule("max").fn
+        seq = ["5", "2", "9", "4"]
+        assert min_fn(seq) == "2"
+        assert max_fn(seq) == "9"
+
+    def test_min_max_on_letters(self):
+        min_fn = get_rule("min").fn
+        max_fn = get_rule("max").fn
+        seq = ["m", "a", "z", "d"]
+        assert min_fn(seq) == "a"
+        assert max_fn(seq) == "z"
 
 
 # =============================================================================
@@ -274,20 +344,83 @@ class TestGenerate:
                 split=1.5,
             )
 
-    def test_applicability_error(self):
-        # Register a throwaway input type so we can exercise the applicability
-        # guard (parity is bits-only); tear it down afterwards.
-        name = "_test_digits_for_applicability"
-        register_input(InputType(name=name, alphabet=tuple("0123456789")))
-        try:
-            with pytest.raises(ValueError, match="not applicable"):
-                generate(
-                    input_type=name,
-                    rule="parity",
-                    k=3,
-                    N=5,
-                    seed=0,
-                    design="memorization",
-                )
-        finally:
-            inputs._REGISTRY.pop(name, None)
+    def test_applicability_error_parity_on_digits(self):
+        with pytest.raises(ValueError, match="not applicable"):
+            generate(
+                input_type="digits",
+                rule="parity",
+                k=3,
+                N=5,
+                seed=0,
+                design="memorization",
+            )
+
+    def test_applicability_error_min_on_bits(self):
+        with pytest.raises(ValueError, match="not applicable"):
+            generate(
+                input_type="bits",
+                rule="min",
+                k=3,
+                N=5,
+                seed=0,
+                design="memorization",
+            )
+
+    def test_generate_digits_max(self):
+        d = generate(
+            input_type="digits",
+            rule="max",
+            k=5,
+            N=30,
+            seed=1,
+            design="memorization",
+        )
+        for row in d["train"]:
+            tokens = row["input"].split()
+            assert row["output"] == max(tokens)
+
+    def test_generate_letters_min(self):
+        d = generate(
+            input_type="letters",
+            rule="min",
+            k=4,
+            N=30,
+            seed=1,
+            design="memorization",
+        )
+        for row in d["train"]:
+            tokens = row["input"].split()
+            assert row["output"] == min(tokens)
+
+    def test_generate_bits_majority(self):
+        d = generate(
+            input_type="bits",
+            rule="majority",
+            k=5,
+            N=32,
+            seed=1,
+            design="memorization",
+        )
+        from collections import Counter
+
+        for row in d["train"]:
+            tokens = row["input"].split()
+            counts = Counter(tokens)
+            max_c = max(counts.values())
+            expected = min(t for t, c in counts.items() if c == max_c)
+            assert row["output"] == expected
+
+    def test_generate_nth_rule_kwargs(self):
+        d = generate(
+            input_type="digits",
+            rule="nth",
+            k=5,
+            N=20,
+            seed=2,
+            design="memorization",
+            rule_kwargs={"x": 2},
+        )
+        assert d["metadata"]["rule_kwargs"] == {"x": 2}
+        for row in d["train"]:
+            tokens = row["input"].split()
+            assert row["output"] == tokens[2]

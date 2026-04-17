@@ -34,3 +34,10 @@ def list_inputs() -> list[str]:
 
 
 register_input(InputType(name="bits", alphabet=("0", "1")))
+register_input(InputType(name="digits", alphabet=tuple(str(i) for i in range(10))))
+register_input(
+    InputType(
+        name="letters",
+        alphabet=tuple(chr(i) for i in range(ord("a"), ord("z") + 1)),
+    )
+)
