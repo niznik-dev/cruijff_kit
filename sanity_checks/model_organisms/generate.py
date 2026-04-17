@@ -6,12 +6,12 @@ Later chunks add more input types, more rules, more formats, and OOD.
 
 CLI::
 
-    python -m sanity_checks.model_organisms.generate \\
+    python -m cruijff_kit.sanity_checks.model_organisms.generate \\
         --input_type bits --rule parity --k 8 \\
         --N 100 --seed 1729 --design memorization \\
         --output bits_parity_k8_memo.json
 
-    python -m sanity_checks.model_organisms.generate \\
+    python -m cruijff_kit.sanity_checks.model_organisms.generate \\
         --input_type bits --rule coin --k 8 \\
         --rule_kwargs '{"p": 0.7}' \\
         --N 200 --seed 1729 --design in_distribution --split 0.8 \\

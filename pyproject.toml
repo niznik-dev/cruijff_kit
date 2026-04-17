@@ -55,6 +55,8 @@ packages = [
   "cruijff_kit.tools.inspect",
   "cruijff_kit.tools.inspect.scorers",
   "cruijff_kit.tools.slurm",
+  "cruijff_kit.sanity_checks",
+  "cruijff_kit.sanity_checks.model_organisms",
 ]
 
 [tool.ruff]
