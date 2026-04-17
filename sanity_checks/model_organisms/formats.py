@@ -34,3 +34,23 @@ def list_formats() -> list[str]:
 @register_format("spaced")
 def spaced(seq: Iterable[str]) -> str:
     return " ".join(seq)
+
+
+@register_format("dense")
+def dense(seq: Iterable[str]) -> str:
+    return "".join(seq)
+
+
+@register_format("comma")
+def comma(seq: Iterable[str]) -> str:
+    return ",".join(seq)
+
+
+@register_format("tab")
+def tab(seq: Iterable[str]) -> str:
+    return "\t".join(seq)
+
+
+@register_format("pipe")
+def pipe(seq: Iterable[str]) -> str:
+    return "|".join(seq)

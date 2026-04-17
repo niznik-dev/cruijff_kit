@@ -100,6 +100,30 @@ class TestRegistries:
             def _dup(seq):
                 return "x"
 
+    def test_all_formats_registered(self):
+        assert set(list_formats()) >= {"spaced", "dense", "comma", "tab", "pipe"}
+
+
+# =============================================================================
+# Formats
+# =============================================================================
+
+
+class TestFormats:
+    @pytest.mark.parametrize(
+        "name,expected",
+        [
+            ("spaced", "0 1 1 0"),
+            ("dense", "0110"),
+            ("comma", "0,1,1,0"),
+            ("tab", "0\t1\t1\t0"),
+            ("pipe", "0|1|1|0"),
+        ],
+    )
+    def test_format_joins_correctly(self, name, expected):
+        fmt = get_format(name)
+        assert fmt(["0", "1", "1", "0"]) == expected
+
 
 # =============================================================================
 # Rules
@@ -309,14 +333,14 @@ class TestGenerate:
             assert r["output"] == memo_labels[r["input"]]
 
     def test_unknown_design_raises(self):
-        with pytest.raises(NotImplementedError, match="ood"):
+        with pytest.raises(NotImplementedError, match="nonexistent_design"):
             generate(
                 input_type="bits",
                 rule="parity",
                 k=4,
                 N=4,
                 seed=0,
-                design="ood",
+                design="nonexistent_design",
             )
 
     def test_bad_split_raises(self):
@@ -424,3 +448,123 @@ class TestGenerate:
         for row in d["train"]:
             tokens = row["input"].split()
             assert row["output"] == tokens[2]
+
+
+# =============================================================================
+# OOD design
+# =============================================================================
+
+
+class TestOOD:
+    def test_length_ood_produces_extra_val_splits(self):
+        d = generate(
+            input_type="bits",
+            rule="parity",
+            k=8,
+            N=100,
+            seed=1,
+            design="ood",
+            split=0.8,
+            ood_tests=[
+                {"k": 12, "N": 40},
+                {"k": 16, "N": 40},
+            ],
+        )
+        assert len(d["train"]) == 80
+        assert len(d["validation"]) == 20
+        assert len(d["validation_ood_0"]) == 40
+        assert len(d["validation_ood_1"]) == 40
+        # Each OOD split has the right sequence length
+        assert all(len(r["input"].split()) == 12 for r in d["validation_ood_0"])
+        assert all(len(r["input"].split()) == 16 for r in d["validation_ood_1"])
+        # Metadata records resolved specs
+        assert d["metadata"]["ood_tests"] == [
+            {
+                "input_type": "bits",
+                "k": 12,
+                "N": 40,
+                "format": "spaced",
+                "rule_kwargs": {},
+            },
+            {
+                "input_type": "bits",
+                "k": 16,
+                "N": 40,
+                "format": "spaced",
+                "rule_kwargs": {},
+            },
+        ]
+
+    def test_format_ood(self):
+        d = generate(
+            input_type="bits",
+            rule="parity",
+            k=6,
+            N=40,
+            seed=1,
+            design="ood",
+            split=0.75,
+            ood_tests=[{"format": "dense", "N": 20}],
+        )
+        # Primary uses spaced (tokens separated by spaces)
+        assert " " in d["train"][0]["input"]
+        # OOD uses dense (no separator)
+        assert all(" " not in r["input"] for r in d["validation_ood_0"])
+        assert all(len(r["input"]) == 6 for r in d["validation_ood_0"])
+
+    def test_domain_ood_rejects_when_rule_not_applicable(self):
+        # parity is bits-only, so a digits OOD spec should fail fast
+        with pytest.raises(ValueError, match="ood_tests\\[0\\]"):
+            generate(
+                input_type="bits",
+                rule="parity",
+                k=8,
+                N=40,
+                seed=1,
+                design="ood",
+                ood_tests=[{"input_type": "digits", "N": 20}],
+            )
+
+    def test_ood_coin_label_consistent_with_primary(self):
+        # A coin sequence that happens to appear in both primary and ood
+        # must get the same label (same seed, same sequence).
+        d = generate(
+            input_type="bits",
+            rule="coin",
+            k=5,
+            N=32,
+            seed=123,
+            design="ood",
+            split=0.75,
+            rule_kwargs={"p": 0.5},
+            ood_tests=[{"k": 5, "N": 32}],
+        )
+        primary = {r["input"]: r["output"] for r in d["train"] + d["validation"]}
+        ood = d["validation_ood_0"]
+        overlap = [r for r in ood if r["input"] in primary]
+        assert overlap, "test degenerate — no overlap between splits"
+        for r in overlap:
+            assert r["output"] == primary[r["input"]]
+
+    def test_ood_requires_nonempty_list(self):
+        with pytest.raises(ValueError, match="ood_tests"):
+            generate(
+                input_type="bits",
+                rule="parity",
+                k=8,
+                N=40,
+                seed=1,
+                design="ood",
+            )
+
+    def test_ood_spec_missing_N_raises(self):
+        with pytest.raises(ValueError, match="missing required field 'N'"):
+            generate(
+                input_type="bits",
+                rule="parity",
+                k=8,
+                N=40,
+                seed=1,
+                design="ood",
+                ood_tests=[{"k": 12}],
+            )

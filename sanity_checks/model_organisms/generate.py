@@ -2,14 +2,14 @@
 
 Current breadth:
 - Input types: ``bits``, ``digits``, ``letters``
-- Formats: ``spaced``
+- Formats: ``spaced``, ``dense``, ``comma``, ``tab``, ``pipe``
 - Rules: universal (``first``, ``last``, ``nth``, ``length``, ``constant``,
   ``coin``) plus domain-specific (``parity`` / ``majority`` on bits,
   ``min`` / ``max`` on digits / letters)
-- Designs: ``memorization``, ``in_distribution``
+- Designs: ``memorization``, ``in_distribution``, ``ood``
 
-OOD design, additional formats, a unified inspect task, and the
-``design-experiment`` integration land in later chunks.
+A unified inspect task and the ``design-experiment`` integration land in
+later chunks.
 
 CLI::
 
@@ -23,6 +23,12 @@ CLI::
         --rule_kwargs '{"p": 0.7}' \\
         --N 200 --seed 1729 --design in_distribution --split 0.8 \\
         --output bits_coin_p70_k8_indist.json
+
+    python -m cruijff_kit.sanity_checks.model_organisms.generate \\
+        --input_type bits --rule parity --k 8 \\
+        --N 200 --seed 1729 --design ood --split 0.8 \\
+        --ood_tests '[{"k": 12, "N": 50}, {"k": 16, "N": 50}]' \\
+        --output bits_parity_k8_ood.json
 """
 
 import argparse
@@ -36,7 +42,7 @@ from .inputs import get_input
 from .rules import get_rule
 
 
-SUPPORTED_DESIGNS = {"memorization", "in_distribution"}
+SUPPORTED_DESIGNS = {"memorization", "in_distribution", "ood"}
 
 # If the full sequence space fits under this size, enumerate it and shuffle
 # rather than sampling-with-replacement-and-dedup. 2**20 ~ 1M sequences;
@@ -80,6 +86,32 @@ def _build_rows(sequences, rule_fn, rule_kwargs, formatter) -> list[dict]:
     ]
 
 
+def _split_indices(N: int, split: float) -> tuple[int, int]:
+    if not 0 < split < 1:
+        raise ValueError(f"split must be in (0, 1); got {split}")
+    n_train = int(round(N * split))
+    if n_train == 0 or n_train == N:
+        raise ValueError(
+            f"split={split} with N={N} yields an empty train or validation "
+            "set; pick a split that keeps both sides non-empty."
+        )
+    return n_train, N - n_train
+
+
+def _resolve_ood_spec(spec: dict, base: dict) -> dict:
+    """Merge an ood_tests entry with defaults from the primary config."""
+    if "N" not in spec:
+        raise ValueError(f"ood_tests entry missing required field 'N': {spec}")
+    resolved = {
+        "input_type": spec.get("input_type", base["input_type"]),
+        "k": spec.get("k", base["k"]),
+        "N": spec["N"],
+        "format": spec.get("format", base["format"]),
+        "rule_kwargs": {**base["rule_kwargs"], **spec.get("rule_kwargs", {})},
+    }
+    return resolved
+
+
 def generate(
     *,
     input_type: str,
@@ -91,13 +123,17 @@ def generate(
     fmt: str = "spaced",
     rule_kwargs: dict | None = None,
     split: float = 0.8,
+    ood_tests: list[dict] | None = None,
 ) -> dict:
     """Generate a model-organism dataset and return it as a dict.
 
-    For ``design="memorization"``, train and validation contain the same rows.
-    For ``design="in_distribution"``, N unique sequences are sampled from
-    the same distribution and split ``split`` / ``1 - split`` into train
-    and validation.
+    - ``memorization``: train and validation contain the same rows.
+    - ``in_distribution``: N unique sequences sampled from one distribution
+      and split ``split`` / ``1 - split`` into train and validation.
+    - ``ood``: primary train/val (as in_distribution) plus one
+      ``validation_ood_{i}`` per entry in ``ood_tests``. Each OOD entry
+      may override ``input_type``, ``k``, ``format``, and ``rule_kwargs``
+      (``N`` is required).
     """
     if design not in SUPPORTED_DESIGNS:
         raise NotImplementedError(
@@ -121,8 +157,8 @@ def generate(
     # decouple the label seed from the sampling seed if they want.
     rule_kwargs.setdefault("seed", seed)
 
-    rng = random.Random(seed)
-    sequences = _sample_sequences_unique(input_def.alphabet, k, N, rng)
+    primary_rng = random.Random(seed)
+    sequences = _sample_sequences_unique(input_def.alphabet, k, N, primary_rng)
 
     metadata = {
         "generator": "sanity_checks/model_organisms/generate.py",
@@ -140,23 +176,53 @@ def generate(
         rows = _build_rows(sequences, rule_def.fn, rule_kwargs, formatter)
         return {"train": rows, "validation": rows, "metadata": metadata}
 
-    if design == "in_distribution":
-        if not 0 < split < 1:
-            raise ValueError(f"split must be in (0, 1); got {split}")
-        n_train = int(round(N * split))
-        if n_train == 0 or n_train == N:
-            raise ValueError(
-                f"split={split} with N={N} yields an empty train or validation "
-                "set; pick a split that keeps both sides non-empty."
-            )
-        metadata["split"] = split
-        train_seqs = sequences[:n_train]
-        val_seqs = sequences[n_train:]
-        train_rows = _build_rows(train_seqs, rule_def.fn, rule_kwargs, formatter)
-        val_rows = _build_rows(val_seqs, rule_def.fn, rule_kwargs, formatter)
-        return {"train": train_rows, "validation": val_rows, "metadata": metadata}
+    # Both in_distribution and ood start with a primary train/val split.
+    n_train, _ = _split_indices(N, split)
+    metadata["split"] = split
+    train_rows = _build_rows(sequences[:n_train], rule_def.fn, rule_kwargs, formatter)
+    val_rows = _build_rows(sequences[n_train:], rule_def.fn, rule_kwargs, formatter)
+    result: dict = {"train": train_rows, "validation": val_rows}
 
-    raise AssertionError(f"unreachable: design={design!r}")  # pragma: no cover
+    if design == "in_distribution":
+        result["metadata"] = metadata
+        return result
+
+    # design == "ood"
+    if not ood_tests:
+        raise ValueError("design='ood' requires a non-empty ood_tests list")
+
+    base = {
+        "input_type": input_type,
+        "k": k,
+        "format": fmt,
+        "rule_kwargs": {key: val for key, val in rule_kwargs.items() if key != "seed"},
+    }
+    resolved_specs = []
+    for i, spec in enumerate(ood_tests):
+        r = _resolve_ood_spec(spec, base)
+        ood_input_def = get_input(r["input_type"])
+        if ood_input_def.name not in rule_def.applicable:
+            raise ValueError(
+                f"ood_tests[{i}]: rule {rule!r} is not applicable to "
+                f"input type {r['input_type']!r}. "
+                f"Applicable: {sorted(rule_def.applicable)}"
+            )
+        ood_formatter = get_format(r["format"])
+        ood_rule_kwargs = dict(r["rule_kwargs"])
+        ood_rule_kwargs.setdefault("seed", seed)
+        # Per-index RNG keeps samples reproducible even if another OOD spec
+        # is added to the list later.
+        ood_rng = random.Random(f"{seed}.ood.{i}")
+        ood_seqs = _sample_sequences_unique(
+            ood_input_def.alphabet, r["k"], r["N"], ood_rng
+        )
+        ood_rows = _build_rows(ood_seqs, rule_def.fn, ood_rule_kwargs, ood_formatter)
+        result[f"validation_ood_{i}"] = ood_rows
+        resolved_specs.append(r)
+
+    metadata["ood_tests"] = resolved_specs
+    result["metadata"] = metadata
+    return result
 
 
 def _default_output_dir() -> Path:
@@ -184,8 +250,15 @@ def main():
         "--split",
         type=float,
         default=0.8,
-        help="Train fraction for design=in_distribution (default: 0.8). "
-        "Ignored for design=memorization.",
+        help="Train fraction for design=in_distribution or design=ood "
+        "(default: 0.8). Ignored for design=memorization.",
+    )
+    parser.add_argument(
+        "--ood_tests",
+        default="[]",
+        help="JSON list of OOD specs for design=ood. Each entry needs 'N' "
+        "and may override 'input_type', 'k', 'format', 'rule_kwargs'. "
+        'Example: \'[{"k": 12, "N": 50}, {"k": 16, "N": 50}]\'.',
     )
     parser.add_argument(
         "--output",
@@ -207,6 +280,13 @@ def main():
     if not isinstance(parsed_rule_kwargs, dict):
         parser.error("--rule_kwargs must be a JSON object (dict)")
 
+    try:
+        parsed_ood_tests = json.loads(args.ood_tests)
+    except json.JSONDecodeError as exc:
+        parser.error(f"--ood_tests must be valid JSON: {exc}")
+    if not isinstance(parsed_ood_tests, list):
+        parser.error("--ood_tests must be a JSON list")
+
     dataset = generate(
         input_type=args.input_type,
         rule=args.rule,
@@ -217,6 +297,7 @@ def main():
         fmt=args.fmt,
         rule_kwargs=parsed_rule_kwargs,
         split=args.split,
+        ood_tests=parsed_ood_tests or None,
     )
 
     output_dir = (
@@ -227,10 +308,16 @@ def main():
     with open(output_path, "w") as f:
         json.dump(dataset, f, indent=2)
 
-    print(
-        f"Wrote {len(dataset['train'])} train / "
-        f"{len(dataset['validation'])} val rows to {output_path}"
+    ood_counts = ", ".join(
+        f"{key}={len(dataset[key])}"
+        for key in sorted(dataset)
+        if key.startswith("validation_ood_")
     )
+    summary = f"Wrote {len(dataset['train'])} train / {len(dataset['validation'])} val"
+    if ood_counts:
+        summary += f" / {ood_counts}"
+    summary += f" rows to {output_path}"
+    print(summary)
 
 
 if __name__ == "__main__":
