@@ -1,6 +1,6 @@
-"""Tests for text_gen/lib/segments.py — Segment dataclass and rendering."""
+"""Tests for tabular_to_text_gen/lib/segments.py — Segment dataclass and rendering."""
 
-from text_gen.lib.segments import Segment, render_segments
+from tabular_to_text_gen.lib.segments import Segment, render_segments
 
 
 class TestSegmentDataclass:

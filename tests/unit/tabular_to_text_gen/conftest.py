@@ -1,12 +1,12 @@
-"""Shared fixtures for text_gen tests."""
+"""Shared fixtures for tabular_to_text_gen tests."""
 
 import csv
 
 import pytest
 import yaml
 
-from text_gen.lib.schema import ColumnSchema, Schema
-from text_gen.lib.segments import Segment
+from tabular_to_text_gen.lib.schema import ColumnSchema, Schema
+from tabular_to_text_gen.lib.segments import Segment
 
 
 # ---------------------------------------------------------------------------

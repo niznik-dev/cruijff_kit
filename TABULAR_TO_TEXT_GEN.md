@@ -30,7 +30,7 @@ Experiment-specific `data_generation` block; requires a schema.yaml to exist for
 
 #### Input prerequisites
 
-- `tool: "text_gen"` indicates that the convert-tabular-to-text skill should be invoked to generate the dataset (not already created, in which case it would be passed through in `data` block)
+- `tool: "tabular_to_text_gen"` indicates that the convert-tabular-to-text skill should be invoked to generate the dataset (not already created, in which case it would be passed through in `data` block)
 - `source` — local tabular dataset file (csv, parquet, dta)
 - `schema` — the path to the schema file for this source tabular dataset
 
@@ -128,7 +128,7 @@ Using a dataset schema, generates text-based .json training/evaluation datasets 
     - Validating the output (.json formatting, sidecar metadata file, prompting behavior, file splits, etc.) — see validation.md
 - **User responsible for:**
     - If LLM-generated, reviewing and approving the created .j2 template from the subagent
-- **Scripts responsible for:** the actual .json dataset creation. See the text_gen module documentation below for a more extensive description
+- **Scripts responsible for:** the actual .json dataset creation. See the tabular_to_text_gen module documentation below for a more extensive description
 
 #### generate-jinja-template subagent
 

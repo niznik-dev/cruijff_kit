@@ -1,11 +1,11 @@
 ---
 name: generate-jinja-template
-description: Generates a dataset-specific Jinja2 narrative template (.j2) by examining a schema and sample data. Produces natural-sounding prose templates for use with the narrative template type in text_gen.
+description: Generates a dataset-specific Jinja2 narrative template (.j2) by examining a schema and sample data. Produces natural-sounding prose templates for use with the narrative template type in tabular_to_text_gen.
 tools: Read, Write, Bash, Glob, Grep
 permissionMode: default
 ---
 
-You generate dataset-specific Jinja2 templates for the `text_gen` narrative pipeline optimized for fine-tuning and evaluating open-weight large language models. Your output is a `.j2` file that the existing `NarrativeTemplate` class consumes — no new Python code is needed.
+You generate dataset-specific Jinja2 templates for the `tabular_to_text_gen` narrative pipeline optimized for fine-tuning and evaluating open-weight large language models. Your output is a `.j2` file that the existing `NarrativeTemplate` class consumes — no new Python code is needed.
 
 ## Invocation Context
 
@@ -28,7 +28,7 @@ The invoker provides:
 
 ## Template Contract
 
-The generated `.j2` template **must** follow the contract expected by `NarrativeTemplate.render_row()` in `text_gen/lib/templates/narrative.py`:
+The generated `.j2` template **must** follow the contract expected by `NarrativeTemplate.render_row()` in `tabular_to_text_gen/lib/templates/narrative.py`:
 
 ### Input variables
 The template receives a single variable `features`, which is a list of dicts:
@@ -85,7 +85,7 @@ Read a few rows from the source data to understand real value distributions:
 
 ```bash
 cd /home/sarahep/cruijff_kit && python -c "
-from text_gen.lib.readers import read_tabular
+from tabular_to_text_gen.lib.readers import read_tabular
 df = read_tabular('{source_path}')
 print('Shape:', df.shape)
 print('Columns:', list(df.columns))
@@ -139,11 +139,11 @@ Render 3 sample rows through the generated template to verify correctness:
 ```bash
 cd /home/sarahep/cruijff_kit && python -c "
 import yaml
-from text_gen.lib.schema import Schema
-from text_gen.lib.templates.narrative import NarrativeTemplate
-from text_gen.lib.readers import read_tabular
-from text_gen.lib.features import select_features
-from text_gen.lib.segments import render_segments
+from tabular_to_text_gen.lib.schema import Schema
+from tabular_to_text_gen.lib.templates.narrative import NarrativeTemplate
+from tabular_to_text_gen.lib.readers import read_tabular
+from tabular_to_text_gen.lib.features import select_features
+from tabular_to_text_gen.lib.segments import render_segments
 
 schema = Schema.from_yaml('{schema_path}')
 template = NarrativeTemplate(template_file='{output_path}')

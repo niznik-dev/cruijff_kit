@@ -1,10 +1,10 @@
-"""CLI entrypoint for text_gen.
+"""CLI entrypoint for tabular_to_text_gen.
 
 Reads a source tabular file, schema, and condition configuration,
 then produces a single output JSON file for one condition and one split.
 
 Usage:
-    python -m text_gen.convert \
+    python -m tabular_to_text_gen.convert \
         --source /path/to/data.csv \
         --schema /path/to/schema.yaml \
         --condition-name dict_full \
@@ -30,18 +30,22 @@ import sys
 
 import yaml
 
-from text_gen.lib.features import select_features, validate_features
-from text_gen.lib.output import build_output_entry, write_metadata, write_output
-from text_gen.lib.perturbations.engine import (
+from tabular_to_text_gen.lib.features import select_features, validate_features
+from tabular_to_text_gen.lib.output import (
+    build_output_entry,
+    write_metadata,
+    write_output,
+)
+from tabular_to_text_gen.lib.perturbations.engine import (
     apply_perturbations,
     build_perturbation_chain,
 )
-from text_gen.lib.readers import read_tabular
-from text_gen.lib.schema import Schema
-from text_gen.lib.segments import render_segments
-from text_gen.lib.templates import get_template
+from tabular_to_text_gen.lib.readers import read_tabular
+from tabular_to_text_gen.lib.schema import Schema
+from tabular_to_text_gen.lib.segments import render_segments
+from tabular_to_text_gen.lib.templates import get_template
 
-logger = logging.getLogger("text_gen")
+logger = logging.getLogger("tabular_to_text_gen")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -379,7 +383,7 @@ def main(argv: list[str] | None = None):
             logger.error("one_to_many.copies must be >= 1, got %d", otm_copies)
             sys.exit(1)
 
-        from text_gen.lib.perturbations.engine import PERTURBATION_REGISTRY
+        from tabular_to_text_gen.lib.perturbations.engine import PERTURBATION_REGISTRY
 
         if otm_perturbation not in PERTURBATION_REGISTRY:
             available = ", ".join(sorted(PERTURBATION_REGISTRY.keys()))

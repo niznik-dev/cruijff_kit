@@ -1,6 +1,6 @@
-# Data Generation Reference
+# tabular_to_text_gen Reference
 
-Reference for data generation options when designing experiments with tabular-to-text conversion. Consult this when building the `data_generation` section of `experiment_summary.yaml`.
+Reference for the `tabular_to_text_gen` data-generation tool (tabular source → text, invoked via the `convert-tabular-to-text` skill). Consult this when building the `data_generation` section of `experiment_summary.yaml` with `tool: tabular_to_text_gen`.
 
 ## Template Styles
 
@@ -130,7 +130,7 @@ The training file bundles **both** the train and validation slices under their r
 
 ### How it splits
 
-`split_dataframe()` in `text_gen/convert.py` shuffles row indices under `random.Random(seed)` and slices deterministically: `[0:train_end]` for train, `[train_end:val_end]` for validation, `[val_end:]` for test. The same seed + ratios produce the same row assignment across conditions, so a row that lands in validation for `dict_full` lands in validation for `narr_full` too — critical for clean cross-condition comparisons.
+`split_dataframe()` in `tabular_to_text_gen/convert.py` shuffles row indices under `random.Random(seed)` and slices deterministically: `[0:train_end]` for train, `[train_end:val_end]` for validation, `[val_end:]` for test. The same seed + ratios produce the same row assignment across conditions, so a row that lands in validation for `dict_full` lands in validation for `narr_full` too — critical for clean cross-condition comparisons.
 
 ## Subsampling
 

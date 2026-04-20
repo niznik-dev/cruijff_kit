@@ -58,9 +58,16 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 **Should we include base model controls?**
 - Controls evaluate base models without fine-tuning to measure the effect of fine-tuning
 
-### Tabular-to-Text Data Detection
+### Data Generation Detection
 
-If the experiment involves tabular-to-text data (user mentions prompting style, feature selection, format robustness, Books of Life, or similar):
+If the experiment uses datasets produced by a data-generation tool (semantic mapping from some source representation into LLM-ready text), identify which tool applies:
+
+- **`tabular_to_text_gen`** — tabular source data (CSV, Stata, Parquet, etc.) converted to text via the `convert-tabular-to-text` skill. Use this when the user mentions prompting style, feature selection, format robustness, Books of Life, or similar tabular workflows.
+- *Future tools* — other semantic-mapping modules may be added (e.g., for non-tabular inputs). Treat the `data_generation.tool` field in `experiment_summary.yaml` as the extension point.
+
+The rest of this section describes the `tabular_to_text_gen` flow, which is currently the only supported tool.
+
+#### Tabular-to-Text .json Generation
 
 **Ask:** "Do you have generated text datasets, or will you need to create them?"
 
@@ -72,7 +79,7 @@ There are three cases:
 
 **Case C — User needs to generate datasets from tabular data.** A schema must already exist (created via `create-tabular-schema`). If no schema exists in `ck-data/schemas/`, advise the user to run `create-tabular-schema` first — it defines columns, types, value maps, and the target column, which are needed to design conditions.
 
-With the schema in hand, consult `references/data_generation.md` and walk the user through the data generation design decisions:
+With the schema in hand, consult `references/tabular_to_text_gen.md` and walk the user through the data generation design decisions:
 
 1. **Template style** — dictionary, narrative (generic or custom), or llm_narrative. If narrative with custom template or llm_narrative, also gather style guidance (intended use, token density preference, tone) and record it in each relevant condition's `style_guidance` field.
 2. **Target configuration** — which column, threshold or mapping

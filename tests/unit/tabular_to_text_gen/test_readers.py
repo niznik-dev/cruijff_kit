@@ -1,8 +1,8 @@
-"""Tests for text_gen/lib/readers.py — tabular file format auto-detection."""
+"""Tests for tabular_to_text_gen/lib/readers.py — tabular file format auto-detection."""
 
 import pytest
 
-from text_gen.lib.readers import read_tabular
+from tabular_to_text_gen.lib.readers import read_tabular
 
 
 class TestReadTabular:

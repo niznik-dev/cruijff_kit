@@ -1,11 +1,11 @@
-"""Tests for text_gen/convert.py — CLI entrypoint and integration tests."""
+"""Tests for tabular_to_text_gen/convert.py — CLI entrypoint and integration tests."""
 
 import json
 
 import pandas as pd
 import pytest
 
-from text_gen.convert import load_condition_from_file, main, split_dataframe
+from tabular_to_text_gen.convert import load_condition_from_file, main, split_dataframe
 
 
 # ---------------------------------------------------------------------------

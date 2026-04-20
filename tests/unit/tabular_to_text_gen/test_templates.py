@@ -1,10 +1,10 @@
-"""Tests for text_gen/lib/templates/ — dictionary, narrative, and factory."""
+"""Tests for tabular_to_text_gen/lib/templates/ — dictionary, narrative, and factory."""
 
 import pytest
 
-from text_gen.lib.templates import get_template
-from text_gen.lib.templates.dictionary import DictionaryTemplate
-from text_gen.lib.templates.narrative import NarrativeTemplate
+from tabular_to_text_gen.lib.templates import get_template
+from tabular_to_text_gen.lib.templates.dictionary import DictionaryTemplate
+from tabular_to_text_gen.lib.templates.narrative import NarrativeTemplate
 
 
 # ---------------------------------------------------------------------------

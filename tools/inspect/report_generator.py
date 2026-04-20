@@ -551,7 +551,7 @@ def _format_inspect_view_commands(
 def _read_splits_from_metadata(training_path: str) -> dict:
     """Read split row counts from .meta.json sidecar files.
 
-    When datasets are generated via text_gen, experiment_summary.yaml may
+    When datasets are generated via tabular_to_text_gen, experiment_summary.yaml may
     have placeholder zeros for split counts. The actual counts are recorded
     in .meta.json sidecar files alongside each generated JSON file.
 

@@ -174,7 +174,7 @@ For each run, create a `setup_finetune.yaml` file by:
 
 1. **Determine dataset path** — check for per-run override first:
 
-   **If `dataset_path` exists in `run.parameters`** (text_gen experiments):
+   **If `dataset_path` exists in `run.parameters`**:
    - Use `run.parameters.dataset_path` as the full dataset path
    - Extract `dataset_label` from the filename (stem without extension)
    - Extract `dataset_ext` from the file extension (e.g., `.json`)
@@ -281,7 +281,7 @@ For each run directory:
 
    **Determining training_samples:**
    - **Standard experiments:** Use `data.training.splits.train` from experiment_summary.yaml
-   - **Per-run dataset override** (text_gen experiments): Read the `.meta.json` sidecar file alongside the dataset to get `row_count`. The sidecar path is the dataset path with `.json` replaced by `.meta.json` (e.g., `dict_full_train_s42.meta.json`). If the sidecar does not exist, omit the `--training_samples` flag (the step guard will be skipped).
+   - **Per-run dataset override**: Read the `.meta.json` sidecar file alongside the dataset to get `row_count`. The sidecar path is the dataset path with `.json` replaced by `.meta.json` (e.g., `dict_full_train_s42.meta.json`). If the sidecar does not exist, omit the `--training_samples` flag (the step guard will be skipped).
 
    **Example:**
    ```bash

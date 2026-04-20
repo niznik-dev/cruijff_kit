@@ -67,10 +67,9 @@ data:
       validation: int
       test: int
 
-  # OPTIONAL: Include when using convert-tabular-to-text to generate datasets
-  # from tabular source data.
+  # OPTIONAL: Include when a data-generation tool produces the datasets.
   data_generation:
-    tool: text_gen                 # Generator tool identifier
+    tool: string                   # Generator tool. Supported: "tabular_to_text_gen"
     source: string                 # Full path to source tabular file
     schema: string                 # Full path to schema YAML in ck-data/schemas/
     target:
@@ -137,7 +136,7 @@ runs:
       lora_rank: int               # Include all varied parameters
       lr: float
       # Empty dict {} for control runs
-      # OPTIONAL per-run dataset overrides (for text_gen experiments):
+      # OPTIONAL per-run dataset overrides (for data-generation experiments):
       # dataset_path: string       # Full path to training dataset file (overrides data.training.path)
       # eval_dataset_path: string  # Full path to evaluation dataset file
 

@@ -1,10 +1,10 @@
-"""Tests for text_gen/lib/output.py — label computation, entry assembly, file writing."""
+"""Tests for tabular_to_text_gen/lib/output.py — label computation, entry assembly, file writing."""
 
 import json
 
 import pytest
 
-from text_gen.lib.output import (
+from tabular_to_text_gen.lib.output import (
     build_output_entry,
     compute_label,
     write_metadata,

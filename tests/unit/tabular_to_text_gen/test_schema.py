@@ -1,9 +1,9 @@
-"""Tests for text_gen/lib/schema.py — schema loading, validation, skeleton generation."""
+"""Tests for tabular_to_text_gen/lib/schema.py — schema loading, validation, skeleton generation."""
 
 import pytest
 import yaml
 
-from text_gen.lib.schema import Schema
+from tabular_to_text_gen.lib.schema import Schema
 
 
 class TestSchemaFromYaml:

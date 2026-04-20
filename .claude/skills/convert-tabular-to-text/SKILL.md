@@ -158,7 +158,7 @@ For each file in the plan from Step 5, call `convert.py`:
 **Per training condition** (one invocation produces the bundled train+validation file):
 
 ```bash
-cd {cruijff_kit_path} && python -m text_gen.convert \
+cd {cruijff_kit_path} && python -m tabular_to_text_gen.convert \
   --source {source_path} \
   --schema {schema_path} \
   --condition-name {condition_name} \
@@ -183,7 +183,7 @@ cd {cruijff_kit_path} && python -m text_gen.convert \
 **Per evaluation-only condition** (test-only file):
 
 ```bash
-cd {cruijff_kit_path} && python -m text_gen.convert \
+cd {cruijff_kit_path} && python -m tabular_to_text_gen.convert \
   --source {source_path} \
   --schema {schema_path} \
   --condition-name {condition_name} \
