@@ -111,7 +111,7 @@ The experiment workflow uses an **orchestrator → worker** pattern:
 - Preprocessing script details and usage
 - Expected output formats and locations
 
-**Model-organism sanity checks:** If the user wants a sequence-task sanity check (parity, majority, count-digits, etc.) generated from the model-organisms framework, do NOT hand-write a preprocessing script — declare the dataset in a `data_generation.model_organism` block. See `references/model_organisms.md` for the parameter reference, conversation flow, and YAML examples. `scaffold-experiment` will materialize the file before subagents run.
+**Model-organism sanity checks:** If the user wants a sequence-task sanity check (parity, majority, count-digits, etc.) generated from the model-organisms framework, do NOT hand-write a preprocessing script — declare the dataset in a `data.data_generation` block with `tool: model_organism`. See `references/model_organisms.md` for the parameter reference, conversation flow, and YAML examples. `scaffold-experiment` will materialize the file before subagents run.
 
 ### What Variables Are You Testing?
 - Different model sizes?
@@ -310,7 +310,7 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 1. **Check for existing preprocessing scripts:** Look in `experiments/{task}/` for scripts like `preprocess_*.py`
 2. **Consult task README:** Check `experiments/{task}/README.md` for dataset creation instructions
 3. **Use the proper tool:** Run the task-specific preprocessing script with appropriate parameters
-4. **Model-organism sanity checks:** Declare in `data_generation.model_organism` instead (see `references/model_organisms.md`); scaffold will generate the file before subagents run.
+4. **Model-organism sanity checks:** Declare in `data.data_generation` with `tool: model_organism` instead (see `references/model_organisms.md`); scaffold will generate the file before subagents run.
 5. **DON'T:** Write ad-hoc Python code or copy dataset creation code from previous experiments
 6. **WHY:** Task-specific scripts ensure correct format, naming conventions, and reproducibility
 

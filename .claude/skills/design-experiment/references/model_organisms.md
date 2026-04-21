@@ -1,13 +1,17 @@
 # Model-Organism Datasets
 
-Reference for authoring a `data_generation.model_organism` block in
-`experiment_summary.yaml`. Used when the experiment's training/eval data
-comes from the model-organisms framework at
+Reference for authoring a `data.data_generation` block with
+`tool: model_organism` in `experiment_summary.yaml`. Used when the
+experiment's training/eval data comes from the model-organisms framework at
 `sanity_checks/model_organisms/` (inputs × rules × formats × designs).
 
 When this block is present, `scaffold-experiment` runs
 `tools/experiment/prepare_data.py` before launching subagents, which
-materializes the declared datasets on disk.
+dispatches on the `tool:` field and materializes the declared dataset on
+disk.
+
+One generator, one dataset per experiment. Multi-dataset support is a
+deferred follow-up — see the tracking issue in the repo.
 
 ## When to use this
 
@@ -21,10 +25,11 @@ materializes the declared datasets on disk.
 
 ## Parameter reference
 
-Required per entry:
+Required:
 
 | Field | Description | Notes |
 |---|---|---|
+| `tool` | Generator identifier | Must be `model_organism` for this schema |
 | `name` | Dataset identifier | Used in logs; not a filename |
 | `input_type` | `bits` \| `digits` \| `letters` | Alphabet |
 | `rule` | Output rule | See `sanity_checks/model_organisms/rules.py` registry. Universal rules: `first`, `last`, `nth`, `length`, `constant`, `coin`. Bits-only: `parity`, `majority`. Digits/letters-only: `min`, `max`. |
@@ -49,16 +54,26 @@ Train == validation (identical rows). Used to check whether a model can
 fit a specific label mapping without generalizing.
 
 ```yaml
-data_generation:
-  model_organism:
-    - name: bits_parity_k8_memo
-      input_type: bits
-      rule: parity
-      k: 8
-      N: 200
-      seed: 1729
-      design: memorization
-      output_path: data/bits_parity_k8_memo.json
+data:
+  training:
+    path: /full/path/to/experiment_dir/data/bits_parity_k8_memo.json
+    label: bits_parity_k8_memo
+    format: json
+    size_kb: 25
+    splits:
+      train: 200
+      validation: 200
+      test: 0
+  data_generation:
+    tool: model_organism
+    name: bits_parity_k8_memo
+    input_type: bits
+    rule: parity
+    k: 8
+    N: 200
+    seed: 1729
+    design: memorization
+    output_path: data/bits_parity_k8_memo.json
 ```
 
 ## Example: in-distribution generalization
@@ -66,17 +81,27 @@ data_generation:
 N unique sequences drawn from one distribution, split into train/val.
 
 ```yaml
-data_generation:
-  model_organism:
-    - name: digits_majority_k10
-      input_type: digits
-      rule: majority
-      k: 10
-      N: 500
-      seed: 42
-      design: in_distribution
-      split: 0.8
-      output_path: data/digits_majority_k10.json
+data:
+  training:
+    path: /full/path/to/experiment_dir/data/digits_majority_k10.json
+    label: digits_majority_k10
+    format: json
+    size_kb: 60
+    splits:
+      train: 400
+      validation: 100
+      test: 0
+  data_generation:
+    tool: model_organism
+    name: digits_majority_k10
+    input_type: digits
+    rule: majority
+    k: 10
+    N: 500
+    seed: 42
+    design: in_distribution
+    split: 0.8
+    output_path: data/digits_majority_k10.json
 ```
 
 ## Example: out-of-distribution
@@ -86,48 +111,42 @@ Primary train/val as in_distribution; each `ood_tests` entry becomes a
 `format`, and `rule_kwargs`; `N` is required.
 
 ```yaml
-data_generation:
-  model_organism:
-    - name: bits_parity_indist8_ood
-      input_type: bits
-      rule: parity
-      k: 8
-      N: 400
-      seed: 1729
-      design: ood
-      split: 0.8
-      ood_tests:
-        - {k: 12, N: 100}
-        - {k: 16, N: 100}
-        - {k: 8, N: 100, fmt: dense}
-      output_path: data/bits_parity_ood.json
-```
-
-## Also required: back-fill `data.training`
-
-The generator writes one JSON with `{train, validation, metadata[, validation_ood_*]}`.
-The existing `data.training` block in the YAML is **still required** —
-point it at the same file so scaffold-torchtune can read it.
-
-```yaml
 data:
   training:
-    path: /full/path/to/experiment_dir/data/bits_parity_k8_memo.json
-    label: bits_parity_k8_memo
+    path: /full/path/to/experiment_dir/data/bits_parity_ood.json
+    label: bits_parity_indist8_ood
     format: json
-    size_kb: 25              # approximate
+    size_kb: 80
     splits:
-      train: 200             # equals N for memorization
-      validation: 200        # equals train for memorization
+      train: 320
+      validation: 80
       test: 0
+  data_generation:
+    tool: model_organism
+    name: bits_parity_indist8_ood
+    input_type: bits
+    rule: parity
+    k: 8
+    N: 400
+    seed: 1729
+    design: ood
+    split: 0.8
+    ood_tests:
+      - {k: 12, N: 100}
+      - {k: 16, N: 100}
+      - {k: 8, N: 100, fmt: dense}
+    output_path: data/bits_parity_ood.json
 ```
 
-For `in_distribution` with `split: 0.8`:
-- `splits.train` = round(N * 0.8)
-- `splits.validation` = N - train
+## Split accounting for `data.training.splits`
 
-For `ood`: same as in_distribution, plus one unreported `validation_ood_i`
-split per `ood_tests` entry (those don't appear in `splits`).
+The generator writes one JSON with `{train, validation, metadata[, validation_ood_*]}`.
+The `data.training` block is **still required** — point it at the same file.
+
+- **memorization**: `splits.train` = `N`, `splits.validation` = `N` (identical rows).
+- **in_distribution** with `split: s`: `splits.train` = round(N × s), `splits.validation` = N − train.
+- **ood**: same as in_distribution, plus one unreported `validation_ood_i`
+  split per `ood_tests` entry (those don't appear in `splits`).
 
 ## Conversation flow — what to ask the user
 
@@ -142,6 +161,6 @@ When the user says "I want a sanity check on parity" (or similar), gather:
 6. **Format** — default `spaced`; ask only if they bring it up
 7. **Rule kwargs** — only if the rule needs them (e.g., `coin` needs `p`; `nth` needs `x`)
 
-Then author both the `data_generation.model_organism` entry and the
-`data.training` block. Log the schema version and dataset parameters in
+Then author both the `data.data_generation` entry (with `tool: model_organism`)
+and the `data.training` block. Log the schema version and dataset parameters in
 `design-experiment.log` per `logging.md`.

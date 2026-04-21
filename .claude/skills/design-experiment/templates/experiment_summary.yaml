@@ -67,21 +67,27 @@ data:
       validation: int
       test: int
 
-data_generation:
-  # OPTIONAL: Datasets produced by prepare_data before scaffolding
-  model_organism:
-    - name: string                 # REQUIRED: Dataset identifier (used in logs)
-      input_type: string           # REQUIRED: "bits" | "digits" | "letters"
-      rule: string                 # REQUIRED: see sanity_checks/model_organisms/rules.py
-      k: int                       # REQUIRED: Sequence length
-      N: int                       # REQUIRED: Number of samples
-      seed: int                    # REQUIRED: Random seed
-      design: string               # REQUIRED: "memorization" | "in_distribution" | "ood"
-      output_path: string          # REQUIRED: Relative to experiment_dir, or absolute
-      fmt: string                  # OPTIONAL: "spaced" (default) | "dense" | "comma" | "tab" | "pipe"
-      rule_kwargs: dict            # OPTIONAL: Extra rule params (e.g. {p: 0.7} for coin)
-      split: float                 # OPTIONAL: Train fraction for in_distribution/ood (default 0.8)
-      ood_tests: list              # REQUIRED when design="ood": list of OOD specs
+  # OPTIONAL: Dataset produced by a generator tool before scaffolding.
+  # When present, scaffold-experiment runs `tools/experiment/prepare_data.py`
+  # which dispatches on the `tool:` field to the named generator.
+  # Currently supported: "model_organism" (see references/model_organisms.md).
+  # One generator, one dataset per experiment. Multi-dataset support deferred
+  # to a follow-up issue.
+  data_generation:
+    tool: string                   # REQUIRED: Generator identifier. Supported: "model_organism"
+    # ---- model_organism fields (when tool == "model_organism") ----
+    name: string                   # REQUIRED: Dataset identifier (used in logs)
+    input_type: string             # REQUIRED: "bits" | "digits" | "letters"
+    rule: string                   # REQUIRED: see sanity_checks/model_organisms/rules.py
+    k: int                         # REQUIRED: Sequence length
+    N: int                         # REQUIRED: Number of samples
+    seed: int                      # REQUIRED: Random seed
+    design: string                 # REQUIRED: "memorization" | "in_distribution" | "ood"
+    output_path: string            # REQUIRED: Relative to experiment_dir, or absolute
+    fmt: string                    # OPTIONAL: "spaced" (default) | "dense" | "comma" | "tab" | "pipe"
+    rule_kwargs: dict              # OPTIONAL: Extra rule params (e.g. {p: 0.7} for coin)
+    split: float                   # OPTIONAL: Train fraction for in_distribution/ood (default 0.8)
+    ood_tests: list                # REQUIRED when design="ood": list of OOD specs
 
 output:
   base_directory: string           # REQUIRED: Full path to this experiment's output directory

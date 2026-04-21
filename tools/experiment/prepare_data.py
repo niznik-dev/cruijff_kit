@@ -1,10 +1,16 @@
-"""Generate datasets declared in experiment_summary.yaml's data_generation block.
+"""Generate the dataset declared in experiment_summary.yaml's data.data_generation block.
 
-Runs as the first step of scaffold-experiment. Cheap, deterministic generators
-(currently: the model-organisms framework) plug in here as dispatch entries.
+Runs as the first step of scaffold-experiment. Dispatches on the ``tool:``
+field under ``data.data_generation``. Currently supports:
 
-Expensive/flaky generators (e.g. Sarah's tabular_to_text) have their own
+- ``model_organism`` — cheap, deterministic sequence datasets from
+  ``sanity_checks/model_organisms/``.
+
+Expensive/flaky generators (e.g. Sarah's tabular_to_text_gen) have their own
 dedicated skills and do NOT route through this tool.
+
+One generator, one dataset per experiment. Multi-dataset support is a
+tracked follow-up.
 
 Usage::
 
@@ -61,7 +67,7 @@ def generate_model_organism(
     missing = [key for key in required if key not in spec]
     if missing:
         raise ValueError(
-            f"data_generation.model_organism entry missing required fields: {missing}"
+            f"data.data_generation (tool=model_organism) missing required fields: {missing}"
         )
 
     out_path = _resolve_output(spec["output_path"], experiment_dir)
@@ -93,6 +99,12 @@ def generate_model_organism(
     return out_path
 
 
+# Registered generators, keyed by `tool` field.
+_GENERATORS = {
+    "model_organism": generate_model_organism,
+}
+
+
 def _setup_logger(log_path: Path) -> logging.Logger:
     logger = logging.getLogger(f"prepare_data:{log_path}")
     logger.setLevel(logging.INFO)
@@ -114,7 +126,7 @@ def _setup_logger(log_path: Path) -> logging.Logger:
 
 
 def prepare(experiment_dir: Path) -> int:
-    """Generate any datasets declared in experiment_summary.yaml.
+    """Generate the dataset declared in experiment_summary.yaml, if any.
 
     Returns 0 on success (including the "no data_generation block" case),
     1 on any failure.
@@ -130,42 +142,47 @@ def prepare(experiment_dir: Path) -> int:
     with open(yaml_path) as f:
         config = yaml.safe_load(f) or {}
 
-    data_gen = config.get("data_generation")
+    data_gen = (config.get("data") or {}).get("data_generation")
     if not data_gen:
-        print("No data_generation block; nothing to prepare.")
+        print("No data.data_generation block; nothing to prepare.")
         return 0
 
-    specs = data_gen.get("model_organism") or []
-    if not specs:
-        print("data_generation block has no model_organism entries; nothing to do.")
-        return 0
+    tool = data_gen.get("tool")
+    if not tool:
+        print(
+            "ERROR: data.data_generation is missing required 'tool' field.",
+            file=sys.stderr,
+        )
+        return 1
+    if tool not in _GENERATORS:
+        print(
+            f"ERROR: data.data_generation tool={tool!r} is not supported. "
+            f"Known: {sorted(_GENERATORS)}",
+            file=sys.stderr,
+        )
+        return 1
 
     log_path = experiment_dir / "logs" / LOG_NAME
     log_path.parent.mkdir(parents=True, exist_ok=True)
     logger = _setup_logger(log_path)
     logger.info(f"START: prepare_data for {experiment_dir}")
 
-    errors = []
-    for i, spec in enumerate(specs):
-        try:
-            generate_model_organism(spec, experiment_dir, logger)
-        except Exception as exc:
-            logger.error(
-                f"FAILED: model_organism[{i}] ({spec.get('name', '<unnamed>')}): {exc}"
-            )
-            errors.append((i, exc))
-
-    if errors:
-        logger.error(f"END: {len(errors)} error(s); aborting")
+    try:
+        _GENERATORS[tool](data_gen, experiment_dir, logger)
+    except Exception as exc:
+        logger.error(
+            f"FAILED: tool={tool} ({data_gen.get('name', '<unnamed>')}): {exc}"
+        )
         return 1
-    logger.info(f"END: generated {len(specs)} dataset(s) successfully")
+
+    logger.info("END: dataset generated successfully")
     return 0
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Generate datasets declared in experiment_summary.yaml's "
-        "data_generation block."
+        description="Generate the dataset declared in experiment_summary.yaml's "
+        "data.data_generation block."
     )
     parser.add_argument(
         "experiment_dir",

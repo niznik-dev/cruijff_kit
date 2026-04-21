@@ -30,7 +30,7 @@ This ensures the entire experiment is ready to execute from training through eva
 2. **Verify experiment_summary.yaml exists** - Ensure design phase is complete
 3. **Read tool specifications** - Parse experiment_summary.yaml to identify preparation and evaluation tools
 4. **Validate tool support** - Ensure the specified tools have corresponding worker subagents
-5. **Prepare data (if applicable)** - If `data_generation` block is present, run `tools/experiment/prepare_data.py` to materialize any declared datasets before subagents launch
+5. **Prepare data (if applicable)** - If `data.data_generation` block is present, run `tools/experiment/prepare_data.py` to materialize the declared dataset before subagents launch
 6. **Launch preparation and evaluation subagents in parallel** - Use Task tool to launch both simultaneously
 7. **Wait for both subagents to complete** - Each will report back when done
 8. **Create orchestration log** - Document the scaffolding process in `logs/scaffold-experiment.log`
@@ -129,14 +129,14 @@ I'll launch both the torchtune and inspect-ai scaffolding subagents in parallel.
 
 ### Step 0: Prepare Data (if applicable)
 
-If experiment_summary.yaml contains a `data_generation` block, run the prepare_data tool before launching any subagents:
+If experiment_summary.yaml contains a `data.data_generation` block, run the prepare_data tool before launching any subagents:
 
 ```bash
 python -m cruijff_kit.tools.experiment.prepare_data {experiment_dir}
 ```
 
 **Behavior:**
-- Exits 0 if no `data_generation` block exists or all declared datasets are generated successfully.
+- Exits 0 if no `data.data_generation` block exists or the declared dataset is generated successfully.
 - Exits 1 on any failure. If this happens, **do not launch subagents** — report the error and direct the user to `logs/scaffold-prepare-data.log`.
 
 **Currently supported generators:**
@@ -266,7 +266,7 @@ Successfully scaffolded experiment:
 ### Logs Created
 
 - `logs/scaffold-experiment.log` - Orchestration log (this process)
-- `logs/scaffold-prepare-data.log` - Data-generation details (only if `data_generation` block present)
+- `logs/scaffold-prepare-data.log` - Data-generation details (only if `data.data_generation` block present)
 - `logs/scaffold-torchtune.log` - Fine-tuning scaffolding details
 - `logs/scaffold-inspect.log` - Evaluation scaffolding details
 

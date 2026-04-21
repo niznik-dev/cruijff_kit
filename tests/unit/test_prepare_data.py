@@ -16,6 +16,13 @@ def _write_yaml(exp_dir, config):
     (exp_dir / "experiment_summary.yaml").write_text(yaml.dump(config))
 
 
+def _model_organism(**kwargs):
+    """Build a data.data_generation block with tool=model_organism."""
+    block = {"tool": "model_organism"}
+    block.update(kwargs)
+    return {"data": {"data_generation": block}}
+
+
 @pytest.fixture
 def experiment_dir(tmp_path):
     exp_dir = tmp_path / "exp"
@@ -31,8 +38,8 @@ class TestNoOp:
         _write_yaml(experiment_dir, {"experiment": {"name": "t"}})
         assert prepare(experiment_dir) == 0
 
-    def test_empty_model_organism_list(self, experiment_dir):
-        _write_yaml(experiment_dir, {"data_generation": {"model_organism": []}})
+    def test_data_block_without_data_generation(self, experiment_dir):
+        _write_yaml(experiment_dir, {"data": {"training": {"path": "x"}}})
         assert prepare(experiment_dir) == 0
 
 
@@ -40,22 +47,16 @@ class TestSingleDataset:
     def test_memorization_dataset_written(self, experiment_dir):
         _write_yaml(
             experiment_dir,
-            {
-                "data_generation": {
-                    "model_organism": [
-                        {
-                            "name": "bits_parity",
-                            "input_type": "bits",
-                            "rule": "parity",
-                            "k": 4,
-                            "N": 8,
-                            "seed": 1,
-                            "design": "memorization",
-                            "output_path": "data/bits_parity.json",
-                        }
-                    ]
-                }
-            },
+            _model_organism(
+                name="bits_parity",
+                input_type="bits",
+                rule="parity",
+                k=4,
+                N=8,
+                seed=1,
+                design="memorization",
+                output_path="data/bits_parity.json",
+            ),
         )
         assert prepare(experiment_dir) == 0
 
@@ -70,23 +71,17 @@ class TestSingleDataset:
     def test_in_distribution_dataset_split(self, experiment_dir):
         _write_yaml(
             experiment_dir,
-            {
-                "data_generation": {
-                    "model_organism": [
-                        {
-                            "name": "digits_length",
-                            "input_type": "digits",
-                            "rule": "length",
-                            "k": 5,
-                            "N": 20,
-                            "seed": 2,
-                            "design": "in_distribution",
-                            "split": 0.75,
-                            "output_path": "data/dl.json",
-                        }
-                    ]
-                }
-            },
+            _model_organism(
+                name="digits_length",
+                input_type="digits",
+                rule="length",
+                k=5,
+                N=20,
+                seed=2,
+                design="in_distribution",
+                split=0.75,
+                output_path="data/dl.json",
+            ),
         )
         assert prepare(experiment_dir) == 0
         ds = json.loads((experiment_dir / "data" / "dl.json").read_text())
@@ -94,62 +89,20 @@ class TestSingleDataset:
         assert len(ds["validation"]) == 5
 
 
-class TestMultipleDatasets:
-    def test_multiple_all_succeed(self, experiment_dir):
-        _write_yaml(
-            experiment_dir,
-            {
-                "data_generation": {
-                    "model_organism": [
-                        {
-                            "name": "a",
-                            "input_type": "bits",
-                            "rule": "parity",
-                            "k": 4,
-                            "N": 8,
-                            "seed": 1,
-                            "design": "memorization",
-                            "output_path": "data/a.json",
-                        },
-                        {
-                            "name": "b",
-                            "input_type": "digits",
-                            "rule": "length",
-                            "k": 5,
-                            "N": 16,
-                            "seed": 2,
-                            "design": "memorization",
-                            "output_path": "data/b.json",
-                        },
-                    ]
-                }
-            },
-        )
-        assert prepare(experiment_dir) == 0
-        assert (experiment_dir / "data" / "a.json").exists()
-        assert (experiment_dir / "data" / "b.json").exists()
-
-
 class TestLogging:
     def test_log_file_created_with_provenance(self, experiment_dir):
         _write_yaml(
             experiment_dir,
-            {
-                "data_generation": {
-                    "model_organism": [
-                        {
-                            "name": "prov_test",
-                            "input_type": "bits",
-                            "rule": "parity",
-                            "k": 4,
-                            "N": 8,
-                            "seed": 42,
-                            "design": "memorization",
-                            "output_path": "data/p.json",
-                        }
-                    ]
-                }
-            },
+            _model_organism(
+                name="prov_test",
+                input_type="bits",
+                rule="parity",
+                k=4,
+                N=8,
+                seed=42,
+                design="memorization",
+                output_path="data/p.json",
+            ),
         )
         prepare(experiment_dir)
 
@@ -168,77 +121,45 @@ class TestErrors:
     def test_invalid_rule_fails(self, experiment_dir):
         _write_yaml(
             experiment_dir,
-            {
-                "data_generation": {
-                    "model_organism": [
-                        {
-                            "name": "bad",
-                            "input_type": "bits",
-                            "rule": "nonexistent_rule",
-                            "k": 4,
-                            "N": 8,
-                            "seed": 1,
-                            "design": "memorization",
-                            "output_path": "data/bad.json",
-                        }
-                    ]
-                }
-            },
+            _model_organism(
+                name="bad",
+                input_type="bits",
+                rule="nonexistent_rule",
+                k=4,
+                N=8,
+                seed=1,
+                design="memorization",
+                output_path="data/bad.json",
+            ),
         )
         assert prepare(experiment_dir) == 1
 
     def test_missing_required_field_fails(self, experiment_dir):
         _write_yaml(
             experiment_dir,
-            {
-                "data_generation": {
-                    "model_organism": [
-                        {
-                            "name": "incomplete",
-                            "input_type": "bits",
-                            "rule": "parity",
-                            # missing k, N, seed, design, output_path
-                        }
-                    ]
-                }
-            },
+            _model_organism(
+                name="incomplete",
+                input_type="bits",
+                rule="parity",
+                # missing k, N, seed, design, output_path
+            ),
         )
         assert prepare(experiment_dir) == 1
 
-    def test_partial_failure_aborts_with_nonzero(self, experiment_dir):
-        """If any entry fails, exit nonzero even though earlier ones succeeded."""
+    def test_missing_tool_field_fails(self, experiment_dir):
+        # data.data_generation is present but has no `tool:` key.
         _write_yaml(
             experiment_dir,
-            {
-                "data_generation": {
-                    "model_organism": [
-                        {
-                            "name": "good",
-                            "input_type": "bits",
-                            "rule": "parity",
-                            "k": 4,
-                            "N": 8,
-                            "seed": 1,
-                            "design": "memorization",
-                            "output_path": "data/good.json",
-                        },
-                        {
-                            "name": "bad",
-                            "input_type": "bits",
-                            "rule": "not_a_rule",
-                            "k": 4,
-                            "N": 8,
-                            "seed": 1,
-                            "design": "memorization",
-                            "output_path": "data/bad.json",
-                        },
-                    ]
-                }
-            },
+            {"data": {"data_generation": {"name": "x", "rule": "parity"}}},
         )
         assert prepare(experiment_dir) == 1
-        # First dataset still written — prepare continues past a single failure
-        assert (experiment_dir / "data" / "good.json").exists()
+
+    def test_unsupported_tool_fails(self, experiment_dir):
+        _write_yaml(
+            experiment_dir,
+            {"data": {"data_generation": {"tool": "mystery_generator"}}},
+        )
+        assert prepare(experiment_dir) == 1
 
 
 class TestAbsolutePath:
@@ -246,22 +167,16 @@ class TestAbsolutePath:
         target = tmp_path / "elsewhere" / "abs.json"
         _write_yaml(
             experiment_dir,
-            {
-                "data_generation": {
-                    "model_organism": [
-                        {
-                            "name": "abs",
-                            "input_type": "bits",
-                            "rule": "parity",
-                            "k": 4,
-                            "N": 8,
-                            "seed": 1,
-                            "design": "memorization",
-                            "output_path": str(target),
-                        }
-                    ]
-                }
-            },
+            _model_organism(
+                name="abs",
+                input_type="bits",
+                rule="parity",
+                k=4,
+                N=8,
+                seed=1,
+                design="memorization",
+                output_path=str(target),
+            ),
         )
         assert prepare(experiment_dir) == 0
         assert target.exists()
