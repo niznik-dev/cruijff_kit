@@ -60,8 +60,9 @@ class TestCalibration:
     def test_calibration_appends_risk_scorer(self, tiny_dataset):
         t = model_organism(data_path=tiny_dataset, calibration=True)
         names = _scorer_names(t.scorer)
-        assert "cruijff_kit/risk_scorer" in names
-        # Default pair is still present.
+        # Our custom scorers register as bare names; inspect-ai's built-ins
+        # get the `inspect_ai/` prefix.
+        assert "risk_scorer" in names
         assert "inspect_ai/match" in names
         assert "inspect_ai/includes" in names
 
@@ -82,7 +83,7 @@ class TestCalibration:
             calibration=True,
         )
         names = _scorer_names(t.scorer)
-        assert names.count("cruijff_kit/risk_scorer") == 1
+        assert names.count("risk_scorer") == 1
 
 
 class TestVisLabel:
