@@ -48,7 +48,7 @@ def build_scorers(config: dict) -> list:
     """
     scorer_config = config.get("scorer")
     if not scorer_config:
-        return DEFAULT_SCORERS
+        return list(DEFAULT_SCORERS)
 
     scorers = []
     for entry in scorer_config:

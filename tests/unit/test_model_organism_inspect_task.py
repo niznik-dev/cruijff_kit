@@ -14,8 +14,12 @@ from cruijff_kit.sanity_checks.model_organisms.inspect_task import model_organis
 
 
 def _scorer_names(scorers):
-    """Return the inspect-ai registry name for each scorer in the list."""
-    return [registry_info(s).name for s in scorers]
+    """Return the inspect-ai registry name for each scorer in the list.
+
+    Strips the ``cruijff_kit/`` package prefix so assertions work across
+    inspect-ai versions (bare pre-0.3.200, prefixed after).
+    """
+    return [registry_info(s).name.removeprefix("cruijff_kit/") for s in scorers]
 
 
 @pytest.fixture
@@ -60,8 +64,6 @@ class TestCalibration:
     def test_calibration_appends_risk_scorer(self, tiny_dataset):
         t = model_organism(data_path=tiny_dataset, calibration=True)
         names = _scorer_names(t.scorer)
-        # Our custom scorers register as bare names; inspect-ai's built-ins
-        # get the `inspect_ai/` prefix.
         assert "risk_scorer" in names
         assert "inspect_ai/match" in names
         assert "inspect_ai/includes" in names
