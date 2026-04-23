@@ -548,6 +548,49 @@ def _format_inspect_view_commands(
     return "\n".join(lines)
 
 
+def _read_splits_from_metadata(training_path: str) -> dict:
+    """Read split row counts from .meta.json sidecar files.
+
+    When datasets are generated via tabular_to_text_gen, experiment_summary.yaml may
+    have placeholder zeros for split counts. The actual counts are recorded
+    in .meta.json sidecar files alongside each generated JSON file.
+
+    Handles two layouts:
+    - Separate files per split (one sidecar each).
+    - Bundled files (e.g. train+validation in one JSON): the primary
+      sidecar's ``row_count`` is the total across bundled splits, with
+      per-split counts for the extras recorded under ``extra_splits``.
+    """
+    import json as _json
+
+    splits: dict[str, int] = {}
+    base = Path(training_path)
+
+    for split_name in ("train", "validation", "test"):
+        # Scope the replace to the filename so a path component like
+        # ``…/my_train_runs/…`` is not mangled.
+        candidate_name = base.name.replace("_train_", f"_{split_name}_")
+        meta_path = base.with_name(candidate_name).with_suffix(".meta.json")
+        try:
+            with open(meta_path) as f:
+                meta = _json.load(f)
+        except (FileNotFoundError, _json.JSONDecodeError):
+            continue
+
+        extras = meta.get("extra_splits") or {}
+        row_count = meta.get("row_count", 0)
+        # row_count is the total across all bundled splits; subtract extras
+        # to recover the primary split's own count.
+        primary_count = row_count - sum(extras.values())
+        if primary_count > 0:
+            splits[split_name] = primary_count
+        for extra_name, extra_count in extras.items():
+            if extra_count > 0 and extra_name not in splits:
+                splits[extra_name] = extra_count
+
+    return splits
+
+
 def generate_report(
     df: pd.DataFrame,
     experiment_name: str,
@@ -611,16 +654,22 @@ def generate_report(
     training_raw = (config or {}).get("data", {}).get("training", {})
     data_config = training_raw if isinstance(training_raw, dict) else {}
     splits = data_config.get("splits", {})
+
+    # If splits are zeros (generated data), try to read from .meta.json sidecars
+    splits_all_zero = splits and all((v is None or v == 0) for v in splits.values())
+    if splits_all_zero and data_config.get("path"):
+        splits = _read_splits_from_metadata(data_config["path"])
+
     if splits:
         train_n = splits.get("train")
         val_n = splits.get("validation")
         test_n = splits.get("test")
         split_parts = []
-        if train_n is not None:
+        if train_n:
             split_parts.append(f"{train_n:,} train")
-        if val_n is not None:
+        if val_n:
             split_parts.append(f"{val_n:,} validation")
-        if test_n is not None:
+        if test_n:
             split_parts.append(f"{test_n:,} eval")
         if split_parts:
             header_parts.append(f"**Dataset splits:** {' / '.join(split_parts)}")

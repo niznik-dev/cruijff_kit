@@ -57,6 +57,10 @@ packages = [
   "cruijff_kit.tools.slurm",
   "cruijff_kit.sanity_checks",
   "cruijff_kit.sanity_checks.model_organisms",
+  "tabular_to_text_gen",
+  "tabular_to_text_gen.lib",
+  "tabular_to_text_gen.lib.perturbations",
+  "tabular_to_text_gen.lib.templates",
 ]
 
 [tool.ruff]
