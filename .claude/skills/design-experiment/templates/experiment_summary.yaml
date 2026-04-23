@@ -67,9 +67,32 @@ data:
       validation: int
       test: int
 
-  # OPTIONAL: Include when a data-generation tool produces the datasets.
+  # OPTIONAL: Dataset produced by a generator tool before scaffolding.
+  # When present, scaffold-experiment runs `tools/experiment/prepare_data.py`
+  # which dispatches on the `tool:` field to the named generator.
+  # Currently supported tools: "model_organism", "tabular_to_text_gen".
+  # One generator, one dataset per experiment. Multi-dataset support deferred
+  # to a follow-up issue (#436).
   data_generation:
-    tool: string                   # Generator tool. Supported: "tabular_to_text_gen"
+    tool: string                   # REQUIRED: Generator identifier.
+                                   # Supported: "model_organism" | "tabular_to_text_gen"
+
+    # ---- model_organism fields (when tool == "model_organism") ----
+    name: string                   # REQUIRED: Dataset identifier (used in logs)
+    input_type: string             # REQUIRED: "bits" | "digits" | "letters"
+    rule: string                   # REQUIRED: see sanity_checks/model_organisms/rules.py
+    k: int                         # REQUIRED: Sequence length
+    N: int                         # REQUIRED: Number of samples
+    # seed: int                    # REQUIRED: Random seed. Declared in tabular_to_text_gen
+                                   #   section below and shared across generators.
+    design: string                 # REQUIRED: "memorization" | "in_distribution" | "ood"
+    output_path: string            # REQUIRED: Relative to experiment_dir, or absolute
+    fmt: string                    # OPTIONAL: "spaced" (default) | "dense" | "comma" | "tab" | "pipe"
+    rule_kwargs: dict              # OPTIONAL: Extra rule params (e.g. {p: 0.7} for coin)
+    split: float                   # OPTIONAL: Train fraction for in_distribution/ood (default 0.8)
+    ood_tests: list                # REQUIRED when design="ood": list of OOD specs
+
+    # ---- tabular_to_text_gen fields (when tool == "tabular_to_text_gen") ----
     source: string                 # Full path to source tabular file
     schema: string                 # Full path to schema YAML in ck-data/schemas/
     target:
@@ -83,7 +106,9 @@ data:
     question: string               # Question appended to each entry
     split_ratio: float             # REQUIRED: Train fraction of the 3-way split (e.g., 0.7).
     validation_ratio: float        # REQUIRED: Validation fraction of the 3-way split (e.g., 0.1).
-    seed: int                      # REQUIRED: Random seed (must be same for all conditions)
+    seed: int                      # REQUIRED: Random seed. For tabular_to_text_gen,
+                                   #   use the same value across all conditions so the
+                                   #   train/validation/test split is identical in each.
     subsampling_ratio: float       # OPTIONAL: Fraction of source rows to use (e.g., 0.33 for 33%); default 1
     missing_value_handling: string # OPTIONAL: "skip" (default) or "include" NaN covariate values
     missing_value_text: string     # OPTIONAL: Text for missing values when handling is "include" (default: "missing")
