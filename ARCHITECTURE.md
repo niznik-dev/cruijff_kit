@@ -45,8 +45,12 @@ cruijff_kit/
 │   └── inspect_task_general.py # General-purpose evaluation task
 │
 ├── sanity_checks/      # Synthetic validation sanity checks for testing workflows and learning
-│   ├── bit_sequences/  # Bit parity sanity checks for testing memorization
-│   └── predictable_or_not/  # Stochastic prediction sanity checks for data leakage validation
+│   └── model_organisms/ # Composable framework: input type × rule × format × design
+│       ├── inputs.py    # Input-type registry (bits, digits, letters)
+│       ├── rules.py     # Output-rule registry (parity, first, majority, …)
+│       ├── formats.py   # Text-rendering registry (spaced, dense, comma, …)
+│       ├── generate.py  # Dataset generator CLI
+│       └── inspect_task.py # Unified inspect-ai evaluation task
 │
 ├── utils/              # Shared utilities and helpers
 │   ├── run_names.py    # Random name generation for experiments
@@ -221,8 +225,7 @@ Each experiment typically includes:
 ### Sanity Checks (`sanity_checks/`)
 Synthetic validation sanity checks for workflow testing and learning:
 
-- **bit_sequences**: Tests memorization and pattern learning with deterministic bit patterns
-- **predictable_or_not**: Validates no data leakage with stochastic prediction tasks
+- **model_organisms**: Composable framework for synthetic sequence-labeling tasks. An experiment is specified by choosing an input type (`bits`, `digits`, `letters`), an output rule (`parity`, `first`, `last`, `majority`, `constant`, `coin`, …), a format (`spaced`, `dense`, `comma`, `tab`, `pipe`), and a design (`memorization`, `in_distribution`, `ood`). Supersedes the earlier per-task scripts (bit_sequences, predictable_or_not, bernoulli, count_digits, majority). Single unified inspect-ai task evaluates any combination; data generation is invoked by `scaffold-experiment` via a `data.data_generation` block with `tool: model_organism`.
 
 ## Package Structure
 
