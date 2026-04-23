@@ -1,11 +1,26 @@
 """Tests for tabular_to_text_gen/convert.py — CLI entrypoint and integration tests."""
 
+import glob
 import json
+import os
 
 import pandas as pd
 import pytest
+import yaml
 
 from tabular_to_text_gen.convert import load_condition_from_file, main, split_dataframe
+from tabular_to_text_gen.lib.config_hash import resolve_dataset_path
+
+
+def _find_output(tmp_path, condition: str, split: str) -> str:
+    """Find the single {condition}_{split}_{hash8}.json in tmp_path."""
+    pattern = os.path.join(str(tmp_path), f"{condition}_{split}_*.json")
+    # Exclude the .meta.json and .parquet sidecars.
+    matches = [p for p in glob.glob(pattern) if not p.endswith(".meta.json")]
+    assert len(matches) == 1, (
+        f"Expected exactly one output for {condition}/{split}, found: {matches}"
+    )
+    return matches[0]
 
 
 # ---------------------------------------------------------------------------
@@ -105,16 +120,23 @@ class TestLoadConditionFromFile:
 
 
 class TestEndToEnd:
-    def _run(self, tmp_path, sample_csv, schema_yaml, extra_args=None):
+    def _run(
+        self,
+        tmp_path,
+        sample_csv,
+        schema_yaml,
+        extra_args=None,
+        condition="test_cond",
+        split="train",
+    ):
         """Helper to invoke main() and return parsed output + metadata."""
-        output_path = str(tmp_path / "output.json")
         argv = [
             "--source",
             sample_csv,
             "--schema",
             schema_yaml,
             "--condition-name",
-            "test_cond",
+            condition,
             "--features",
             "AGEP,ST,OCCP",
             "--template",
@@ -128,18 +150,19 @@ class TestEndToEnd:
             "--question",
             "Is income > 50k?",
             "--split",
-            "train",
+            split,
             "--split-ratio",
             "0.8",
             "--seed",
             "42",
-            "--output",
-            output_path,
+            "--output-dir",
+            str(tmp_path),
         ]
         if extra_args:
             argv.extend(extra_args)
         main(argv)
 
+        output_path = _find_output(tmp_path, condition, split)
         with open(output_path) as f:
             data = json.load(f)
 
@@ -166,7 +189,6 @@ class TestEndToEnd:
         assert "Is income > 50k?" in entry["input"]
 
     def test_test_split(self, tmp_path, sample_csv, schema_yaml):
-        output_path = str(tmp_path / "test_output.json")
         main(
             [
                 "--source",
@@ -187,10 +209,11 @@ class TestEndToEnd:
                 "test",
                 "--seed",
                 "42",
-                "--output",
-                output_path,
+                "--output-dir",
+                str(tmp_path),
             ]
         )
+        output_path = _find_output(tmp_path, "test_cond", "test")
         with open(output_path) as f:
             data = json.load(f)
         assert "test" in data
@@ -211,7 +234,6 @@ class TestEndToEnd:
 
         The system prompt is an experiment-level setting, not per-entry data.
         """
-        output_path = str(tmp_path / "sys_output.json")
         main(
             [
                 "--source",
@@ -238,10 +260,11 @@ class TestEndToEnd:
                 "train",
                 "--seed",
                 "42",
-                "--output",
-                output_path,
+                "--output-dir",
+                str(tmp_path),
             ]
         )
+        output_path = _find_output(tmp_path, "sys_cond", "train")
         with open(output_path) as f:
             data = json.load(f)
         entry = data["train"][0]
@@ -249,7 +272,6 @@ class TestEndToEnd:
         assert "You are a helpful assistant." not in entry["input"]
 
     def test_conditions_file(self, tmp_path, sample_csv, schema_yaml, conditions_yaml):
-        output_path = str(tmp_path / "cond_output.json")
         main(
             [
                 "--source",
@@ -268,10 +290,11 @@ class TestEndToEnd:
                 "train",
                 "--seed",
                 "42",
-                "--output",
-                output_path,
+                "--output-dir",
+                str(tmp_path),
             ]
         )
+        output_path = _find_output(tmp_path, "dict_full", "train")
         with open(output_path) as f:
             data = json.load(f)
         assert "train" in data
@@ -280,7 +303,6 @@ class TestEndToEnd:
     def test_narrative_template(
         self, tmp_path, sample_csv, schema_yaml, narrative_template
     ):
-        output_path = str(tmp_path / "narr_output.json")
         main(
             [
                 "--source",
@@ -303,10 +325,11 @@ class TestEndToEnd:
                 "train",
                 "--seed",
                 "42",
-                "--output",
-                output_path,
+                "--output-dir",
+                str(tmp_path),
             ]
         )
+        output_path = _find_output(tmp_path, "narr_cond", "train")
         with open(output_path) as f:
             data = json.load(f)
         entry = data["train"][0]
@@ -324,8 +347,6 @@ class TestEndToEnd:
 
     def test_same_seed_same_rows(self, tmp_path, sample_csv, schema_yaml):
         """Two conditions with the same seed should process the same rows."""
-        out1 = str(tmp_path / "cond1.json")
-        out2 = str(tmp_path / "cond2.json")
         base_args = [
             "--source",
             sample_csv,
@@ -343,13 +364,14 @@ class TestEndToEnd:
             "train",
             "--seed",
             "42",
+            "--output-dir",
+            str(tmp_path),
         ]
-        main(base_args + ["--condition-name", "c1", "--output", out1])
-        main(
-            base_args
-            + ["--condition-name", "c2", "--output", out2, "--perturbations", "synonym"]
-        )
+        main(base_args + ["--condition-name", "c1"])
+        main(base_args + ["--condition-name", "c2", "--perturbations", "synonym"])
 
+        out1 = _find_output(tmp_path, "c1", "train")
+        out2 = _find_output(tmp_path, "c2", "train")
         with open(out1) as f:
             d1 = json.load(f)
         with open(out2) as f:
@@ -400,7 +422,6 @@ class TestEndToEnd:
         self, tmp_path, sample_csv, schema_yaml, conditions_yaml_otm
     ):
         """one_to_many works when loaded from a conditions YAML file."""
-        output_path = str(tmp_path / "otm_cond_output.json")
         main(
             [
                 "--source",
@@ -419,10 +440,11 @@ class TestEndToEnd:
                 "train",
                 "--seed",
                 "42",
-                "--output",
-                output_path,
+                "--output-dir",
+                str(tmp_path),
             ]
         )
+        output_path = _find_output(tmp_path, "dict_reordered_x3", "train")
         with open(output_path) as f:
             data = json.load(f)
         # 4 train rows * 3 copies = 12
@@ -430,7 +452,6 @@ class TestEndToEnd:
 
     def test_one_to_many_validation_overlap(self, tmp_path, sample_csv, schema_yaml):
         """Error when one_to_many perturbation overlaps with top-level."""
-        output_path = str(tmp_path / "overlap_output.json")
         with pytest.raises(SystemExit):
             main(
                 [
@@ -458,71 +479,43 @@ class TestEndToEnd:
                     "train",
                     "--seed",
                     "42",
-                    "--output",
-                    output_path,
+                    "--output-dir",
+                    str(tmp_path),
                 ]
             )
 
     def test_one_to_many_deterministic(self, tmp_path, sample_csv, schema_yaml):
         """Same seed produces identical one_to_many output."""
-        out1 = str(tmp_path / "det1.json")
-        out2 = str(tmp_path / "det2.json")
         extra = [
             "--one-to-many-copies",
             "2",
             "--one-to-many-perturbation",
             "reorder",
         ]
-        main(
-            [
-                "--source",
-                sample_csv,
-                "--schema",
-                schema_yaml,
-                "--condition-name",
-                "det1",
-                "--features",
-                "AGEP,ST,OCCP",
-                "--template",
-                "dictionary",
-                "--target-column",
-                "PINCP",
-                "--target-threshold",
-                "50000",
-                "--split",
-                "train",
-                "--seed",
-                "42",
-                "--output",
-                out1,
-            ]
-            + extra
-        )
-        main(
-            [
-                "--source",
-                sample_csv,
-                "--schema",
-                schema_yaml,
-                "--condition-name",
-                "det2",
-                "--features",
-                "AGEP,ST,OCCP",
-                "--template",
-                "dictionary",
-                "--target-column",
-                "PINCP",
-                "--target-threshold",
-                "50000",
-                "--split",
-                "train",
-                "--seed",
-                "42",
-                "--output",
-                out2,
-            ]
-            + extra
-        )
+        base = [
+            "--source",
+            sample_csv,
+            "--schema",
+            schema_yaml,
+            "--features",
+            "AGEP,ST,OCCP",
+            "--template",
+            "dictionary",
+            "--target-column",
+            "PINCP",
+            "--target-threshold",
+            "50000",
+            "--split",
+            "train",
+            "--seed",
+            "42",
+            "--output-dir",
+            str(tmp_path),
+        ]
+        main(base + ["--condition-name", "det1"] + extra)
+        main(base + ["--condition-name", "det2"] + extra)
+        out1 = _find_output(tmp_path, "det1", "train")
+        out2 = _find_output(tmp_path, "det2", "train")
         with open(out1) as f:
             d1 = json.load(f)
         with open(out2) as f:
@@ -531,17 +524,16 @@ class TestEndToEnd:
 
     def test_emit_source_parquet(self, tmp_path, sample_csv, schema_yaml):
         """--emit-source-parquet writes a parquet 1:1 with JSON entries."""
-        parquet_path = str(tmp_path / "source_train.parquet")
         data, _ = self._run(
             tmp_path,
             sample_csv,
             schema_yaml,
-            extra_args=["--emit-source-parquet", parquet_path],
+            extra_args=["--emit-source-parquet"],
         )
 
-        import os as _os
-
-        assert _os.path.exists(parquet_path)
+        output_path = _find_output(tmp_path, "test_cond", "train")
+        parquet_path = output_path.replace(".json", ".parquet")
+        assert os.path.exists(parquet_path)
 
         parquet_df = pd.read_parquet(parquet_path)
 
@@ -558,7 +550,6 @@ class TestEndToEnd:
         The output file should contain BOTH "train" and "validation" top-level
         keys.
         """
-        output_path = str(tmp_path / "bundled.json")
         main(
             [
                 "--source",
@@ -583,10 +574,11 @@ class TestEndToEnd:
                 "0.2",
                 "--seed",
                 "42",
-                "--output",
-                output_path,
+                "--output-dir",
+                str(tmp_path),
             ]
         )
+        output_path = _find_output(tmp_path, "bundled_cond", "train")
         with open(output_path) as f:
             data = json.load(f)
         assert set(data.keys()) == {"train", "validation"}
@@ -611,7 +603,6 @@ class TestEndToEnd:
         The test file is a separate artifact from the training+validation
         bundle, so the validation slice must not leak into the test file.
         """
-        output_path = str(tmp_path / "test_only.json")
         main(
             [
                 "--source",
@@ -636,26 +627,370 @@ class TestEndToEnd:
                 "0.2",
                 "--seed",
                 "42",
-                "--output",
-                output_path,
+                "--output-dir",
+                str(tmp_path),
             ]
         )
+        output_path = _find_output(tmp_path, "test_only", "test")
         with open(output_path) as f:
             data = json.load(f)
         assert set(data.keys()) == {"test"}
         # 5 * (1 - 0.6 - 0.2) = 1 test row
         assert len(data["test"]) == 1
 
+    def test_reuse_skips_existing(self, tmp_path, sample_csv, schema_yaml):
+        """Second call with same config skips regeneration; --force overwrites."""
+        self._run(tmp_path, sample_csv, schema_yaml)
+        output_path = _find_output(tmp_path, "test_cond", "train")
+        first_mtime = os.path.getmtime(output_path)
+
+        # Second call with identical config: file should not be rewritten.
+        self._run(tmp_path, sample_csv, schema_yaml)
+        assert os.path.getmtime(output_path) == first_mtime
+
+        # With --force, the file is rewritten (mtime advances).
+        # sleep briefly so the filesystem mtime actually changes.
+        import time
+
+        time.sleep(0.02)
+        self._run(tmp_path, sample_csv, schema_yaml, extra_args=["--force"])
+        assert os.path.getmtime(output_path) > first_mtime
+
+    def test_different_configs_produce_different_hashes(
+        self, tmp_path, sample_csv, schema_yaml
+    ):
+        """Changing any hashed field yields a new filename, not a collision."""
+        base = [
+            "--source",
+            sample_csv,
+            "--schema",
+            schema_yaml,
+            "--condition-name",
+            "test_cond",
+            "--features",
+            "AGEP,ST,OCCP",
+            "--template",
+            "dictionary",
+            "--target-column",
+            "PINCP",
+            "--target-threshold",
+            "50000",
+            "--split",
+            "train",
+            "--split-ratio",
+            "0.8",
+            "--output-dir",
+            str(tmp_path),
+        ]
+        main(base + ["--seed", "42"])
+        main(base + ["--seed", "99"])
+        pattern = os.path.join(str(tmp_path), "test_cond_train_*.json")
+        matches = [p for p in glob.glob(pattern) if not p.endswith(".meta.json")]
+        assert len(matches) == 2
+
     def test_emit_source_parquet_deterministic(self, tmp_path, sample_csv, schema_yaml):
         """Same seed produces identical parquet rows across invocations."""
-        p1 = str(tmp_path / "p1.parquet")
-        p2 = str(tmp_path / "p2.parquet")
         self._run(
-            tmp_path, sample_csv, schema_yaml, extra_args=["--emit-source-parquet", p1]
+            tmp_path, sample_csv, schema_yaml, extra_args=["--emit-source-parquet"]
         )
+        output_path = _find_output(tmp_path, "test_cond", "train")
+        parquet_path = output_path.replace(".json", ".parquet")
+        df1 = pd.read_parquet(parquet_path)
+        # Regenerate with --force and confirm identical bytes.
         self._run(
-            tmp_path, sample_csv, schema_yaml, extra_args=["--emit-source-parquet", p2]
+            tmp_path,
+            sample_csv,
+            schema_yaml,
+            extra_args=["--emit-source-parquet", "--force"],
         )
-        df1 = pd.read_parquet(p1)
-        df2 = pd.read_parquet(p2)
+        df2 = pd.read_parquet(parquet_path)
         pd.testing.assert_frame_equal(df1, df2)
+
+
+# ---------------------------------------------------------------------------
+# --experiment-summary (YAML-driven invocation)
+# ---------------------------------------------------------------------------
+
+
+def _write_experiment_summary(
+    tmp_path, sample_csv, schema_yaml, *, threshold=50000, question="Is income > 50k?"
+):
+    """Write a minimal experiment_summary.yaml and return its path."""
+    doc = {
+        "experiment": {
+            "name": "t",
+            "question": "q",
+            "date": "2026-04-20",
+            "directory": str(tmp_path),
+        },
+        "tools": {"preparation": "torchtune", "evaluation": "inspect-ai"},
+        "data": {
+            "data_generation": {
+                "tool": "tabular_to_text_gen",
+                "source": sample_csv,
+                "schema": schema_yaml,
+                "target": {"column": "PINCP", "threshold": threshold},
+                "context": "Context text.",
+                "context_placement": "preamble",
+                "question": question,
+                "split_ratio": 0.8,
+                "validation_ratio": None,
+                "seed": 42,
+                "missing_value_handling": "skip",
+                "conditions": {
+                    "c_small": {
+                        "features": ["AGEP", "ST"],
+                        "template": "dictionary",
+                        "perturbations": [],
+                    },
+                    "c_full": {
+                        "features": ["AGEP", "ST", "OCCP"],
+                        "template": "dictionary",
+                        "perturbations": [],
+                    },
+                },
+            }
+        },
+    }
+    path = tmp_path / "experiment_summary.yaml"
+    path.write_text(yaml.safe_dump(doc))
+    return str(path)
+
+
+class TestExperimentSummaryInvocation:
+    """The YAML-driven path must produce the same filename convert.py does
+    when invoked with equivalent CLI args. This protects the core invariant
+    that scaffold agents (which go through resolve_dataset_path) and
+    convert.py writes agree on filenames."""
+
+    def test_yaml_driven_matches_cli(self, tmp_path, sample_csv, schema_yaml):
+        es = _write_experiment_summary(tmp_path, sample_csv, schema_yaml)
+
+        # Run via --experiment-summary
+        yaml_dir = tmp_path / "yaml_out"
+        yaml_dir.mkdir()
+        main(
+            [
+                "--experiment-summary",
+                es,
+                "--condition-name",
+                "c_full",
+                "--split",
+                "train",
+                "--output-dir",
+                str(yaml_dir),
+            ]
+        )
+        yaml_output = _find_output(yaml_dir, "c_full", "train")
+
+        # Run via direct CLI args matching the YAML content
+        cli_dir = tmp_path / "cli_out"
+        cli_dir.mkdir()
+        main(
+            [
+                "--source",
+                sample_csv,
+                "--schema",
+                schema_yaml,
+                "--condition-name",
+                "c_full",
+                "--features",
+                "AGEP,ST,OCCP",
+                "--template",
+                "dictionary",
+                "--target-column",
+                "PINCP",
+                "--target-threshold",
+                "50000",
+                "--context",
+                "Context text.",
+                "--context-placement",
+                "preamble",
+                "--question",
+                "Is income > 50k?",
+                "--split",
+                "train",
+                "--split-ratio",
+                "0.8",
+                "--seed",
+                "42",
+                "--missing-value-handling",
+                "skip",
+                "--output-dir",
+                str(cli_dir),
+            ]
+        )
+        cli_output = _find_output(cli_dir, "c_full", "train")
+
+        # Same hash8 in filenames (split is not part of the hash either)
+        yaml_hash = yaml_output.rsplit("_", 1)[-1]
+        cli_hash = cli_output.rsplit("_", 1)[-1]
+        assert yaml_hash == cli_hash
+
+    def test_resolve_dataset_path_agrees_with_convert(
+        self, tmp_path, sample_csv, schema_yaml
+    ):
+        """The single most important invariant: the filename resolve_dataset_path
+        predicts is the filename convert.py actually writes. If this ever
+        drifts, scaffold agents will point at files that don't exist."""
+        es = _write_experiment_summary(tmp_path, sample_csv, schema_yaml)
+        with open(es) as f:
+            dg = yaml.safe_load(f)["data"]["data_generation"]
+
+        predicted = resolve_dataset_path(dg, "c_small", "train", tmp_path)
+
+        main(
+            [
+                "--experiment-summary",
+                es,
+                "--condition-name",
+                "c_small",
+                "--split",
+                "train",
+                "--output-dir",
+                str(tmp_path),
+            ]
+        )
+        actual = _find_output(tmp_path, "c_small", "train")
+        assert actual == predicted
+
+    def test_int_yaml_threshold_matches_float_cli(
+        self, tmp_path, sample_csv, schema_yaml
+    ):
+        """Regression: YAML-parsed `threshold: 50000` (int) and CLI
+        `--target-threshold 50000` (argparse float) must agree on filename.
+        This bug previously forked the hash and silently produced duplicate
+        datasets."""
+        es = _write_experiment_summary(
+            tmp_path, sample_csv, schema_yaml, threshold=50000
+        )
+
+        yaml_dir = tmp_path / "y"
+        yaml_dir.mkdir()
+        main(
+            [
+                "--experiment-summary",
+                es,
+                "--condition-name",
+                "c_small",
+                "--split",
+                "train",
+                "--output-dir",
+                str(yaml_dir),
+            ]
+        )
+        yaml_hash = _find_output(yaml_dir, "c_small", "train").rsplit("_", 1)[-1]
+
+        cli_dir = tmp_path / "c"
+        cli_dir.mkdir()
+        main(
+            [
+                "--source",
+                sample_csv,
+                "--schema",
+                schema_yaml,
+                "--condition-name",
+                "c_small",
+                "--features",
+                "AGEP,ST",
+                "--template",
+                "dictionary",
+                "--target-column",
+                "PINCP",
+                "--target-threshold",
+                "50000",
+                "--context",
+                "Context text.",
+                "--context-placement",
+                "preamble",
+                "--question",
+                "Is income > 50k?",
+                "--split",
+                "train",
+                "--split-ratio",
+                "0.8",
+                "--seed",
+                "42",
+                "--missing-value-handling",
+                "skip",
+                "--output-dir",
+                str(cli_dir),
+            ]
+        )
+        cli_hash = _find_output(cli_dir, "c_small", "train").rsplit("_", 1)[-1]
+        assert yaml_hash == cli_hash
+
+    def test_cli_overrides_ignored_with_warning(
+        self, tmp_path, sample_csv, schema_yaml, caplog
+    ):
+        """If a user passes --question (or any managed field) alongside
+        --experiment-summary, the YAML wins and a warning is logged. This
+        preserves the single-source-of-truth invariant."""
+        import logging
+
+        es = _write_experiment_summary(
+            tmp_path, sample_csv, schema_yaml, question="Is income > 50k?"
+        )
+
+        # Run once via YAML only
+        yaml_dir = tmp_path / "y"
+        yaml_dir.mkdir()
+        main(
+            [
+                "--experiment-summary",
+                es,
+                "--condition-name",
+                "c_small",
+                "--split",
+                "train",
+                "--output-dir",
+                str(yaml_dir),
+            ]
+        )
+        yaml_hash = _find_output(yaml_dir, "c_small", "train").rsplit("_", 1)[-1]
+
+        # Run again with a conflicting --question; expect it to be ignored
+        # and a warning emitted. Hash must be identical.
+        override_dir = tmp_path / "o"
+        override_dir.mkdir()
+        with caplog.at_level(logging.WARNING, logger="tabular_to_text_gen"):
+            main(
+                [
+                    "--experiment-summary",
+                    es,
+                    "--condition-name",
+                    "c_small",
+                    "--split",
+                    "train",
+                    "--output-dir",
+                    str(override_dir),
+                    "--question",
+                    "TOTALLY DIFFERENT QUESTION",
+                ]
+            )
+        override_hash = _find_output(override_dir, "c_small", "train").rsplit("_", 1)[
+            -1
+        ]
+
+        assert override_hash == yaml_hash
+        assert any("YAML is authoritative" in r.getMessage() for r in caplog.records), (
+            f"Expected override warning; got: {[r.getMessage() for r in caplog.records]}"
+        )
+
+    def test_missing_condition_raises(self, tmp_path, sample_csv, schema_yaml):
+        es = _write_experiment_summary(tmp_path, sample_csv, schema_yaml)
+        with pytest.raises(
+            (KeyError, ValueError, SystemExit), match="not found|not present|c_missing"
+        ):
+            main(
+                [
+                    "--experiment-summary",
+                    es,
+                    "--condition-name",
+                    "c_missing",
+                    "--split",
+                    "train",
+                    "--output-dir",
+                    str(tmp_path),
+                ]
+            )

@@ -172,21 +172,38 @@ Parse this into two components for setup_finetune.yaml:
 
 For each run, create a `setup_finetune.yaml` file by:
 
-1. **Determine dataset path** — check for per-run override first:
+1. **Determine dataset path** — check the run in this order:
 
-   **If `dataset_path` exists in `run.parameters`**:
-   - Use `run.parameters.dataset_path` as the full dataset path
-   - Extract `dataset_label` from the filename (stem without extension)
-   - Extract `dataset_ext` from the file extension (e.g., `.json`)
-   - Extract `input_dir_base` from the parent directory
-   - Set `input_formatting: ''`
+   **If `run.training_condition` is set** (generated-text experiments):
+   - The run names a condition in `data.data_generation.conditions`.
+   - Compute the canonical path with the shared resolver:
+     ```python
+     from tabular_to_text_gen.lib.config_hash import resolve_dataset_path
+     path = resolve_dataset_path(
+         experiment["data"]["data_generation"],
+         run["training_condition"],
+         "train",
+         f"{scratch_dir}/ck-data/generated",   # same directory convert.py writes to
+     )
+     ```
+   - This returns `{scratch_dir}/ck-data/generated/{condition}_train_{hash8}.json` — the exact file convert.py produces for the same `data_generation` block.
+   - Extract `dataset_label` from the filename stem, `dataset_ext` from the extension, and `input_dir_base` from the parent directory as for the literal-path case below.
+   - Set `input_formatting: ''`.
+   - Log the resolved path into `logs/scaffold-torchtune.log` so the audit trail captures exactly which file backed this run.
 
-   **Otherwise** (standard experiments):
-   - Use `data.training.path` from experiment_summary.yaml
-   - Extract `dataset_label` from `data.training.label`
-   - Determine `dataset_ext` from `data.training.format`: `json` → `.json`, `parquet` → `/`
-   - Extract `input_dir_base` from parent directory of dataset path
-   - Set `input_formatting: ''`
+   **Else if `run.dataset_path` (or `run.parameters.dataset_path`) is set** (literal-path escape hatch for legacy / externally produced files):
+   - Use the literal path verbatim; do not resolve.
+   - Extract `dataset_label` from the filename stem.
+   - Extract `dataset_ext` from the file extension (e.g., `.json`).
+   - Extract `input_dir_base` from the parent directory.
+   - Set `input_formatting: ''`.
+
+   **Else** (standard single-file experiments):
+   - Use `data.training.path` from experiment_summary.yaml.
+   - Extract `dataset_label` from `data.training.label`.
+   - Determine `dataset_ext` from `data.training.format`: `json` → `.json`, `parquet` → `/`.
+   - Extract `input_dir_base` from parent directory of dataset path.
+   - Set `input_formatting: ''`.
 
 2. **Populate template with run-specific values:**
 
@@ -281,7 +298,7 @@ For each run directory:
 
    **Determining training_samples:**
    - **Standard experiments:** Use `data.training.splits.train` from experiment_summary.yaml
-   - **Per-run dataset override**: Read the `.meta.json` sidecar file alongside the dataset to get `row_count`. The sidecar path is the dataset path with `.json` replaced by `.meta.json` (e.g., `dict_full_train_s42.meta.json`). If the sidecar does not exist, omit the `--training_samples` flag (the step guard will be skipped).
+   - **Per-run dataset override**: Read the `.meta.json` sidecar file alongside the dataset to get `row_count`. The sidecar path is the dataset path with `.json` replaced by `.meta.json` (e.g., `dict_full_train_a1b2c3d4.meta.json`). If the sidecar does not exist, omit the `--training_samples` flag (the step guard will be skipped).
 
    **Example:**
    ```bash

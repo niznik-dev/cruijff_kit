@@ -138,9 +138,15 @@ def write_metadata(
     template_file: str | None = None,
     one_to_many: dict | None = None,
     extra_splits: dict[str, int] | None = None,
+    source_sha256: str | None = None,
+    schema_sha256: str | None = None,
+    template_file_sha256: str | None = None,
+    config: dict | None = None,
+    config_hash: str | None = None,
+    non_deterministic: bool = False,
 ) -> None:
     """Write the .meta.json sidecar file alongside the output."""
-    meta_path = output_path.replace(".json", ".meta.json")
+    meta_path = str(Path(output_path).with_suffix(".meta.json"))
 
     size_bytes = os.path.getsize(output_path) if os.path.exists(output_path) else 0
 
@@ -151,9 +157,13 @@ def write_metadata(
         "split_ratio": split_ratio,
         "row_count": row_count,
         "size_bytes": size_bytes,
-        "source": source_path,
+        "source": {"path": source_path, "sha256": source_sha256}
+        if source_sha256
+        else source_path,
         "source_rows_total": source_rows_total,
-        "schema": schema_path,
+        "schema": {"path": schema_path, "sha256": schema_sha256}
+        if schema_sha256
+        else schema_path,
         "features": features,
         "template": template,
         "perturbations": perturbations,
@@ -162,10 +172,24 @@ def write_metadata(
         "context_placement": context_placement,
         "question": question,
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "non_deterministic": non_deterministic,
     }
 
+    if config_hash:
+        metadata["config_hash"] = config_hash
+        metadata["config_hash_short"] = config_hash[:8]
+    if config is not None:
+        metadata["config"] = config
+
     if template_file:
-        metadata["template_file"] = os.path.abspath(template_file)
+        metadata["template_file"] = (
+            {
+                "path": os.path.abspath(template_file),
+                "sha256": template_file_sha256,
+            }
+            if template_file_sha256
+            else os.path.abspath(template_file)
+        )
 
     if one_to_many:
         metadata["one_to_many"] = one_to_many

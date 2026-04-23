@@ -122,11 +122,57 @@ data_generation:
 `convert-tabular-to-text` emits **two files per training-related condition**:
 
 ```
-{condition}_train_s{seed}.json   ->  {"train": [...], "validation": [...]}
-{condition}_test_s{seed}.json    ->  {"test": [...]}
+{condition}_train_{hash8}.json   ->  {"train": [...], "validation": [...]}
+{condition}_test_{hash8}.json    ->  {"test": [...]}
 ```
 
-The training file bundles **both** the train and validation slices under their respective top-level keys. The test file stands alone. For conditions used only in the evaluation matrix (not for training), only the test file is generated.
+`{hash8}` is the first 8 hex chars of a SHA-256 over the canonicalized generation config (see "Computing the filename hash" below). The training file bundles **both** the train and validation slices under their respective top-level keys. The test file stands alone. For conditions used only in the evaluation matrix (not for training), only the test file is generated.
+
+### Dataset paths resolve at scaffold time
+
+Hashed filenames are **not** written into `experiment_summary.yaml`. Runs and eval tasks reference a condition by name; scaffold agents resolve the name to the canonical hashed path at scaffold time. An explicit literal path escape hatch remains for files that weren't generated from this experiment's `data_generation` block (e.g., legacy datasets, externally produced fixtures).
+
+Primary pattern:
+
+```yaml
+runs:
+  - name: Llama-3.1-8B-Instruct_subset
+    training_condition: dict_subset
+
+evaluation:
+  tasks:
+    - name: acs_income_subset
+      script: .../inspect_task_acs.py
+      eval_condition: dict_subset
+```
+
+Literal path, used as-is; not derived from `data_generation`:
+
+```yaml
+runs:
+  - name: Llama-3.2-1B_legacy
+    dataset_path: /scratch/.../some_external_file.json
+
+evaluation:
+  tasks:
+    - name: eval_legacy
+      script: ...
+      dataset: /scratch/.../external_test.json
+```
+
+The resolver lives at `tabular_to_text_gen.lib.config_hash.resolve_dataset_path(data_generation, condition_name, split, output_dir)`. `convert.py` uses the same helper internally when invoked with `--experiment-summary`, so the filename convert.py writes and the filename scaffold agents ask for are always the same.
+
+**Cross-experiment reuse is preserved.** The hash is computed from the semantic content of `data_generation` (source/schema SHAs, features, template, target, context, question, splits, seed, etc.) — not from the YAML path or experiment name. Two experiments with identical `data_generation` content share the same file. Two experiments with any semantic difference get separate files. This is exactly the pre-Option-B behavior; only the hand-typing of hashes in run entries has gone away.
+
+Notes on what affects the hash:
+
+- **Feature order matters.** `["AGEP", "ST"]` and `["ST", "AGEP"]` hash differently because they produce different rendered text for dictionary templates.
+- **Default normalization.** Absent fields are filled with defaults before hashing (`subsampling_ratio = 1.0`, `missing_value_handling = "skip"`, `perturbations = []`). Omitting a field and explicitly setting it to its default hash identically.
+- **Custom narrative templates.** The content of `template_file` is hashed (via its SHA-256) — any edit invalidates the hash.
+- **llm_narrative.** Output is non-deterministic — identical configs may produce different content, but they share a filename and the `.meta.json` sidecar logs `non_deterministic: true`.
+- **Categorical targets.** Use `target.mapping` in place of `target.threshold`.
+- **Reuse.** If the same hashed file already exists in `ck-data/generated/`, `convert-tabular-to-text` skips regeneration (log line `REUSE: ...`). Pass `--force` to `convert.py` to override.
+- **Full docs.** See [`tabular_to_text_gen/TABULAR_DATASET_NAMING.md`](../../../../tabular_to_text_gen/TABULAR_DATASET_NAMING.md) for the complete list of hashed fields, exclusions, and sidecar format.
 
 ### How it splits
 
@@ -187,11 +233,11 @@ data_generation:
 With the config above, `convert-tabular-to-text` will emit:
 
 ```
-dict_full_train_s42.json
-dict_full_train_s42.parquet   <-- sidecar, written by --emit-source-parquet
-dict_full_test_s42.json
-dict_full_test_s42.parquet    <-- sidecar
-narr_full_test_s42.json
+dict_full_train_a1b2c3d4.json
+dict_full_train_a1b2c3d4.parquet   <-- sidecar, written by --emit-source-parquet
+dict_full_test_a1b2c3d4.json
+dict_full_test_a1b2c3d4.parquet    <-- sidecar
+narr_full_test_9c8d7e6f.json
 (no narr_full parquet — only the canonical condition emits)
 ```
 

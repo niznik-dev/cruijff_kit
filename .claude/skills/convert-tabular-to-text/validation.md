@@ -4,7 +4,7 @@ After generating all dataset files (Step 5), validate every file before presenti
 
 ## Validation Checklist
 
-For **each** generated file (`{condition}_{split}_s{seed}.json`), run through all applicable checks below.
+For **each** generated file (`{condition}_{split}_{hash8}.json`), run through all applicable checks below.
 
 ### 1. File Existence and Structure
 
@@ -291,9 +291,9 @@ Validation Results:
 +---------------------------------+--------+------+---------------+---------+
 | File                            | Split  | Rows | Labels        | Status  |
 +---------------------------------+--------+------+---------------+---------+
-| dict_full_train_s42.json        | train  | 800  | 0:412, 1:388  | PASS    |
-| dict_full_test_s42.json         | test   | 200  | 0:105, 1:95   | PASS    |
-| dict_synonym_test_s42.json      | test   | 200  | 0:105, 1:95   | WARN    |
+| dict_full_train_a1b2c3d4.json   | train  | 800  | 0:412, 1:388  | PASS    |
+| dict_full_test_a1b2c3d4.json    | test   | 200  | 0:105, 1:95   | PASS    |
+| dict_synonym_test_e5f6a7b8.json | test   | 200  | 0:105, 1:95   | WARN    |
 +---------------------------------+--------+------+---------------+---------+
 Cross-file consistency: PASS
 ```

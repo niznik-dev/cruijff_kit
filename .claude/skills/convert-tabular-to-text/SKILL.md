@@ -67,7 +67,7 @@ For each condition with `template: llm_narrative`:
 
 **If no experiment_summary.yaml exists (standalone usage):**
 
-Present the available template styles (see `design-experiment/references/data_generation.md` for the full reference):
+Present the available template styles (see `design-experiment/references/tabular_to_text_gen.md` for the full reference):
 
 > **Which template style would you like?**
 >
@@ -132,9 +132,11 @@ Also gather shared settings:
 
 **If an `experiment_summary.yaml` exists:** Scan the runs list and evaluation matrix to determine which files are needed:
 
-- **Training conditions** need `{train_condition}_train_s{seed}.json`. The file contains both `"train"` and `"validation"` top-level keys — `convert.py` generates the bundle in a single invocation when passed `--split train` alongside `--validation-ratio`.
-- **Evaluation conditions** need a separate test file: `{eval_condition}_test_s{seed}.json`. This file contains only the `"test"` key.
+- **Training conditions** need `{train_condition}_train_{hash8}.json`. The file contains both `"train"` and `"validation"` top-level keys — `convert.py` generates the bundle in a single invocation when passed `--split train` alongside `--validation-ratio`.
+- **Evaluation conditions** need a separate test file: `{eval_condition}_test_{hash8}.json`. This file contains only the `"test"` key.
 - **Deduplicate:** multiple runs may share the same train or test file.
+
+**Filename hash.** Filenames include `{hash8}`, a content hash over the canonicalized generation config. If experiment_summary.yaml was produced by `design-experiment`, the hashed paths are already in each run's `dataset_path` / `eval_dataset_path` — read them directly. Otherwise, compute them with the shared helper as documented in [`design-experiment/references/tabular_to_text_gen.md`](../design-experiment/references/tabular_to_text_gen.md) (section "Computing the filename hash"). Full docs: [`tabular_to_text_gen/TABULAR_DATASET_NAMING.md`](../../../tabular_to_text_gen/TABULAR_DATASET_NAMING.md).
 
 **If standalone:** Ask the user which conditions are used for training vs evaluation, and confirm `split_ratio` and `validation_ratio`.
 
@@ -142,20 +144,59 @@ Report the plan:
 ```
 Files to generate (70% train / 10% validation / 20% test):
   Training conditions (bundled train + validation):
-    1. dict_full_train_s42.json       {"train": ~7k rows, "validation": ~1k rows}
+    1. dict_full_train_a1b2c3d4.json       {"train": ~7k rows, "validation": ~1k rows}
   Evaluation files (test only):
-    2. dict_full_test_s42.json        {"test": ~2k rows}
-    3. dict_synonym_test_s42.json     {"test": ~2k rows}
-    4. narrative_reduced_test_s42.json {"test": ~2k rows}
+    2. dict_full_test_a1b2c3d4.json        {"test": ~2k rows}
+    3. dict_synonym_test_e5f6a7b8.json     {"test": ~2k rows}
+    4. narrative_reduced_test_9c8d7e6f.json {"test": ~2k rows}
 ```
+
+Note any files that already exist in `{scratch_dir}/ck-data/generated/` — these will be reused, not regenerated.
 
 Get user confirmation before proceeding.
 
 ## Step 6: Generate Datasets
 
-For each file in the plan from Step 5, call `convert.py`:
+`convert.py` takes `--output-dir` (not a full output path) and derives `{condition}_{split}_{hash8}.json` itself. If the file already exists, generation is skipped with a `REUSE:` log line; pass `--force` to regenerate.
 
-**Per training condition** (one invocation produces the bundled train+validation file):
+### Recommended: YAML-driven invocation (when `experiment_summary.yaml` exists)
+
+This is the preferred path. `convert.py` reads all generation parameters (source, schema, target, context, question, splits, seed, subsampling, missing-value handling, features, template, perturbations, style guidance, one-to-many, emit-source-parquet) directly from `data_generation` in the YAML. The only CLI args are which condition + split to produce and where to write.
+
+```bash
+cd {cruijff_kit_path} && python -m tabular_to_text_gen.convert \
+  --experiment-summary {path_to_experiment_summary.yaml} \
+  --condition-name {condition_name} \
+  --split {train|test} \
+  --output-dir {scratch_dir}/ck-data/generated
+```
+
+Loop over all conditions × splits needed by the experiment:
+
+```bash
+for COND in dict_subset dict_full; do
+  for SPLIT in train test; do
+    python -m tabular_to_text_gen.convert \
+      --experiment-summary {path_to_experiment_summary.yaml} \
+      --condition-name "$COND" --split "$SPLIT" \
+      --output-dir {scratch_dir}/ck-data/generated
+  done
+done
+```
+
+Parquet sidecars (`data_generation.emit_source_parquet: true` plus `emit_source_parquet_condition: <name>`) are honored automatically — the sidecar is emitted only when the running `--condition-name` matches.
+
+If you pass any generation-parameter CLI flag alongside `--experiment-summary` (e.g., `--source`, `--question`), `convert.py` ignores it and logs a warning. The YAML always wins.
+
+### Fallback: direct CLI invocation (only when no experiment_summary.yaml exists)
+
+**Do not use this path if an `experiment_summary.yaml` is available** — use the YAML-driven invocation above. The direct CLI path exists only for the genuinely standalone case.
+
+**Before falling back to direct CLI, first ask the user:**
+
+> "I don't see an `experiment_summary.yaml` for this work. Would you like to design an experiment first (via the `design-experiment` skill)? That's the recommended path — the YAML becomes the single source of truth for all downstream steps and avoids shell-quoting pitfalls. If you just want a one-off ad-hoc generation, say so and I'll proceed with direct CLI args."
+
+Only proceed with the direct CLI invocation below if the user explicitly says they want ad-hoc generation (no experiment design). **Quote carefully** — wrap `--context` and `--question` in single quotes, and never pass them through `eval` or unquoted `$VAR` expansion.
 
 ```bash
 cd {cruijff_kit_path} && python -m tabular_to_text_gen.convert \
@@ -167,59 +208,30 @@ cd {cruijff_kit_path} && python -m tabular_to_text_gen.convert \
   --perturbations {comma_separated_perturbations} \
   --target-column {target_column} \
   --target-threshold {threshold} \
-  --context "{context_text}" \
+  --context '{context_text}' \
   --context-placement {placement} \
-  --question "{question_text}" \
-  --split train \
+  --question '{question_text}' \
+  --split {train|test} \
   --split-ratio {split_ratio} \
   --validation-ratio {validation_ratio} \
   --seed {seed} \
   --subsampling-ratio {subsampling_ratio} \
   --missing-value-handling {missing_value_handling} \
-  --missing-value-text "{missing_value_text}" \
-  --output {scratch_dir}/ck-data/generated/{condition_name}_train_s{seed}.json
+  --output-dir {scratch_dir}/ck-data/generated
 ```
 
-**Per evaluation-only condition** (test-only file):
+Additional CLI-only extras (also available via YAML fields of the same name):
+- **one-to-many:** `--one-to-many-copies N --one-to-many-perturbation <name>`
+- **custom narrative template:** `--template-file {path}`
+- **categorical target:** `--target-mapping '{json_string}'` instead of `--target-threshold`
+- **LLM narrative:** `--cache-path {scratch_dir}/ck-data/generated/.llm_cache/{condition_name}.json` and `--style-guidance '{instructions}'`
+- **parquet sidecar:** `--emit-source-parquet` (flag). Only pass on one canonical condition per experiment to avoid redundant copies.
 
-```bash
-cd {cruijff_kit_path} && python -m tabular_to_text_gen.convert \
-  --source {source_path} \
-  --schema {schema_path} \
-  --condition-name {condition_name} \
-  --features {comma_separated_features} \
-  --template {template_type} \
-  --perturbations {comma_separated_perturbations} \
-  --target-column {target_column} \
-  --target-threshold {threshold} \
-  --context "{context_text}" \
-  --context-placement {placement} \
-  --question "{question_text}" \
-  --split test \
-  --split-ratio {split_ratio} \
-  --validation-ratio {validation_ratio} \
-  --seed {seed} \
-  --subsampling-ratio {subsampling_ratio} \
-  --missing-value-handling {missing_value_handling} \
-  --missing-value-text "{missing_value_text}" \
-  --output {scratch_dir}/ck-data/generated/{condition_name}_test_s{seed}.json
-```
+### Train/test pairs
 
-**For a condition that is used for BOTH training and evaluation**, call `convert.py` twice: once with `--split train` (bundled file) and once with `--split test` (test-only file). Both invocations must share the same `--seed`, `--split-ratio`, `--validation-ratio`, and `--subsampling-ratio` so they operate on the same deterministic split — use a shared argument set and only differ in `--split` and `--output`.
+For a condition used for **both** training and evaluation, invoke twice (once with `--split train`, once with `--split test`). Both share the same `{hash8}` (split is not part of the hash). In YAML-driven mode the split is the only thing that differs between the two calls.
 
-For one-to-many expansion (e.g., multiple reorderings per row), add `--one-to-many-copies {N} --one-to-many-perturbation {perturbation}`. The one_to_many perturbation must not also appear in `--perturbations`.
-
-For narrative templates with a custom template file, add `--template-file {path}`.
-
-For categorical target mappings, use `--target-mapping '{json_string}'` instead of `--target-threshold`.
-
-For LLM narrative mode, add `--cache-path {scratch_dir}/ck-data/generated/.llm_cache/{condition_name}.json` and `--style-guidance "{user's style instructions}"` (if provided in Step 2b).
-
-For experiments that want a parquet sidecar of the underlying source rows (e.g., to train a competing baseline model on the same train/test splits), add `--emit-source-parquet {scratch_dir}/ck-data/generated/{condition_name}_{split}_s{seed}.parquet`. This writes the post-subsample, post-split DataFrame — all original source columns (including the target) — with rows in 1:1 correspondence with the JSON entries. Trigger via `data_generation.emit_source_parquet: true` in experiment_summary.yaml.
-
-- **Only emit from one condition per split.** All conditions in an experiment share the same underlying `split_df` (same seed, subsample, split_ratio), so emitting the parquet from every condition would write redundant copies. Pick a canonical condition (typically the first, or a dictionary-format one) and pass `--emit-source-parquet` only on its train and test invocations. Leave the flag off for the other conditions.
-
-**Important:** Use the same `--seed` for all conditions in an experiment so they operate on the same underlying data rows.
+**Important:** Use the same `--seed` for all conditions in an experiment so they operate on the same underlying data rows. In YAML-driven mode this is automatic — the seed comes from `data_generation.seed`.
 
 ## Step 7: Validate
 
@@ -233,10 +245,10 @@ Present the complete list of generated files with their paths:
 
 ```
 Generated datasets:
-  - {scratch_dir}/ck-data/generated/dict_full_train_s42.json (800 rows, 420 KB)
-  - {scratch_dir}/ck-data/generated/dict_full_test_s42.json (200 rows, 105 KB)
-  - {scratch_dir}/ck-data/generated/dict_synonym_test_s42.json (200 rows, 108 KB)
-  - {scratch_dir}/ck-data/generated/narrative_reduced_test_s42.json (200 rows, 95 KB)
+  - {scratch_dir}/ck-data/generated/dict_full_train_a1b2c3d4.json (800 rows, 420 KB)
+  - {scratch_dir}/ck-data/generated/dict_full_test_a1b2c3d4.json (200 rows, 105 KB)
+  - {scratch_dir}/ck-data/generated/dict_synonym_test_e5f6a7b8.json (200 rows, 108 KB)
+  - {scratch_dir}/ck-data/generated/narrative_reduced_test_9c8d7e6f.json (200 rows, 95 KB)
 
 These paths should be used in experiment_summary.yaml run parameters:
   - dataset_path: for training datasets

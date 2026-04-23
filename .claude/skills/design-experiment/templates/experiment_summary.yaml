@@ -136,9 +136,9 @@ runs:
       lora_rank: int               # Include all varied parameters
       lr: float
       # Empty dict {} for control runs
-      # OPTIONAL per-run dataset overrides (for data-generation experiments):
-      # dataset_path: string       # Full path to training dataset file (overrides data.training.path)
-      # eval_dataset_path: string  # Full path to evaluation dataset file
+    # OPTIONAL (data-generation experiments): which condition provides this
+    # run's training file.
+    # training_condition: string
 
   # Example control run:
   - name: string                   # e.g., "Llama-3.2-1B-Instruct_base"
@@ -162,8 +162,13 @@ evaluation:
     # REQUIRED: List of evaluation tasks
     - name: string                 # REQUIRED: Task identifier (e.g., "capitalization")
       script: string               # REQUIRED: Full path to inspect-ai task script
-      dataset: string              # OPTIONAL: Path to eval dataset (if different from training)
       description: string          # REQUIRED: Human-readable task description
+      # Exactly ONE of the following:
+      # dataset: string            # Literal path to an eval dataset file
+      # eval_condition: string     # Name of a condition in data.data_generation.conditions;
+                                   # scaffold-inspect resolves this to
+                                   # {condition}_test_{hash8}.json via
+                                   # tabular_to_text_gen.lib.config_hash.resolve_dataset_path
 
   matrix:
     # REQUIRED: Which runs evaluate on which tasks at which epochs

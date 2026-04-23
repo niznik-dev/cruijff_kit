@@ -27,9 +27,16 @@ import logging
 import os
 import random
 import sys
+from pathlib import Path
 
 import yaml
 
+from tabular_to_text_gen.lib.config_hash import (
+    build_generation_config,
+    file_sha256,
+    hash_config,
+    hash_config_short,
+)
 from tabular_to_text_gen.lib.features import select_features, validate_features
 from tabular_to_text_gen.lib.output import (
     build_output_entry,
@@ -54,8 +61,22 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
 
     # Source data
-    parser.add_argument("--source", required=True, help="Path to source tabular file")
-    parser.add_argument("--schema", required=True, help="Path to schema YAML file")
+    parser.add_argument("--source", help="Path to source tabular file")
+    parser.add_argument("--schema", help="Path to schema YAML file")
+
+    # YAML-driven invocation. When provided, all other generation
+    # parameters are read from the YAML's data_generation block, making the YAML
+    # the single source of truth
+    parser.add_argument(
+        "--experiment-summary",
+        help="Path to experiment_summary.yaml. When provided, --source, --schema, "
+        "--target-*, --context*, --question, --split-ratio, --validation-ratio, "
+        "--seed, --subsampling-ratio, --missing-value-*, --features, --template, "
+        "--template-file, --perturbations, --style-guidance, --one-to-many-*, "
+        "and --emit-source-parquet are all read from the YAML's data_generation "
+        "section. Only --condition-name, --split, --output-dir, --force, and "
+        "--cache-path remain relevant on the CLI.",
+    )
 
     # Condition configuration (direct CLI args)
     parser.add_argument("--condition-name", required=True, help="Condition identifier")
@@ -85,8 +106,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Path to conditions YAML file (alternative to --features/--template/--perturbations)",
     )
 
-    # Target
-    parser.add_argument("--target-column", required=True, help="Target column name")
+    parser.add_argument("--target-column", help="Target column name")
     parser.add_argument(
         "--target-threshold",
         type=float,
@@ -141,15 +161,28 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
 
     # Output
-    parser.add_argument("--output", required=True, help="Output JSON file path")
+    parser.add_argument(
+        "--output-dir",
+        required=True,
+        help="Directory to write outputs into. The filename is derived as "
+        "{condition}_{split}_{hash8}.json, where hash8 is a content hash over "
+        "the canonicalized generation config (see TABULAR_DATASET_NAMING.md).",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Regenerate and overwrite outputs even if a file with the derived "
+        "name already exists. Default: skip and log reuse.",
+    )
     parser.add_argument(
         "--emit-source-parquet",
-        help="Optional path to also write the post-subsample, post-split source "
-        "DataFrame as a parquet file. Rows are in 1:1 correspondence with the "
-        "JSON entries (same seed/subsample/split). All original source columns "
-        "are preserved, including the target column, which is useful for "
-        "training downstream comparison models (e.g., logistic regression) on "
-        "the same rows.",
+        action="store_true",
+        help="Also write the post-subsample, post-split source DataFrame as a "
+        "parquet sidecar ({condition}_{split}_{hash8}.parquet). Rows are in 1:1 "
+        "correspondence with the JSON entries (same seed/subsample/split). All "
+        "original source columns are preserved, including the target column, "
+        "which is useful for training downstream comparison models (e.g., "
+        "logistic regression) on the same rows.",
     )
 
     # Missing value handling
@@ -302,6 +335,189 @@ def split_dataframe(
     return df.iloc[selected].reset_index(drop=True)
 
 
+def build_config(
+    *,
+    source_sha256: str,
+    schema_sha256: str,
+    features: list[str],
+    template: str,
+    template_file_sha256: str | None,
+    perturbations: list[str],
+    target_column: str,
+    target_threshold: float | None,
+    target_mapping: dict | None,
+    context: str,
+    context_placement: str,
+    question: str,
+    split_ratio: float,
+    validation_ratio: float | None,
+    seed: int,
+    subsampling_ratio: float | None,
+    missing_value_handling: str,
+    missing_value_text: str,
+    one_to_many: dict | None,
+    style_guidance: str | None,
+) -> dict:
+    """Assemble the canonical config dict that the filename hash is computed over.
+
+    See TABULAR_DATASET_NAMING.md for what's included/excluded and why.
+    `split` is intentionally excluded so train/test artifacts of the same
+    logical config share a hash.
+    """
+    target: dict = {"column": target_column}
+    if target_threshold is not None:
+        target["threshold"] = target_threshold
+    if target_mapping is not None:
+        target["mapping"] = target_mapping
+
+    return {
+        "source_sha256": source_sha256,
+        "schema_sha256": schema_sha256,
+        "features": features,
+        "template": template,
+        "template_file_sha256": template_file_sha256,
+        "perturbations": perturbations,
+        "target": target,
+        "context": context,
+        "context_placement": context_placement,
+        "question": question,
+        "split_ratio": split_ratio,
+        "validation_ratio": validation_ratio,
+        "seed": seed,
+        "subsampling_ratio": subsampling_ratio,
+        "missing_value_handling": missing_value_handling,
+        "missing_value_text": missing_value_text,
+        "one_to_many": one_to_many,
+        "style_guidance": style_guidance,
+    }
+
+
+def apply_experiment_summary(args: argparse.Namespace) -> None:
+    """Populate ``args`` in place from an experiment_summary.yaml.
+
+    The YAML is the single source of truth for generation parameters. Any
+    argument explicitly passed on the CLI alongside --experiment-summary is
+    ignored (with a warning) so that the on-disk YAML and the generated files
+    can never disagree. Only --condition-name, --split, --output-dir, --force,
+    and --cache-path remain user-controlled.
+
+    Raises a ValueError with a clear message if the YAML lacks a
+    ``data_generation`` block or the requested condition.
+    """
+    with open(args.experiment_summary) as f:
+        doc = yaml.safe_load(f) or {}
+
+    dg = (doc.get("data", {}) or {}).get("data_generation")
+    if not isinstance(dg, dict):
+        raise ValueError(
+            f"{args.experiment_summary} does not contain a data.data_generation "
+            "block. Add one (see templates/experiment_summary.yaml) or invoke "
+            "convert.py without --experiment-summary."
+        )
+
+    # Warn about any ignored CLI overrides the user passed.
+    managed_cli = (
+        "source",
+        "schema",
+        "target_column",
+        "target_threshold",
+        "target_mapping",
+        "context",
+        "context_placement",
+        "question",
+        "split_ratio",
+        "validation_ratio",
+        "seed",
+        "subsampling_ratio",
+        "missing_value_handling",
+        "missing_value_text",
+        "features",
+        "template",
+        "template_file",
+        "perturbations",
+        "one_to_many_copies",
+        "one_to_many_perturbation",
+        "style_guidance",
+        "emit_source_parquet",
+        "conditions_file",
+    )
+    defaults = {
+        "target_threshold": None,
+        "target_mapping": None,
+        "context": "",
+        "context_placement": "preamble",
+        "question": "",
+        "split_ratio": 0.8,
+        "validation_ratio": None,
+        "seed": 42,
+        "subsampling_ratio": None,
+        "missing_value_handling": "skip",
+        "missing_value_text": "missing",
+        "features": None,
+        "template": "dictionary",
+        "template_file": None,
+        "perturbations": "",
+        "one_to_many_copies": None,
+        "one_to_many_perturbation": None,
+        "style_guidance": None,
+        "emit_source_parquet": False,
+        "conditions_file": None,
+        "source": None,
+        "schema": None,
+        "target_column": None,
+    }
+    overrides = [a for a in managed_cli if getattr(args, a, defaults[a]) != defaults[a]]
+    if overrides:
+        logger.warning(
+            "Ignoring CLI args (YAML is authoritative under --experiment-summary): %s",
+            ", ".join(f"--{a.replace('_', '-')}" for a in overrides),
+        )
+
+    # Delegate YAML→canonical-config mapping to the shared helper so convert.py
+    # and the scaffold agents always resolve identical filenames.
+    cfg = build_generation_config(dg, args.condition_name)
+    cond = dg["conditions"][args.condition_name]
+
+    args.source = dg["source"]
+    args.schema = dg["schema"]
+    target = cfg["target"]
+    args.target_column = target.get("column")
+    args.target_threshold = target.get("threshold")
+    args.target_mapping = json.dumps(target["mapping"]) if "mapping" in target else None
+    args.context = cfg["context"]
+    args.context_placement = cfg["context_placement"]
+    args.question = cfg["question"]
+    args.split_ratio = cfg["split_ratio"]
+    args.validation_ratio = cfg["validation_ratio"]
+    args.seed = cfg["seed"]
+    args.subsampling_ratio = cfg["subsampling_ratio"]
+    args.missing_value_handling = cfg["missing_value_handling"]
+    args.missing_value_text = cfg["missing_value_text"]
+
+    # Per-condition settings (features / perturbations flattened back to the
+    # CLI csv shape for the downstream render path).
+    args.features = ",".join(cfg["features"])
+    args.template = cfg["template"]
+    args.template_file = cond.get("template_file")
+    args.perturbations = ",".join(cfg["perturbations"])
+    args.style_guidance = cfg["style_guidance"]
+
+    otm = cfg.get("one_to_many") or {}
+    args.one_to_many_copies = otm.get("copies")
+    args.one_to_many_perturbation = otm.get("perturbation")
+
+    # Parquet sidecar: only emit from the designated canonical condition.
+    emit_condition = dg.get("emit_source_parquet_condition")
+    args.emit_source_parquet = bool(
+        dg.get("emit_source_parquet")
+        and emit_condition
+        and emit_condition == args.condition_name
+    )
+
+    # Ensure no stale --conditions-file is honored when --experiment-summary wins.
+    args.conditions_file = None
+
+
 def load_condition_from_file(conditions_file: str, condition_name: str) -> dict:
     """Load a single condition's config from a conditions YAML file."""
     with open(conditions_file) as f:
@@ -331,6 +547,30 @@ def main(argv: list[str] | None = None):
         level=logging.INFO,
         format="%(levelname)s: %(message)s",
     )
+
+    # YAML-driven invocation: populate args from experiment_summary.yaml.
+    if args.experiment_summary:
+        apply_experiment_summary(args)
+
+    # Validate that the required fields are present (either from the YAML or
+    # from explicit CLI args).
+    missing = [
+        flag
+        for flag, val in [
+            ("--source", args.source),
+            ("--schema", args.schema),
+            ("--target-column", args.target_column),
+        ]
+        if not val
+    ]
+    if missing:
+        logger.error(
+            "Missing required argument(s): %s. Provide them on the CLI or "
+            "pass --experiment-summary pointing at an experiment_summary.yaml "
+            "with a data.data_generation block.",
+            ", ".join(missing),
+        )
+        sys.exit(1)
 
     # Resolve condition configuration
     if args.conditions_file:
@@ -411,6 +651,51 @@ def main(argv: list[str] | None = None):
     if args.target_mapping:
         target_mapping = json.loads(args.target_mapping)
 
+    # Compute content hashes of source & schema (and custom template if any)
+    # so the filename is a stable function of the underlying inputs.
+    logger.info("Hashing source file: %s", args.source)
+    source_sha = file_sha256(args.source)
+    schema_sha = file_sha256(args.schema)
+    template_file_sha = file_sha256(args.template_file) if args.template_file else None
+
+    # Assemble the canonical config and derive the hashed output filename.
+    config = build_config(
+        source_sha256=source_sha,
+        schema_sha256=schema_sha,
+        features=features,
+        template=template_type,
+        template_file_sha256=template_file_sha,
+        perturbations=perturbation_names,
+        target_column=args.target_column,
+        target_threshold=args.target_threshold,
+        target_mapping=target_mapping,
+        context=args.context,
+        context_placement=args.context_placement,
+        question=args.question,
+        split_ratio=args.split_ratio,
+        validation_ratio=args.validation_ratio,
+        seed=args.seed,
+        subsampling_ratio=args.subsampling_ratio,
+        missing_value_handling=args.missing_value_handling,
+        missing_value_text=args.missing_value_text,
+        one_to_many=one_to_many,
+        style_guidance=args.style_guidance,
+    )
+    full_hash = hash_config(config)
+    short_hash = hash_config_short(config)
+
+    os.makedirs(args.output_dir, exist_ok=True)
+    output_path = os.path.join(
+        args.output_dir,
+        f"{args.condition_name}_{args.split}_{short_hash}.json",
+    )
+
+    if os.path.exists(output_path) and not args.force:
+        logger.info(
+            "REUSE: %s already exists; skipping (use --force to override)", output_path
+        )
+        return
+
     # Load source data
     logger.info("Reading source data: %s", args.source)
     df = read_tabular(args.source)
@@ -472,10 +757,9 @@ def main(argv: list[str] | None = None):
     )
     logger.info("Split '%s': %d rows", args.split, len(split_df))
 
-    # Optionally emit the source parquet for this split
+    # Optionally emit the source parquet for this split (sidecar next to the JSON)
     if args.emit_source_parquet:
-        parquet_path = args.emit_source_parquet
-        os.makedirs(os.path.dirname(os.path.abspath(parquet_path)), exist_ok=True)
+        parquet_path = str(Path(output_path).with_suffix(".parquet"))
         split_df.to_parquet(parquet_path, index=False)
         logger.info(
             "Wrote source parquet for split '%s' (%d rows): %s",
@@ -540,8 +824,8 @@ def main(argv: list[str] | None = None):
 
     # Write output
     total_entries = len(entries) + sum(len(v) for v in extra_splits.values())
-    logger.info("Writing %d entries to %s", total_entries, args.output)
-    write_output(entries, args.output, args.split, extra_splits=extra_splits or None)
+    logger.info("Writing %d entries to %s", total_entries, output_path)
+    write_output(entries, output_path, args.split, extra_splits=extra_splits or None)
 
     # Build target config for metadata
     target_config = {"column": args.target_column}
@@ -553,15 +837,17 @@ def main(argv: list[str] | None = None):
     # Write metadata sidecar. row_count is the total entry count across all
     # splits in the file, so a bundled train+validation file reports the sum.
     write_metadata(
-        output_path=args.output,
+        output_path=output_path,
         condition_name=args.condition_name,
         split=args.split,
         seed=args.seed,
         split_ratio=args.split_ratio,
         row_count=total_entries,
         source_path=os.path.abspath(args.source),
+        source_sha256=source_sha,
         source_rows_total=source_rows_total,
         schema_path=os.path.abspath(args.schema),
+        schema_sha256=schema_sha,
         features=features,
         template=template_type,
         perturbations=perturbation_names,
@@ -570,10 +856,14 @@ def main(argv: list[str] | None = None):
         context_placement=args.context_placement,
         question=args.question,
         template_file=args.template_file,
+        template_file_sha256=template_file_sha,
         one_to_many=one_to_many,
         extra_splits={k: len(v) for k, v in extra_splits.items()} or None,
+        config=config,
+        config_hash=full_hash,
+        non_deterministic=(template_type == "llm_narrative"),
     )
-    logger.info("Done. Output: %s", args.output)
+    logger.info("Done. Output: %s", output_path)
 
 
 if __name__ == "__main__":

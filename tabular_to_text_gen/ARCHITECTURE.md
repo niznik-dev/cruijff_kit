@@ -309,11 +309,11 @@ When `context_placement: system_prompt`, the context text is **not** written int
 
 ## Naming Convention
 
-Generated files: `{condition_name}_{split}_s{seed}.json`
+Generated files: `{condition_name}_{split}_{hash8}.json`, where `{hash8}` is the first 8 hex chars of a SHA-256 over the canonicalized generation config (see [TABULAR_DATASET_NAMING.md](TABULAR_DATASET_NAMING.md)).
 
 Examples:
-- `dict_full_train_s42.json` + `dict_full_train_s42.meta.json`
-- `dict_synonym_test_s42.json` + `dict_synonym_test_s42.meta.json`
+- `dict_full_train_a1b2c3d4.json` + `dict_full_train_a1b2c3d4.meta.json`
+- `dict_synonym_test_e5f6a7b8.json` + `dict_synonym_test_e5f6a7b8.meta.json`
 
 ---
 

@@ -167,9 +167,9 @@ Result: success
 [2026-04-05 14:30:36] PLAN_OUTPUT_FILES
 Details: Determined files to generate
 Files:
-  1. dict_full_train_s42.json (train split)
-  2. dict_full_test_s42.json (test split)
-  3. narr_full_test_s42.json (test split)
+  1. dict_full_train_a1b2c3d4.json (train split)
+  2. dict_full_test_a1b2c3d4.json (test split)
+  3. narr_full_test_a1b2c3d4.json (test split)
 User confirmed: yes
 Result: success
 ```
@@ -181,7 +181,7 @@ Result: success
 Details: Generated dataset file
 Condition: dict_full
 Split: train
-Output: /scratch/gpfs/MSALGANIK/sarahep/ck-data/generated/dict_full_train_s42.json
+Output: /scratch/gpfs/MSALGANIK/sarahep/ck-data/generated/dict_full_train_a1b2c3d4.json
 Rows: 9526
 Size: 3830 KB
 Duration: 12.3 seconds
@@ -195,7 +195,7 @@ Failure example:
 Details: Failed to generate dataset file
 Condition: narr_full
 Split: test
-Output: /scratch/gpfs/MSALGANIK/sarahep/ck-data/generated/narr_full_test_s42.json
+Output: /scratch/gpfs/MSALGANIK/sarahep/ck-data/generated/narr_full_test_a1b2c3d4.json
 Error: FileNotFoundError - Template file not found at /path/to/template.j2
 Result: failure
 ```
@@ -205,7 +205,7 @@ Result: failure
 ```
 [2026-04-05 14:32:00] VALIDATE_FILE
 Details: Validating generated dataset
-File: dict_full_train_s42.json
+File: dict_full_train_a1b2c3d4.json
 Checks:
   file_existence: pass
   entry_schema: pass
@@ -221,7 +221,7 @@ Warning example:
 ```
 [2026-04-05 14:32:05] VALIDATE_FILE
 Details: Validating generated dataset
-File: dict_full_test_s42.json
+File: dict_full_test_a1b2c3d4.json
 Checks:
   file_existence: pass
   entry_schema: pass
