@@ -555,9 +555,11 @@ def _read_splits_from_metadata(training_path: str) -> dict:
     have placeholder zeros for split counts. The actual counts are recorded
     in .meta.json sidecar files alongside each generated JSON file.
 
-    Given the training dataset path (e.g., .../dict_full_train_s42.json),
-    derives sibling test/validation paths by replacing the split name and
-    reads row_count from each sidecar.
+    Handles two layouts:
+    - Separate files per split (one sidecar each).
+    - Bundled files (e.g. train+validation in one JSON): the primary
+      sidecar's ``row_count`` is the total across bundled splits, with
+      per-split counts for the extras recorded under ``extra_splits``.
     """
     import json as _json
 
@@ -565,17 +567,26 @@ def _read_splits_from_metadata(training_path: str) -> dict:
     base = Path(training_path)
 
     for split_name in ("train", "validation", "test"):
-        # Derive the path for this split by replacing _train_ with _{split}_
-        candidate = str(base).replace("_train_", f"_{split_name}_")
-        meta_path = candidate.replace(".json", ".meta.json")
+        # Scope the replace to the filename so a path component like
+        # ``…/my_train_runs/…`` is not mangled.
+        candidate_name = base.name.replace("_train_", f"_{split_name}_")
+        meta_path = base.with_name(candidate_name).with_suffix(".meta.json")
         try:
             with open(meta_path) as f:
                 meta = _json.load(f)
-            row_count = meta.get("row_count", 0)
-            if row_count:
-                splits[split_name] = row_count
         except (FileNotFoundError, _json.JSONDecodeError):
             continue
+
+        extras = meta.get("extra_splits") or {}
+        row_count = meta.get("row_count", 0)
+        # row_count is the total across all bundled splits; subtract extras
+        # to recover the primary split's own count.
+        primary_count = row_count - sum(extras.values())
+        if primary_count > 0:
+            splits[split_name] = primary_count
+        for extra_name, extra_count in extras.items():
+            if extra_count > 0 and extra_name not in splits:
+                splits[extra_name] = extra_count
 
     return splits
 
