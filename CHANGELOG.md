@@ -4,6 +4,39 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-04-23
+
+### Added
+
+#### Skills & Workflows
+- `tabular-to-text` workflow — convert tabular data (CSV, Stata, Parquet) to textual representations for LLM fine-tuning, with dictionary, narrative, and LLM-generated formats (#414, @sarahepedersen)
+- `model_organisms` framework — composable synthetic experiments on input × rule × format × design axes; unified inspect task replaces per-task scripts (#423)
+- Seed plumbing from `experiment_summary.yaml` through to torchtune configs for full reproducibility (#427)
+
+#### Evaluation & Metrics
+- `split` arg in `TASK_ARG_KEYS` for parameterized inspect-ai task invocation (#420)
+- Validation field fallback in `prebuild_cache.py` for datasets missing an explicit validation split (#422)
+
+#### Observability & Testing
+- Warning when `epochs_to_save` configuration will produce excessive checkpoints (#426)
+
+### Changed
+
+- `shuffle_acs_variables.py` generalized to any variable count, with per-sample variant added (#425, #432)
+- Config-file values routed through argparse type converters to handle quoted YAML strings (#433)
+- `check-release` skill updated with lessons from v0.2.1 release (#413)
+- Adopt stricter `inspect-ai` version pinning to prevent CI/local drift after being bitten mid-release; update `DEFAULT_SCORERS` aliasing for the newer API (#423)
+- Bump `actions/upload-artifact` 7.0.0 → 7.0.1 (#429)
+
+### Fixed
+
+- Evaluation template supports multi-GPU inspect eval (#410, @sarahepedersen)
+- `report_generator` respects bundled `extra_splits` from train sidecars (#414)
+
+### Removed
+
+- Pre-framework sanity-check scripts superseded by `model_organisms`: `sanity_checks/{bit_sequences, predictable_or_not, bernoulli, count_digits, majority}` (#439)
+
 ## [0.2.1] - 2026-04-03
 
 ### Added
