@@ -44,9 +44,6 @@ cruijff_kit/
 │   │   ├── inspect_task_capitalization.py # Inspect-ai evaluation task
 │   │   ├── input/      # Dataset generation
 │   │   └── templates/finetuning/  # Fine-tuning config templates
-│   ├── synthetic_twins/# Social science twin prediction experiment
-│   │   ├── inspect_task_twins.py # Inspect-ai evaluation task
-│   │   └── ...
 │   ├── folktexts/      # Demographic prediction from text
 │   └── inspect_task_general.py # General-purpose evaluation task
 │
@@ -210,7 +207,7 @@ Model predictions (CSV) → heterogeneity_report.py → analysis + visualization
 Real research experiment types with scientific questions:
 
 - **capitalization**: Tests generalization by training on 5-letter words and evaluating on other lengths
-- **synthetic_twins**: Binary classification task predicting twin zygosity (identical vs fraternal) from 24 trait measurements (yellow tier data)
+- **folktexts**: Demographic prediction from ACS (census) text — binary classification tasks including income, employment, mobility, public coverage, and travel time
 
 Each experiment typically includes:
 - `README.md` - Experiment-specific instructions

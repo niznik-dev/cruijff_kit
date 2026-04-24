@@ -352,8 +352,8 @@ experiments/                             # Research experiment types
 │   ├── cap_task.py                     # Inspect-ai evaluation task
 │   ├── input/                          # Dataset generation
 │   └── templates/finetuning/           # Fine-tuning config templates
-└── synthetic_twins/
-    ├── inspect_task_twins.py           # Inspect-ai evaluation task
+└── folktexts/
+    ├── inspect_task_acs.py             # Inspect-ai evaluation task
     └── ...
 ```
 
