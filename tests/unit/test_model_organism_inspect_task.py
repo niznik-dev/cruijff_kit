@@ -9,8 +9,8 @@ import json
 import pytest
 from inspect_ai._util.registry import registry_info
 
-from cruijff_kit.sanity_checks.model_organisms.generate import generate
-from cruijff_kit.sanity_checks.model_organisms.inspect_task import model_organism
+from cruijff_kit.tools.model_organisms.generate import generate
+from cruijff_kit.tools.model_organisms.inspect_task import model_organism
 
 
 def _scorer_names(scorers):

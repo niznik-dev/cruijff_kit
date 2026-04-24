@@ -12,8 +12,8 @@ from cruijff_kit.tools.torchtune.model_configs import MODEL_CONFIGS
 
 # Get repo root relative to this test file
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
-SCRIPT_PATH = REPO_ROOT / "tools/torchtune/setup_finetune.py"
-TEMPLATES_PATH = REPO_ROOT / "tools/torchtune/templates"
+SCRIPT_PATH = REPO_ROOT / "src/tools/torchtune/setup_finetune.py"
+TEMPLATES_PATH = REPO_ROOT / "src/tools/torchtune/templates"
 
 
 @pytest.fixture

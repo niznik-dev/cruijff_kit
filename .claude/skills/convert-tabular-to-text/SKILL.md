@@ -136,7 +136,7 @@ Also gather shared settings:
 - **Evaluation conditions** need a separate test file: `{eval_condition}_test_{hash8}.json`. This file contains only the `"test"` key.
 - **Deduplicate:** multiple runs may share the same train or test file.
 
-**Filename hash.** Filenames include `{hash8}`, a content hash over the canonicalized generation config. If experiment_summary.yaml was produced by `design-experiment`, the hashed paths are already in each run's `dataset_path` / `eval_dataset_path` — read them directly. Otherwise, compute them with the shared helper as documented in [`design-experiment/references/tabular_to_text_gen.md`](../design-experiment/references/tabular_to_text_gen.md) (section "Computing the filename hash"). Full docs: [`tabular_to_text_gen/TABULAR_DATASET_NAMING.md`](../../../tabular_to_text_gen/TABULAR_DATASET_NAMING.md).
+**Filename hash.** Filenames include `{hash8}`, a content hash over the canonicalized generation config. If experiment_summary.yaml was produced by `design-experiment`, the hashed paths are already in each run's `dataset_path` / `eval_dataset_path` — read them directly. Otherwise, compute them with the shared helper as documented in [`design-experiment/references/tabular_to_text_gen.md`](../design-experiment/references/tabular_to_text_gen.md) (section "Computing the filename hash"). Full docs: [`src/tabular_to_text_gen/TABULAR_DATASET_NAMING.md`](../../../src/tabular_to_text_gen/TABULAR_DATASET_NAMING.md).
 
 **If standalone:** Ask the user which conditions are used for training vs evaluation, and confirm `split_ratio` and `validation_ratio`.
 
@@ -164,7 +164,7 @@ Get user confirmation before proceeding.
 This is the preferred path. `convert.py` reads all generation parameters (source, schema, target, context, question, splits, seed, subsampling, missing-value handling, features, template, perturbations, style guidance, one-to-many, emit-source-parquet) directly from `data_generation` in the YAML. The only CLI args are which condition + split to produce and where to write.
 
 ```bash
-cd {cruijff_kit_path} && python -m tabular_to_text_gen.convert \
+cd {cruijff_kit_path} && python -m cruijff_kit.tabular_to_text_gen.convert \
   --experiment-summary {path_to_experiment_summary.yaml} \
   --condition-name {condition_name} \
   --split {train|test} \
@@ -176,7 +176,7 @@ Loop over all conditions × splits needed by the experiment:
 ```bash
 for COND in dict_subset dict_full; do
   for SPLIT in train test; do
-    python -m tabular_to_text_gen.convert \
+    python -m cruijff_kit.tabular_to_text_gen.convert \
       --experiment-summary {path_to_experiment_summary.yaml} \
       --condition-name "$COND" --split "$SPLIT" \
       --output-dir {scratch_dir}/ck-data/generated
@@ -199,7 +199,7 @@ If you pass any generation-parameter CLI flag alongside `--experiment-summary` (
 Only proceed with the direct CLI invocation below if the user explicitly says they want ad-hoc generation (no experiment design). **Quote carefully** — wrap `--context` and `--question` in single quotes, and never pass them through `eval` or unquoted `$VAR` expansion.
 
 ```bash
-cd {cruijff_kit_path} && python -m tabular_to_text_gen.convert \
+cd {cruijff_kit_path} && python -m cruijff_kit.tabular_to_text_gen.convert \
   --source {source_path} \
   --schema {schema_path} \
   --condition-name {condition_name} \

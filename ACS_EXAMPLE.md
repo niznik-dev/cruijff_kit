@@ -30,13 +30,13 @@ To get familiar with the workflow, we recommend generating a small dataset with 
 
 ```bash
 # Step 1: Extract verbose-format data from HuggingFace
-python experiments/folktexts/extract_acs_verbose.py \
+python projects/folktexts/extract_acs_verbose.py \
     --task ACSIncome \
     --output acs_income_verbose_1000_80P.json \
     --train-size 800 --val-size 100 --test-size 100
 
 # Step 2: Convert to condensed format (recommended for fine-tuning)
-python experiments/folktexts/convert_acs_formats.py \
+python projects/folktexts/convert_acs_formats.py \
     --input acs_income_verbose_1000_80P.json \
     --output-dir data/green/acs/
 ```
@@ -59,7 +59,7 @@ The outcome classes are `1` (above $50k) or `0` (at or below $50k).
 By default, the extraction script samples randomly, which may produce imbalanced classes. For balanced datasets:
 
 ```bash
-python experiments/folktexts/extract_acs_verbose.py \
+python projects/folktexts/extract_acs_verbose.py \
     --task ACSIncome \
     --output acs_income_verbose_balanced.json \
     --balanced \
@@ -98,7 +98,7 @@ Example:
 - **Runs**: Two runs - one base model evaluation, one fine-tuned with LoRA rank 8
 - **Model**: Llama-3.2-1B-Instruct
 - **Dataset**: `data/green/acs/acs_income_condensed_1000_80P.json` (or whatever dataset size you choose to generate above)
-- **Evaluation task**: `acs_income` (from `experiments/folktexts/inspect_task_acs.py`)
+- **Evaluation task**: `acs_income` (from `projects/folktexts/inspect_task.py`)
 - **Epochs**: 1
 - **Scorers**: `match` (output from model will be correct if it exactly matches `0` or `1`)
 
@@ -185,7 +185,7 @@ Five prediction tasks based on the `folktexts` framework are available, all usin
 | `--task ACSPublicCoverage` | Has public health insurance? |
 | `--task ACSTravelTime` | Commute longer than 20 minutes? |
 
-Each task has a corresponding inspect-ai alias (e.g., `@acs_employment`). See `experiments/folktexts/README.md` for more information. 
+Each task has a corresponding inspect-ai alias (e.g., `@acs_employment`). See `projects/folktexts/README.md` for more information. 
 
 ## Next Steps
 
@@ -195,9 +195,9 @@ After completing this onboarding experiment:
 - **Experiment with hyperparameters and other models** - Try different LoRA ranks, learning rates, or larger models like Llama-3.2-3B-Instruct
 - **Scale up** - Generate a 50,000-sample dataset for more realistic results
 - **Add calibration scoring** - If you ran with `match` only, re-run with `risk_scorer` added to see calibration metrics and ROC/calibration curves
-- **Create custom evaluation tasks** - The ACS tasks in `experiments/folktexts/inspect_task_acs.py` are one example of an inspect-ai evaluation task, but you can create your own for any dataset. Use `/create-inspect-task` to build evaluations for your own data — the skill walks you through defining the dataset format, scorer configuration, and prompt template. Once created, your custom task plugs into the same `/design-experiment` → `/run-experiment` → `/analyze-experiment` pipeline
+- **Create custom evaluation tasks** - The ACS tasks in `projects/folktexts/inspect_task.py` are one example of an inspect-ai evaluation task, but you can create your own for any dataset. Use `/create-inspect-task` to build evaluations for your own data — the skill walks you through defining the dataset format, scorer configuration, and prompt template. Once created, your custom task plugs into the same `/design-experiment` → `/run-experiment` → `/analyze-experiment` pipeline
 
-For detailed reference on all ACS tasks, data formats, and training parameters, see `experiments/folktexts/README.md`.
+For detailed reference on all ACS tasks, data formats, and training parameters, see `projects/folktexts/README.md`.
 
 ## References
 

@@ -91,7 +91,7 @@ Pre-build the HF datasets cache on the login node to prevent race conditions
 when parallel eval jobs launch simultaneously:
 
 ```bash
-python tools/inspect/prebuild_cache.py experiment_summary.yaml
+python src/tools/inspect/prebuild_cache.py experiment_summary.yaml
 ```
 
 **Technical details:** See [evaluators/inspect/cache_prebuilding.md](../evaluators/inspect/cache_prebuilding.md)

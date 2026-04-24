@@ -6,7 +6,7 @@ This guide covers manual workflows for users who prefer direct control or don't 
 
 ### Capitalization Experiment
 
-For full instructions, see the [capitalization experiment README](experiments/capitalization/README.md).
+For full instructions, see the [capitalization experiment README](projects/capitalization/README.md).
 
 ### Twin Dataset
 
@@ -24,7 +24,7 @@ Multiple JSON files will be created in the same input directory; move them to a 
 
 ### Capitalization Experiment
 
-See `experiments/capitalization/README.md` for a complete walkthrough.
+See `projects/capitalization/README.md` for a complete walkthrough.
 
 ### Twin Dataset (or other experiments)
 
@@ -33,7 +33,7 @@ See `experiments/capitalization/README.md` for a complete walkthrough.
    Copy a config template from the experiment's `templates/finetuning/` folder:
 
    ```bash
-   cd experiments/your_experiment/
+   cd projects/your_experiment/
    cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml
    ```
 
@@ -52,7 +52,7 @@ See `experiments/capitalization/README.md` for a complete walkthrough.
 3. **Generate SLURM scripts**
 
    ```bash
-   python ../../tools/torchtune/setup_finetune.py
+   python ../../src/tools/torchtune/setup_finetune.py
    ```
 
    This creates `finetune.yaml` (torchtune configuration) and `finetune.slurm` (SLURM batch script).
@@ -79,7 +79,7 @@ For experiments with multiple runs (e.g., parameter sweeps):
 3. Generate configs for all runs:
    ```bash
    for dir in run_*/; do
-     (cd "$dir" && python ../../tools/torchtune/setup_finetune.py)
+     (cd "$dir" && python ../../src/tools/torchtune/setup_finetune.py)
    done
    ```
 4. Submit all jobs with a stagger delay to prevent HuggingFace cache race conditions:

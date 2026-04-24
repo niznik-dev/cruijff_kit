@@ -48,7 +48,7 @@ Run through this checklist before presenting the plan:
 - ✓ Training data has path, label, format, size_kb
 - ✓ Dataset file exists (verified and logged)
 - ✓ Splits section has train, validation, test counts
-- ✓ Format is "json" or "parquet"
+- ✓ Format is "json"
 
 ### Output Configuration Validation
 - ✓ Base directory specified

@@ -77,7 +77,7 @@ Created during the dataset generation workflow to record all steps, decisions, a
 Details: Beginning tabular-to-text dataset generation
 Experiment: acs_dict_to_narr_2026-04-05
 Mode: guided (experiment_summary.yaml)
-Directory: /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/acs_dict_to_narr_2026-04-05
+Directory: /scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/acs_dict_to_narr_2026-04-05
 Result: success
 ```
 
@@ -106,7 +106,7 @@ Result: success
 ```
 [2026-04-05 14:30:03] LOAD_EXPERIMENT
 Details: Loading experiment configuration
-Path: /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/acs_dict_to_narr_2026-04-05/experiment_summary.yaml
+Path: /scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/acs_dict_to_narr_2026-04-05/experiment_summary.yaml
 Conditions: 2 (dict_full, narr_full)
 Target: PINCP > 50000
 Seed: 42
@@ -256,7 +256,7 @@ Experiment: acs_dict_to_narr_2026-04-05
 Files generated: 3
 Total rows: 21434 (9526 train + 2x2382 test)
 Duration: 180 seconds
-Log: /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/acs_dict_to_narr_2026-04-05/logs/convert-tabular-to-text.log
+Log: /scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/acs_dict_to_narr_2026-04-05/logs/convert-tabular-to-text.log
 Result: success
 ```
 

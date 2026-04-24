@@ -73,7 +73,7 @@ When operating in experiment-guided mode, extract the following information from
 ```yaml
 experiment:
   name: string
-  type: string
+  project: string
   question: string
 
 data:
@@ -122,7 +122,7 @@ def extract_from_experiment_summary(path):
 
     # Extract research question
     research_question = config['experiment']['question']
-    experiment_type = config['experiment']['type']
+    project = config['experiment']['project']
 
     # Extract model information (first base model)
     base_models = config['models']['base']
@@ -139,7 +139,7 @@ def extract_from_experiment_summary(path):
         'dataset_splits': dataset_splits,
         'system_prompt': system_prompt,
         'research_question': research_question,
-        'experiment_type': experiment_type,
+        'project': project,
         'model_name': model_name,
         'model_path': model_path,
         'run_names': run_names,
@@ -151,11 +151,11 @@ def extract_from_experiment_summary(path):
 
 **From `experiment` section:**
 - `question` → Research question/objective (informs evaluation goal)
-- `type` → Experiment type (helps understand what's being compared)
+- `project` → Blueprint directory name under `projects/` (pins the task family)
 
 **From `data.training` section:**
 - `path` → Dataset path for evaluation
-- `format` → Dataset format (json, parquet)
+- `format` → Dataset format (json)
 - `splits` → Sample counts (use test split for evaluation)
 
 **From `models.base[]` section:**
@@ -203,7 +203,7 @@ I'll use this information to help configure your evaluation task. You can overri
 
 Check extracted information:
 - ✓ Dataset path exists (verify with `ls`)
-- ✓ Dataset format is supported (.json, .parquet, .jsonl)
+- ✓ Dataset format is supported (.json, .jsonl)
 - ✓ Model path exists (verify with `ls`)
 - ✓ System prompt is properly formatted (string, not list)
 
@@ -308,7 +308,6 @@ Result: Will use hf_dataset with json format and custom record_to_sample functio
 
 **What dataset format do you have?**
 - JSON file (`.json` or `.jsonl`)
-- Parquet files (`.parquet`)
 - HuggingFace dataset (specify dataset name)
 - CSV file
 - Custom format (will need conversion)
@@ -326,7 +325,6 @@ Result: Will use hf_dataset with json format and custom record_to_sample functio
 **Dataset structure specifics:**
 - For JSON: Is it a single JSON file with nested structure or JSONL?
 - For JSON with splits: Which field contains the test split?
-- For Parquet: Is it a directory of parquet files?
 - For HuggingFace: Dataset name and split to use?
 
 **Example questions:**
@@ -507,7 +505,7 @@ Comprehensive documentation of design decisions.
 
 ## Dataset Configuration
 
-**Format:** {JSON/Parquet/HuggingFace/etc.}
+**Format:** {JSON/HuggingFace/etc.}
 **Location:** `{full_path_to_dataset}`
 **Size:** {number of samples if known}
 
@@ -655,21 +653,6 @@ def record_to_sample(record):
 dataset = json_dataset(
     "/path/to/data.jsonl",
     record_to_sample
-)
-```
-
-**Parquet directory:**
-```python
-from inspect_ai.dataset import hf_dataset, FieldSpec
-
-dataset = hf_dataset(
-    path="parquet",
-    data_dir="/path/to/parquet_dir",
-    split="test",
-    sample_fields=FieldSpec(
-        input="question",
-        target="answer"
-    )
 )
 ```
 
@@ -877,7 +860,7 @@ inspect eval my_task.py \
 
 This task pattern integrates with `setup_inspect.py`, which renders eval SLURM scripts from a template. The scaffold-inspect agent writes `eval_config.yaml` (referencing the task script created here) and calls:
 ```bash
-python tools/inspect/setup_inspect.py \
+python src/tools/inspect/setup_inspect.py \
   --config eval_config.yaml \
   --model_name Llama-3.2-1B-Instruct
 ```

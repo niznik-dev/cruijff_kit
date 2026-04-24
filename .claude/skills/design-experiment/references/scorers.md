@@ -38,13 +38,13 @@ Checks if the target string appears anywhere in the model output.
     ignore_case: false
 ```
 
-## Custom Scorers (tools/inspect/scorers/)
+## Custom Scorers (src/tools/inspect/scorers/)
 
 ### risk_scorer
 
 Extracts risk scores from logprobs of the first generated token. Computes normalized probabilities over specified option tokens using softmax.
 
-**Source:** `tools/inspect/scorers/risk_scorer.py`
+**Source:** `src/tools/inspect/scorers/risk_scorer.py`
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -81,7 +81,7 @@ Note: For multiclass tasks, `risk_score` will be `null` — use `option_probs` i
 
 Parses a numeric probability from the model's text output (e.g., "0.73"). For tasks where the model directly outputs a risk score as text rather than via logprobs.
 
-**Source:** `tools/inspect/scorers/numeric_risk_scorer.py`
+**Source:** `src/tools/inspect/scorers/numeric_risk_scorer.py`
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|

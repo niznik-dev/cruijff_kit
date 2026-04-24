@@ -330,38 +330,15 @@ Before deploying to production:
 5. Test error handling (what happens if fine-tuning fails?)
 6. Verify experiment_summary.yaml updates correctly
 
-## Terminology Clarification: Experiments vs Tasks
+## Terminology
 
-**Important:** This PR also includes a directory rename from `tasks/` → `experiments/` to eliminate terminology confusion.
+Three distinct concepts, three distinct names:
 
-### The Problem
-The word "task" was overloaded with three different meanings:
-1. `tasks/` folder = Research domains (capitalization, twins, etc.)
-2. Inspect-ai tasks = Evaluation scripts (`.py` files)
-3. Skills refer to "tasks" in experiment_summary.yaml
+- **Project** = Task family / research domain blueprint (e.g., `projects/capitalization/`, `projects/folktexts/`, `projects/model_organism/`)
+- **Experiment** = A designed set of runs under a project (defined by an `experiment_summary.yaml`)
+- **Inspect-ai task** = Evaluation script at `projects/{project}/inspect_task.py` — the `@task` function inspect-ai invokes
 
-### The Solution
-Renamed `tasks/` → `experiments/` to clarify:
-- **Experiment** = Research domain/type (e.g., capitalization experiment)
-- **Task** = Inspect-ai evaluation script (e.g., `cap_task.py`)
-
-### New Structure
-```
-experiments/                             # Research experiment types
-├── capitalization/
-│   ├── cap_task.py                     # Inspect-ai evaluation task
-│   ├── input/                          # Dataset generation
-│   └── templates/finetuning/           # Fine-tuning config templates
-└── synthetic_twins/
-    ├── inspect_task_twins.py           # Inspect-ai evaluation task
-    └── ...
-```
-
-### Benefits
-- ✅ No more "task" overload - clear distinction between experiment types and evaluation tasks
-- ✅ Matches skill terminology (design-experiment, scaffold-experiment, run-experiment)
-- ✅ More accurate: These ARE experimental setups, not just "tasks"
-- ✅ Natural hierarchy: Experiments contain tasks, datasets, and configs
+Scratch-side, every experiment lives at `ck-projects/{project}/{experiment_name}/` with all run subdirs, configs, checkpoints, logs, and eval outputs nested inside.
 
 ## Summary
 
@@ -374,7 +351,7 @@ This architecture creates a clean, modular system that:
 - ✅ Reduces file sizes for better navigation and context efficiency
 - ✅ Provides reusable pattern for other skills
 - ✅ Uses consistent, intuitive terminology
-- ✅ Eliminates "task" overload via experiments/ rename
+- ✅ Separates blueprints (projects/) from runtime state (ck-projects/ scratch)
 - ✅ Provides comprehensive logging at all levels
 
 **Recent improvements (Issue #196):**

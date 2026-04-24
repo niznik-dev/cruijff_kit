@@ -8,7 +8,7 @@ cruijff_kit is a research toolkit for fine-tuning and evaluating LLMs on social 
 
 1. **Declarative workflow configuration** via YAML files
 2. **Automated SLURM script generation** for HPC environments
-3. **Flexible dataset formats** (JSON, Parquet, HuggingFace datasets)
+3. **Flexible dataset formats** (JSON, HuggingFace datasets)
 4. **Custom torchtune recipes** with validation support
 5. **Inspect-ai integration** for model evaluation
 
@@ -16,43 +16,35 @@ cruijff_kit is a research toolkit for fine-tuning and evaluating LLMs on social 
 
 ```
 cruijff_kit/
-├── tools/              # Core workflow orchestration scripts
+├── src/tools/              # Core workflow orchestration scripts
 │   ├── torchtune/      # Fine-tuning setup and custom recipes
 │   │   ├── setup_finetune.py  # Generate fine-tuning configs and SLURM scripts
 │   │   ├── datasets/          # Custom dataset classes
 │   │   │   └── chat_completion.py  # Chat template-based dataset
 │   │   ├── custom_recipes/    # Modified torchtune recipes
 │   │   └── templates/         # YAML/SLURM templates
-│   └── inspect/        # Evaluation setup and analysis
-│       ├── setup_inspect.py   # Generate evaluation SLURM scripts from template
-│       ├── templates/         # SLURM templates
-│       │   └── eval_template.slurm  # Eval job template (GPU monitoring, log mgmt)
-│       ├── parse_eval_log.py  # Parse inspect-ai evaluation logs
-│       └── heterogeneity/     # Group-level fairness analysis
-│           ├── heterogeneity_eval.py    # Inspect-ai task wrapper
-│           ├── heterogeneity_report.py  # Standalone analysis script
-│           └── README.md                # Usage documentation
-│
-├── experiments/        # Research experiment types
-│   ├── capitalization/ # Generalization test with word capitalization
-│   │   ├── inspect_task_capitalization.py # Inspect-ai evaluation task
-│   │   ├── input/      # Dataset generation
-│   │   └── templates/finetuning/  # Fine-tuning config templates
-│   ├── synthetic_twins/# Social science twin prediction experiment
-│   │   ├── inspect_task_twins.py # Inspect-ai evaluation task
-│   │   └── ...
-│   ├── folktexts/      # Demographic prediction from text
-│   └── inspect_task_general.py # General-purpose evaluation task
-│
-├── sanity_checks/      # Synthetic validation sanity checks for testing workflows and learning
-│   └── model_organisms/ # Composable framework: input type × rule × format × design
+│   ├── inspect/        # Evaluation setup and analysis
+│   │   ├── setup_inspect.py   # Generate evaluation SLURM scripts from template
+│   │   ├── templates/         # SLURM templates
+│   │   │   └── eval_template.slurm  # Eval job template (GPU monitoring, log mgmt)
+│   │   ├── parse_eval_log.py  # Parse inspect-ai evaluation logs
+│   │   └── heterogeneity/     # Group-level fairness analysis
+│   │       ├── heterogeneity_eval.py    # Inspect-ai task wrapper
+│   │       ├── heterogeneity_report.py  # Standalone analysis script
+│   │       └── README.md                # Usage documentation
+│   └── model_organisms/  # Synthetic sequence-labeling framework (input × rule × format × design)
 │       ├── inputs.py    # Input-type registry (bits, digits, letters)
 │       ├── rules.py     # Output-rule registry (parity, first, majority, …)
 │       ├── formats.py   # Text-rendering registry (spaced, dense, comma, …)
 │       ├── generate.py  # Dataset generator CLI
 │       └── inspect_task.py # Unified inspect-ai evaluation task
 │
-├── utils/              # Shared utilities and helpers
+├── projects/           # Task blueprints (5-slot shape: README, inspect_task.py, generate_data.py, optional modifiers/ + baseline.py)
+│   ├── capitalization/ # Generalization test with word capitalization
+│   ├── folktexts/      # Demographic prediction from ACS text
+│   └── model_organism/ # Synthetic framework pointer (code lives in src/tools/model_organisms/)
+│
+├── src/utils/              # Shared utilities and helpers
 │   ├── run_names.py    # Random name generation for experiments
 │   ├── finetune_custom_metrics.py  # Custom metrics for torchtune
 │   ├── check_if_model_is_finetuned.py  # Model state inspection
@@ -109,7 +101,7 @@ This prevents accidental commits of sensitive or large data files while maintain
 
 ### 1. Fine-tuning Workflow
 
-**Entry point:** `tools/torchtune/setup_finetune.py`
+**Entry point:** `src/tools/torchtune/setup_finetune.py`
 
 **Configuration:** Task-specific `setup_finetune.yaml` files
 
@@ -125,15 +117,15 @@ setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
 ```
 
 **Key files:**
-- `tools/torchtune/setup_finetune.py` - Main orchestration script
+- `src/tools/torchtune/setup_finetune.py` - Main orchestration script
   - Reads `setup_finetune.yaml` (user-friendly config)
   - Generates `finetune.yaml` (torchtune recipe config)
   - Generates `finetune.slurm` (SLURM batch script)
   - Handles path resolution, validation, defaults
 
-- `tools/torchtune/templates/finetune_template.yaml` - Base template for torchtune configs
+- `src/tools/torchtune/templates/finetune_template.yaml` - Base template for torchtune configs
 
-- `tools/torchtune/custom_recipes/` - Modified torchtune recipes
+- `src/tools/torchtune/custom_recipes/` - Modified torchtune recipes
   - `lora_finetune_single_device_stable.py` - Single GPU with custom features
   - `lora_finetune_distributed_stable.py` - Multi-GPU distributed training
   - `lora_finetune_single_device_nightly.py` - With validation loss tracking
@@ -142,14 +134,14 @@ setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
 **Custom features added to torchtune:**
 - Selective epoch saving (`epochs_to_save`)
 - Adapter weight management (`stash_adapter_weights`)
-- Custom metrics integration via `utils/finetune_custom_metrics.py`
+- Custom metrics integration via `src/utils/finetune_custom_metrics.py`
 - Validation during training (requires nightly build)
 
 ### 2. Evaluation Workflow
 
 > **Note:** The `scaffold-inspect` agent (invoked via `scaffold-experiment` skill) is the recommended way to set up evaluations. It writes `eval_config.yaml` and calls `setup_inspect.py` to render SLURM scripts from a template.
 
-**Entry point:** `tools/inspect/setup_inspect.py` (reads `eval_config.yaml`, renders `eval_template.slurm`)
+**Entry point:** `src/tools/inspect/setup_inspect.py` (reads `eval_config.yaml`, renders `eval_template.slurm`)
 
 **Process:**
 ```
@@ -163,18 +155,18 @@ eval_config.yaml → setup_inspect.py → {task}_epoch{N}.slurm
 ```
 
 **Key files:**
-- `tools/inspect/setup_inspect.py` - Renders eval SLURM scripts from `eval_template.slurm`
+- `src/tools/inspect/setup_inspect.py` - Renders eval SLURM scripts from `eval_template.slurm`
   - Reads experiment-specific config from `eval_config.yaml`
   - Looks up GPU resources from `model_configs.py`
   - Template includes GPU monitoring, SLURM log management
 
-- Experiment-specific inspect-ai task files (e.g., `experiments/capitalization/inspect_task_capitalization.py`)
+- Experiment-specific inspect-ai task files (e.g., `projects/capitalization/inspect_task.py`)
   - Define evaluation prompts and scoring
   - Use inspect-ai framework
 
 ### 3. Heterogeneity Analysis (Post-Evaluation)
 
-**Entry point:** `tools/inspect/heterogeneity/`
+**Entry point:** `src/tools/inspect/heterogeneity/`
 
 **Purpose:** Detect performance bias across demographic or experimental groups
 
@@ -186,16 +178,16 @@ Model predictions (CSV) → heterogeneity_report.py → analysis + visualization
 ```
 
 **Key files:**
-- `tools/inspect/heterogeneity/heterogeneity_report.py` - Standalone analysis
+- `src/tools/inspect/heterogeneity/heterogeneity_report.py` - Standalone analysis
   - Statistical tests (ANOVA for accuracy, variance for AUC)
   - Identifies outlier groups
   - Generates visualizations and JSON reports
 
-- `tools/inspect/heterogeneity/heterogeneity_eval.py` - Inspect-ai integration
+- `src/tools/inspect/heterogeneity/heterogeneity_eval.py` - Inspect-ai integration
   - Wraps heterogeneity analysis as inspect-ai task
   - Returns standardized metrics
 
-- `tools/inspect/heterogeneity/README.md` - Full documentation
+- `src/tools/inspect/heterogeneity/README.md` - Full documentation
   - Input format requirements
   - Usage examples (standalone and inspect-ai)
   - Statistical methods explained
@@ -206,26 +198,25 @@ Model predictions (CSV) → heterogeneity_report.py → analysis + visualization
 - Understanding which subpopulations a model serves well/poorly
 - Post-hoc analysis of any binary classification predictions with group labels
 
-## Experiments vs Sanity Checks
+## Projects
 
-### Experiments (`experiments/`)
-Real research experiment types with scientific questions:
+Research task blueprints in `projects/`. Each blueprint follows the 5-slot shape (3 required + 2 optional):
+
+- `README.md` — REQUIRED: task description + how to run
+- `inspect_task.py` — REQUIRED: inspect-ai evaluation definition
+- `generate_data.py` — REQUIRED: primary data producer
+- `modifiers/` — OPTIONAL: data transforms (e.g., folktexts has ACS format converters)
+- `baseline.py` — OPTIONAL: non-LLM comparison
+
+Current blueprints:
 
 - **capitalization**: Tests generalization by training on 5-letter words and evaluating on other lengths
-- **synthetic_twins**: Binary classification task predicting twin zygosity (identical vs fraternal) from 24 trait measurements (yellow tier data)
+- **folktexts**: Demographic prediction from ACS (census) text — binary classification tasks including income, employment, mobility, public coverage, and travel time
+- **model_organism**: README pointer only; all code is generic and lives in `src/tools/model_organisms/`
 
-Each experiment typically includes:
-- `README.md` - Experiment-specific instructions
-- `setup_finetune.yaml` - Configuration template
-- `templates/finetuning/` - Template YAML configs for different dataset formats
-- `input/` - Data generation or preprocessing scripts
-- `utils/` - Experiment-specific helper functions
-- `inspect_task_{name}.py` - Inspect-ai evaluation task (e.g., `inspect_task_capitalization.py`)
+### Model Organisms (`src/tools/model_organisms/`)
 
-### Sanity Checks (`sanity_checks/`)
-Synthetic validation sanity checks for workflow testing and learning:
-
-- **model_organisms**: Composable framework for synthetic sequence-labeling tasks. An experiment is specified by choosing an input type (`bits`, `digits`, `letters`), an output rule (`parity`, `first`, `last`, `majority`, `constant`, `coin`, …), a format (`spaced`, `dense`, `comma`, `tab`, `pipe`), and a design (`memorization`, `in_distribution`, `ood`). Supersedes the earlier per-task scripts (bit_sequences, predictable_or_not, bernoulli, count_digits, majority). Single unified inspect-ai task evaluates any combination; data generation is invoked by `scaffold-experiment` via a `data.data_generation` block with `tool: model_organism`.
+Composable framework for synthetic sequence-labeling tasks. An experiment is specified by choosing an input type (`bits`, `digits`, `letters`), an output rule (`parity`, `first`, `last`, `majority`, `constant`, `coin`, …), a format (`spaced`, `dense`, `comma`, `tab`, `pipe`), and a design (`memorization`, `in_distribution`, `ood`). Single unified inspect-ai task evaluates any combination; data generation is invoked by `scaffold-experiment` via a `data.data_generation` block with `tool: model_organism`.
 
 ## Package Structure
 
@@ -241,8 +232,8 @@ from cruijff_kit.utils import run_names
 - `cruijff_kit.tools.torchtune.datasets` - Custom dataset classes (e.g., `chat_completion`)
 
 **Not packaged but executed as scripts:**
-- `tools/torchtune/setup_finetune.py`
-- `tools/inspect/setup_inspect.py`
+- `src/tools/torchtune/setup_finetune.py`
+- `src/tools/inspect/setup_inspect.py`
 - Task-specific scripts
 
 ## Data Flow
@@ -264,14 +255,6 @@ from cruijff_kit.utils import run_names
    ├── train.json
    ├── validation.json
    └── test.json
-   ```
-
-3. **Parquet Format**
-   ```
-   dataset_folder/
-   ├── train.parquet
-   ├── validation.parquet
-   └── test.parquet
    ```
 
 ### Output Structure
@@ -301,7 +284,7 @@ output_dir/
 ### Configuration Defaults
 
 - **LoRA alpha**: Automatically set to 2 × rank by `setup_finetune.py`
-- **Run names**: Auto-generated positive adjective-noun pairs (e.g., "happy-narwhal") via `utils/run_names.py`
+- **Run names**: Auto-generated positive adjective-noun pairs (e.g., "happy-narwhal") via `src/utils/run_names.py`
 - **Output structure**: `{output_dir_base}/ck-out-{run_name}/epoch_N/`
 
 ### Checkpoint Management
@@ -352,7 +335,7 @@ Available custom recipes:
 
 ### 2. Recipe Customization
 
-**Location:** `tools/torchtune/custom_recipes/`
+**Location:** `src/tools/torchtune/custom_recipes/`
 
 **Approach:** Fork torchtune recipes and add features rather than monkey-patching.
 
@@ -381,7 +364,7 @@ cruijff_kit supports two workflows:
 
 #### Skills-Based Workflow (Recommended)
 
-Use Claude Code skills to automate multi-run experiments. Skills generate all configurations directly from `experiment_summary.yaml` - they do **not** use the `templates/finetuning/` directories.
+Use Claude Code skills to automate multi-run experiments. Skills generate all configurations directly from `experiment_summary.yaml`.
 
 1. **Design:** Use `design-experiment` skill to create experiment plan (`experiment_summary.yaml`)
 2. **Scaffold:** Use `scaffold-experiment` skill to generate all run directories and configs
@@ -399,38 +382,22 @@ Use Claude Code skills to automate multi-run experiments. Skills generate all co
 
 #### Manual Workflow
 
-For users who prefer direct control or don't have Claude Code access. This workflow uses the `templates/finetuning/` directories in each experiment.
+For users who prefer direct control or don't have Claude Code access. See [WORKFLOW_GUIDE.md](WORKFLOW_GUIDE.md) for a step-by-step walkthrough.
 
-**For single runs:**
+At a high level: hand-write `setup_finetune.yaml` in each run directory under `ck-projects/{project}/{experiment_name}/{run_name}/`, then run `python <cruijff_kit>/src/tools/torchtune/setup_finetune.py` in each to generate `finetune.yaml` + `finetune.slurm`, then `sbatch` each. For multi-run experiments, stagger submissions with `sleep 5` between them to avoid HuggingFace datasets cache race conditions.
 
-1. Navigate to experiment directory: `cd experiments/capitalization/`
-2. Copy config template: `cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml`
-3. Edit `setup_finetune.yaml` with your settings
-4. Generate scripts: `python ../../tools/torchtune/setup_finetune.py`
-5. Submit job: `sbatch finetune.slurm`
-6. Evaluate: Set up and run inspect-ai evaluation manually
+### Adding a New Project Blueprint
 
-**For multi-run experiments:**
-
-1. Create experiment directory and subdirectories for each run
-2. Copy and customize `setup_finetune.yaml` for each run
-3. Generate configs: `for dir in run_*/; do (cd "$dir" && python ../../tools/torchtune/setup_finetune.py); done`
-4. Submit with stagger: `for dir in run_*/; do (cd "$dir" && sbatch finetune.slurm); sleep 5; done`
-
-**Note:** The 5-second sleep prevents HuggingFace datasets cache race conditions when multiple jobs initialize simultaneously.
-
-### Adding a New Experiment Type
-
-1. Create directory under `experiments/`
-2. Add `README.md` with experiment description
-3. Create `setup_finetune.yaml` from template
-4. Add data generation scripts to `input/`
-5. Create inspect-ai evaluation task (e.g., `inspect_task_{name}.py`) using `create-inspect-task` skill
-6. Document the workflow in experiment README
+1. Create directory under `projects/`
+2. Add `README.md` with task description
+3. Create `generate_data.py` (primary data producer)
+4. Create `inspect_task.py` using the `create-inspect-task` skill
+5. Optional: add `baseline.py` (non-LLM comparison) and/or `modifiers/` (data transforms)
+6. Document the workflow in the blueprint README
 
 ### Using Utilities
 
-Common utilities in `utils/`:
+Common utilities in `src/utils/`:
 - `run_names.py` - Generate random experiment names
 - `finetune_custom_metrics.py` - Define training metrics
 - `check_if_model_is_finetuned.py` - Inspect model state
@@ -456,19 +423,19 @@ Common utilities in `utils/`:
 
 ### Adding Custom Metrics
 
-1. Edit `utils/finetune_custom_metrics.py`
+1. Edit `src/utils/finetune_custom_metrics.py`
 2. Define metric function following torcheval patterns
 3. Recipe automatically imports and uses it
 
 ### Supporting New Dataset Formats
 
-1. Add conversion utility to `utils/`
+1. Add conversion utility to `src/utils/`
 2. Update `setup_finetune.py` dataset type handling
 3. Consider adding template config
 
 ### Creating New Custom Recipes
 
-1. Copy existing recipe from `tools/torchtune/custom_recipes/`
+1. Copy existing recipe from `src/tools/torchtune/custom_recipes/`
 2. Import `custom_recipe_utils` for common functionality
 3. Reference new recipe with `--custom_recipe` flag
 

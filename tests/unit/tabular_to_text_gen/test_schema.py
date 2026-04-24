@@ -3,7 +3,7 @@
 import pytest
 import yaml
 
-from tabular_to_text_gen.lib.schema import Schema
+from cruijff_kit.tabular_to_text_gen.lib.schema import Schema
 
 
 class TestSchemaFromYaml:

@@ -2,9 +2,9 @@
 
 import pytest
 
-from tabular_to_text_gen.lib.templates import get_template
-from tabular_to_text_gen.lib.templates.dictionary import DictionaryTemplate
-from tabular_to_text_gen.lib.templates.narrative import NarrativeTemplate
+from cruijff_kit.tabular_to_text_gen.lib.templates import get_template
+from cruijff_kit.tabular_to_text_gen.lib.templates.dictionary import DictionaryTemplate
+from cruijff_kit.tabular_to_text_gen.lib.templates.narrative import NarrativeTemplate
 
 
 # ---------------------------------------------------------------------------

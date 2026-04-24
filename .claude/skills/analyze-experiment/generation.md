@@ -178,7 +178,7 @@ plot = scores_by_model(
 Use descriptive names that indicate the view type and content:
 
 ```python
-# Pattern: {view_type}_{experiment_type}_{metric}.html
+# Pattern: {view_type}_{metric}.html
 
 # Examples:
 "scores_by_task_sample_size_match.html"

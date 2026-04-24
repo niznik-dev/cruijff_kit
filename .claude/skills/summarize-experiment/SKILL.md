@@ -64,7 +64,7 @@ For each COMPLETED fine-tuning run:
    from cruijff_kit.tools.torchtune.extract_loss import final_loss
    result = final_loss(slurm_text)  # returns (epoch, step, loss) or None
    ```
-   - The canonical regex and helpers live in `tools/torchtune/extract_loss.py`
+   - The canonical regex and helpers live in `src/tools/torchtune/extract_loss.py`
    - `final_loss()` returns the last match (epoch, step, loss) or None
    - `extract_losses()` returns all matches as a list
    - The step number from the last match is the total training steps
@@ -84,7 +84,7 @@ For each COMPLETED evaluation:
 1. Find .eval files: `{run_dir}/eval/logs/*.eval`
 2. For each .eval file, run:
    ```bash
-   python tools/inspect/parse_eval_log.py {path}
+   python src/tools/inspect/parse_eval_log.py {path}
    ```
 3. Parse JSON output for accuracy
 4. **Map to epoch using SLURM job names** (see below)
@@ -148,7 +148,7 @@ This approach is reliable because:
 For binary classification tasks (0/1 targets), use `summary_binary.py` to compute additional metrics:
 
 ```bash
-python tools/inspect/summary_binary.py {path_to_eval_file} --json
+python src/tools/inspect/summary_binary.py {path_to_eval_file} --json
 ```
 
 **JSON output format:**

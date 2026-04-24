@@ -127,7 +127,7 @@ Before running `scaffold-experiment`, you must:
 
 1. **Create evaluation task:** Run `create-inspect-task` to create the capitalization task script
    - Task name: capitalization
-   - Expected location: `{repo_dir}/experiments/capitalization/cap_task.py`
+   - Expected location: `{repo_dir}/projects/capitalization/cap_task.py`
 
 Once prerequisites are complete, you can proceed with scaffolding.
 ```

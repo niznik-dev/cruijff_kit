@@ -9,7 +9,7 @@
 metadata:
   # Experiment naming pattern (actual name will include timestamp)
   name_pattern: "workflow_test_{date}"
-  type: "sanity_check"  # Goes in ck-sanity-checks/
+  project: "capitalization"
   scientific_question: >-
     Verify that the complete workflow (design, scaffold, run) executes correctly
     for a minimal fine-tuning experiment with two LoRA ranks.
@@ -55,7 +55,7 @@ training_runs:
 evaluation:
   tasks:
     - name: "capitalization"
-      script: "experiments/capitalization/inspect_task_capitalization.py"
+      script: "projects/capitalization/inspect_task.py"
       dataset: "same"  # Use same dataset as training
       description: "Tests word capitalization accuracy"
 

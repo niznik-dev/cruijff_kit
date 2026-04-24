@@ -21,28 +21,27 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 ### Derive Paths from claude.local.md
 
 1. Read the **Scratch directory** field from `claude.local.md`
-2. Determine experiment type based on user intent or working directory context:
-   - If the user mentions "sanity check" or is working in a sanity-checks directory → `experiment_type = "sanity_check"`
-   - Otherwise → `experiment_type = "experiment"`
-3. Derive the experiment directory:
-   - **Experiments**: `{scratch_dir}/ck-experiments/{experiment_name}/`
-   - **Sanity checks**: `{scratch_dir}/ck-sanity-checks/{experiment_name}/`
-4. Derive the output directory:
-   - `{scratch_dir}/ck-outputs/{experiment_name}/`
+2. Determine the `project` — this matches a blueprint directory under `projects/` (e.g. `capitalization`, `folktexts`, `model_organism`). Ask the user if ambiguous.
+3. Derive the experiment directory: `{scratch_dir}/ck-projects/{project}/{experiment_name}/`
+4. Outputs nest inside the experiment directory (configs, checkpoints, logs, eval results are all co-located per run).
 
 ### Directory Structure
 
-- **Experiments** (research tasks): `{scratch_dir}/ck-experiments/{experiment_name}/`
-- **Sanity checks** (simple fine-tuning verification): `{scratch_dir}/ck-sanity-checks/{sanity_check_name}/`
-
-**Outputs are automatically grouped:**
-- Output directory: `{scratch_dir}/ck-outputs/{experiment_or_sanity_check_name}/ck-out-{run_name}/`
+```
+{scratch_dir}/ck-projects/{project}/{experiment_name}/
+├── {run_name_1}/
+│   ├── setup_finetune.yaml
+│   ├── finetune.yaml
+│   ├── finetune.slurm
+│   ├── ck-out-{run_name_1}/epoch_{N}/   # model checkpoints
+│   └── eval/                             # eval scripts and logs
+└── {run_name_2}/
+    └── ...
+```
 
 ### Confirm with User
 
-**Are you working on a sanity check or a research experiment?**
-- Log the detected path for user confirmation
-- Note that outputs will be grouped under the same name in ck-outputs/
+- Show the user the resolved `ck-projects/{project}/{experiment_name}/` path and confirm before proceeding.
 
 ---
 
@@ -95,7 +94,7 @@ With the schema in hand, consult `references/tabular_to_text_gen.md` and walk th
 
 Record these in the `data_generation` section of `experiment_summary.yaml` (see template). This section drives dataset generation and path resolution; it is the single source of truth for everything about the generated text.
 
-Each run references a condition by name (`training_condition: dict_full`), and each eval task does the same (`eval_condition: dict_synonym`). At scaffold time, scaffold-torchtune and scaffold-inspect call `tabular_to_text_gen.lib.config_hash.resolve_dataset_path(data_generation, condition, split, output_dir)` to derive the canonical `{condition}_{split}_{hash8}.json` path and substitute it into the generated torchtune / inspect configs.
+Each run references a condition by name (`training_condition: dict_full`), and each eval task does the same (`eval_condition: dict_synonym`). At scaffold time, scaffold-torchtune and scaffold-inspect call `cruijff_kit.tabular_to_text_gen.lib.config_hash.resolve_dataset_path(data_generation, condition, split, output_dir)` to derive the canonical `{condition}_{split}_{hash8}.json` path and substitute it into the generated torchtune / inspect configs.
 
 **Advise:** "After we finalize the experiment design, you'll run the `convert-tabular-to-text` skill to generate the actual datasets before scaffolding. If the hashed files already exist from a prior experiment, they'll be reused."
 
