@@ -364,7 +364,7 @@ cruijff_kit supports two workflows:
 
 #### Skills-Based Workflow (Recommended)
 
-Use Claude Code skills to automate multi-run experiments. Skills generate all configurations directly from `experiment_summary.yaml` - they do **not** use the `templates/finetuning/` directories.
+Use Claude Code skills to automate multi-run experiments. Skills generate all configurations directly from `experiment_summary.yaml`.
 
 1. **Design:** Use `design-experiment` skill to create experiment plan (`experiment_summary.yaml`)
 2. **Scaffold:** Use `scaffold-experiment` skill to generate all run directories and configs
@@ -382,25 +382,9 @@ Use Claude Code skills to automate multi-run experiments. Skills generate all co
 
 #### Manual Workflow
 
-For users who prefer direct control or don't have Claude Code access. This workflow uses the `templates/finetuning/` directories in each experiment.
+For users who prefer direct control or don't have Claude Code access. See [WORKFLOW_GUIDE.md](WORKFLOW_GUIDE.md) for a step-by-step walkthrough.
 
-**For single runs:**
-
-1. Navigate to experiment directory: `cd projects/capitalization/`
-2. Copy config template: `cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml`
-3. Edit `setup_finetune.yaml` with your settings
-4. Generate scripts: `python ../../src/tools/torchtune/setup_finetune.py`
-5. Submit job: `sbatch finetune.slurm`
-6. Evaluate: Set up and run inspect-ai evaluation manually
-
-**For multi-run experiments:**
-
-1. Create experiment directory and subdirectories for each run
-2. Copy and customize `setup_finetune.yaml` for each run
-3. Generate configs: `for dir in run_*/; do (cd "$dir" && python ../../src/tools/torchtune/setup_finetune.py); done`
-4. Submit with stagger: `for dir in run_*/; do (cd "$dir" && sbatch finetune.slurm); sleep 5; done`
-
-**Note:** The 5-second sleep prevents HuggingFace datasets cache race conditions when multiple jobs initialize simultaneously.
+At a high level: hand-write `setup_finetune.yaml` in each run directory under `ck-projects/{project}/{experiment_name}/{run_name}/`, then run `python <cruijff_kit>/src/tools/torchtune/setup_finetune.py` in each to generate `finetune.yaml` + `finetune.slurm`, then `sbatch` each. For multi-run experiments, stagger submissions with `sleep 5` between them to avoid HuggingFace datasets cache race conditions.
 
 ### Adding a New Project Blueprint
 
