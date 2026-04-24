@@ -2,7 +2,10 @@
 
 import pytest
 
-from tabular_to_text_gen.lib.features import select_features, validate_features
+from cruijff_kit.tabular_to_text_gen.lib.features import (
+    select_features,
+    validate_features,
+)
 
 
 class TestValidateFeatures:
@@ -75,7 +78,7 @@ class TestSelectFeatures:
 
     def test_value_map_decodes(self):
         """value_map translates raw coded values to labels."""
-        from tabular_to_text_gen.lib.schema import ColumnSchema, Schema
+        from cruijff_kit.tabular_to_text_gen.lib.schema import ColumnSchema, Schema
 
         col = ColumnSchema(
             key="SEX",
@@ -90,7 +93,7 @@ class TestSelectFeatures:
 
     def test_value_map_passthrough_unmapped(self):
         """Unmapped values pass through unchanged."""
-        from tabular_to_text_gen.lib.schema import ColumnSchema, Schema
+        from cruijff_kit.tabular_to_text_gen.lib.schema import ColumnSchema, Schema
 
         col = ColumnSchema(
             key="SEX",
@@ -105,7 +108,7 @@ class TestSelectFeatures:
 
     def test_value_map_canonicalizes_float_keys(self, tmp_path):
         """Schema with float keys (1.0:, 14.0:) matches int-string source values."""
-        from tabular_to_text_gen.lib.schema import Schema
+        from cruijff_kit.tabular_to_text_gen.lib.schema import Schema
 
         schema_path = tmp_path / "schema.yaml"
         schema_path.write_text(
@@ -131,7 +134,7 @@ class TestSelectFeatures:
 
     def test_value_map_canonicalizes_zero_padded_keys(self, tmp_path):
         """Schema with int keys (8: Colorado) matches zero-padded source values ('08')."""
-        from tabular_to_text_gen.lib.schema import Schema
+        from cruijff_kit.tabular_to_text_gen.lib.schema import Schema
 
         schema_path = tmp_path / "schema.yaml"
         schema_path.write_text(

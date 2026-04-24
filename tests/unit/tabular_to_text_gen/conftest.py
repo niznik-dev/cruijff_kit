@@ -5,8 +5,8 @@ import csv
 import pytest
 import yaml
 
-from tabular_to_text_gen.lib.schema import ColumnSchema, Schema
-from tabular_to_text_gen.lib.segments import Segment
+from cruijff_kit.tabular_to_text_gen.lib.schema import ColumnSchema, Schema
+from cruijff_kit.tabular_to_text_gen.lib.segments import Segment
 
 
 # ---------------------------------------------------------------------------

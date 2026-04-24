@@ -2,7 +2,7 @@
 
 import pytest
 
-from tabular_to_text_gen.lib.readers import read_tabular
+from cruijff_kit.tabular_to_text_gen.lib.readers import read_tabular
 
 
 class TestReadTabular:

@@ -31,26 +31,29 @@ from pathlib import Path
 
 import yaml
 
-from tabular_to_text_gen.lib.config_hash import (
+from cruijff_kit.tabular_to_text_gen.lib.config_hash import (
     build_generation_config,
     file_sha256,
     hash_config,
     hash_config_short,
 )
-from tabular_to_text_gen.lib.features import select_features, validate_features
-from tabular_to_text_gen.lib.output import (
+from cruijff_kit.tabular_to_text_gen.lib.features import (
+    select_features,
+    validate_features,
+)
+from cruijff_kit.tabular_to_text_gen.lib.output import (
     build_output_entry,
     write_metadata,
     write_output,
 )
-from tabular_to_text_gen.lib.perturbations.engine import (
+from cruijff_kit.tabular_to_text_gen.lib.perturbations.engine import (
     apply_perturbations,
     build_perturbation_chain,
 )
-from tabular_to_text_gen.lib.readers import read_tabular
-from tabular_to_text_gen.lib.schema import Schema
-from tabular_to_text_gen.lib.segments import render_segments
-from tabular_to_text_gen.lib.templates import get_template
+from cruijff_kit.tabular_to_text_gen.lib.readers import read_tabular
+from cruijff_kit.tabular_to_text_gen.lib.schema import Schema
+from cruijff_kit.tabular_to_text_gen.lib.segments import render_segments
+from cruijff_kit.tabular_to_text_gen.lib.templates import get_template
 
 logger = logging.getLogger("tabular_to_text_gen")
 
@@ -623,7 +626,9 @@ def main(argv: list[str] | None = None):
             logger.error("one_to_many.copies must be >= 1, got %d", otm_copies)
             sys.exit(1)
 
-        from tabular_to_text_gen.lib.perturbations.engine import PERTURBATION_REGISTRY
+        from cruijff_kit.tabular_to_text_gen.lib.perturbations.engine import (
+            PERTURBATION_REGISTRY,
+        )
 
         if otm_perturbation not in PERTURBATION_REGISTRY:
             available = ", ".join(sorted(PERTURBATION_REGISTRY.keys()))

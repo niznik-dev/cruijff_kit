@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from tabular_to_text_gen.lib.output import (
+from cruijff_kit.tabular_to_text_gen.lib.output import (
     build_output_entry,
     compute_label,
     write_metadata,

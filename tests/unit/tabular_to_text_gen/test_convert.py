@@ -8,8 +8,12 @@ import pandas as pd
 import pytest
 import yaml
 
-from tabular_to_text_gen.convert import load_condition_from_file, main, split_dataframe
-from tabular_to_text_gen.lib.config_hash import resolve_dataset_path
+from cruijff_kit.tabular_to_text_gen.convert import (
+    load_condition_from_file,
+    main,
+    split_dataframe,
+)
+from cruijff_kit.tabular_to_text_gen.lib.config_hash import resolve_dataset_path
 
 
 def _find_output(tmp_path, condition: str, split: str) -> str:
