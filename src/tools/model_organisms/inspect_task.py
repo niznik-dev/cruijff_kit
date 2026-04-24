@@ -1,10 +1,8 @@
 """
 Unified eval task for the model-organisms framework.
 
-Drives any dataset produced by ``sanity_checks/model_organisms/generate.py``
-(inputs × rules × formats × designs). Supersedes the three bespoke tasks in
-``sanity_checks/{bernoulli,count_digits,majority}/inspect_task_*.py`` — their
-removal is tracked in #434.
+Drives any dataset produced by ``tools/model_organisms/generate.py``
+(inputs × rules × formats × designs).
 
 Usage::
 

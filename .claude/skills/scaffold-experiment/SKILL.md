@@ -140,7 +140,7 @@ python -m cruijff_kit.tools.experiment.prepare_data {experiment_dir}
 - Exits 1 on any failure. If this happens, **do not launch subagents** — report the error and direct the user to `logs/scaffold-prepare-data.log`.
 
 **Currently supported generators:**
-- `model_organism` — cheap, deterministic sequence datasets (`src/sanity_checks/model_organisms/`). See template schema for parameters.
+- `model_organism` — cheap, deterministic sequence datasets (`src/tools/model_organisms/`). See template schema for parameters.
 
 ### Step 1: Launch Preparation Subagent
 

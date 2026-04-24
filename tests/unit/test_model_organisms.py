@@ -1,4 +1,4 @@
-"""Unit tests for sanity_checks/model_organisms/ (issue #418).
+"""Unit tests for tools/model_organisms/ (issue #418).
 
 Run with:
     pytest tests/unit/test_model_organisms.py -v
@@ -6,22 +6,22 @@ Run with:
 
 import pytest
 
-from cruijff_kit.sanity_checks.model_organisms import formats
-from cruijff_kit.sanity_checks.model_organisms.formats import (
+from cruijff_kit.tools.model_organisms import formats
+from cruijff_kit.tools.model_organisms.formats import (
     get_format,
     list_formats,
 )
-from cruijff_kit.sanity_checks.model_organisms.generate import (
+from cruijff_kit.tools.model_organisms.generate import (
     _sample_sequences_unique,
     generate,
 )
-from cruijff_kit.sanity_checks.model_organisms.inputs import (
+from cruijff_kit.tools.model_organisms.inputs import (
     InputType,
     get_input,
     list_inputs,
     register_input,
 )
-from cruijff_kit.sanity_checks.model_organisms.rules import (
+from cruijff_kit.tools.model_organisms.rules import (
     get_rule,
     list_rules,
     register_rule,

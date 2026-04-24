@@ -13,18 +13,18 @@ later chunks.
 
 CLI::
 
-    python -m cruijff_kit.sanity_checks.model_organisms.generate \\
+    python -m cruijff_kit.tools.model_organisms.generate \\
         --input_type bits --rule parity --k 8 \\
         --N 100 --seed 1729 --design memorization \\
         --output bits_parity_k8_memo.json
 
-    python -m cruijff_kit.sanity_checks.model_organisms.generate \\
+    python -m cruijff_kit.tools.model_organisms.generate \\
         --input_type bits --rule coin --k 8 \\
         --rule_kwargs '{"p": 0.7}' \\
         --N 200 --seed 1729 --design in_distribution --split 0.8 \\
         --output bits_coin_p70_k8_indist.json
 
-    python -m cruijff_kit.sanity_checks.model_organisms.generate \\
+    python -m cruijff_kit.tools.model_organisms.generate \\
         --input_type bits --rule parity --k 8 \\
         --N 200 --seed 1729 --design ood --split 0.8 \\
         --ood_tests '[{"k": 12, "N": 50}, {"k": 16, "N": 50}]' \\
@@ -161,7 +161,7 @@ def generate(
     sequences = _sample_sequences_unique(input_def.alphabet, k, N, primary_rng)
 
     metadata = {
-        "generator": "sanity_checks/model_organisms/generate.py",
+        "generator": "tools/model_organisms/generate.py",
         "input_type": input_type,
         "rule": rule,
         "rule_kwargs": {key: val for key, val in rule_kwargs.items() if key != "seed"},

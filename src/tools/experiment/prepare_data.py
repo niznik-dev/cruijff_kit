@@ -4,7 +4,7 @@ Runs as the first step of scaffold-experiment. Dispatches on the ``tool:``
 field under ``data.data_generation``. Currently supports:
 
 - ``model_organism`` — cheap, deterministic sequence datasets from
-  ``sanity_checks/model_organisms/``.
+  ``tools/model_organisms/``.
 
 Expensive/flaky generators (e.g. Sarah's tabular_to_text_gen) have their own
 dedicated skills and do NOT route through this tool.
@@ -28,7 +28,7 @@ from pathlib import Path
 
 import yaml
 
-from cruijff_kit.sanity_checks.model_organisms.generate import generate
+from cruijff_kit.tools.model_organisms.generate import generate
 
 
 LOG_NAME = "scaffold-prepare-data.log"
@@ -42,7 +42,7 @@ def _resolve_output(output_path: str, experiment_dir: Path) -> Path:
 def _equivalent_cli(params: dict, out_path: Path) -> str:
     """Build the equivalent generate.py CLI invocation for audit logging."""
     parts = [
-        "python -m cruijff_kit.sanity_checks.model_organisms.generate",
+        "python -m cruijff_kit.tools.model_organisms.generate",
         f"--input_type {params['input_type']}",
         f"--rule {params['rule']}",
         f"--k {params['k']}",

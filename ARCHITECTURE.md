@@ -23,15 +23,21 @@ cruijff_kit/
 │   │   │   └── chat_completion.py  # Chat template-based dataset
 │   │   ├── custom_recipes/    # Modified torchtune recipes
 │   │   └── templates/         # YAML/SLURM templates
-│   └── inspect/        # Evaluation setup and analysis
-│       ├── setup_inspect.py   # Generate evaluation SLURM scripts from template
-│       ├── templates/         # SLURM templates
-│       │   └── eval_template.slurm  # Eval job template (GPU monitoring, log mgmt)
-│       ├── parse_eval_log.py  # Parse inspect-ai evaluation logs
-│       └── heterogeneity/     # Group-level fairness analysis
-│           ├── heterogeneity_eval.py    # Inspect-ai task wrapper
-│           ├── heterogeneity_report.py  # Standalone analysis script
-│           └── README.md                # Usage documentation
+│   ├── inspect/        # Evaluation setup and analysis
+│   │   ├── setup_inspect.py   # Generate evaluation SLURM scripts from template
+│   │   ├── templates/         # SLURM templates
+│   │   │   └── eval_template.slurm  # Eval job template (GPU monitoring, log mgmt)
+│   │   ├── parse_eval_log.py  # Parse inspect-ai evaluation logs
+│   │   └── heterogeneity/     # Group-level fairness analysis
+│   │       ├── heterogeneity_eval.py    # Inspect-ai task wrapper
+│   │       ├── heterogeneity_report.py  # Standalone analysis script
+│   │       └── README.md                # Usage documentation
+│   └── model_organisms/  # Synthetic sequence-labeling framework (input × rule × format × design)
+│       ├── inputs.py    # Input-type registry (bits, digits, letters)
+│       ├── rules.py     # Output-rule registry (parity, first, majority, …)
+│       ├── formats.py   # Text-rendering registry (spaced, dense, comma, …)
+│       ├── generate.py  # Dataset generator CLI
+│       └── inspect_task.py # Unified inspect-ai evaluation task
 │
 ├── experiments/        # Research experiment types
 │   ├── capitalization/ # Generalization test with word capitalization
@@ -43,14 +49,6 @@ cruijff_kit/
 │   │   └── ...
 │   ├── folktexts/      # Demographic prediction from text
 │   └── inspect_task_general.py # General-purpose evaluation task
-│
-├── src/sanity_checks/      # Synthetic validation sanity checks for testing workflows and learning
-│   └── model_organisms/ # Composable framework: input type × rule × format × design
-│       ├── inputs.py    # Input-type registry (bits, digits, letters)
-│       ├── rules.py     # Output-rule registry (parity, first, majority, …)
-│       ├── formats.py   # Text-rendering registry (spaced, dense, comma, …)
-│       ├── generate.py  # Dataset generator CLI
-│       └── inspect_task.py # Unified inspect-ai evaluation task
 │
 ├── src/utils/              # Shared utilities and helpers
 │   ├── run_names.py    # Random name generation for experiments
@@ -222,10 +220,9 @@ Each experiment typically includes:
 - `src/utils/` - Experiment-specific helper functions
 - `inspect_task_{name}.py` - Inspect-ai evaluation task (e.g., `inspect_task_capitalization.py`)
 
-### Sanity Checks (`src/sanity_checks/`)
-Synthetic validation sanity checks for workflow testing and learning:
+### Model Organisms (`src/tools/model_organisms/`)
 
-- **model_organisms**: Composable framework for synthetic sequence-labeling tasks. An experiment is specified by choosing an input type (`bits`, `digits`, `letters`), an output rule (`parity`, `first`, `last`, `majority`, `constant`, `coin`, …), a format (`spaced`, `dense`, `comma`, `tab`, `pipe`), and a design (`memorization`, `in_distribution`, `ood`). Supersedes the earlier per-task scripts (bit_sequences, predictable_or_not, bernoulli, count_digits, majority). Single unified inspect-ai task evaluates any combination; data generation is invoked by `scaffold-experiment` via a `data.data_generation` block with `tool: model_organism`.
+Composable framework for synthetic sequence-labeling tasks. An experiment is specified by choosing an input type (`bits`, `digits`, `letters`), an output rule (`parity`, `first`, `last`, `majority`, `constant`, `coin`, …), a format (`spaced`, `dense`, `comma`, `tab`, `pipe`), and a design (`memorization`, `in_distribution`, `ood`). Single unified inspect-ai task evaluates any combination; data generation is invoked by `scaffold-experiment` via a `data.data_generation` block with `tool: model_organism`.
 
 ## Package Structure
 

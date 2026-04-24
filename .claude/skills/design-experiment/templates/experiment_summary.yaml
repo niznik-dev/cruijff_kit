@@ -80,7 +80,7 @@ data:
     # ---- model_organism fields (when tool == "model_organism") ----
     name: string                   # REQUIRED: Dataset identifier (used in logs)
     input_type: string             # REQUIRED: "bits" | "digits" | "letters"
-    rule: string                   # REQUIRED: see src/sanity_checks/model_organisms/rules.py
+    rule: string                   # REQUIRED: see src/tools/model_organisms/rules.py
     k: int                         # REQUIRED: Sequence length
     N: int                         # REQUIRED: Number of samples
     # seed: int                    # REQUIRED: Random seed. Declared in tabular_to_text_gen

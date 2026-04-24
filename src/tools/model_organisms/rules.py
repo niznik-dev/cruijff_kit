@@ -6,7 +6,7 @@ invalid combinations (e.g., ``parity`` on letters) can be caught early.
 
 Rule functions accept ``**kwargs`` so parameterized rules (``constant(v)``,
 ``coin(p)``) can receive their parameters via ``rule_kwargs`` in
-:func:`sanity_checks.model_organisms.generate.generate`. The seed is also
+:func:`tools.model_organisms.generate.generate`. The seed is also
 passed in, which lets ``coin`` produce labels that are a deterministic
 function of ``(seed, sequence)`` — required for memorization to be
 meaningful when sequences repeat.
