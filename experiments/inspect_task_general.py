@@ -79,14 +79,7 @@ def general_eval(
 
         try:
             # Extract dataset path from config
-            dataset_ext = config["dataset_ext"]
-            if dataset_ext == ".json":
-                data_path = config["input_dir_base"] + config["dataset_label"] + ".json"
-            else:
-                # For parquet or other formats
-                data_path = (
-                    config["input_dir_base"] + config["dataset_label"] + dataset_ext
-                )
+            data_path = config["input_dir_base"] + config["dataset_label"] + ".json"
 
             # Use system prompt from config unless overridden
             if not system_prompt:

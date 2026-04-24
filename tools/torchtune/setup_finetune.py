@@ -312,7 +312,7 @@ def configure_dataset_for_format(config, dataset_label, dataset_ext, dataset_typ
     Args:
         config: The configuration dictionary to modify
         dataset_label: Name of the dataset file (without extension) or folder
-        dataset_ext: Extension of the dataset file (e.g., '.json' or '.parquet')
+        dataset_ext: Extension of the dataset file (e.g., '.json')
         dataset_type: Type of dataset ('chat_completion', 'instruct_dataset', etc.)
 
     Returns:
@@ -326,12 +326,6 @@ def configure_dataset_for_format(config, dataset_label, dataset_ext, dataset_typ
         # Template has: "${input_dir}/${dataset_label}.json"
         # This gets substituted by the config values, so no changes needed here
         pass
-
-    elif dataset_ext == ".parquet":
-        # For parquet, add filenames inside the folder (dataset_label is the folder name)
-        config["dataset"]["data_dir"] += "/train.parquet"
-        if "dataset_val" in config:
-            config["dataset_val"]["data_dir"] += "/validation.parquet"
 
     elif dataset_ext == ".json":
         # Change source and rename data_dir to data_files
@@ -400,7 +394,7 @@ def create_parser():
         "--dataset_ext",
         type=str,
         default="",
-        help="Extension of the dataset file (e.g. .json or .parquet)",
+        help="Extension of the dataset file (e.g. .json)",
     )
 
     parser.add_argument(

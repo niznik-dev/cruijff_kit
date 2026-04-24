@@ -96,7 +96,7 @@ class TestDataSection:
         assert total > 0, "Total samples must be positive"
 
     def test_format_is_valid(self, summary):
-        assert summary["data"]["training"]["format"] in ("json", "parquet")
+        assert summary["data"]["training"]["format"] == "json"
 
 
 class TestOutputSection:

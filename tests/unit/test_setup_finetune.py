@@ -249,41 +249,6 @@ def test_construct_output_dir_experiment_name_none():
 # Tests for configure_dataset_for_format()
 
 
-def test_configure_dataset_parquet_with_validation():
-    """Test parquet format configuration with validation dataset."""
-    config = {
-        "dataset": {"data_dir": "/data/my_dataset"},
-        "dataset_val": {"data_dir": "/data/my_dataset"},
-    }
-
-    result = configure_dataset_for_format(
-        config,
-        dataset_label="my_dataset",
-        dataset_ext=".parquet",
-        dataset_type="instruct_dataset",  # type doesn't matter for parquet
-    )
-
-    assert result["dataset_label"] == "my_dataset"
-    assert result["dataset"]["data_dir"] == "/data/my_dataset/train.parquet"
-    assert result["dataset_val"]["data_dir"] == "/data/my_dataset/validation.parquet"
-
-
-def test_configure_dataset_parquet_without_validation():
-    """Test parquet format configuration without validation dataset."""
-    config = {"dataset": {"data_dir": "/data/my_dataset"}}
-
-    result = configure_dataset_for_format(
-        config,
-        dataset_label="my_dataset",
-        dataset_ext=".parquet",
-        dataset_type="instruct_dataset",
-    )
-
-    assert result["dataset_label"] == "my_dataset"
-    assert result["dataset"]["data_dir"] == "/data/my_dataset/train.parquet"
-    assert "dataset_val" not in result
-
-
 def test_configure_dataset_json_instruct_with_validation():
     """Test JSON instruct_dataset format with validation dataset."""
     config = {
