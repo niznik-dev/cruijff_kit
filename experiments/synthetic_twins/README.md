@@ -80,7 +80,7 @@ epochs: 1
 
 ```bash
 # Generate torchtune config and SLURM script
-python ../../tools/torchtune/setup_finetune.py
+python ../../src/tools/torchtune/setup_finetune.py
 ```
 
 This creates:
@@ -138,7 +138,7 @@ inspect eval experiments/synthetic_twins/inspect_task_twins.py \
 ```bash
 # Create eval_config.yaml in eval dir (see inspect_agent.md for schema), then:
 cd /path/to/experiment/run/eval
-python ../../tools/inspect/setup_inspect.py \
+python ../../src/tools/inspect/setup_inspect.py \
   --config eval_config.yaml \
   --model_name Llama-3.2-1B-Instruct
 

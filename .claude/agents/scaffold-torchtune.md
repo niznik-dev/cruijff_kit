@@ -178,7 +178,7 @@ For each run, create a `setup_finetune.yaml` file by:
    - The run names a condition in `data.data_generation.conditions`.
    - Compute the canonical path with the shared resolver:
      ```python
-     from tabular_to_text_gen.lib.config_hash import resolve_dataset_path
+     from cruijff_kit.tabular_to_text_gen.lib.config_hash import resolve_dataset_path
      path = resolve_dataset_path(
          experiment["data"]["data_generation"],
          run["training_condition"],
@@ -282,7 +282,7 @@ For each run directory:
 
 1. **Find cruijff_kit location:**
    - Read claude.local.md to find "Working directory" (typically `/home/{username}/cruijff_kit`)
-   - The setup script is at: `{working_dir}/tools/torchtune/setup_finetune.py`
+   - The setup script is at: `{working_dir}/src/tools/torchtune/setup_finetune.py`
    - If not found, check current working directory with `pwd` - you're likely already in cruijff_kit
 
 2. **Execute setup script with conda environment:**
@@ -291,7 +291,7 @@ For each run directory:
 
    Instead, use `bash -c` with a single compound command:
    ```bash
-   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/tools/torchtune/setup_finetune.py --training_samples {training_samples}"
+   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {training_samples}"
    ```
 
    The `--training_samples` flag enables the training step guard, which computes total training steps and warns if they are dangerously low (e.g., warmup never completes, or fewer than 50 steps total).
@@ -302,7 +302,7 @@ For each run directory:
 
    **Example:**
    ```bash
-   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/tools/torchtune/setup_finetune.py --training_samples 800"
+   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/src/tools/torchtune/setup_finetune.py --training_samples 800"
    ```
 
 3. **Why this approach:**
@@ -330,15 +330,15 @@ For each run directory:
 **Finding cruijff_kit:**
 1. Read claude.local.md → "Working directory" field (e.g., `/home/sarahep/cruijff_kit`)
 2. If not in claude.local.md, check current directory: `pwd` (you may already be in cruijff_kit)
-3. The setup script is always at: `{cruijff_kit_location}/tools/torchtune/setup_finetune.py`
+3. The setup script is always at: `{cruijff_kit_location}/src/tools/torchtune/setup_finetune.py`
 
 **Common locations:**
 - `/home/{username}/cruijff_kit/` (typical user setup)
 - `{scratch_dir}/GitHub/cruijff_kit/` (some users)
 
 **If script fails with path issues:**
-- Try: `python tools/torchtune/setup_finetune.py` (relative path if you're in the right place)
-- Check if file exists: `ls {path}/tools/torchtune/setup_finetune.py`
+- Try: `python src/tools/torchtune/setup_finetune.py` (relative path if you're in the right place)
+- Check if file exists: `ls {path}/src/tools/torchtune/setup_finetune.py`
 
 ## Error Handling
 
@@ -411,7 +411,7 @@ Parameters: rank=8, lr=1e-5, batch_size=4, epochs=1
 Result: File created (237 bytes)
 
 [2025-10-24 16:30:15] RUN_SETUP: rank8_lr1e-5
-Command: cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/rank8_lr1e-5 && python ../../GitHub/cruijff_kit/tools/torchtune/setup_finetune.py
+Command: cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/rank8_lr1e-5 && python ../../GitHub/cruijff_kit/src/tools/torchtune/setup_finetune.py
 Result: Success - generated finetune.yaml and finetune.slurm
 
 [2025-10-24 16:31:00] COMPLETE: All runs scaffolded

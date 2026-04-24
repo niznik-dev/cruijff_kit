@@ -52,7 +52,7 @@ See `experiments/capitalization/README.md` for a complete walkthrough.
 3. **Generate SLURM scripts**
 
    ```bash
-   python ../../tools/torchtune/setup_finetune.py
+   python ../../src/tools/torchtune/setup_finetune.py
    ```
 
    This creates `finetune.yaml` (torchtune configuration) and `finetune.slurm` (SLURM batch script).
@@ -79,7 +79,7 @@ For experiments with multiple runs (e.g., parameter sweeps):
 3. Generate configs for all runs:
    ```bash
    for dir in run_*/; do
-     (cd "$dir" && python ../../tools/torchtune/setup_finetune.py)
+     (cd "$dir" && python ../../src/tools/torchtune/setup_finetune.py)
    done
    ```
 4. Submit all jobs with a stagger delay to prevent HuggingFace cache race conditions:

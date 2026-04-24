@@ -160,7 +160,7 @@ evaluation:
       dataset: /scratch/.../external_test.json
 ```
 
-The resolver lives at `tabular_to_text_gen.lib.config_hash.resolve_dataset_path(data_generation, condition_name, split, output_dir)`. `convert.py` uses the same helper internally when invoked with `--experiment-summary`, so the filename convert.py writes and the filename scaffold agents ask for are always the same.
+The resolver lives at `cruijff_kit.tabular_to_text_gen.lib.config_hash.resolve_dataset_path(data_generation, condition_name, split, output_dir)`. `convert.py` uses the same helper internally when invoked with `--experiment-summary`, so the filename convert.py writes and the filename scaffold agents ask for are always the same.
 
 **Cross-experiment reuse is preserved.** The hash is computed from the semantic content of `data_generation` (source/schema SHAs, features, template, target, context, question, splits, seed, etc.) — not from the YAML path or experiment name. Two experiments with identical `data_generation` content share the same file. Two experiments with any semantic difference get separate files. This is exactly the pre-Option-B behavior; only the hand-typing of hashes in run entries has gone away.
 
@@ -172,11 +172,11 @@ Notes on what affects the hash:
 - **llm_narrative.** Output is non-deterministic — identical configs may produce different content, but they share a filename and the `.meta.json` sidecar logs `non_deterministic: true`.
 - **Categorical targets.** Use `target.mapping` in place of `target.threshold`.
 - **Reuse.** If the same hashed file already exists in `ck-data/generated/`, `convert-tabular-to-text` skips regeneration (log line `REUSE: ...`). Pass `--force` to `convert.py` to override.
-- **Full docs.** See [`tabular_to_text_gen/TABULAR_DATASET_NAMING.md`](../../../../tabular_to_text_gen/TABULAR_DATASET_NAMING.md) for the complete list of hashed fields, exclusions, and sidecar format.
+- **Full docs.** See [`src/tabular_to_text_gen/TABULAR_DATASET_NAMING.md`](../../../../src/tabular_to_text_gen/TABULAR_DATASET_NAMING.md) for the complete list of hashed fields, exclusions, and sidecar format.
 
 ### How it splits
 
-`split_dataframe()` in `tabular_to_text_gen/convert.py` shuffles row indices under `random.Random(seed)` and slices deterministically: `[0:train_end]` for train, `[train_end:val_end]` for validation, `[val_end:]` for test. The same seed + ratios produce the same row assignment across conditions, so a row that lands in validation for `dict_full` lands in validation for `narr_full` too — critical for clean cross-condition comparisons.
+`split_dataframe()` in `src/tabular_to_text_gen/convert.py` shuffles row indices under `random.Random(seed)` and slices deterministically: `[0:train_end]` for train, `[train_end:val_end]` for validation, `[val_end:]` for test. The same seed + ratios produce the same row assignment across conditions, so a row that lands in validation for `dict_full` lands in validation for `narr_full` too — critical for clean cross-condition comparisons.
 
 ## Subsampling
 

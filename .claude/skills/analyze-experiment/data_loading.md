@@ -1,6 +1,6 @@
 # Data Loading: Loading Evaluation Logs
 
-This module describes how to load evaluation logs and prepare data for visualization using the helper functions in `tools/inspect/viz_helpers.py`.
+This module describes how to load evaluation logs and prepare data for visualization using the helper functions in `src/tools/inspect/viz_helpers.py`.
 
 ## Automatic Deduplication
 

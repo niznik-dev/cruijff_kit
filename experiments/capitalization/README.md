@@ -48,7 +48,7 @@ custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_d
 Use a colon separator (not a newline) between instruction and input for best results. Then run:
 
 ```
-python ../../tools/torchtune/setup_finetune.py
+python ../../src/tools/torchtune/setup_finetune.py
 sbatch finetune.slurm
 ```
 
@@ -68,7 +68,7 @@ Create an `eval_config.yaml` in your eval directory with the experiment-specific
 
 ```bash
 cd /path/to/experiment/run/eval
-python ../../tools/inspect/setup_inspect.py \
+python ../../src/tools/inspect/setup_inspect.py \
   --config eval_config.yaml \
   --model_name Llama-3.2-1B-Instruct
 ```
@@ -93,11 +93,11 @@ Did your finetuning and/or choice of prompt help?
 
 ### Part 5 - Test the base model
 
-To evaluate the base model, create an `eval_config.yaml` pointing to the base model path (with `finetuned: false` in metadata) and run [setup_inspect.py](../../tools/inspect/setup_inspect.py) the same way:
+To evaluate the base model, create an `eval_config.yaml` pointing to the base model path (with `finetuned: false` in metadata) and run [setup_inspect.py](../../src/tools/inspect/setup_inspect.py) the same way:
 
 ```bash
 cd /path/to/experiment/base_run/eval
-python ../../tools/inspect/setup_inspect.py \
+python ../../src/tools/inspect/setup_inspect.py \
   --config eval_config.yaml \
   --model_name Llama-3.2-1B-Instruct
 ```

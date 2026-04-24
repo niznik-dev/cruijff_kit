@@ -3,10 +3,10 @@
 Reference for authoring a `data.data_generation` block with
 `tool: model_organism` in `experiment_summary.yaml`. Used when the
 experiment's training/eval data comes from the model-organisms framework at
-`sanity_checks/model_organisms/` (inputs × rules × formats × designs).
+`src/sanity_checks/model_organisms/` (inputs × rules × formats × designs).
 
 When this block is present, `scaffold-experiment` runs
-`tools/experiment/prepare_data.py` before launching subagents, which
+`src/tools/experiment/prepare_data.py` before launching subagents, which
 dispatches on the `tool:` field and materializes the declared dataset on
 disk.
 
@@ -32,7 +32,7 @@ Required:
 | `tool` | Generator identifier | Must be `model_organism` for this schema |
 | `name` | Dataset identifier | Used in logs; not a filename |
 | `input_type` | `bits` \| `digits` \| `letters` | Alphabet |
-| `rule` | Output rule | See `sanity_checks/model_organisms/rules.py` registry. Universal rules: `first`, `last`, `nth`, `length`, `constant`, `coin`. Bits-only: `parity`, `majority`. Digits/letters-only: `min`, `max`. |
+| `rule` | Output rule | See `src/sanity_checks/model_organisms/rules.py` registry. Universal rules: `first`, `last`, `nth`, `length`, `constant`, `coin`. Bits-only: `parity`, `majority`. Digits/letters-only: `min`, `max`. |
 | `k` | Sequence length | Positive int |
 | `N` | Number of samples | Must not exceed alphabet^k |
 | `seed` | Random seed | Any int |

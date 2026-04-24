@@ -860,7 +860,7 @@ inspect eval my_task.py \
 
 This task pattern integrates with `setup_inspect.py`, which renders eval SLURM scripts from a template. The scaffold-inspect agent writes `eval_config.yaml` (referencing the task script created here) and calls:
 ```bash
-python tools/inspect/setup_inspect.py \
+python src/tools/inspect/setup_inspect.py \
   --config eval_config.yaml \
   --model_name Llama-3.2-1B-Instruct
 ```

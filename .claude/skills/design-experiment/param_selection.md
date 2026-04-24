@@ -95,7 +95,7 @@ With the schema in hand, consult `references/tabular_to_text_gen.md` and walk th
 
 Record these in the `data_generation` section of `experiment_summary.yaml` (see template). This section drives dataset generation and path resolution; it is the single source of truth for everything about the generated text.
 
-Each run references a condition by name (`training_condition: dict_full`), and each eval task does the same (`eval_condition: dict_synonym`). At scaffold time, scaffold-torchtune and scaffold-inspect call `tabular_to_text_gen.lib.config_hash.resolve_dataset_path(data_generation, condition, split, output_dir)` to derive the canonical `{condition}_{split}_{hash8}.json` path and substitute it into the generated torchtune / inspect configs.
+Each run references a condition by name (`training_condition: dict_full`), and each eval task does the same (`eval_condition: dict_synonym`). At scaffold time, scaffold-torchtune and scaffold-inspect call `cruijff_kit.tabular_to_text_gen.lib.config_hash.resolve_dataset_path(data_generation, condition, split, output_dir)` to derive the canonical `{condition}_{split}_{hash8}.json` path and substitute it into the generated torchtune / inspect configs.
 
 **Advise:** "After we finalize the experiment design, you'll run the `convert-tabular-to-text` skill to generate the actual datasets before scaffolding. If the hashed files already exist from a prior experiment, they'll be reused."
 

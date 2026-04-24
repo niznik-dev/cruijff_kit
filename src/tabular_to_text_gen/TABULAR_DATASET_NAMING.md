@@ -160,7 +160,7 @@ def resolve_dataset_path(data_generation, condition_name, split, output_dir) -> 
 ```bash
 python -c "
 import json, sys
-from tabular_to_text_gen.lib.config_hash import hash_config_short
+from cruijff_kit.tabular_to_text_gen.lib.config_hash import hash_config_short
 print(hash_config_short(json.load(sys.stdin)))
 " < condition_config.json
 ```

@@ -41,7 +41,7 @@ Find experiment directory and parse experiment_summary.yaml for:
 
 ### 2. Load Evaluation Logs → `data_loading.md`
 
-Use helper functions from `tools/inspect/viz_helpers.py`:
+Use helper functions from `src/tools/inspect/viz_helpers.py`:
 - `deduplicate_eval_files()` - Remove duplicate evals (keeps most recent per model+epoch)
 - `evals_df_prep()` - Prepare eval-level dataframes
 - `parse_eval_metadata()` - Extract epoch/finetuned/source_model from JSON metadata
@@ -99,7 +99,7 @@ Create markdown report with metrics and comparisons:
 4. Include `future_directions` from step 5
 5. Write report to `analysis/report.md`
 
-Uses `tools/inspect/report_generator.py`:
+Uses `src/tools/inspect/report_generator.py`:
 ```python
 from tools.inspect.report_generator import generate_report
 
@@ -117,7 +117,7 @@ report = generate_report(
 If run logs exist (`logs/run-torchtune.log` and/or `logs/run-inspect.log`), generate a compute utilization section:
 
 1. Extract job IDs from logs (regex: `Result: Job ID (\d+)`)
-2. Run `seff` for each job and parse with `tools/slurm/compute_metrics.py`
+2. Run `seff` for each job and parse with `src/tools/slurm/compute_metrics.py`
 3. Read `gpu_metrics.csv` files and summarize with `summarize_gpu_metrics()`
 4. Generate compute table with `format_compute_table()`
 5. Save raw metrics to `analysis/compute_metrics.json`
@@ -323,7 +323,7 @@ design-experiment → scaffold-experiment → run-experiment → analyze-experim
 - Output directory (`analysis/`) is created if it doesn't exist
 - HTML files are standalone (no external dependencies to view)
 - PNG files require playwright (skipped with warning if not installed)
-- Uses helper functions from `tools/inspect/viz_helpers.py`
+- Uses helper functions from `src/tools/inspect/viz_helpers.py`
 - Reference examples in `viz_examples/scripts/inspect_viz_examples.ipynb`
 
 ## Module Organization
@@ -339,4 +339,4 @@ design-experiment → scaffold-experiment → run-experiment → analyze-experim
 
 Working examples exist in `viz_examples/scripts/inspect_viz_examples.ipynb` demonstrating all supported pre-built views.
 
-Helper functions are implemented in `tools/inspect/viz_helpers.py`.
+Helper functions are implemented in `src/tools/inspect/viz_helpers.py`.

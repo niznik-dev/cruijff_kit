@@ -18,7 +18,7 @@ Consider whether these files need updates based on your changes:
 ### Component Documentation
 - [ ] **Skill docs** (`.claude/skills/*/`) - If you modified skill behavior or added submodules
 - [ ] **Experiment READMEs** (`experiments/*/README.md`) - If you changed experiment structure
-- [ ] **Tool docs** (`tools/*/`) - If you modified torchtune recipes, inspect tasks, etc.
+- [ ] **Tool docs** (`src/tools/*/`) - If you modified torchtune recipes, inspect tasks, etc.
 
 ### Common Scenarios
 - **Added/removed a skill?** → Update SKILLS_ARCHITECTURE_SUMMARY.md

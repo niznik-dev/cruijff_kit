@@ -44,7 +44,7 @@ Read `experiment_summary.yaml` to determine:
 Run the archive script in dry-run mode:
 
 ```bash
-python tools/experiment/archive_experiment.py <experiment_dir> --dry-run --pretty
+python src/tools/experiment/archive_experiment.py <experiment_dir> --dry-run --pretty
 ```
 
 If the default archive location is wrong, the user can specify `--archive-base <path>`.
@@ -86,7 +86,7 @@ Use AskUserQuestion to get explicit confirmation before proceeding.
 Run the archive script without dry-run:
 
 ```bash
-python tools/experiment/archive_experiment.py <experiment_dir> [--force] [--archive-base <path>] --pretty
+python src/tools/experiment/archive_experiment.py <experiment_dir> [--force] [--archive-base <path>] --pretty
 ```
 
 The script will:
