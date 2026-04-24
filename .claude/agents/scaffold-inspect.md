@@ -146,13 +146,13 @@ Extract environment-specific settings:
 
 **IMPORTANT:** Read `output.base_directory` from experiment_summary.yaml to construct model paths.
 
-The base_directory contains the full path: `{output_base}/ck-outputs/{experiment_name}`
-- Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-outputs/workflow_test_2025-11-28`
+The base_directory contains the full path: `{output_base}/ck-projects/{project}/{experiment_name}`
+- Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/workflow_test_2025-11-28`
 
 For generating inspect.slurm scripts:
 - Use base_directory directly to construct OUTPUT_BASE paths
 - Fine-tuned model path: `{base_directory}/ck-out-{run_name}/epoch_{N}`
-- Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-outputs/workflow_test_2025-11-28/ck-out-rank4/epoch_0`
+- Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/workflow_test_2025-11-28/ck-out-rank4/epoch_0`
 
 ## Verifying Inspect-AI Tasks
 
@@ -652,7 +652,7 @@ Result: Directory created successfully
 
 [2025-10-24 17:00:25] GENERATE_SLURM: rank8_lr1e-5/eval/capitalization_epoch0.slurm
 Details: Fine-tuned model evaluation with config_dir integration
-Model path: /scratch/gpfs/MSALGANIK/niznik/ck-outputs/ck-out-rank8_lr1e-5/epoch_0
+Model path: /scratch/gpfs/MSALGANIK/niznik/ck-projects/{project}/ck-out-rank8_lr1e-5/epoch_0
 Result: SLURM script created (45 lines)
 
 [2025-10-24 17:01:30] COMPLETE: All evaluation configs generated

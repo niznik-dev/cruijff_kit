@@ -8,7 +8,7 @@
 
 metadata:
   name_pattern: "workflow_test_recipe_{date}"
-  type: "sanity_check"  # Goes in ck-sanity-checks/
+  project: "capitalization"
   scientific_question: >-
     Verify that base_recipe correctly provides default hyperparameters from
     torchtune recipes, with proper override precedence for experiment parameters.

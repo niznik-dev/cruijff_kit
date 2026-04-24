@@ -49,7 +49,7 @@ python src/tools/experiment/archive_experiment.py <experiment_dir> --dry-run --p
 
 If the default archive location is wrong, the user can specify `--archive-base <path>`.
 
-**Default archive location:** `ck-archive/` as sibling of the experiment's grandparent directory. For an experiment at `__SCRATCH__/ck-experiments/my_experiment/`, the archive lands at `__SCRATCH__/ck-archive/my_experiment/`.
+**Default archive location:** `ck-archive/` as sibling of the experiment's grandparent directory. For an experiment at `__SCRATCH__/ck-projects/{project}/my_experiment/`, the archive lands at `__SCRATCH__/ck-archive/my_experiment/`.
 
 Show the user:
 - Number of files and total size to archive (entire experiment directory)

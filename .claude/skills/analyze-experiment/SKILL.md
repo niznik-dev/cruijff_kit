@@ -299,7 +299,7 @@ Details recorded in `logs/analyze-experiment.log`
 **IMPORTANT:** Always end your output summary with the **full absolute path** to `report.md` on its own line, so the user can command-click it in their terminal/IDE. Example:
 
 ```
-Full report: /scratch/gpfs/user/ck-experiments/my_experiment/analysis/report.md
+Full report: /scratch/gpfs/user/ck-projects/{project}/my_experiment/analysis/report.md
 ```
 
 ## Relationship to Other Skills

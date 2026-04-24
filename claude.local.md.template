@@ -92,9 +92,7 @@ gh project item-add 3 --owner niznik-dev --url https://github.com/niznik-dev/cru
   - (add others as you download them)
 
 ### Working Directories
-- **Experiments**: `/scratch/gpfs/<group>/<username>/ck-experiments/` — experiment designs and configs
-- **Sanity checks**: `/scratch/gpfs/<group>/<username>/ck-sanity-checks/` — workflow validation runs
-- **Outputs**: `/scratch/gpfs/<group>/<username>/ck-outputs/` — checkpoints, logs, eval results
+- **Projects**: `/scratch/gpfs/<group>/<username>/ck-projects/` — unified scratch root; each experiment lives at `ck-projects/<project>/<experiment_name>/` with its run subdirs, configs, checkpoints, logs, and eval outputs all nested inside
 
 ### Data
 - **Input data**: `/scratch/gpfs/<group>/<username>/data/`
@@ -104,7 +102,7 @@ gh project item-add 3 --owner niznik-dev --url https://github.com/niznik-dev/cru
 
 ### Fine-tuning (manual)
 ```bash
-# From your run directory (e.g., ck-experiments/<experiment_name>/<run_name>/)
+# From your run directory (e.g., ck-projects/<project>/<experiment_name>/<run_name>/)
 # Using a setup config (preferred):
 python <path_to_cruijff_kit>/tools/torchtune/setup_finetune.py \
   --config_file setup_finetune.yaml

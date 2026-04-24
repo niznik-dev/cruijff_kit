@@ -21,28 +21,27 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 ### Derive Paths from claude.local.md
 
 1. Read the **Scratch directory** field from `claude.local.md`
-2. Determine experiment type based on user intent or working directory context:
-   - If the user mentions "sanity check" or is working in a sanity-checks directory → `experiment_type = "sanity_check"`
-   - Otherwise → `experiment_type = "experiment"`
-3. Derive the experiment directory:
-   - **Experiments**: `{scratch_dir}/ck-experiments/{experiment_name}/`
-   - **Sanity checks**: `{scratch_dir}/ck-sanity-checks/{experiment_name}/`
-4. Derive the output directory:
-   - `{scratch_dir}/ck-outputs/{experiment_name}/`
+2. Determine the `project` — this matches a blueprint directory under `projects/` (e.g. `capitalization`, `folktexts`, `model_organism`). Ask the user if ambiguous.
+3. Derive the experiment directory: `{scratch_dir}/ck-projects/{project}/{experiment_name}/`
+4. Outputs nest inside the experiment directory (configs, checkpoints, logs, eval results are all co-located per run).
 
 ### Directory Structure
 
-- **Experiments** (research tasks): `{scratch_dir}/ck-experiments/{experiment_name}/`
-- **Sanity checks** (simple fine-tuning verification): `{scratch_dir}/ck-sanity-checks/{sanity_check_name}/`
-
-**Outputs are automatically grouped:**
-- Output directory: `{scratch_dir}/ck-outputs/{experiment_or_sanity_check_name}/ck-out-{run_name}/`
+```
+{scratch_dir}/ck-projects/{project}/{experiment_name}/
+├── {run_name_1}/
+│   ├── setup_finetune.yaml
+│   ├── finetune.yaml
+│   ├── finetune.slurm
+│   ├── ck-out-{run_name_1}/epoch_{N}/   # model checkpoints
+│   └── eval/                             # eval scripts and logs
+└── {run_name_2}/
+    └── ...
+```
 
 ### Confirm with User
 
-**Are you working on a sanity check or a research experiment?**
-- Log the detected path for user confirmation
-- Note that outputs will be grouped under the same name in ck-outputs/
+- Show the user the resolved `ck-projects/{project}/{experiment_name}/` path and confirm before proceeding.
 
 ---
 

@@ -155,13 +155,13 @@ Extract environment-specific settings:
 
 **IMPORTANT:** Read `output.base_directory` from experiment_summary.yaml (NOT from claude.local.md).
 
-The base_directory contains the full path: `{output_base}/ck-outputs/{experiment_name}`
-- Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-outputs/workflow_test_2025-11-28`
+The base_directory contains the full path: `{output_base}/ck-projects/{project}/{experiment_name}`
+- Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/workflow_test_2025-11-28`
 
 Parse this into two components for setup_finetune.yaml:
 - `output_dir_base` = everything up to and including the last directory before experiment name
   - Extract by splitting on `/` and taking all but the last component, then rejoining with `/` and adding trailing `/`
-  - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-outputs/`
+  - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/`
 - `experiment_name` = the final directory component
   - Extract by splitting on `/` and taking the last non-empty component
   - Example: `workflow_test_2025-11-28`
@@ -302,7 +302,7 @@ For each run directory:
 
    **Example:**
    ```bash
-   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/src/tools/torchtune/setup_finetune.py --training_samples 800"
+   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/src/tools/torchtune/setup_finetune.py --training_samples 800"
    ```
 
 3. **Why this approach:**

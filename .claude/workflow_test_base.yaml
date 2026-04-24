@@ -9,7 +9,7 @@
 metadata:
   # Experiment naming pattern (actual name will include timestamp)
   name_pattern: "workflow_test_base_{date}"
-  type: "sanity_check"  # Goes in ck-sanity-checks/
+  project: "capitalization"
   scientific_question: >-
     Verify that the complete workflow (design, scaffold, run) executes correctly
     for comparing a base model against a fine-tuned model.

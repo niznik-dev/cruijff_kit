@@ -21,8 +21,8 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
         run_names = ["run_rank4", "run_rank8"]
 
     exp_name = "test_experiment_2026-03-23"
-    exp_dir = tmp_path / "ck-experiments" / exp_name
-    out_base = tmp_path / "ck-outputs" / exp_name
+    exp_dir = tmp_path / "ck-projects" / "capitalization" / exp_name
+    out_base = tmp_path / "ck-projects" / "capitalization" / exp_name
     exp_dir.mkdir(parents=True)
     out_base.mkdir(parents=True)
 
@@ -149,7 +149,11 @@ def test_findings_from_explicit_file(tmp_path):
     result = inventory_experiment(exp_dir, out_base)
 
     assert result["findings_source"] == str(
-        tmp_path / "ck-experiments" / "test_experiment_2026-03-23" / "findings.md"
+        tmp_path
+        / "ck-projects"
+        / "capitalization"
+        / "test_experiment_2026-03-23"
+        / "findings.md"
     )
 
 
@@ -173,7 +177,13 @@ def test_findings_none_when_nothing_exists(tmp_path):
     """No findings, report, or summary → None."""
     exp_dir, out_base = _make_experiment(tmp_path)
     # Remove summary.md
-    (tmp_path / "ck-experiments" / "test_experiment_2026-03-23" / "summary.md").unlink()
+    (
+        tmp_path
+        / "ck-projects"
+        / "capitalization"
+        / "test_experiment_2026-03-23"
+        / "summary.md"
+    ).unlink()
     result = inventory_experiment(exp_dir, out_base)
 
     assert result["findings_source"] is None

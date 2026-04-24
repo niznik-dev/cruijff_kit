@@ -401,7 +401,7 @@ def create_parser():
         "--experiment_name",
         type=str,
         default="",
-        help="Name of the experiment/sanity_check (used to group outputs in ck-outputs/{experiment_name}/). If not provided, outputs go directly to output_dir_base.",
+        help="Name of the experiment (used to group outputs in ck-projects/{project}/{experiment_name}/). If not provided, outputs go directly to output_dir_base.",
     )
     parser.add_argument(
         "--output_dir_base",

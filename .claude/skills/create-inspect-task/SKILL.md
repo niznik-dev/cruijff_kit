@@ -73,7 +73,7 @@ When operating in experiment-guided mode, extract the following information from
 ```yaml
 experiment:
   name: string
-  type: string
+  project: string
   question: string
 
 data:
@@ -122,7 +122,7 @@ def extract_from_experiment_summary(path):
 
     # Extract research question
     research_question = config['experiment']['question']
-    experiment_type = config['experiment']['type']
+    project = config['experiment']['project']
 
     # Extract model information (first base model)
     base_models = config['models']['base']
@@ -139,7 +139,7 @@ def extract_from_experiment_summary(path):
         'dataset_splits': dataset_splits,
         'system_prompt': system_prompt,
         'research_question': research_question,
-        'experiment_type': experiment_type,
+        'project': project,
         'model_name': model_name,
         'model_path': model_path,
         'run_names': run_names,
@@ -151,7 +151,7 @@ def extract_from_experiment_summary(path):
 
 **From `experiment` section:**
 - `question` → Research question/objective (informs evaluation goal)
-- `type` → Experiment type (helps understand what's being compared)
+- `project` → Blueprint directory name under `projects/` (pins the task family)
 
 **From `data.training` section:**
 - `path` → Dataset path for evaluation
