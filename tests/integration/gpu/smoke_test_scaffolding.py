@@ -15,8 +15,8 @@ from pathlib import Path
 import yaml
 
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
-SETUP_FINETUNE = REPO_ROOT / "tools" / "torchtune" / "setup_finetune.py"
-SETUP_INSPECT = REPO_ROOT / "tools" / "inspect" / "setup_inspect.py"
+SETUP_FINETUNE = REPO_ROOT / "src" / "tools" / "torchtune" / "setup_finetune.py"
+SETUP_INSPECT = REPO_ROOT / "src" / "tools" / "inspect" / "setup_inspect.py"
 
 
 def test_setup_finetune(work_dir: Path):

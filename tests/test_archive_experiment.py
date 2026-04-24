@@ -1,4 +1,4 @@
-"""Tests for tools/experiment/archive_experiment.py"""
+"""Tests for src/tools/experiment/archive_experiment.py"""
 
 import yaml
 
@@ -21,10 +21,11 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
         run_names = ["run_rank4", "run_rank8"]
 
     exp_name = "test_experiment_2026-03-23"
+    # Under the unified ck-projects/ layout, experiment dir and output base
+    # point to the same location — outputs nest inside each run's dir.
     exp_dir = tmp_path / "ck-projects" / "capitalization" / exp_name
-    out_base = tmp_path / "ck-projects" / "capitalization" / exp_name
     exp_dir.mkdir(parents=True)
-    out_base.mkdir(parents=True)
+    out_base = exp_dir
 
     # experiment_summary.yaml
     config = {
