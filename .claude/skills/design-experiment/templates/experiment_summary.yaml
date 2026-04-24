@@ -60,7 +60,7 @@ data:
   training:
     path: string                   # REQUIRED: Full path to training dataset
     label: string                  # REQUIRED: Filename without extension
-    format: string                 # REQUIRED: "json" or "parquet"
+    format: string                 # REQUIRED: "json"
     size_kb: int                   # REQUIRED: Dataset size in KB
     splits:                        # REQUIRED: Sample counts per split
       train: int

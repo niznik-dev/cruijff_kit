@@ -99,7 +99,7 @@ These are *example* parameters that the user might vary. There may be other para
    - `models.base[0].name` - Model identifier
    - `models.base[0].path` - Full path to model directory
    - `data.training.path` - Full path to training dataset
-   - `data.training.format` - "json" or "parquet"
+   - `data.training.format` - "json"
    - `output.base_directory` - Where checkpoints are saved
    - `output.wandb_project` - Weights & Biases project name
 
@@ -201,7 +201,7 @@ For each run, create a `setup_finetune.yaml` file by:
    **Else** (standard single-file experiments):
    - Use `data.training.path` from experiment_summary.yaml.
    - Extract `dataset_label` from `data.training.label`.
-   - Determine `dataset_ext` from `data.training.format`: `json` → `.json`, `parquet` → `/`.
+   - Determine `dataset_ext` from `data.training.format`: `json` → `.json`.
    - Extract `input_dir_base` from parent directory of dataset path.
    - Set `input_formatting: ''`.
 

@@ -8,7 +8,7 @@ cruijff_kit is a research toolkit for fine-tuning and evaluating LLMs on social 
 
 1. **Declarative workflow configuration** via YAML files
 2. **Automated SLURM script generation** for HPC environments
-3. **Flexible dataset formats** (JSON, Parquet, HuggingFace datasets)
+3. **Flexible dataset formats** (JSON, HuggingFace datasets)
 4. **Custom torchtune recipes** with validation support
 5. **Inspect-ai integration** for model evaluation
 
@@ -264,14 +264,6 @@ from cruijff_kit.utils import run_names
    ├── train.json
    ├── validation.json
    └── test.json
-   ```
-
-3. **Parquet Format**
-   ```
-   dataset_folder/
-   ├── train.parquet
-   ├── validation.parquet
-   └── test.parquet
    ```
 
 ### Output Structure

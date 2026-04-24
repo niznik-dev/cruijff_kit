@@ -56,7 +56,7 @@ Extract the following information from the YAML structure:
 3. **Dataset:**
    - `data.training.path` - Full path to training dataset
    - `data.training.label` - Dataset filename without extension
-   - `data.training.format` - "json" or "parquet"
+   - `data.training.format` - "json"
 
 4. **Output configuration:**
    - `output.base_directory` - Where checkpoints are saved

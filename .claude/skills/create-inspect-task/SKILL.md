@@ -155,7 +155,7 @@ def extract_from_experiment_summary(path):
 
 **From `data.training` section:**
 - `path` → Dataset path for evaluation
-- `format` → Dataset format (json, parquet)
+- `format` → Dataset format (json)
 - `splits` → Sample counts (use test split for evaluation)
 
 **From `models.base[]` section:**
@@ -203,7 +203,7 @@ I'll use this information to help configure your evaluation task. You can overri
 
 Check extracted information:
 - ✓ Dataset path exists (verify with `ls`)
-- ✓ Dataset format is supported (.json, .parquet, .jsonl)
+- ✓ Dataset format is supported (.json, .jsonl)
 - ✓ Model path exists (verify with `ls`)
 - ✓ System prompt is properly formatted (string, not list)
 
@@ -308,7 +308,6 @@ Result: Will use hf_dataset with json format and custom record_to_sample functio
 
 **What dataset format do you have?**
 - JSON file (`.json` or `.jsonl`)
-- Parquet files (`.parquet`)
 - HuggingFace dataset (specify dataset name)
 - CSV file
 - Custom format (will need conversion)
@@ -326,7 +325,6 @@ Result: Will use hf_dataset with json format and custom record_to_sample functio
 **Dataset structure specifics:**
 - For JSON: Is it a single JSON file with nested structure or JSONL?
 - For JSON with splits: Which field contains the test split?
-- For Parquet: Is it a directory of parquet files?
 - For HuggingFace: Dataset name and split to use?
 
 **Example questions:**
@@ -507,7 +505,7 @@ Comprehensive documentation of design decisions.
 
 ## Dataset Configuration
 
-**Format:** {JSON/Parquet/HuggingFace/etc.}
+**Format:** {JSON/HuggingFace/etc.}
 **Location:** `{full_path_to_dataset}`
 **Size:** {number of samples if known}
 
@@ -655,21 +653,6 @@ def record_to_sample(record):
 dataset = json_dataset(
     "/path/to/data.jsonl",
     record_to_sample
-)
-```
-
-**Parquet directory:**
-```python
-from inspect_ai.dataset import hf_dataset, FieldSpec
-
-dataset = hf_dataset(
-    path="parquet",
-    data_dir="/path/to/parquet_dir",
-    split="test",
-    sample_fields=FieldSpec(
-        input="question",
-        target="answer"
-    )
 )
 ```
 

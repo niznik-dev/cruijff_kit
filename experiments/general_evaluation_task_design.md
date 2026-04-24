@@ -293,7 +293,6 @@ This task can be adapted for other experiments in `experiments/` by:
 - Scorers are text-based (not suitable for numerical tasks without modification)
 
 **Future improvements:**
-- Add support for Parquet format
 - Add configurable field names via parameters
 - Add support for multiple-choice format
 - Add custom scorer options
