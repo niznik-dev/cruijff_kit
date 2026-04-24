@@ -142,7 +142,7 @@ runs:
 evaluation:
   tasks:
     - name: acs_income_subset
-      script: .../inspect_task_acs.py
+      script: .../inspect_task.py
       eval_condition: dict_subset
 ```
 

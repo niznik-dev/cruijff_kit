@@ -69,7 +69,7 @@ evaluation:
 
   tasks:
     - name: "capitalization"
-      script: "__REPO__/experiments/capitalization/inspect_task_capitalization.py"
+      script: "__REPO__/projects/capitalization/inspect_task.py"
       dataset: "same"
       description: "Tests word capitalization accuracy"
 

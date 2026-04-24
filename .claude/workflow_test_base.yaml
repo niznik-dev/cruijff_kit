@@ -50,7 +50,7 @@ training_runs:
 evaluation:
   tasks:
     - name: "capitalization"
-      script: "experiments/capitalization/inspect_task_capitalization.py"
+      script: "projects/capitalization/inspect_task.py"
       dataset: "same"  # Use same dataset as training
       description: "Tests word capitalization accuracy"
 

@@ -7,7 +7,7 @@ comparisons remain clean.  Works with any ACS task (Income, PublicCoverage,
 etc.) regardless of the number of variables.
 
 Usage:
-    python experiments/folktexts/per_sample_shuffle_acs_variables.py \
+    python projects/folktexts/per_sample_shuffle_acs_variables.py \
         --input  data/green/acs/acs_income_verbose_50000_80P.json \
         --output data/green/acs/acs_income_verbose_50000_80P_per_sample_shuffle.json \
         --seed 42

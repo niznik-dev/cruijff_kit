@@ -6,14 +6,14 @@ Supports: ACSIncome, ACSEmployment, ACSMobility, ACSPublicCoverage, ACSTravelTim
 Reads prompt and system_prompt from setup_finetune.yaml to ensure train/eval parity.
 
 Usage:
-    inspect eval inspect_task_acs.py@acs_binary --model hf/local \
+    inspect eval inspect_task.py@acs_binary --model hf/local \
         -M model_path=/path/to/checkpoint \
         -T config_path=/path/to/setup_finetune.yaml \
         -T data_path=/path/to/acs_income_condensed_50000_80P.json
 
 Or use task-specific aliases:
-    inspect eval inspect_task_acs.py@acs_income ...
-    inspect eval inspect_task_acs.py@acs_employment ...
+    inspect eval inspect_task.py@acs_income ...
+    inspect eval inspect_task.py@acs_employment ...
 """
 
 import yaml

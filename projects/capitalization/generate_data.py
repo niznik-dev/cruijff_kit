@@ -42,7 +42,7 @@ parser.add_argument(
     "--input_file",
     type=Path,
     default=None,
-    help="Input word list file (default: experiments/capitalization/input/words_alpha.txt)",
+    help="Input word list file (default: projects/capitalization/input/words_alpha.txt)",
 )
 
 args = parser.parse_args()
@@ -62,7 +62,7 @@ USE_CHAT_TEMPLATE = args.use_chat_template
 
 # Set default output directory relative to repository root
 if args.output_dir is None:
-    # Find repository root (assuming script is in experiments/capitalization/)
+    # Find repository root (assuming script is in projects/capitalization/)
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent.parent
     args.output_dir = repo_root / "data" / "green" / "capitalization"
@@ -72,7 +72,7 @@ args.output_dir.mkdir(parents=True, exist_ok=True)
 
 # Set default input file if not provided
 if args.input_file is None:
-    # Default to the input file in experiments/capitalization/input/
+    # Default to the input file in projects/capitalization/input/
     script_dir = Path(__file__).parent
     args.input_file = script_dir / "input" / "words_alpha.txt"
 

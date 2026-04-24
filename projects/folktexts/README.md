@@ -30,7 +30,7 @@ See `data/green/acs/README.md` for full dataset documentation.
 
 All ACS tasks use a single unified inspect-ai script with task-specific aliases:
 
-**Script:** `experiments/folktexts/inspect_task_acs.py`
+**Script:** `projects/folktexts/inspect_task.py`
 
 **Available aliases:**
 - `@acs_income` - Income prediction (>$50k)
@@ -43,7 +43,7 @@ All ACS tasks use a single unified inspect-ai script with task-specific aliases:
 
 Evaluate a fine-tuned model:
 ```bash
-inspect eval experiments/folktexts/inspect_task_acs.py@acs_income \
+inspect eval projects/folktexts/inspect_task.py@acs_income \
     --model hf/model_name \
     -M model_path=/path/to/checkpoint/epoch_0 \
     -T data_path=/path/to/acs_income_condensed_50000_80P.json \
@@ -52,7 +52,7 @@ inspect eval experiments/folktexts/inspect_task_acs.py@acs_income \
 
 Evaluate a base model (no fine-tuning):
 ```bash
-inspect eval experiments/folktexts/inspect_task_acs.py@acs_employment \
+inspect eval projects/folktexts/inspect_task.py@acs_employment \
     --model hf/Llama-3.2-1B-Instruct \
     -M model_path=/path/to/pretrained/Llama-3.2-1B-Instruct \
     -T data_path=/path/to/acs_employment_condensed_50000_80P.json \
@@ -132,7 +132,7 @@ Extracts verbose-format datasets from HuggingFace for all 5 ACS tasks.
 
 ```bash
 # Extract 50K samples for employment task
-python experiments/folktexts/extract_acs_verbose.py \
+python projects/folktexts/extract_acs_verbose.py \
     --task ACSEmployment \
     --output acs_employment_verbose_50000_80P.json \
     --train-size 40000 --val-size 5000 --test-size 5000
@@ -146,7 +146,7 @@ Converts verbose datasets to condensed and terse formats. Auto-detects task from
 
 ```bash
 # Convert to condensed + terse formats
-python experiments/folktexts/convert_acs_formats.py \
+python projects/folktexts/convert_acs_formats.py \
     --input acs_employment_verbose_50000_80P.json \
     --output-dir data/green/acs/
 ```

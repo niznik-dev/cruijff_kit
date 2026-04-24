@@ -6,13 +6,13 @@ Reads prompt and system_prompt from setup_finetune.yaml to ensure train/eval par
 
 Usage:
     # For instruct models (chat_completion, default):
-    inspect eval inspect_task_capitalization.py --model hf/local \
+    inspect eval inspect_task.py --model hf/local \
         -M model_path=/path/to/checkpoint \
         -T config_path=/path/to/setup_finetune.yaml \
         -T data_path=/path/to/words_5L_80P_1000.json
 
     # For base models (text_completion):
-    inspect eval inspect_task_capitalization.py --model hf/local \
+    inspect eval inspect_task.py --model hf/local \
         -M model_path=/path/to/checkpoint \
         -T config_path=/path/to/setup_finetune.yaml \
         -T data_path=/path/to/words_5L_80P_1000.json \

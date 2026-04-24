@@ -39,13 +39,10 @@ cruijff_kit/
 │       ├── generate.py  # Dataset generator CLI
 │       └── inspect_task.py # Unified inspect-ai evaluation task
 │
-├── experiments/        # Research experiment types
+├── projects/           # Task blueprints (5-slot shape: README, inspect_task.py, generate_data.py, optional modifiers/ + baseline.py)
 │   ├── capitalization/ # Generalization test with word capitalization
-│   │   ├── inspect_task_capitalization.py # Inspect-ai evaluation task
-│   │   ├── input/      # Dataset generation
-│   │   └── templates/finetuning/  # Fine-tuning config templates
-│   ├── folktexts/      # Demographic prediction from text
-│   └── inspect_task_general.py # General-purpose evaluation task
+│   ├── folktexts/      # Demographic prediction from ACS text
+│   └── model_organism/ # Synthetic framework pointer (code lives in src/tools/model_organisms/)
 │
 ├── src/utils/              # Shared utilities and helpers
 │   ├── run_names.py    # Random name generation for experiments
@@ -163,7 +160,7 @@ eval_config.yaml → setup_inspect.py → {task}_epoch{N}.slurm
   - Looks up GPU resources from `model_configs.py`
   - Template includes GPU monitoring, SLURM log management
 
-- Experiment-specific inspect-ai task files (e.g., `experiments/capitalization/inspect_task_capitalization.py`)
+- Experiment-specific inspect-ai task files (e.g., `projects/capitalization/inspect_task.py`)
   - Define evaluation prompts and scoring
   - Use inspect-ai framework
 
@@ -201,21 +198,21 @@ Model predictions (CSV) → heterogeneity_report.py → analysis + visualization
 - Understanding which subpopulations a model serves well/poorly
 - Post-hoc analysis of any binary classification predictions with group labels
 
-## Experiments vs Sanity Checks
+## Projects
 
-### Experiments (`experiments/`)
-Real research experiment types with scientific questions:
+Research task blueprints in `projects/`. Each blueprint follows the 5-slot shape (3 required + 2 optional):
+
+- `README.md` — REQUIRED: task description + how to run
+- `inspect_task.py` — REQUIRED: inspect-ai evaluation definition
+- `generate_data.py` — REQUIRED: primary data producer
+- `modifiers/` — OPTIONAL: data transforms (e.g., folktexts has ACS format converters)
+- `baseline.py` — OPTIONAL: non-LLM comparison
+
+Current blueprints:
 
 - **capitalization**: Tests generalization by training on 5-letter words and evaluating on other lengths
 - **folktexts**: Demographic prediction from ACS (census) text — binary classification tasks including income, employment, mobility, public coverage, and travel time
-
-Each experiment typically includes:
-- `README.md` - Experiment-specific instructions
-- `setup_finetune.yaml` - Configuration template
-- `templates/finetuning/` - Template YAML configs for different dataset formats
-- `input/` - Data generation or preprocessing scripts
-- `src/utils/` - Experiment-specific helper functions
-- `inspect_task_{name}.py` - Inspect-ai evaluation task (e.g., `inspect_task_capitalization.py`)
+- **model_organism**: README pointer only; all code is generic and lives in `src/tools/model_organisms/`
 
 ### Model Organisms (`src/tools/model_organisms/`)
 
@@ -389,7 +386,7 @@ For users who prefer direct control or don't have Claude Code access. This workf
 
 **For single runs:**
 
-1. Navigate to experiment directory: `cd experiments/capitalization/`
+1. Navigate to experiment directory: `cd projects/capitalization/`
 2. Copy config template: `cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml`
 3. Edit `setup_finetune.yaml` with your settings
 4. Generate scripts: `python ../../src/tools/torchtune/setup_finetune.py`
@@ -405,14 +402,14 @@ For users who prefer direct control or don't have Claude Code access. This workf
 
 **Note:** The 5-second sleep prevents HuggingFace datasets cache race conditions when multiple jobs initialize simultaneously.
 
-### Adding a New Experiment Type
+### Adding a New Project Blueprint
 
-1. Create directory under `experiments/`
-2. Add `README.md` with experiment description
-3. Create `setup_finetune.yaml` from template
-4. Add data generation scripts to `input/`
-5. Create inspect-ai evaluation task (e.g., `inspect_task_{name}.py`) using `create-inspect-task` skill
-6. Document the workflow in experiment README
+1. Create directory under `projects/`
+2. Add `README.md` with task description
+3. Create `generate_data.py` (primary data producer)
+4. Create `inspect_task.py` using the `create-inspect-task` skill
+5. Optional: add `baseline.py` (non-LLM comparison) and/or `modifiers/` (data transforms)
+6. Document the workflow in the blueprint README
 
 ### Using Utilities
 
