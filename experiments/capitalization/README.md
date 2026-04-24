@@ -28,52 +28,29 @@ By default, fine-tuning uses `chat_completion` which applies HuggingFace chat te
 
 #### Setup
 
-Copy the appropriate config from `templates/finetuning/` and edit it:
+The recommended path is the `design-experiment` skill, which generates `setup_finetune.yaml` and `finetune.slurm` for you. See [ACS_EXAMPLE.md](../../ACS_EXAMPLE.md) for an end-to-end walkthrough of the design → scaffold → run workflow on a similar task.
 
+If you'd rather write the config by hand, create `setup_finetune.yaml` in your run directory with at least:
+
+```yaml
+my_wandb_project: capitalization
+my_wandb_run_name: <unique-run-name>
+input_dir_base: /path/to/cruijff_kit/data/green/capitalization/
+dataset_label: words_5L_80P_1000
+dataset_ext: '.json'
+torchtune_model_name: Llama-3.2-1B-Instruct
+prompt: "Capitalize the given word: {input}\n"
+batch_size: 1
+epochs: 1
+custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable
 ```
-cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml
-```
 
-Then edit `setup_finetune.yaml` with the following changes:
-
-- Change the run name to something unique (datestamp? number your system prompts?)
-- Change input_dir_base to match where you cloned the repo
-- Match your data format
-  - For this example, make sure dataset_label (the filename without ".json") and dataset_ext (".json") match what you generated in Part 1
-- Edit the `prompt` template if needed (e.g., `"Capitalize the given word: {input}\n"`)
-  - Note: Use a colon separator rather than newline between instruction and input for best results
-
-Then run
+Use a colon separator (not a newline) between instruction and input for best results. Then run:
 
 ```
 python ../../tools/torchtune/setup_finetune.py
-```
-
-Finally, run
-
-```
 sbatch finetune.slurm
 ```
-
-#### Alternative: Using Parquet Format
-
-**Note:** Parquet format requires `dataset_type: instruct_dataset` (legacy mode) because `chat_completion` only supports JSON files.
-
-Overwrite the default config with the Parquet example:
-
-```
-cp templates/finetuning/setup_finetune_parquet.yaml setup_finetune.yaml
-```
-
-Edit `setup_finetune.yaml` with the following changes:
-
-- Change the run name to something unique (datestamp? number your system prompts?)
-- Change input_dir_base to match where you cloned the repo
-- Make sure dataset_filename matches the dataset folder you just created
-  - The dataset_label should be the parquet folder and dataset_ext should be ".parquet"
-- Change system_prompt if necessary
-
-Then run `python ../../tools/torchtune/setup_finetune.py` and `sbatch finetune.slurm` as above.
 
 ### (Optional) Part 3 - Upload to Weights & Biases
 
