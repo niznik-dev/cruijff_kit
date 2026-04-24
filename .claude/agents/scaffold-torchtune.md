@@ -172,19 +172,40 @@ Parse this into two components for setup_finetune.yaml:
 
 For each run, create a `setup_finetune.yaml` file by:
 
-1. **Determine dataset extension** based on format:
-   - Check `data.training.format` in experiment_summary.yaml
-   - If `json` → `dataset_ext: '.json'`
-   - If `parquet` → `dataset_ext: '/'`
+1. **Determine dataset path** — check the run in this order:
 
-2. **Extract dataset information from experiment_summary.yaml:**
-   - Dataset path from `data.training.path`
-   - Extract `dataset_label` from `data.training.label`
-   - Dataset format from `data.training.format`
-   - Convert format to extension: `json` → `.json`, `parquet` → `/`
-   - Dataset location: use parent directory of dataset path as `input_dir_base`, set `input_formatting: ''` (empty string)
+   **If `run.training_condition` is set** (generated-text experiments):
+   - The run names a condition in `data.data_generation.conditions`.
+   - Compute the canonical path with the shared resolver:
+     ```python
+     from tabular_to_text_gen.lib.config_hash import resolve_dataset_path
+     path = resolve_dataset_path(
+         experiment["data"]["data_generation"],
+         run["training_condition"],
+         "train",
+         f"{scratch_dir}/ck-data/generated",   # same directory convert.py writes to
+     )
+     ```
+   - This returns `{scratch_dir}/ck-data/generated/{condition}_train_{hash8}.json` — the exact file convert.py produces for the same `data_generation` block.
+   - Extract `dataset_label` from the filename stem, `dataset_ext` from the extension, and `input_dir_base` from the parent directory as for the literal-path case below.
+   - Set `input_formatting: ''`.
+   - Log the resolved path into `logs/scaffold-torchtune.log` so the audit trail captures exactly which file backed this run.
 
-3. **Populate template with run-specific values:**
+   **Else if `run.dataset_path` (or `run.parameters.dataset_path`) is set** (literal-path escape hatch for legacy / externally produced files):
+   - Use the literal path verbatim; do not resolve.
+   - Extract `dataset_label` from the filename stem.
+   - Extract `dataset_ext` from the file extension (e.g., `.json`).
+   - Extract `input_dir_base` from the parent directory.
+   - Set `input_formatting: ''`.
+
+   **Else** (standard single-file experiments):
+   - Use `data.training.path` from experiment_summary.yaml.
+   - Extract `dataset_label` from `data.training.label`.
+   - Determine `dataset_ext` from `data.training.format`: `json` → `.json`, `parquet` → `/`.
+   - Extract `input_dir_base` from parent directory of dataset path.
+   - Set `input_formatting: ''`.
+
+2. **Populate template with run-specific values:**
 
 ```yaml
 # Run identification
@@ -192,12 +213,12 @@ my_wandb_project: {from claude.local.md, or use experiment-level project name}
 my_wandb_run_name: {directory_name, e.g., "rank8_lr1e-5"}
 
 # Directory Configuration (for dataset path construction)
-input_dir_base: {parent directory of data.training.path}
+input_dir_base: {parent directory of resolved dataset path}
 input_formatting: ''  # Usually empty string
 
 # Dataset Configuration
-dataset_label: {from data.training.label, e.g., "words_4L_80P_300"}
-dataset_ext: {from data.training.format, convert: "json" → ".json", "parquet" → "/"}
+dataset_label: {resolved dataset label}
+dataset_ext: {resolved extension, e.g., ".json"}
 
 # Model Configuration
 torchtune_model_name: {from models.base[0].name, e.g., "Llama-3.2-1B-Instruct"}
@@ -270,10 +291,14 @@ For each run directory:
 
    Instead, use `bash -c` with a single compound command:
    ```bash
-   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train}"
+   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/tools/torchtune/setup_finetune.py --training_samples {training_samples}"
    ```
 
-   The `--training_samples` flag enables the training step guard, which computes total training steps and warns if they are dangerously low (e.g., warmup never completes, or fewer than 50 steps total). The value comes from `data.training.splits.train` in experiment_summary.yaml.
+   The `--training_samples` flag enables the training step guard, which computes total training steps and warns if they are dangerously low (e.g., warmup never completes, or fewer than 50 steps total).
+
+   **Determining training_samples:**
+   - **Standard experiments:** Use `data.training.splits.train` from experiment_summary.yaml
+   - **Per-run dataset override**: Read the `.meta.json` sidecar file alongside the dataset to get `row_count`. The sidecar path is the dataset path with `.json` replaced by `.meta.json` (e.g., `dict_full_train_a1b2c3d4.meta.json`). If the sidecar does not exist, omit the `--training_samples` flag (the step guard will be skipped).
 
    **Example:**
    ```bash

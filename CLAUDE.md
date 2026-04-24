@@ -63,6 +63,7 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 
 ### Primary Workflows
 - **design-experiment** ✅ - Plan a series of runs that collectively make up an experiment
+- **convert-tabular-to-text** ✅ - Convert tabular data to text representations for LLM experiments (use after design, before scaffold)
 - **scaffold-experiment** ✅ - Create organized directory structures, configs, and SLURM scripts for all runs
 - **run-experiment** ✅ - Submit jobs to SLURM and monitor their progress until completion
 - **summarize-experiment** ✅ - Generate summary.md with key metrics (loss, accuracy) after experiment completion
@@ -74,6 +75,7 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 - **check-release** ✅ - Weekly release check: review changes since last tag, draft changelog, optionally cut a new release
 - **create-meeting-agenda** ✅ - Create weekly software meeting agenda in the wiki repo
 - **create-inspect-task** ✅ - Create custom inspect-ai evaluation tasks with guided workflow (supports experiment-guided and standalone modes)
+- **create-tabular-schema** ✅ - Create schema YAML for tabular source data (columns, types, value maps). Use before design-experiment.
 
 **Note**: All skills are optional convenience tools. Users can perform the same operations manually by running the underlying Python scripts and shell commands directly.
 

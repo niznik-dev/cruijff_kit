@@ -7,6 +7,8 @@ docs/
 *.pyc
 __pycache__/
 cruijff_kit.egg-info/
+build/
+dist/
 catboost_info/
 
 # Testing and coverage

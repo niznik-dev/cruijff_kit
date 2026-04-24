@@ -1,0 +1,7 @@
+# Core dependencies
+pandas
+pyyaml
+jinja2
+
+# Optional: LLM narrative mode (--template llm_narrative)
+# anthropic

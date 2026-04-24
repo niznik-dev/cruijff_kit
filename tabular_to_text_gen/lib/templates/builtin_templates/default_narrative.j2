@@ -1,0 +1,12 @@
+{# default_narrative.j2 — Generic narrative template for any dataset.
+
+   Receives a list of features, each with: field, display_name, value, type, unit.
+   Produces one sentence per feature with natural phrasing.
+   Segments are separated by ||| delimiters.
+#}
+{% for feat in features -%}
+{% if loop.first -%}
+The respondent's {{ feat.display_name }} is {{ feat.value }}.
+{%- else %} ||| Their {{ feat.display_name }} is {{ feat.value }}.
+{%- endif %}
+{%- endfor %}
