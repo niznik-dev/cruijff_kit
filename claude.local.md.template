@@ -95,8 +95,7 @@ gh project item-add 3 --owner niznik-dev --url https://github.com/niznik-dev/cru
 - **Projects**: `/scratch/gpfs/<group>/<username>/ck-projects/` — unified scratch root; each experiment lives at `ck-projects/<project>/<experiment_name>/` with its run subdirs, configs, checkpoints, logs, and eval outputs all nested inside
 
 ### Data
-- **Input data**: `/scratch/gpfs/<group>/<username>/data/`
-- **Task-specific data**: `<path_to_task_data>`
+- **`{ck_data_dir}`**: `/scratch/gpfs/<group>/<username>/ck-data/` — input datasets organized as `{ck_data_dir}/{project}/`. Skill docs and configs reference paths relative to this root. Datasets are user-provisioned and not version-controlled in the repo.
 
 ## Quick Commands
 
