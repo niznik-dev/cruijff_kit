@@ -182,7 +182,7 @@ Verify detailed execution log exists.
 
 ## Logging
 
-Create detailed log at `{experiment_dir}/logs/run-inspect.log` (or similar name based on module invocation).
+Create detailed log at `{experiment_dir}/logs/run-inspect.log`.
 
 **Log entries:**
 ```

@@ -80,10 +80,11 @@ tools:
 
 ## Logging
 
-Execution is logged in tool-specific log files (see logging.md for details).
+Execution is logged in three files (see logging.md for details).
 All logs live under the `logs/` subdirectory per the canonical artifact layout:
-- `{experiment_dir}/logs/run-torchtune.log` - Fine-tuning execution
-- `{experiment_dir}/logs/run-inspect.log` - Evaluation execution
+- `{experiment_dir}/logs/run-experiment.log` - Orchestration log (high-level flow, kept short)
+- `{experiment_dir}/logs/run-torchtune.log` - Fine-tuning execution (detailed)
+- `{experiment_dir}/logs/run-inspect.log` - Evaluation execution (detailed)
 
 **Log format:**
 ```
@@ -106,8 +107,9 @@ Result: {outcome}
 After successful execution:
 
 **Logs created** (in `{experiment_dir}/logs/`):
-- `run-torchtune.log` - Fine-tuning execution log
-- `run-inspect.log` - Evaluation execution log
+- `run-experiment.log` - Orchestration log (high-level flow, kept short)
+- `run-torchtune.log` - Fine-tuning execution log (detailed)
+- `run-inspect.log` - Evaluation execution log (detailed)
 
 **Status updated:**
 - Run tracking logs updated with job IDs, timestamps, states
