@@ -73,6 +73,13 @@ Extract the following information from the YAML structure:
    - `evaluation.tasks[]` - List of evaluation tasks
    - `evaluation.matrix[]` - Which runs evaluate on which tasks/epochs
 
+7. **Compute estimates (optional):**
+   - `evaluation.compute.time` - Estimated SLURM time limit for eval jobs
+   - `evaluation.compute.gpus` - Number of GPUs
+   - `evaluation.compute.mem` - Memory allocation
+   - If `evaluation.compute` is present, use these values instead of asking the user for eval time
+   - If absent, fall back to current behavior (ask user for eval time limit)
+
 #### Parsing Evaluation Tasks
 
 From `evaluation.tasks[]` in YAML:
@@ -302,6 +309,18 @@ python tools/inspect/setup_inspect.py \
   --config eval_config.yaml \
   --model_name "Llama-3.2-1B-Instruct" \
   --time "0:10:00" \
+  --account "msalganik" \
+  --conda_env "cruijff"
+```
+
+**With compute estimates** (when `evaluation.compute` block exists in experiment_summary.yaml):
+```bash
+cd {run_dir}/eval
+python tools/inspect/setup_inspect.py \
+  --config eval_config.yaml \
+  --model_name "Llama-3.2-1B-Instruct" \
+  --time "0:05:00" \
+  --mem "80G" \
   --account "msalganik" \
   --conda_env "cruijff"
 ```

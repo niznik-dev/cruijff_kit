@@ -1,6 +1,6 @@
 # Logging - run-experiment
 
-**See [shared/logging_spec.md](../../shared/logging_spec.md) for complete format specification and general logging guidelines.**
+**See [shared/logging_spec.md](../shared/logging_spec.md) for complete format specification and general logging guidelines.**
 
 This document covers run-experiment-specific logging practices.
 
@@ -109,11 +109,13 @@ Result: 4 runs configured
 
 [2025-11-11 11:00:05] SUBMIT_JOB: r8_lr1e-5
 Details: sbatch finetune.slurm
-Result: Job ID 1234567
+Job ID: 1234567
+Result: success
 
 [2025-11-11 11:00:10] SUBMIT_JOB: r8_lr5e-5
 Details: sbatch finetune.slurm (5-second stagger)
-Result: Job ID 1234568
+Job ID: 1234568
+Result: success
 
 [2025-11-11 11:02:00] STATE_CHANGE: r8_lr1e-5
 Details: PENDING → RUNNING
@@ -138,7 +140,8 @@ Result: All 8 checkpoints exist
 
 [2025-11-11 12:00:05] SUBMIT_EVAL: r8_lr1e-5/capitalization/epoch0
 Details: sbatch capitalization_epoch0.slurm
-Result: Job ID 2345678
+Job ID: 2345678
+Result: success
 
 [2025-11-11 12:05:00] STATE_CHANGE: r8_lr1e-5/capitalization/epoch0
 Details: RUNNING → COMPLETED

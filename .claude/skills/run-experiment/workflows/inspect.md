@@ -184,8 +184,15 @@ Verify detailed execution log exists.
 
 Create detailed log at `{experiment_dir}/logs/run-inspect.log` (or similar name based on module invocation).
 
+See [logging.md](../logging.md) for detailed run-experiment log specifications.
+
 **Log entries:**
 ```
+[YYYY-MM-DD HH:MM:SS] SUBMIT_EVAL: {run}/{task}/epoch{N}
+Details: sbatch {task}_epoch{N}.slurm
+Job ID: {slurm_job_id}
+Result: success
+
 [YYYY-MM-DD HH:MM:SS] DISCOVER_EXPERIMENT
 [YYYY-MM-DD HH:MM:SS] VERIFY_FINETUNING
 [YYYY-MM-DD HH:MM:SS] VERIFY_CHECKPOINTS

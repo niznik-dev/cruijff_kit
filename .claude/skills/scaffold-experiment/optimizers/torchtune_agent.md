@@ -32,6 +32,7 @@ Your tasks:
 4. For ONLY the fine-tuned runs (skip control/base model runs):
    - Create run directory based on run name in experiment_summary.yaml
    - Generate setup_finetune.yaml from appropriate template
+   - If runs[].compute block exists, include time/gpus/mem in setup_finetune.yaml and pass as --time/--gpus/--mem CLI args to setup_finetune.py
    - Execute setup_finetune.py to generate finetune.yaml and finetune.slurm
    - Verify outputs were created successfully
 5. For control/base model runs: Create ONLY the run directory (no training configs needed)

@@ -383,7 +383,10 @@ After generating visualizations and before the report, optionally add compute me
 
 **Workflow:**
 
-1. Extract job IDs from `run-torchtune.log` and `run-inspect.log` (regex: `SUBMIT_JOB|SUBMIT_EVAL` → Job ID)
+1. Extract job IDs from `run-torchtune.log` and `run-inspect.log`. The log format places `Job ID:` on its own line after the SUBMIT action (see `run-experiment/logging.md`). Use these regexes:
+   - Fine-tuning: `r'SUBMIT_JOB: ([\w.-]+)\n.*?\nJob ID: (\d+)'` → captures (run_name, job_id)
+   - Evaluation: `r'SUBMIT_EVAL: ([\w./-]+)\n.*?\nJob ID: (\d+)'` → captures (run/task/epoch, job_id)
+   - Both require `re.DOTALL` or explicit `\n` matching since the job ID is on a separate line from the action type.
 2. Check if jobstats is available with `check_jobstats_available()`
 3. For each job:
    a. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
@@ -396,7 +399,17 @@ After generating visualizations and before the report, optionally add compute me
    - **GPU utilization**: dual-source — set `gpu_util_jobstats_pct` from `parse_jobstats_json()["gpu_util_pct"]` (Prometheus average), and `gpu_util_min`/`gpu_util_max` from `summarize_gpu_metrics()` (nvidia-smi range). `format_compute_table` renders this as `avg% (min–max%)` when both are present.
    - **GPU memory / power**: from nvidia-smi CSV (`gpu_mem_used_mean_gb`, `gpu_mem_total_gb`, `power_mean_w`)
 5. Format with `format_compute_table(jobs, recommendations=recs)` → markdown table with optional recommendations
-6. Save raw metrics to `{output_dir}/compute_metrics.json`
+6. Build and save compute_metrics.json using `compute_summary.py`:
+   ```python
+   from tools.slurm.compute_summary import build_summary, save_summary
+
+   summary = build_summary(
+       jobs=jobs,  # list of job metric dicts from steps 3-4
+       experiment_summary_path=os.path.join(experiment_dir, "experiment_summary.yaml"),
+   )
+   save_summary(summary, os.path.join(experiment_dir, "analysis", "compute_metrics.json"))
+   ```
+   `build_summary()` reads `experiment_summary.yaml` to extract metadata (model, dataset_size, epochs, batch_size, date) and wraps the job list in the summary format. `save_summary()` writes the JSON file.
 7. Pass `compute_section=` to `generate_report()` (inserted after Analysis & Interpretation)
 
 **Key functions** from `tools.slurm.compute_metrics`:

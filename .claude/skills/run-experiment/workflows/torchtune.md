@@ -123,8 +123,15 @@ Verify detailed execution log exists.
 
 Create detailed log at `{experiment_dir}/logs/run-torchtune.log` (or similar name based on module invocation).
 
+See [logging.md](../logging.md) for detailed run-experiment log specifications.
+
 **Log entries:**
 ```
+[YYYY-MM-DD HH:MM:SS] SUBMIT_JOB: {run_name}
+Details: sbatch finetune.slurm
+Job ID: {slurm_job_id}
+Result: success
+
 [YYYY-MM-DD HH:MM:SS] DISCOVER_EXPERIMENT
 [YYYY-MM-DD HH:MM:SS] IDENTIFY_RUNS
 [YYYY-MM-DD HH:MM:SS] SUBMIT_JOB: {run_name}
