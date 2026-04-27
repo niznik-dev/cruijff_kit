@@ -96,7 +96,7 @@ Would you like me to proceed with scaffolding? I can run `scaffold-experiment` t
 - Run `run-experiment` skill to execute:
   - Fine-tuning via `run-torchtune` (submit jobs, monitor progress)
   - Evaluation via `run-inspect` (submit jobs after training completes, monitor progress)
-- Run `analyze-experiment` skill to interpret results (planned)
+- Run `analyze-experiment` skill to interpret results
 
 **Manual workflow (if needed):**
 - User can manually create directories and configs

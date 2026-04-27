@@ -113,7 +113,7 @@ Output structure reference:
 **Downstream:**
 - `scaffold-experiment` reads experiment_summary.yaml to generate configs
 - `run-experiment` reads experiment_summary.yaml to track progress
-- `analyze-experiment` (planned) reads experiment_summary.yaml to interpret results
+- `analyze-experiment` reads experiment_summary.yaml to interpret results
 
 ## Module Guidelines
 

@@ -135,17 +135,17 @@ If the user chooses `context_placement: system_prompt`, the data_generation cont
 
 ### Workflow Architecture
 
-The experiment workflow uses an **orchestrator → worker** pattern:
+The experiment workflow uses two architectural patterns:
 
-- **Scaffolding (current):** `scaffold-experiment` reads experiment_summary.yaml and launches:
+- **Scaffolding** (orchestrator → worker subagents): `scaffold-experiment` reads experiment_summary.yaml and launches:
   - `scaffold-torchtune` agent → generates torchtune configs
   - `scaffold-inspect` agent → generates inspect-ai configs
 
-- **Execution (planned):** `run-experiment` will launch:
-  - `run-torchtune` agent → submit and monitor fine-tuning jobs
-  - `run-inspect` agent → submit and monitor evaluation jobs (after training)
+- **Execution** (orchestrator → modules in main conversation): `run-experiment` reads experiment_summary.yaml and dispatches to tool-specific modules (no subagent delegation):
+  - `optimizers/torchtune/` modules → submit and monitor fine-tuning jobs
+  - `evaluators/inspect/` modules → submit and monitor evaluation jobs (after training)
 
-**Why document tools:** Orchestrators use tool specifications to route to the correct worker agents. This architecture enables future support for multiple tool options (e.g., axolotl, lm-eval-harness).
+**Why document tools:** Orchestrators use tool specifications to route to the correct worker (whether subagent or module). This architecture enables future support for multiple tool options (e.g., axolotl, lm-eval-harness).
 
 **Note:** While these are currently the only options, explicitly confirming and documenting tool choices now will make it easier to support multiple tools in future iterations. These will be documented in the `tools` section of experiment_summary.yaml.
 

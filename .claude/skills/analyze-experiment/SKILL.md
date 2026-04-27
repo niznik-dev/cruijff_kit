@@ -130,7 +130,7 @@ If run logs exist (`logs/run-torchtune.log` and/or `logs/run-inspect.log`), gene
 Document process in `{experiment_dir}/logs/analyze-experiment.log`
 
 **See `logging.md` for:**
-- JSONL format specification
+- Plain text format specification
 - Action types (LOCATE, PARSE, LOAD, INFER, GENERATE)
 - Example log entries
 
@@ -333,7 +333,7 @@ design-experiment → scaffold-experiment → run-experiment → analyze-experim
 | parsing.md | Experiment location and YAML parsing |
 | data_loading.md | Helper functions for loading logs |
 | generation.md | Plot creation workflow |
-| logging.md | JSONL audit trail specification |
+| logging.md | Plain text audit trail specification |
 
 ## Implementation Reference
 

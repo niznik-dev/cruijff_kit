@@ -1,6 +1,6 @@
 # Logging - design-experiment
 
-**See [shared/logging_spec.md](../../shared/logging_spec.md) for complete format specification and general logging guidelines.**
+**See [shared/logging_spec.md](../shared/logging_spec.md) for complete format specification and general logging guidelines.**
 
 This document covers design-experiment-specific logging practices.
 

@@ -16,7 +16,7 @@ The generation workflow:
 import os
 from inspect_viz import Data
 from inspect_viz.plot import write_html
-from inspect_viz.view.beta import (
+from inspect_viz.view import (
     scores_by_task,
     scores_heatmap,
     scores_radar_by_task,
@@ -43,7 +43,7 @@ data = Data.from_dataframe(viz_df)
 **Before using these functions**, run `help()` to verify the API hasn't changed:
 
 ```python
-from inspect_viz.view.beta import scores_by_task
+from inspect_viz.view import scores_by_task
 help(scores_by_task)
 ```
 
