@@ -420,7 +420,7 @@ inspect eval task.py -T param_name=value
 - Recommended for most cases
 
 **Option 2: Integration with fine-tuning config (legacy)**
-- Like existing `cap_task` example
+- Like existing `inspect_task` example
 - Reads from `setup_finetune.yaml` at runtime via `config_dir` parameter
 - Note: scaffold-inspect now bakes values into SLURM instead of using this pattern
 

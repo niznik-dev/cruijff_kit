@@ -161,7 +161,7 @@ The experiment workflow uses an **orchestrator → worker** pattern:
 - Training dataset location and format
 - Required splits: train, validation (optional), test (optional)
 
-**Note:** If the dataset needs to be created, check `experiments/{task}/README.md` for:
+**Note:** If the dataset needs to be created, check `projects/{project}/README.md` for:
 - Dataset naming conventions (e.g., parameter-based filenames)
 - Preprocessing script details and usage
 - Expected output formats and locations
@@ -362,8 +362,8 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 **Model:** Suggest downloading with appropriate tool
 
 **Dataset:**
-1. **Check for existing preprocessing scripts:** Look in `experiments/{task}/` for scripts like `preprocess_*.py`
-2. **Consult task README:** Check `experiments/{task}/README.md` for dataset creation instructions
+1. **Check for existing preprocessing scripts:** Look in `projects/{project}/` for scripts like `preprocess_*.py`
+2. **Consult task README:** Check `projects/{project}/README.md` for dataset creation instructions
 3. **Use the proper tool:** Run the task-specific preprocessing script with appropriate parameters
 4. **Model-organism sanity checks:** Declare in `data.data_generation` with `tool: model_organism` instead (see `references/model_organisms.md`); scaffold will generate the file before subagents run.
 5. **DON'T:** Write ad-hoc Python code or copy dataset creation code from previous experiments

@@ -64,7 +64,7 @@ Created during analysis to record data loading, visualization selection, and gen
 
 ```
 [2026-01-29 14:00:00] LOCATE_EXPERIMENT
-Details: Found experiment at /scratch/experiments/acs_income_balanced_2026-01-29
+Details: Found experiment at /scratch/.../ck-projects/folktexts/acs_income_balanced_2026-01-29
 Result: experiment_summary.yaml exists
 
 [2026-01-29 14:00:01] PARSE_CONFIG
