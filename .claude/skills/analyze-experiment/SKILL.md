@@ -324,7 +324,6 @@ design-experiment → scaffold-experiment → run-experiment → analyze-experim
 - HTML files are standalone (no external dependencies to view)
 - PNG files require playwright (skipped with warning if not installed)
 - Uses helper functions from `src/tools/inspect/viz_helpers.py`
-- Reference examples in `viz_examples/scripts/inspect_viz_examples.ipynb`
 
 ## Module Organization
 
@@ -337,6 +336,4 @@ design-experiment → scaffold-experiment → run-experiment → analyze-experim
 
 ## Implementation Reference
 
-Working examples exist in `viz_examples/scripts/inspect_viz_examples.ipynb` demonstrating all supported pre-built views.
-
-Helper functions are implemented in `src/tools/inspect/viz_helpers.py`.
+Helper functions are implemented in `src/tools/inspect/viz_helpers.py`. Live usage is shown inline throughout `generation.md`.
