@@ -90,7 +90,7 @@ Helper skill (akin to create-inspect-task): 7 step workflow to create the schema
     - Editing the skeleton schema with user requests
         - Suggesting options for perturbations rephrasing that can be reviewed by the user
     - Validating the YAML syntax and content of the file with the user before finalizing the file
-    - Writing the final schema to `ck-data/schemas/` in the user's scratch directory
+    - Writing the final schema to `{ck_data_dir}/schemas/` in the user's scratch directory
 - **User responsible for:**
     - Specifying the desired columns for the schema (AKA any potential target or covariate in the model)
     - Providing a codebook/reference for categorical variables / values not encoded in natural language
@@ -108,7 +108,7 @@ Specifies the dataset generation process for experiments utilizing raw tabular d
 - **Claude responsible for:**
     - Determining whether the user has the necessary dataset already or whether it needs to be generated
     - Guiding the user through all relevant selections in the `data_generation` block of the `experiment_summary.yaml`
-        - Each parameter is described in `references/data_generation.md`
+        - Each parameter is described in the design-experiment skill's `references/tabular_to_text_gen.md`
     - If varying datasets across runs (e.g., investigating consequences of a perturbation), adding dataset paths to the `runs` block of the `experiment_summary.yaml`
 - **User responsible for:**
     - Providing the raw dataset and a schema.yaml file (created by the create-tabular-schema skill)
@@ -134,7 +134,7 @@ Using a dataset schema, generates text-based .json training/evaluation datasets 
 
 - Generates a Jinja2 template with the features of the tabular dataset using any style recommendations from the user
     - Exists as a subagent with its own context window, so it does not interact with the user. Rather, it will generate the first pass, then the main agent will ask the user to validate the output + make any adjustments.
-- Outputs the generated template in ck-data/templates/ for the user to reuse on same dataset in future
+- Outputs the generated template in `{ck_data_dir}/templates/` for the user to reuse on same dataset in future
 
 ## The text-gen Python Module
 
@@ -162,4 +162,4 @@ Using a dataset schema, generates text-based .json training/evaluation datasets 
 
 **segments.py**: Takes the final, templated, perturbed list of segments and writes them into a final textual representation for each row; does not add context appended to the front/back of the prompt
 
-**output.py**: Writes out the final train/validation/test dataset splits in a .json format in user's /ck-data/generated/ folder. Alongside the data, it creates a .meta.json sidecar file with relevant information about (1) configuration for how the data was generated (path to source tabular dataset, selected features, any relevant perturbations), (2) the prompt structure (whether the context is appended to the front of each row or as a system prompt), and (3) metadata (row count, file size). This allows the dataset to be reused across runs and understood by experiment_summary.yaml / analyze-experiment.
+**output.py**: Writes out the final train/validation/test dataset splits in a .json format in the user's `{ck_data_dir}/generated/` folder. Alongside the data, it creates a .meta.json sidecar file with relevant information about (1) configuration for how the data was generated (path to source tabular dataset, selected features, any relevant perturbations), (2) the prompt structure (whether the context is appended to the front of each row or as a system prompt), and (3) metadata (row count, file size). This allows the dataset to be reused across runs and understood by experiment_summary.yaml / analyze-experiment.

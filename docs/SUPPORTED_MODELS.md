@@ -29,7 +29,7 @@ To add support for a new model, add an entry to the `MODEL_CONFIGS` dictionary i
 1. A torchtune model component (e.g., `torchtune.models.llama3_2.lora_llama3_2_1b`)
 2. Checkpoint file layout (single file or multi-file pattern)
 3. Dataset type (`text_completion` for base, `chat_completion` for instruct)
-4. Tokenizer configuration with a supported `model_family` (`llama` or `qwen`)
+4. Tokenizer configuration with a supported `model_family` (`llama`, `mistral`, or `qwen`)
 5. SLURM resource requirements (memory, GPUs, CPUs, partition/constraint)
 
 If the new model uses a tokenizer format not yet supported, also add a handler in `configure_tokenizer()` and update `SUPPORTED_MODEL_FAMILIES`.

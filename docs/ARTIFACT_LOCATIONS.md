@@ -15,6 +15,7 @@ Each experiment lives in a single directory. The root contains the experiment pl
 │   ├── scaffold-experiment.log
 │   ├── scaffold-torchtune.log
 │   ├── scaffold-inspect.log
+│   ├── run-experiment.log
 │   ├── run-torchtune.log
 │   ├── run-inspect.log
 │   ├── analyze-experiment.log
