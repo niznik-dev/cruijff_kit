@@ -339,7 +339,7 @@ Use Claude Code skills to automate multi-run experiments. Skills generate all co
 2. **Scaffold:** Use `scaffold-experiment` skill to generate all run directories and configs
 3. **Execute:** Use `run-experiment` skill to run fine-tuning and evaluation
 4. **Summarize:** Use `summarize-experiment` skill to generate results summary
-5. **Analyze:** (Planned) Use `analyze-experiment` skill for detailed analysis and comparison
+5. **Analyze:** Use `analyze-experiment` skill for detailed analysis and comparison
 
 **Benefits:**
 - Automated setup for multi-run experiments

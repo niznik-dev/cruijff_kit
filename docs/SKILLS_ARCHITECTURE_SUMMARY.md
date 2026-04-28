@@ -25,7 +25,7 @@ Workflow Stages:
 └──────┬──────┘
        │
 ┌──────▼──────┐
-│   ANALYZE   │  analyze-experiment (planned)
+│   ANALYZE   │  analyze-experiment
 └─────────────┘
 ```
 
@@ -53,8 +53,9 @@ Skills that coordinate other skills and track high-level workflow:
    - Status: ✅ Updated
 
 4. **analyze-experiment**
-   - Future: Analyzes results, generates reports
-   - Status: 📋 Planned (placeholder created)
+   - Reads evaluation logs, generates HTML plots and `report.md` with metrics
+   - Optional PNG export via playwright; calibration/ROC plots when `risk_scorer` is used
+   - Status: ✅ Implemented
 
 ### Modular Skills
 Skills with internal modular architecture:
@@ -148,7 +149,7 @@ Three levels of logs:
 design-experiment documents which tools are used:
 - **torchtune**: Fine-tuning (used by scaffold-experiment/optimizers, run-torchtune)
 - **inspect-ai**: Evaluation (used by scaffold-experiment/evaluators, run-inspect)
-- **analyze (future)**: Analysis (used by analyze-experiment)
+- **analyze**: Analysis (used by analyze-experiment)
 
 ## File Structure After Scaffolding
 
@@ -195,7 +196,7 @@ experiment_name/
 # 3. Execute everything
 # Run run-experiment skill
 
-# 4. Analyze results (future)
+# 4. Analyze results
 # Run analyze-experiment skill
 ```
 
@@ -218,7 +219,7 @@ experiment_name/
 #     → Verifies checkpoints exist
 #     → Submits inspect.slurm jobs, monitors until complete
 
-# analyze-experiment (future)
+# analyze-experiment
 #   → Reads SLURM logs, inspect-ai logs
 #   → Generates comparison tables, plots, reports
 ```
