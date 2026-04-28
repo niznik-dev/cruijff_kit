@@ -27,7 +27,7 @@ Run through this checklist before presenting the plan:
 ### Training Steps Validation
 - ✓ Compute: `steps_per_epoch = ceil(training_samples / (batch_size * gradient_accumulation_steps))`
 - ✓ Compute: `total_steps = steps_per_epoch * epochs`
-- ✓ Warn if `total_steps < num_warmup_steps` (warmup never completes)
+- ✓ Warn if `total_steps < 3 * num_warmup_steps` (most of training spent in LR warmup; matches setup_finetune.py's scaffold-time check)
 - ✓ Warn if `total_steps < 50` (too few steps for meaningful training)
 - ✓ If either warning triggers, flag for user and suggest reducing batch size/gradient accumulation or increasing epochs
 
