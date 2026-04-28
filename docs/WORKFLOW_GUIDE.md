@@ -1,12 +1,12 @@
 # Workflow Guide
 
-This guide covers manual workflows for users who prefer direct control or don't have access to [Claude Code](https://docs.anthropic.com/en/docs/claude-code). If you do have Claude Code, the skills-based workflow described in the [README](README.md#running-experiments) is the recommended approach.
+This guide covers manual workflows for users who prefer direct control or don't have access to [Claude Code](https://docs.anthropic.com/en/docs/claude-code). If you do have Claude Code, the skills-based workflow described in the [README](../README.md#running-experiments) is the recommended approach.
 
 ## Formatting Input Files to JSON
 
 ### Capitalization Experiment
 
-For full instructions, see the [capitalization experiment README](blueprints/capitalization/README.md).
+For full instructions, see the [capitalization experiment README](../blueprints/capitalization/README.md).
 
 ### Twin Dataset
 

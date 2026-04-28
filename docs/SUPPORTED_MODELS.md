@@ -1,6 +1,6 @@
 # Supported Models
 
-This page lists all models currently supported by cruijff_kit. The canonical source of truth is [`src/tools/torchtune/model_configs.py`](src/tools/torchtune/model_configs.py), which contains the `MODEL_CONFIGS` dictionary with tokenizer settings, checkpoint layouts, and SLURM resource requirements for each model.
+This page lists all models currently supported by cruijff_kit. The canonical source of truth is [`src/tools/torchtune/model_configs.py`](../src/tools/torchtune/model_configs.py), which contains the `MODEL_CONFIGS` dictionary with tokenizer settings, checkpoint layouts, and SLURM resource requirements for each model.
 
 ## Model Table
 
@@ -24,7 +24,7 @@ This page lists all models currently supported by cruijff_kit. The canonical sou
 
 ## Adding a New Model
 
-To add support for a new model, add an entry to the `MODEL_CONFIGS` dictionary in [`src/tools/torchtune/model_configs.py`](src/tools/torchtune/model_configs.py). Each entry requires:
+To add support for a new model, add an entry to the `MODEL_CONFIGS` dictionary in [`src/tools/torchtune/model_configs.py`](../src/tools/torchtune/model_configs.py). Each entry requires:
 
 1. A torchtune model component (e.g., `torchtune.models.llama3_2.lora_llama3_2_1b`)
 2. Checkpoint file layout (single file or multi-file pattern)

@@ -8,7 +8,7 @@ This example builds on the tabular to semantic mapping of ACS data found in [fol
 
 Before starting, make sure you have:
 
-1. **cruijff_kit installed** - Follow the [Quick Start](README.md#quick-start) in the README
+1. **cruijff_kit installed** - Follow the [Quick Start](../README.md#quick-start) in the README
 2. **`claude.local.md` configured** - Copy the template and fill in your cluster details:
    ```bash
    cp claude.local.md.template claude.local.md
