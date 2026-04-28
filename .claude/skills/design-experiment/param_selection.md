@@ -317,7 +317,7 @@ Help the user choose a descriptive experiment name that includes:
 
 **Example patterns:**
 - `cap_8L_lora_comparison_2025-10-18` (capitalization, varying LoRA rank)
-- `twins_model_sizes_2025-10-22` (synthetic twins, varying model size)
+- `model_organism_majority_2026-04-15` (model_organism, varying input length)
 - `reasoning_ablation_2025-11-01` (reasoning task, ablation study)
 
 ### Run Names

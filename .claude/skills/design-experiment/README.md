@@ -29,9 +29,7 @@ This skill uses **action verbs** consistent with scaffold/run, but simplified be
 - **validation** (same as scaffold/run)
 - **generation** (like scaffold's config_generation)
 
-**Simpler than scaffold/run because:**
-- scaffold/run: 20 files (2 tools × ~7 modules each + shared)
-- design: 7 files (1 workflow, not tool-multiplexed)
+**Simpler than scaffold/run because:** design is a single workflow, while scaffold and run are tool-multiplexed (separate optimizer + evaluator submodules under `optimizers/` and `evaluators/`).
 
 ### Pattern Structure
 
@@ -42,6 +40,10 @@ design-experiment/
 ├── validation.md                   (completeness checklist)
 ├── experiment_generation.md        (create outputs)
 ├── logging.md                      (cross-cutting)
+├── references/                     (deeper-dive docs)
+│   ├── model_organisms.md
+│   ├── scorers.md
+│   └── tabular_to_text_gen.md
 ├── templates/
 │   └── experiment_summary.yaml    (YAML structure)
 └── README.md                       (this file)

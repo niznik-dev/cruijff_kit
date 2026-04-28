@@ -295,9 +295,3 @@ Running summarize-experiment multiple times overwrites summary.md. This is inten
 - **Before:** analyze-experiment
 - **Optional hook:** run-experiment can invoke this at completion
 
-## Future Compatibility
-
-When analyze-experiment is built, summarize-experiment can either:
-- Remain as a quick summary option (text only, no plots)
-- Be deprecated in favor of richer output
-- Become a first stage that analyze-experiment builds upon
