@@ -68,7 +68,7 @@ python heterogeneity_report.py \
 Run as an Inspect AI evaluation task for standardized metrics:
 
 ```bash
-inspect eval tools/inspect/heterogeneity/heterogeneity_eval.py \
+inspect eval src/tools/inspect/heterogeneity/heterogeneity_eval.py \
   -- --input_file results.csv --group_column GROUP
 ```
 
@@ -152,7 +152,7 @@ Identifies specific problematic groups using:
 #    Ensure output CSV has required columns
 
 # 2. Run heterogeneity analysis
-python tools/inspect/heterogeneity/heterogeneity_report.py \
+python src/tools/inspect/heterogeneity/heterogeneity_report.py \
   --input_file predictions.csv \
   --group_column demographic_group \
   --output_dir fairness_analysis

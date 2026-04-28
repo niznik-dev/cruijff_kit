@@ -17,4 +17,4 @@ Instead of running `tune cp` every time you need to check the default parameters
 
 ## Note
 
-These are snapshots for reference only. For actual fine-tuning, use the setup scripts in `tools/torchtune/` which generate customized configs based on your specific needs.
+These are snapshots for reference only. For actual fine-tuning, use the setup scripts in `src/tools/torchtune/` which generate customized configs based on your specific needs.
