@@ -225,12 +225,6 @@ def generate(
     return result
 
 
-def _default_output_dir() -> Path:
-    here = Path(__file__).resolve()
-    repo_root = here.parents[2]
-    return repo_root / "data" / "green" / "model_organisms"
-
-
 def main():
     parser = argparse.ArgumentParser(description="Generate a model-organism dataset.")
     parser.add_argument("--input_type", required=True)
@@ -263,13 +257,13 @@ def main():
     parser.add_argument(
         "--output",
         required=True,
-        help="Output filename (written under data/green/model_organisms/).",
+        help="Output filename (written under --output_dir).",
     )
     parser.add_argument(
         "--output_dir",
         type=Path,
-        default=None,
-        help="Override output directory (default: data/green/model_organisms/).",
+        required=True,
+        help="Output directory (e.g. {ck_data_dir}/model_organisms/).",
     )
     args = parser.parse_args()
 
@@ -300,11 +294,8 @@ def main():
         ood_tests=parsed_ood_tests or None,
     )
 
-    output_dir = (
-        args.output_dir if args.output_dir is not None else _default_output_dir()
-    )
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / args.output
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = args.output_dir / args.output
     with open(output_path, "w") as f:
         json.dump(dataset, f, indent=2)
 

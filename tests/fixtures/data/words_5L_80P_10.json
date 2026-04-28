@@ -1,0 +1,18 @@
+{
+  "train": [
+    {"input": "apple", "output": "Apple"},
+    {"input": "peach", "output": "Peach"},
+    {"input": "lemon", "output": "Lemon"},
+    {"input": "grape", "output": "Grape"},
+    {"input": "melon", "output": "Melon"},
+    {"input": "mango", "output": "Mango"},
+    {"input": "berry", "output": "Berry"},
+    {"input": "plums", "output": "Plums"}
+  ],
+  "validation": [
+    {"input": "olive", "output": "Olive"}
+  ],
+  "test": [
+    {"input": "kiwis", "output": "Kiwis"}
+  ]
+}

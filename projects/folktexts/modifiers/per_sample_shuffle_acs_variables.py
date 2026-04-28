@@ -8,8 +8,8 @@ etc.) regardless of the number of variables.
 
 Usage:
     python projects/folktexts/per_sample_shuffle_acs_variables.py \
-        --input  data/green/acs/acs_income_verbose_50000_80P.json \
-        --output data/green/acs/acs_income_verbose_50000_80P_per_sample_shuffle.json \
+        --input  {ck_data_dir}/folktexts/acs_income_verbose_50000_80P.json \
+        --output {ck_data_dir}/folktexts/acs_income_verbose_50000_80P_per_sample_shuffle.json \
         --seed 42
 """
 

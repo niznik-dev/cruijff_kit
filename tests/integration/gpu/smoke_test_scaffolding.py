@@ -63,7 +63,7 @@ def test_setup_inspect(work_dir: Path):
         "model_path": "/fake/checkpoint/epoch_0",
         "model_hf_name": "hf/smoke_test_epoch_0",
         "output_dir": "/fake/output/",
-        "data_path": "data/green/capitalization/words_5L_80P_1000.json",
+        "data_path": "tests/fixtures/data/words_5L_80P_10.json",
         "vis_label": "smoke_test",
         "use_chat_template": True,
         "epoch": 0,

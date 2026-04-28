@@ -35,8 +35,8 @@ parser.add_argument(
 parser.add_argument(
     "--output_dir",
     type=Path,
-    default=None,
-    help="Output directory (default: data/green/capitalization/)",
+    required=True,
+    help="Output directory (e.g. {ck_data_dir}/capitalization/).",
 )
 parser.add_argument(
     "--input_file",
@@ -60,14 +60,6 @@ TRAIN_CUTOFF_INDEX = int(NUMBER_OF_WORDS * TRAIN_FRACTION)
 VAL_CUTOFF_INDEX = int(NUMBER_OF_WORDS * (TRAIN_FRACTION + (1 - TRAIN_FRACTION) / 2))
 USE_CHAT_TEMPLATE = args.use_chat_template
 
-# Set default output directory relative to repository root
-if args.output_dir is None:
-    # Find repository root (assuming script is in projects/capitalization/)
-    script_dir = Path(__file__).parent
-    repo_root = script_dir.parent.parent
-    args.output_dir = repo_root / "data" / "green" / "capitalization"
-
-# Create output directory if it doesn't exist
 args.output_dir.mkdir(parents=True, exist_ok=True)
 
 # Set default input file if not provided

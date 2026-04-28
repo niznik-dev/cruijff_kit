@@ -12,7 +12,7 @@ Usage:
     python ml_baseline_verbose.py <data_path> --json          # Output JSON summary
 
 Examples:
-    python ml_baseline_verbose.py data/green/acs/acs_income_verbose_1000_80P.json
+    python ml_baseline_verbose.py {ck_data_dir}/folktexts/acs_income_verbose_1000_80P.json
 """
 
 import argparse
