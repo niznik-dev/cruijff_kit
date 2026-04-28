@@ -64,6 +64,7 @@ packages = [
 
 [tool.ruff]
 line-length = 88
+cache-dir = ".cache/ruff"
 # Exclude files derived from external repos (e.g., torchtune) to preserve diffability
 exclude = ["src/tools/torchtune/custom_recipes/", "src/tools/torchtune/datasets/"]
 
@@ -73,3 +74,4 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+cache_dir = ".cache/pytest"

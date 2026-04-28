@@ -74,6 +74,6 @@ format:
 clean:
 	@echo "Removing Python caches, tool caches, and egg-info..."
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
-	rm -rf .ruff_cache .pytest_cache
+	rm -rf .cache .ruff_cache .pytest_cache
 	rm -rf *.egg-info
 	@echo "Clean complete!"

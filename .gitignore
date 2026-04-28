@@ -16,6 +16,9 @@ catboost_info/
 .pytest_cache/
 htmlcov/
 
+# Tool caches (centralized — pyproject.toml routes pytest + ruff here)
+.cache/
+
 # Environment-specific configuration (users should customize from template)
 claude.local.md
 
