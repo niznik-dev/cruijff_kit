@@ -63,7 +63,7 @@ tools:
 - `torchtune` → [optimizers/torchtune/](optimizers/torchtune/)
 - `inspect-ai` → [evaluators/inspect/](evaluators/inspect/)
 
-**If tools section missing:** Assume torchtune + inspect-ai (backward compatibility)
+**If tools section missing:** Error out and ask the user to add a `tools` section to `experiment_summary.yaml` — don't silently assume defaults.
 
 ## Sequential Execution
 
@@ -223,7 +223,7 @@ After completing the experiment, offer to analyze the results:
 ## Important Notes
 
 **Orchestration principles:**
-- This skill orchestrates rather than implements
+- This skill orchestrates by loading tool modules into the main conversation context (no subagent delegation, unlike scaffold-experiment)
 - Each tool module maintains its own detailed log
 - Sequential execution is mandatory (evaluation requires optimization complete)
 - Partial success is acceptable (some runs succeed, others fail)

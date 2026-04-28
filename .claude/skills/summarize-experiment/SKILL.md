@@ -84,7 +84,7 @@ For each COMPLETED evaluation:
 1. Find .eval files: `{run_dir}/eval/logs/*.eval`
 2. For each .eval file, run:
    ```bash
-   python src/tools/inspect/parse_eval_log.py {path}
+   python -m cruijff_kit.tools.inspect.parse_eval_log {path}
    ```
 3. Parse JSON output for accuracy
 4. **Map to epoch using SLURM job names** (see below)
@@ -148,7 +148,7 @@ This approach is reliable because:
 For binary classification tasks (0/1 targets), use `summary_binary.py` to compute additional metrics:
 
 ```bash
-python src/tools/inspect/summary_binary.py {path_to_eval_file} --json
+python -m cruijff_kit.tools.inspect.summary_binary {path_to_eval_file} --json
 ```
 
 **JSON output format:**
