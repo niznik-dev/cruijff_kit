@@ -194,10 +194,13 @@ cruijff_kit is installed as an editable package (`pip install -e .`), making uti
 from cruijff_kit.utils import run_names
 ```
 
-**Packaged modules** (defined in `pyproject.toml`):
+**Selected packaged modules** (full list in `pyproject.toml`):
 - `cruijff_kit.utils` - Shared utilities
 - `cruijff_kit.tools.torchtune.custom_recipes` - Custom torchtune recipes
 - `cruijff_kit.tools.torchtune.datasets` - Custom dataset classes (e.g., `chat_completion`)
+- `cruijff_kit.tools.model_organisms` - Synthetic sequence-labeling primitives
+- `cruijff_kit.tools.inspect` (+ `.scorers`) - Eval helpers and custom scorers
+- `cruijff_kit.tabular_to_text_gen` (+ `.lib`, `.lib.perturbations`, `.lib.templates`) - Tabular→text conversion pipeline
 
 **Not packaged but executed as scripts:**
 - `src/tools/torchtune/setup_finetune.py`

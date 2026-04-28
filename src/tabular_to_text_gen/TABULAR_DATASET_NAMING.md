@@ -149,7 +149,7 @@ def resolve_dataset_path(data_generation, condition_name, split, output_dir) -> 
 - `design-experiment` skill — writes `dataset_path` / `eval_dataset_path` into
   `experiment_summary.yaml` using `resolve_dataset_path` so the final path is
   fixed at plan time.
-- `scaffold-torchtune`, `scaffold-inspect` skills — read the paths from
+- `scaffold-torchtune`, `scaffold-inspect` agents — read the paths from
   `experiment_summary.yaml` (set by `design-experiment`) and wire them into the
   generated configs.
 - `convert-tabular-to-text` skill — iterates conditions, invokes `convert.py`;
