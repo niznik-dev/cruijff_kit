@@ -49,8 +49,7 @@ cruijff_kit/
 │   ├── finetune_custom_metrics.py  # Custom metrics for torchtune
 │   ├── check_if_model_is_finetuned.py  # Model state inspection
 │   ├── logger.py       # Structured logging utilities
-│   ├── spot_check.py   # Quick model inference testing
-│   └── convert_*.py    # Dataset format conversion utilities
+│   └── spot_check.py   # Quick model inference testing
 │
 ├── tests/              # Test suite (pytest)
 │   ├── unit/           # Unit tests (no GPU required)
@@ -167,7 +166,7 @@ Model predictions (CSV) → heterogeneity_report.py → analysis + visualization
 - Understanding which subpopulations a model serves well/poorly
 - Post-hoc analysis of any binary classification predictions with group labels
 
-## Projects
+## Blueprints
 
 Research task blueprints in `blueprints/`. Each blueprint follows the 5-slot shape (3 required + 2 optional):
 
@@ -355,7 +354,7 @@ For users who prefer direct control or don't have Claude Code access. See [WORKF
 
 At a high level: hand-write `setup_finetune.yaml` in each run directory under `ck-projects/{project}/{experiment_name}/{run_name}/`, then run `python <cruijff_kit>/src/tools/torchtune/setup_finetune.py` in each to generate `finetune.yaml` + `finetune.slurm`, then `sbatch` each. For multi-run experiments, stagger submissions with `sleep 5` between them to avoid HuggingFace datasets cache race conditions.
 
-### Adding a New Project Blueprint
+### Adding a New Blueprint
 
 1. Create directory under `blueprints/`
 2. Add `README.md` with task description
