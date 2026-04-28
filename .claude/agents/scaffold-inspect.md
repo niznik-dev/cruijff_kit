@@ -79,7 +79,7 @@ From `evaluation.tasks[]` in YAML:
 ```yaml
 tasks:
   - name: "capitalization"
-    script: "path/to/cap_task.py"
+    script: "path/to/inspect_task.py"
     dataset: "path/to/test.json"       # Optional literal path
     # or:
     # eval_condition: "dict_subset"    # REQUIRED FOR generated-text experiments
@@ -176,8 +176,8 @@ For each evaluation task in the experiment:
 
    Example output:
    ```
-   cap_task.py
-     cap_task
+   inspect_task.py
+     capitalization
    ```
 
    Use this to verify the task name in experiment_summary.yaml matches what's actually in the file.
@@ -492,7 +492,7 @@ CONFIG_PATH="{experiment_dir}/{run_dir}/eval/eval_config.yaml"
 DATA_PATH="{ck_data_dir}/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="true"  # from dataset_type: chat_completion
 
-inspect eval capitalization.py@capitalization \\
+inspect eval inspect_task.py@capitalization \\
   --model hf/{run_name}_epoch_0 \\
   -M model_path="$MODEL_PATH" \\
   --metadata epoch=0 \\
@@ -525,7 +525,7 @@ CONFIG_PATH="{experiment_dir}/{run_dir}/eval/eval_config.yaml"
 DATA_PATH="{ck_data_dir}/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="true"  # Instruct model, use chat template
 
-inspect eval capitalization.py@capitalization \\
+inspect eval inspect_task.py@capitalization \\
   --model hf/{run_name}_base \\
   -M model_path="$MODEL_PATH" \\
   --metadata finetuned=false \\
@@ -545,7 +545,7 @@ CONFIG_PATH="{experiment_dir}/{run_dir}/eval/eval_config.yaml"
 DATA_PATH="{ck_data_dir}/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="false"  # Base model, no chat template
 
-inspect eval capitalization.py@capitalization \\
+inspect eval inspect_task.py@capitalization \\
   --model hf/{run_name}_base \\
   -M model_path="$MODEL_PATH" \\
   --metadata finetuned=false \\
@@ -634,15 +634,15 @@ Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/experime
 Result: Successfully read experiment plan (8 runs, 1 evaluation task)
 
 [2025-10-24 17:00:05] PARSE_EVAL_TASKS: Extracting evaluation configuration
-Details: Found 1 task: capitalization (cap_task.py)
-Result: Task script path verified: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/blueprints/capitalization/cap_task.py
+Details: Found 1 task: capitalization (inspect_task.py)
+Result: Task script path verified: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/blueprints/capitalization/inspect_task.py
 
 [2025-10-24 17:00:10] PARSE_EVAL_PLAN: Determining evaluation matrix
 Details: Evaluate last epoch only, all runs on all tasks
 Result: Will generate 8 evaluations (8 runs × 1 task × 1 epoch)
 
 [2025-10-24 17:00:15] VERIFY_TASK: capitalization task
-Command: ls /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/blueprints/capitalization/cap_task.py
+Command: ls /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/blueprints/capitalization/inspect_task.py
 Result: Task script exists and is accessible
 Note: Task supports config_dir parameter for experiment integration
 
@@ -688,7 +688,7 @@ Each evaluation directory contains:
 
 ### Evaluation Tasks
 
-✓ **capitalization**: `/path/to/cap_task.py`
+✓ **capitalization**: `/path/to/inspect_task.py`
   - Dataset: Reads from fine-tuning config
   - System prompt: Matches training configuration
   - Epochs evaluated: Last epoch only (epoch 0)
