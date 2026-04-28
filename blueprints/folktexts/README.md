@@ -22,7 +22,7 @@ All tasks use the same 10 demographic features but predict different outcomes:
 - **Location**: `{ck_data_dir}/folktexts/acs_income_condensed_50000_80P.json` (and similar for other tasks)
 - **Splits**: 80% train / 10% validation / 10% test
 - **Source**: American Community Survey (ACS) PUMS 2018 via [folktexts](https://huggingface.co/datasets/acruz/folktexts)
-- **Pinned revision**: `ad89c177` (2024-11-28) — see `FOLKTEXTS_REVISION` in `extract_acs_verbose.py`
+- **Pinned revision**: `ad89c177` (2024-11-28) — see `FOLKTEXTS_REVISION` in `generate_data.py`
 
 ## Evaluation Task
 
