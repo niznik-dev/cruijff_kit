@@ -50,7 +50,7 @@ Note: Some runs must complete before other runs can begin (e.g., a model must be
 
 ## Architecture
 
-For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md). Key highlights:
+For detailed architecture documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE.md). Key highlights:
 
 - **Two-stage configuration**: User-friendly YAML → generated torchtune configs + SLURM scripts
 - **Custom torchtune recipes**: Enhanced with validation support and checkpoint management
@@ -79,7 +79,7 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 
 **Note**: All skills are optional convenience tools. Users can perform the same operations manually by running the underlying Python scripts and shell commands directly.
 
-**Architecture**: The primary workflow skills (scaffold-experiment, run-experiment) use modular documentation with `optimizers/` and `evaluators/` subdirectories for tool-specific logic. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for the complete skills architecture.
+**Architecture**: The primary workflow skills (scaffold-experiment, run-experiment) use modular documentation with `optimizers/` and `evaluators/` subdirectories for tool-specific logic. See [SKILLS_ARCHITECTURE_SUMMARY.md](docs/SKILLS_ARCHITECTURE_SUMMARY.md) for the complete skills architecture.
 
 ## Workflow Testing
 
@@ -174,13 +174,13 @@ All input data lives outside the repo at `{ck_data_dir}` (configured in `claude.
 ## Documentation
 
 - **README.md**: Project overview, quick start, and experiment workflow
-- **ARCHITECTURE.md**: Detailed architecture, data flow, and skill workflow diagrams
-- **SUPPORTED_MODELS.md**: Supported models and resource requirements
-- **PREREQUISITES.md**: Required skills, accounts, and tutorial links
-- **WORKFLOW_GUIDE.md**: Manual workflow instructions (without Claude Code)
-- **ARTIFACT_LOCATIONS.md**: Canonical experiment directory layout and file locations
-- **SKILLS_ARCHITECTURE_SUMMARY.md**: How skills are organized and orchestrated
+- **docs/ARCHITECTURE.md**: Detailed architecture, data flow, and skill workflow diagrams
+- **docs/SUPPORTED_MODELS.md**: Supported models and resource requirements
+- **docs/PREREQUISITES.md**: Required skills, accounts, and tutorial links
+- **docs/WORKFLOW_GUIDE.md**: Manual workflow instructions (without Claude Code)
+- **docs/ARTIFACT_LOCATIONS.md**: Canonical experiment directory layout and file locations
+- **docs/SKILLS_ARCHITECTURE_SUMMARY.md**: How skills are organized and orchestrated
 - **CHANGELOG.md**: Release history
 - **KNOWN_ISSUES.md**: Current limitations and workarounds
-- **Experiment-specific READMEs**: Located in `experiments/*/README.md`
+- **Blueprint-specific READMEs**: Located in `blueprints/*/README.md`
 - **claude.local.md**: User-specific environment configuration (not version controlled)

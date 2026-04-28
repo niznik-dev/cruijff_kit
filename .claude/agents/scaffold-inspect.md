@@ -239,7 +239,7 @@ Extract the following from experiment_summary.yaml:
 **Required keys** (used by `setup_inspect.py` for SLURM rendering):
 
 ```yaml
-task_script: /path/to/experiments/task.py@task_name
+task_script: /path/to/blueprints/task.py@task_name
 task_name: acs_income
 model_path: /outputs/run1/epoch_0
 model_hf_name: hf/1B_ft_epoch_0

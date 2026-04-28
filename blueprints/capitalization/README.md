@@ -28,7 +28,7 @@ By default, fine-tuning uses `chat_completion` which applies HuggingFace chat te
 
 #### Setup
 
-The recommended path is the `design-experiment` skill, which generates `setup_finetune.yaml` and `finetune.slurm` for you. See [ACS_EXAMPLE.md](../../ACS_EXAMPLE.md) for an end-to-end walkthrough of the design → scaffold → run workflow on a similar task.
+The recommended path is the `design-experiment` skill, which generates `setup_finetune.yaml` and `finetune.slurm` for you. See [ACS_EXAMPLE.md](../../docs/ACS_EXAMPLE.md) for an end-to-end walkthrough of the design → scaffold → run workflow on a similar task.
 
 If you'd rather write the config by hand, create `setup_finetune.yaml` in your run directory with at least:
 

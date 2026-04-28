@@ -34,7 +34,7 @@ See [CHANGELOG.md](CHANGELOG.md) for release history and [KNOWN_ISSUES.md](KNOWN
 
 ## Quick Start
 
-**Prerequisites**: See [PREREQUISITES.md](PREREQUISITES.md) for required skills and accounts.
+**Prerequisites**: See [PREREQUISITES.md](docs/PREREQUISITES.md) for required skills and accounts.
 
 ```bash
 # Clone the repository
@@ -90,7 +90,7 @@ tune download meta-llama/<model_name> --output-dir <shared_location>/pretrained-
 
 Set `models_dir` in your `claude.local.md` to point to `<shared_location>/pretrained-llms/`.
 
-See [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md) for the full list of supported models and their resource requirements.
+See [SUPPORTED_MODELS.md](docs/SUPPORTED_MODELS.md) for the full list of supported models and their resource requirements.
 
 **Never commit your HuggingFace token to a repository.**
 
@@ -113,11 +113,11 @@ See `.claude/skills/*/SKILL.md` for detailed documentation on each skill.
 
 ### Without Claude Code
 
-See the [Workflow Guide](WORKFLOW_GUIDE.md) for step-by-step manual instructions covering single-run and multi-run experiments.
+See the [Workflow Guide](docs/WORKFLOW_GUIDE.md) for step-by-step manual instructions covering single-run and multi-run experiments.
 
 ## Sample Experiment: ACS Income Prediction
 
-New to cruijff_kit? The [ACS Example](ACS_EXAMPLE.md) walks you through a complete experiment end-to-end: fine-tuning a local model to predict income from US Census data, then evaluating the results. It covers the full pipeline from data preparation through analysis, including how scoring and calibration metrics work.
+New to cruijff_kit? The [ACS Example](docs/ACS_EXAMPLE.md) walks you through a complete experiment end-to-end: fine-tuning a local model to predict income from US Census data, then evaluating the results. It covers the full pipeline from data preparation through analysis, including how scoring and calibration metrics work.
 
 The example builds on the [folktexts](https://github.com/socialfoundations/folktexts) framework (Cruz et al., NeurIPS 2024) for LLM prediction on American Community Survey data.
 
@@ -125,16 +125,16 @@ The example builds on the [folktexts](https://github.com/socialfoundations/folkt
 
 | Document | Description |
 |----------|-------------|
-| [ACS_EXAMPLE.md](ACS_EXAMPLE.md) | Step-by-step first experiment walkthrough |
-| [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md) | Supported models and resource requirements |
-| [PREREQUISITES.md](PREREQUISITES.md) | Required skills, accounts, and tutorials |
-| [WORKFLOW_GUIDE.md](WORKFLOW_GUIDE.md) | Manual workflow instructions |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System design, data flow, skill diagrams |
+| [ACS_EXAMPLE.md](docs/ACS_EXAMPLE.md) | Step-by-step first experiment walkthrough |
+| [SUPPORTED_MODELS.md](docs/SUPPORTED_MODELS.md) | Supported models and resource requirements |
+| [PREREQUISITES.md](docs/PREREQUISITES.md) | Required skills, accounts, and tutorials |
+| [WORKFLOW_GUIDE.md](docs/WORKFLOW_GUIDE.md) | Manual workflow instructions |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, data flow, skill diagrams |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | Current limitations and workarounds |
-| [ARTIFACT_LOCATIONS.md](ARTIFACT_LOCATIONS.md) | Where experiment files are created |
-| [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) | How skills are organized |
-| `experiments/*/README.md` | Experiment-specific instructions |
+| [ARTIFACT_LOCATIONS.md](docs/ARTIFACT_LOCATIONS.md) | Where experiment files are created |
+| [SKILLS_ARCHITECTURE_SUMMARY.md](docs/SKILLS_ARCHITECTURE_SUMMARY.md) | How skills are organized |
+| `blueprints/*/README.md` | Blueprint-specific instructions |
 
 ## Contributors
 

@@ -98,4 +98,4 @@ For experiments with multiple runs (e.g., parameter sweeps):
 **Issue**: `torch.cuda.is_available()` returns `False`
 **Solution**: This is expected on login nodes, which typically don't have GPUs. CUDA will only be available inside a SLURM job or interactive GPU session (e.g., `salloc --gres=gpu:1`).
 
-For additional help, see [KNOWN_ISSUES.md](KNOWN_ISSUES.md) or open an issue on GitHub.
+For additional help, see [KNOWN_ISSUES.md](../KNOWN_ISSUES.md) or open an issue on GitHub.
