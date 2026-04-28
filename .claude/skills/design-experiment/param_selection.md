@@ -223,7 +223,7 @@ If user says "yes" (default), add the constraint/partition values from `claude.l
 **Advanced settings (calculate from prior runs if available):**
 - Batch sizes - estimate from GPU memory usage in prior runs
 - Dataset packing - enabled by default, affects batch size
-- For help estimating: check `{scratch_dir}/*/slurm-*.out` for similar runs
+- For help estimating: check `{scratch_dir}/ck-projects/*/slurm-*.out` for similar runs
 - **Consult past compute utilization analyses** - If previous experiments have `analysis/compute_metrics.json` or a compute section in `report.md`, use that data to inform time limits, memory allocations, and GPU resource requests for new runs
 
 ### Generate Runs List

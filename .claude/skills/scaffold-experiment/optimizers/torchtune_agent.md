@@ -32,7 +32,7 @@ Your tasks:
 4. For ONLY the fine-tuned runs (skip control/base model runs):
    - Create run directory based on run name in experiment_summary.yaml
    - Generate setup_finetune.yaml from appropriate template
-   - Execute setup_finetune.py to generate finetune.yaml and finetune.slurm
+   - Execute setup_finetune.py to generate finetune.yaml and finetune.slurm (canonical invocation in `.claude/agents/scaffold-torchtune.md`)
    - Verify outputs were created successfully
 5. For control/base model runs: Create ONLY the run directory (no training configs needed)
 6. Create a detailed log at {experiment_dir}/logs/scaffold-torchtune.log

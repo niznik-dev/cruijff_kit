@@ -14,7 +14,7 @@ This log records the high-level orchestration process. Individual subagents crea
 - `{experiment_dir}/logs/scaffold-torchtune.log` (created by scaffold-torchtune subagent)
 - `{experiment_dir}/logs/scaffold-inspect.log` (created by scaffold-inspect subagent)
 
-**Note on log formats across skills:** All skills emit `.log` (plain text) — human-readable progress tracking with `[TIMESTAMP] ACTION` headers. See `shared/logging_spec.md` for the canonical format spec.
+**Note on log formats across skills:** All skills emit `.log` (plain text) — human-readable progress tracking with `[TIMESTAMP] ACTION` headers. See [shared/logging_spec.md](../shared/logging_spec.md) for the canonical format spec.
 
 ---
 
