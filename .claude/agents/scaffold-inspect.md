@@ -298,7 +298,7 @@ After writing `eval_config.yaml`, render the SLURM script:
 
 ```bash
 cd {run_dir}/eval
-python src/tools/inspect/setup_inspect.py \
+python {cruijff_kit_path}/src/tools/inspect/setup_inspect.py \
   --config eval_config.yaml \
   --model_name "Llama-3.2-1B-Instruct" \
   --time "0:10:00" \
@@ -702,7 +702,7 @@ After fine-tuning completes:
 
 **Manual evaluation submission** (if not using orchestrator, after fine-tuning completes):
 ```bash
-cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22
+cd /scratch/gpfs/MSALGANIK/niznik/ck-projects/capitalization/cap_4L_lora_lr_sweep_2025-10-22
 # After fine-tuning completes for a run:
 cd rank8_lr1e-5/eval
 sbatch capitalization_epoch0.slurm

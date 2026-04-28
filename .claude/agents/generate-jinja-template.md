@@ -84,7 +84,7 @@ Read the YAML schema file and extract:
 Read a few rows from the source data to understand real value distributions:
 
 ```bash
-cd /home/sarahep/cruijff_kit && python -c "
+cd {cruijff_kit_path} && python -c "
 from cruijff_kit.tabular_to_text_gen.lib.readers import read_tabular
 df = read_tabular('{source_path}')
 print('Shape:', df.shape)
@@ -137,7 +137,7 @@ Save the `.j2` file to the specified output path (create parent directories if n
 Render 3 sample rows through the generated template to verify correctness:
 
 ```bash
-cd /home/sarahep/cruijff_kit && python -c "
+cd {cruijff_kit_path} && python -c "
 import yaml
 from cruijff_kit.tabular_to_text_gen.lib.schema import Schema
 from cruijff_kit.tabular_to_text_gen.lib.templates.narrative import NarrativeTemplate

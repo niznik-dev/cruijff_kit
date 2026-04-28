@@ -406,7 +406,7 @@ Details: mkdir /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/ra
 Result: Directory created successfully
 
 [2025-10-24 16:30:12] GENERATE_YAML: rank8_lr1e-5/setup_finetune.yaml
-Details: Template: blueprints/capitalization/setup_finetune.yaml
+Details: Generated from src/tools/torchtune/templates/finetune_template.yaml
 Parameters: rank=8, lr=1e-5, batch_size=4, epochs=1
 Result: File created (237 bytes)
 
