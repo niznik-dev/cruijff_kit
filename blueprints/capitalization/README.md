@@ -13,6 +13,7 @@ To run a simple fine-tuning task on a small dataset of five-letter words and the
 First, obtain words_alpha.txt from the following repo: https://github.com/dwyl/english-words (and star it!). You'll probably want to put it in `blueprints/capitalization/input/`.  You can download this file from the command line as follows:
 
 ```bash
+mkdir -p blueprints/capitalization/input
 cd blueprints/capitalization/input
 wget https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/words_alpha.txt
 cd ../../..
@@ -64,7 +65,7 @@ wandb sync /path/to/output/folder/logs/wandb/latest-run
 
 ### Part 4 - Test the model
 
-Create an `eval_config.yaml` in your eval directory with the experiment-specific config (see `inspect_agent.md` for the full schema), then render the SLURM script:
+Create an `eval_config.yaml` in your eval directory with the experiment-specific config (see `.claude/skills/scaffold-experiment/evaluators/inspect_agent.md` for the full schema), then render the SLURM script:
 
 ```bash
 cd /path/to/experiment/run/eval
