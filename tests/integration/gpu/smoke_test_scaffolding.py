@@ -58,7 +58,7 @@ def test_setup_finetune(work_dir: Path):
 def test_setup_inspect(work_dir: Path):
     """Run setup_inspect.py with a minimal eval_config, verify outputs."""
     config = {
-        "task_script": "projects/capitalization/inspect_task.py@capitalization",
+        "task_script": "blueprints/capitalization/inspect_task.py@capitalization",
         "task_name": "capitalization",
         "model_path": "/fake/checkpoint/epoch_0",
         "model_hf_name": "hf/smoke_test_epoch_0",

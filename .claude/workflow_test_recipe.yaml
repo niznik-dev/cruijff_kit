@@ -49,7 +49,7 @@ training_runs:
 evaluation:
   tasks:
     - name: "capitalization"
-      script: "projects/capitalization/inspect_task.py"
+      script: "blueprints/capitalization/inspect_task.py"
       dataset: "same"
       description: "Tests word capitalization accuracy"
 
