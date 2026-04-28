@@ -6,7 +6,7 @@ This guide covers manual workflows for users who prefer direct control or don't 
 
 ### Capitalization Experiment
 
-For full instructions, see the [capitalization experiment README](projects/capitalization/README.md).
+For full instructions, see the [capitalization experiment README](blueprints/capitalization/README.md).
 
 ### Twin Dataset
 
@@ -24,7 +24,7 @@ Multiple JSON files will be created in the same input directory; move them to a 
 
 ### Capitalization Experiment
 
-See `projects/capitalization/README.md` for a complete walkthrough.
+See `blueprints/capitalization/README.md` for a complete walkthrough.
 
 ### Twin Dataset (or other experiments)
 
@@ -33,7 +33,7 @@ See `projects/capitalization/README.md` for a complete walkthrough.
    Copy a config template from the experiment's `templates/finetuning/` folder:
 
    ```bash
-   cd projects/your_experiment/
+   cd blueprints/your_experiment/
    cp templates/finetuning/setup_finetune_json.yaml setup_finetune.yaml
    ```
 

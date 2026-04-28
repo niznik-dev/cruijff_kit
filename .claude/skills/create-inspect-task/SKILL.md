@@ -151,7 +151,7 @@ def extract_from_experiment_summary(path):
 
 **From `experiment` section:**
 - `question` → Research question/objective (informs evaluation goal)
-- `project` → Blueprint directory name under `projects/` (pins the task family)
+- `project` → Blueprint directory name under `blueprints/` (pins the task family)
 
 **From `data.training` section:**
 - `path` → Dataset path for evaluation

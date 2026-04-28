@@ -13,7 +13,7 @@ Any `input_type × rule × fmt × design` combination produces a self-contained 
 
 ## How this project is different
 
-Unlike `projects/capitalization/` and `projects/folktexts/`, this folder does **not** contain its own `inspect_task.py` or `generate_data.py`. The code that generates data and evaluates model performance is fully generic — it composes primitives from `src/tools/model_organisms/` (`inputs.py`, `rules.py`, `formats.py`) and does not need per-project customization. In that sense, the "project" here is a conceptual label, not a distinct code unit; all implementation lives in the library.
+Unlike `blueprints/capitalization/` and `blueprints/folktexts/`, this folder does **not** contain its own `inspect_task.py` or `generate_data.py`. The code that generates data and evaluates model performance is fully generic — it composes primitives from `src/tools/model_organisms/` (`inputs.py`, `rules.py`, `formats.py`) and does not need per-project customization. In that sense, the "project" here is a conceptual label, not a distinct code unit; all implementation lives in the library.
 
 ## Code locations
 

@@ -334,9 +334,9 @@ Before deploying to production:
 
 Three distinct concepts, three distinct names:
 
-- **Project** = Task family / research domain blueprint (e.g., `projects/capitalization/`, `projects/folktexts/`, `projects/model_organism/`)
+- **Project** = Task family / research domain blueprint (e.g., `blueprints/capitalization/`, `blueprints/folktexts/`, `blueprints/model_organism/`)
 - **Experiment** = A designed set of runs under a project (defined by an `experiment_summary.yaml`)
-- **Inspect-ai task** = Evaluation script at `projects/{project}/inspect_task.py` — the `@task` function inspect-ai invokes
+- **Inspect-ai task** = Evaluation script at `blueprints/{project}/inspect_task.py` — the `@task` function inspect-ai invokes
 
 Scratch-side, every experiment lives at `ck-projects/{project}/{experiment_name}/` with all run subdirs, configs, checkpoints, logs, and eval outputs nested inside.
 
@@ -351,7 +351,7 @@ This architecture creates a clean, modular system that:
 - ✅ Reduces file sizes for better navigation and context efficiency
 - ✅ Provides reusable pattern for other skills
 - ✅ Uses consistent, intuitive terminology
-- ✅ Separates blueprints (projects/) from runtime state (ck-projects/ scratch)
+- ✅ Separates blueprints/ (in-repo) from ck-projects/ (runtime scratch)
 - ✅ Provides comprehensive logging at all levels
 
 **Recent improvements (Issue #196):**

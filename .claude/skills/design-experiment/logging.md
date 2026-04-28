@@ -156,7 +156,7 @@ Result: success
 [2025-10-22 14:30:02] VERIFY_EVAL_TASK
 Details: Verifying evaluation task script exists
 Task: capitalization
-Path: /path/to/cruijff_kit/projects/capitalization/inspect_task.py
+Path: /path/to/cruijff_kit/blueprints/capitalization/inspect_task.py
 Size: 12 KB
 Result: success
 ```
@@ -433,7 +433,7 @@ Result: success
 [2025-10-22 14:30:02] VERIFY_EVAL_TASK
 Details: Verifying evaluation task script exists
 Task: capitalization
-Path: /path/to/cruijff_kit/projects/capitalization/inspect_task.py
+Path: /path/to/cruijff_kit/blueprints/capitalization/inspect_task.py
 Size: 12 KB
 Result: success
 

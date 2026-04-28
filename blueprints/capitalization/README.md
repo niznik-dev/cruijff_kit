@@ -10,15 +10,15 @@ To run a simple fine-tuning task on a small dataset of five-letter words and the
 
 (If not done already, clone this repo onto the machine you're using!)
 
-First, obtain words_alpha.txt from the following repo: https://github.com/dwyl/english-words (and star it!). You'll probably want to put it in `projects/capitalization/input/`.  You can download this file from the command line as follows:
+First, obtain words_alpha.txt from the following repo: https://github.com/dwyl/english-words (and star it!). You'll probably want to put it in `blueprints/capitalization/input/`.  You can download this file from the command line as follows:
 
 ```bash
-cd projects/capitalization/input
+cd blueprints/capitalization/input
 wget https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/words_alpha.txt
 cd ../../..
 ```
 
-Next, run `python projects/capitalization/generate_data.py --word-len 5 --num-words 1000 --output_dir {ck_data_dir}/capitalization/` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` in `{ck_data_dir}/capitalization/` with top level splits (train/validation/test) which we will use in finetuning.
+Next, run `python blueprints/capitalization/generate_data.py --word-len 5 --num-words 1000 --output_dir {ck_data_dir}/capitalization/` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` in `{ck_data_dir}/capitalization/` with top level splits (train/validation/test) which we will use in finetuning.
 
 ### Part 2 - Finetuning
 

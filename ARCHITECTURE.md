@@ -39,7 +39,7 @@ cruijff_kit/
 │       ├── generate.py  # Dataset generator CLI
 │       └── inspect_task.py # Unified inspect-ai evaluation task
 │
-├── projects/           # Task blueprints (5-slot shape: README, inspect_task.py, generate_data.py, optional modifiers/ + baseline.py)
+├── blueprints/           # Task blueprints (5-slot shape: README, inspect_task.py, generate_data.py, optional modifiers/ + baseline.py)
 │   ├── capitalization/ # Generalization test with word capitalization
 │   ├── folktexts/      # Demographic prediction from ACS text
 │   └── model_organism/ # Synthetic framework pointer (code lives in src/tools/model_organisms/)
@@ -129,7 +129,7 @@ eval_config.yaml → setup_inspect.py → {task}_epoch{N}.slurm
   - Looks up GPU resources from `model_configs.py`
   - Template includes GPU monitoring, SLURM log management
 
-- Experiment-specific inspect-ai task files (e.g., `projects/capitalization/inspect_task.py`)
+- Experiment-specific inspect-ai task files (e.g., `blueprints/capitalization/inspect_task.py`)
   - Define evaluation prompts and scoring
   - Use inspect-ai framework
 
@@ -169,7 +169,7 @@ Model predictions (CSV) → heterogeneity_report.py → analysis + visualization
 
 ## Projects
 
-Research task blueprints in `projects/`. Each blueprint follows the 5-slot shape (3 required + 2 optional):
+Research task blueprints in `blueprints/`. Each blueprint follows the 5-slot shape (3 required + 2 optional):
 
 - `README.md` — REQUIRED: task description + how to run
 - `inspect_task.py` — REQUIRED: inspect-ai evaluation definition
@@ -357,7 +357,7 @@ At a high level: hand-write `setup_finetune.yaml` in each run directory under `c
 
 ### Adding a New Project Blueprint
 
-1. Create directory under `projects/`
+1. Create directory under `blueprints/`
 2. Add `README.md` with task description
 3. Create `generate_data.py` (primary data producer)
 4. Create `inspect_task.py` using the `create-inspect-task` skill

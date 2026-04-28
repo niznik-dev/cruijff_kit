@@ -21,7 +21,7 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 ### Derive Paths from claude.local.md
 
 1. Read the **Scratch directory** field from `claude.local.md`
-2. Determine the `project` — this matches a blueprint directory under `projects/` (e.g. `capitalization`, `folktexts`, `model_organism`). Ask the user if ambiguous.
+2. Determine the `project` — this matches a blueprint directory under `blueprints/` (e.g. `capitalization`, `folktexts`, `model_organism`). Ask the user if ambiguous.
 3. Derive the experiment directory: `{scratch_dir}/ck-projects/{project}/{experiment_name}/`
 4. Outputs nest inside the experiment directory (configs, checkpoints, logs, eval results are all co-located per run).
 
@@ -161,7 +161,7 @@ The experiment workflow uses two architectural patterns:
 - Training dataset location and format
 - Required splits: train, validation (optional), test (optional)
 
-**Note:** If the dataset needs to be created, check `projects/{project}/README.md` for:
+**Note:** If the dataset needs to be created, check `blueprints/{project}/README.md` for:
 - Dataset naming conventions (e.g., parameter-based filenames)
 - Preprocessing script details and usage
 - Expected output formats and locations
@@ -362,8 +362,8 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 **Model:** Suggest downloading with appropriate tool
 
 **Dataset:**
-1. **Check for existing preprocessing scripts:** Look in `projects/{project}/` for scripts like `preprocess_*.py`
-2. **Consult task README:** Check `projects/{project}/README.md` for dataset creation instructions
+1. **Check for existing preprocessing scripts:** Look in `blueprints/{project}/` for scripts like `preprocess_*.py`
+2. **Consult task README:** Check `blueprints/{project}/README.md` for dataset creation instructions
 3. **Use the proper tool:** Run the task-specific preprocessing script with appropriate parameters
 4. **Model-organism sanity checks:** Declare in `data.data_generation` with `tool: model_organism` instead (see `references/model_organisms.md`); scaffold will generate the file before subagents run.
 5. **DON'T:** Write ad-hoc Python code or copy dataset creation code from previous experiments
