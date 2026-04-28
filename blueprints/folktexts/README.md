@@ -124,13 +124,13 @@ Recommended batch sizes and sequence lengths for fine-tuning on della (A100 80GB
 
 Scripts for generating ACS datasets from HuggingFace:
 
-### extract_acs_verbose.py
+### generate_data.py
 
 Extracts verbose-format datasets from HuggingFace for all 5 ACS tasks.
 
 ```bash
 # Extract 50K samples for employment task
-python blueprints/folktexts/extract_acs_verbose.py \
+python blueprints/folktexts/generate_data.py \
     --task ACSEmployment \
     --output acs_employment_verbose_50000_80P.json \
     --train-size 40000 --val-size 5000 --test-size 5000
@@ -138,13 +138,13 @@ python blueprints/folktexts/extract_acs_verbose.py \
 
 Supported tasks: `ACSIncome`, `ACSEmployment`, `ACSMobility`, `ACSPublicCoverage`, `ACSTravelTime`
 
-### convert_acs_formats.py
+### modifiers/convert_formats.py
 
 Converts verbose datasets to condensed and terse formats. Auto-detects task from filename.
 
 ```bash
 # Convert to condensed + terse formats
-python blueprints/folktexts/convert_acs_formats.py \
+python blueprints/folktexts/modifiers/convert_formats.py \
     --input acs_employment_verbose_50000_80P.json \
     --output-dir {ck_data_dir}/folktexts/
 ```

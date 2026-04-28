@@ -30,13 +30,13 @@ To get familiar with the workflow, we recommend generating a small dataset with 
 
 ```bash
 # Step 1: Extract verbose-format data from HuggingFace
-python blueprints/folktexts/extract_acs_verbose.py \
+python blueprints/folktexts/generate_data.py \
     --task ACSIncome \
     --output acs_income_verbose_1000_80P.json \
     --train-size 800 --val-size 100 --test-size 100
 
 # Step 2: Convert to condensed format (recommended for fine-tuning)
-python blueprints/folktexts/convert_acs_formats.py \
+python blueprints/folktexts/modifiers/convert_formats.py \
     --input acs_income_verbose_1000_80P.json \
     --output-dir {ck_data_dir}/folktexts/
 ```
@@ -59,7 +59,7 @@ The outcome classes are `1` (above $50k) or `0` (at or below $50k).
 By default, the extraction script samples randomly, which may produce imbalanced classes. For balanced datasets:
 
 ```bash
-python blueprints/folktexts/extract_acs_verbose.py \
+python blueprints/folktexts/generate_data.py \
     --task ACSIncome \
     --output acs_income_verbose_balanced.json \
     --balanced \
