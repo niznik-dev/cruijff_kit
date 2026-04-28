@@ -236,7 +236,7 @@ After completing orchestration, provide a comprehensive summary:
 ## Scaffold Experiment Complete
 
 Successfully scaffolded experiment:
-`/scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/`
+`/scratch/gpfs/MSALGANIK/niznik/ck-projects/capitalization/cap_4L_lora_lr_sweep_2025-10-22/`
 
 ### Fine-Tuning Configurations (scaffold-torchtune)
 

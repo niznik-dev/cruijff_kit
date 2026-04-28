@@ -180,7 +180,7 @@ After extraction, show the user what was found:
 I found the following configuration in your experiment:
 
 **Dataset:**
-- Path: `/scratch/gpfs/.../data/green/capitalization/words_4L_80P_300.json`
+- Path: `{ck_data_dir}/capitalization/words_4L_80P_300.json`
 - Format: JSON
 - Splits: train (240), test (60)
 
@@ -249,7 +249,7 @@ Details: Parsing YAML structure: experiment, data, models, evaluation sections
 Result: Successfully extracted configuration
 
 [2025-10-24 14:30:10] EXTRACTED_DATASET: Dataset configuration
-Details: Path: /scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/data/green/capitalization/words_4L_80P_300.json
+Details: Path: {ck_data_dir}/capitalization/words_4L_80P_300.json
 Format: JSON, Splits: train (240), test (60)
 Result: Verified dataset exists (43KB)
 

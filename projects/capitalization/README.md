@@ -18,7 +18,7 @@ wget https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/word
 cd ../../..
 ```
 
-Next, run `python projects/capitalization/preprocess_input_data.py --word-len 5 --num-words 1000` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` in `data/green/capitalization/` with top level splits (train/validation/test) which we will use in finetuning.
+Next, run `python projects/capitalization/generate_data.py --word-len 5 --num-words 1000 --output_dir {ck_data_dir}/capitalization/` (you can choose your own params for this part) - this will generate a file like `words_5L_80P_1000.json` in `{ck_data_dir}/capitalization/` with top level splits (train/validation/test) which we will use in finetuning.
 
 ### Part 2 - Finetuning
 
@@ -35,7 +35,7 @@ If you'd rather write the config by hand, create `setup_finetune.yaml` in your r
 ```yaml
 my_wandb_project: capitalization
 my_wandb_run_name: <unique-run-name>
-input_dir_base: /path/to/cruijff_kit/data/green/capitalization/
+input_dir_base: {ck_data_dir}/capitalization/
 dataset_label: words_5L_80P_1000
 dataset_ext: '.json'
 torchtune_model_name: Llama-3.2-1B-Instruct

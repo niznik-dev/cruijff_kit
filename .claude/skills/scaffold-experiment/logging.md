@@ -104,7 +104,7 @@ Result: {outcome}
 
 ```
 [2025-10-24 17:30:00] DISCOVER_EXPERIMENT: Found experiment
-Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_comparison/experiment_summary.yaml
+Details: /scratch/gpfs/MSALGANIK/niznik/ck-projects/capitalization/cap_4L_lora_comparison/experiment_summary.yaml
 Result: Experiment plan ready for scaffolding (3 runs, 1 evaluation task)
 ```
 

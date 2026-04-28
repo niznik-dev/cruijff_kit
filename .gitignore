@@ -22,17 +22,6 @@ claude.local.md
 # User-specific cache directory (i.e., torchtune recipes)
 .claude/cache/
 
-# Data access tiers - exclude all data files but keep documentation
-data/red/*
-!data/red/CLAUDE.md
-data/yellow/*
-!data/yellow/CLAUDE.md
-data/green/*
-!data/green/CLAUDE.md
-experiments/capitalization/eval_output/
-experiments/capitalization/*/*.txt
-experiments/capitalization/*/*.csv
-experiments/capitalization/*/*.png
 logs/
 finetune.slurm
 finetune.yaml

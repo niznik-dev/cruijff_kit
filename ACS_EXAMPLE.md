@@ -38,7 +38,7 @@ python projects/folktexts/extract_acs_verbose.py \
 # Step 2: Convert to condensed format (recommended for fine-tuning)
 python projects/folktexts/convert_acs_formats.py \
     --input acs_income_verbose_1000_80P.json \
-    --output-dir data/green/acs/
+    --output-dir {ck_data_dir}/folktexts/
 ```
 
 This will produce `acs_income_condensed_1000_80P.json` (condensed) and `acs_income_terse_1000_80P.json` (ultra-compact). This guide uses the condensed version. This is an example entry in the outputted json file:
@@ -97,7 +97,7 @@ Example:
 - **Scientific question**: "Does fine-tuning Llama-3.2-1B-Instruct on ACS income data improve income prediction accuracy compared to the base instruct model?"
 - **Runs**: Two runs - one base model evaluation, one fine-tuned with LoRA rank 8
 - **Model**: Llama-3.2-1B-Instruct
-- **Dataset**: `data/green/acs/acs_income_condensed_1000_80P.json` (or whatever dataset size you choose to generate above)
+- **Dataset**: `{ck_data_dir}/folktexts/acs_income_condensed_1000_80P.json` (or whatever dataset size you choose to generate above)
 - **Evaluation task**: `acs_income` (from `projects/folktexts/inspect_task.py`)
 - **Epochs**: 1
 - **Scorers**: `match` (output from model will be correct if it exactly matches `0` or `1`)

@@ -489,7 +489,7 @@ CONFIG_PATH="{experiment_dir}/{run_dir}/eval/eval_config.yaml"
 OUTPUT_BASE="/absolute/path/to/ck-out-{run_name}"
 MODEL_PATH="$OUTPUT_BASE/epoch_0"
 CONFIG_PATH="{experiment_dir}/{run_dir}/eval/eval_config.yaml"
-DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
+DATA_PATH="{ck_data_dir}/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="true"  # from dataset_type: chat_completion
 
 inspect eval capitalization.py@capitalization \\
@@ -522,7 +522,7 @@ For control (not fine-tuned) models, scaffold-inspect generates `eval_config.yam
 # Control model evaluation:
 MODEL_PATH="/path/to/pretrained-llms/Llama-3.2-1B-Instruct"
 CONFIG_PATH="{experiment_dir}/{run_dir}/eval/eval_config.yaml"
-DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
+DATA_PATH="{ck_data_dir}/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="true"  # Instruct model, use chat template
 
 inspect eval capitalization.py@capitalization \\
@@ -542,7 +542,7 @@ inspect eval capitalization.py@capitalization \\
 # Values for base model without instruct training:
 MODEL_PATH="/path/to/pretrained-llms/Llama-3.2-1B"
 CONFIG_PATH="{experiment_dir}/{run_dir}/eval/eval_config.yaml"
-DATA_PATH="/path/to/data/green/capitalization/words_5L_80P_1000.json"
+DATA_PATH="{ck_data_dir}/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="false"  # Base model, no chat template
 
 inspect eval capitalization.py@capitalization \\
