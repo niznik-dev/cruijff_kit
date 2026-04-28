@@ -2,8 +2,6 @@
 *_m.yaml
 *_m.slurm
 
-# Personal notes/docs (not for repo)
-docs/
 *.pyc
 __pycache__/
 cruijff_kit.egg-info/
