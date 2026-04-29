@@ -192,14 +192,21 @@ def render_template(cli_args, config):
     model_gpus = slurm_config.get("gpus", 1)
     gpus = cli_args.gpus if cli_args.gpus is not None else model_gpus
 
-    # Ensure output_dir ends with /
-    output_dir = config["output_dir"]
-    if not output_dir.endswith("/"):
-        output_dir += "/"
-
     username = os.environ.get("USER", "unknown")
     task_name = config["task_name"]
     epoch = config.get("epoch")
+
+    # For fine-tuned runs (epoch is set), derive output_dir from model_path's
+    # parent so it always points at the {run}/artifacts/ directory. The
+    # eval_config field is no longer authoritative — this avoids agent-supplied
+    # paths drifting from the canonical convention.
+    # For control runs (no epoch), keep the agent-provided value.
+    if epoch is not None:
+        output_dir = config["model_path"].rstrip("/").rsplit("/", 1)[0] + "/"
+    else:
+        output_dir = config["output_dir"]
+    if not output_dir.endswith("/"):
+        output_dir += "/"
 
     # Build task and metadata arg blocks
     task_args = build_task_args(config)

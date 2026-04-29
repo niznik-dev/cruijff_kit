@@ -241,10 +241,12 @@ Extract the following from experiment_summary.yaml:
 ```yaml
 task_script: /path/to/blueprints/task.py@task_name
 task_name: acs_income
-model_path: /outputs/run1/epoch_0
+model_path: /outputs/run1/artifacts/epoch_0
 model_hf_name: hf/1B_ft_epoch_0
-output_dir: /outputs/run1/
+output_dir: /outputs/run1/artifacts/
 ```
+
+> **Note:** For fine-tuned runs, `setup_inspect.py` derives `output_dir` from `model_path`'s parent at render time and ignores whatever you write in this field. The field is still required for schema consistency and as documentation, but the rendered SLURM's GPU metrics path is guaranteed to match `model_path`. Set `output_dir` to the artifacts directory (`{base}/{run}/artifacts/`) for clarity.
 
 **Optional keys** (task args passed as `-T`, metadata passed as `--metadata`):
 
@@ -315,6 +317,10 @@ This renders `src/tools/inspect/templates/eval_template.slurm` with the correct 
 - `cd` to eval_dir before running inspect
 - SLURM log move on success
 - Output filename: `{task_name}_epoch{epoch}.slurm` (or `{task_name}.slurm` if no epoch)
+- **`output_dir` derivation:** for fine-tuned runs (epoch is set), `setup_inspect.py` derives `output_dir` from `model_path`'s parent — agent-supplied `output_dir` in eval_config is ignored. This guarantees GPU metrics land alongside the model checkpoint at `{run}/artifacts/epoch_N/gpu_metrics.csv`.
+
+**Verification after rendering:**
+After `setup_inspect.py` writes the SLURM script, spot-check that `GPU_METRICS_DIR` in the rendered file resolves to a path containing `/artifacts/epoch_N` for fine-tuned runs. If it doesn't, `model_path` is malformed (missing `/artifacts/epoch_N` segment) and should be fixed in eval_config.yaml.
 
 **CLI arguments** (infrastructure — shared across all evals in the experiment):
 
