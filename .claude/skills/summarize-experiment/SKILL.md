@@ -48,7 +48,7 @@ Read experiment_summary.yaml to identify runs:
 - `epochs`: List of epochs to evaluate (null for control runs)
 
 **Determine status by checking filesystem:**
-- Fine-tuning: Check for `{output_base}/ck-out-{run_name}/` and SLURM outputs
+- Fine-tuning: Check for `{output_base}/{run_name}/artifacts/` and SLURM outputs
 - Evaluation: Check for `{run_dir}/eval/logs/*.eval` files
 
 ### 3. Extract Training Loss
@@ -57,7 +57,7 @@ For each COMPLETED fine-tuning run:
 
 1. Find SLURM stdout in the **output directory**:
    - Parse experiment_summary.yaml "Output" section for `output_dir_base`
-   - Look in: `{output_dir_base}/ck-out-{run_name}/slurm-*.out`
+   - Look in: `{output_dir_base}/{run_name}/artifacts/slurm-*.out`
    - If multiple files, use most recent by modification time
 2. Extract final loss using `cruijff_kit.tools.torchtune.extract_loss`:
    ```python

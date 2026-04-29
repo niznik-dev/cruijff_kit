@@ -166,7 +166,7 @@ Result: success
 ```
 [2025-10-22 14:30:02] SEARCH_PRIOR_RUNS
 Details: Searching for prior runs to estimate training speed
-Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/ck-out-*'
+Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/artifacts/*'
 Found: 3 prior run logs
 Result: success
 ```
@@ -439,7 +439,7 @@ Result: success
 
 [2025-10-22 14:30:02] SEARCH_PRIOR_RUNS
 Details: Searching for prior runs to estimate training speed
-Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/ck-out-*'
+Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/artifacts/*'
 Found: 3 prior run logs
 Result: success
 

@@ -68,7 +68,7 @@ squeue -u $USER | grep finetune
 For each evaluation, verify required checkpoint exists:
 
 ```bash
-ls {output_dir_base}/ck-out-{run_name}/epoch_{N}/
+ls {output_dir_base}/{run_name}/artifacts/epoch_{N}/
 ```
 
 **For each evaluation:**
@@ -78,7 +78,7 @@ ls {output_dir_base}/ck-out-{run_name}/epoch_{N}/
 **If checkpoint missing:**
 ```
 [YYYY-MM-DD HH:MM:SS] CHECKPOINT_MISSING: r32_lr5e-5
-Details: Expected path: /scratch/.../ck-out-r32_lr5e-5/epoch_0/
+Details: Expected path: /scratch/.../r32_lr5e-5/artifacts/epoch_0/
 Result: Checkpoint not found - skipping evaluations for this run
 Recommendation: Check if fine-tuning job failed
 ```

@@ -59,6 +59,8 @@ def main():
                 "",
                 "--output_dir_base",
                 str(output_dir),
+                "--experiment_name",
+                "smoke_test",
                 "--models_dir",
                 MODELS_DIR,
                 "--my_wandb_run_name",
@@ -100,13 +102,15 @@ def main():
         print("PASS: torchtune training")
 
         # Step 3: Verify checkpoint exists and is non-empty
-        # setup_finetune.py creates output under output_dir_base/ck-out-{run_name}/
-        ck_out_dirs = list(output_dir.glob("ck-out-*"))
-        assert len(ck_out_dirs) > 0, f"No ck-out-* directory found in {output_dir}"
+        # setup_finetune.py creates output under output_dir_base/{experiment_name}/{run_name}/artifacts/
+        artifacts_dirs = list(output_dir.glob("smoke_test/*/artifacts"))
+        assert len(artifacts_dirs) > 0, (
+            f"No */artifacts directory found in {output_dir}/smoke_test/"
+        )
 
-        checkpoint_dirs = list(ck_out_dirs[0].glob("epoch_*"))
+        checkpoint_dirs = list(artifacts_dirs[0].glob("epoch_*"))
         assert len(checkpoint_dirs) > 0, (
-            f"No epoch_* checkpoint directory found in {ck_out_dirs[0]}"
+            f"No epoch_* checkpoint directory found in {artifacts_dirs[0]}"
         )
 
         # Check for actual checkpoint files (safetensors or bin)

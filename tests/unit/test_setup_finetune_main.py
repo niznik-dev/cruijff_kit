@@ -113,7 +113,7 @@ class TestMainYamlGeneration:
         config, _ = run_main()
         output_dir = config["output_dir"]
         assert "test_exp" in output_dir
-        assert "ck-out-" in output_dir
+        assert "/artifacts/" in output_dir
         assert str(tmp_path) in output_dir
 
     def test_input_dir_constructed(self, run_main, tmp_path):

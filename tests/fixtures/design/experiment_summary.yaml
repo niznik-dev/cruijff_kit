@@ -46,7 +46,7 @@ data:
 
 output:
   base_directory: "__SCRATCH__/ck-projects/capitalization/workflow_test_2026-03-16"
-  checkpoint_pattern: "ck-out-{run_name}/epoch_{N}"
+  checkpoint_pattern: "{run_name}/artifacts/epoch_{N}"
   wandb_project: "cruijff_kit_tests"
 
 runs:

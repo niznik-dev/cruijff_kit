@@ -45,7 +45,7 @@ Details: No findings.md found, falling back to analysis/report.md
 Details: 14/14 files verified, all sizes match
 
 [2026-03-23 14:00:10] DELETE_ORIGINALS: Removed experiment and output directories
-Details: Deleted /scratch/.../ck-projects/{project}/cap_lora_2026-03-01, /scratch/.../ck-projects/{project}/cap_lora_2026-03-01/ck-out-run_rank4, /scratch/.../ck-projects/{project}/cap_lora_2026-03-01/ck-out-run_rank8
+Details: Deleted /scratch/.../ck-projects/{project}/cap_lora_2026-03-01, /scratch/.../ck-projects/{project}/cap_lora_2026-03-01/run_rank4/artifacts, /scratch/.../ck-projects/{project}/cap_lora_2026-03-01/run_rank8/artifacts
 Result: Freed 15234.7 MB
 
 [2026-03-23 14:00:10] COMPLETE: Archive finished

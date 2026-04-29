@@ -33,7 +33,7 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
-│   ├── ck-out-{run_name_1}/epoch_{N}/   # model checkpoints
+│   ├── artifacts/epoch_{N}/             # model checkpoints
 │   └── eval/                             # eval scripts and logs
 └── {run_name_2}/
     └── ...

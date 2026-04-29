@@ -7,7 +7,7 @@ Usage:
     python archive_experiment.py <experiment_dir> [--dry-run] [--force] [--archive-base <path>]
 
 Keeps: entire experiment directory (configs, SLURM scripts, eval logs, analysis, etc.)
-Deletes: model checkpoint directories (ck-out-{run_name}/)
+Deletes: model checkpoint directories ({run_name}/artifacts/)
 
 Output:
     JSON to stdout with archive results.
@@ -56,7 +56,7 @@ def inventory_experiment(experiment_dir, output_dir_base):
 
     Args:
         experiment_dir: Path to the experiment directory.
-        output_dir_base: Path to the output directory base (contains ck-out-* dirs).
+        output_dir_base: Path to the output directory base (contains {run_name}/artifacts/ dirs).
 
     Returns:
         Dictionary with:
@@ -118,7 +118,7 @@ def inventory_experiment(experiment_dir, output_dir_base):
     delete_paths = []
     out_base = Path(output_dir_base)
     for run_name in run_names:
-        out_dir = out_base / f"ck-out-{run_name}"
+        out_dir = out_base / run_name / "artifacts"
         if out_dir.exists():
             delete_paths.append(
                 {
@@ -248,7 +248,7 @@ def delete_originals(experiment_dir, output_dir_base, run_names):
     # Delete checkpoint directories (the big ones)
     out_base = Path(output_dir_base)
     for run_name in run_names:
-        out_dir = out_base / f"ck-out-{run_name}"
+        out_dir = out_base / run_name / "artifacts"
         if out_dir.exists():
             size = _dir_size_bytes(out_dir)
             try:

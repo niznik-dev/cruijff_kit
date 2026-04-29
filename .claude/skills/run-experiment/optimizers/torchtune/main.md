@@ -21,4 +21,4 @@ Every step is required. Execute steps in order — each step depends on the outp
 ## Output
 
 - Creates logs/run-torchtune.log with detailed execution history
-- Model checkpoints in `{output_dir_base}/ck-out-{run_name}/epoch_{N}/`
+- Model checkpoints in `{output_dir_base}/{run_name}/artifacts/epoch_{N}/`

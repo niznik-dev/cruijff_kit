@@ -288,22 +288,22 @@ def construct_output_dir(output_dir_base, experiment_name, model_run_name):
 
     Args:
         output_dir_base: Base directory for outputs
-        experiment_name: Optional experiment name for grouping outputs
+        experiment_name: Experiment name used to group outputs (required)
         model_run_name: Name of this specific model run
 
     Returns:
         Full output directory path with trailing slash
+
+    Raises:
+        ValueError: if experiment_name is empty
     """
-    # Ensure output_dir_base ends with /
+    if not experiment_name:
+        raise ValueError("experiment_name is required")
+
     if not output_dir_base.endswith("/"):
         output_dir_base += "/"
 
-    # If experiment_name is provided, group outputs under that directory
-    if experiment_name:
-        return output_dir_base + experiment_name + "/ck-out-" + model_run_name + "/"
-    else:
-        # Backwards compatibility: outputs go directly to output_dir_base
-        return output_dir_base + "ck-out-" + model_run_name + "/"
+    return output_dir_base + experiment_name + "/" + model_run_name + "/artifacts/"
 
 
 def configure_dataset_for_format(config, dataset_label, dataset_ext, dataset_type):
@@ -401,13 +401,13 @@ def create_parser():
         "--experiment_name",
         type=str,
         default="",
-        help="Name of the experiment (used to group outputs in ck-projects/{project}/{experiment_name}/). If not provided, outputs go directly to output_dir_base.",
+        help="Name of the experiment (used to group outputs in ck-projects/{project}/{experiment_name}/).",
     )
     parser.add_argument(
         "--output_dir_base",
         type=str,
         default=None,
-        help="Full path to the output file folders (final output folder will be 'ck-out-' + my_wandb_name within this folder)",
+        help="Full path to the output file folders",
     )
     parser.add_argument(
         "--input_dir_base",

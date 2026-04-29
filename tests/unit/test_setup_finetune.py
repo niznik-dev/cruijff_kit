@@ -207,7 +207,7 @@ def test_construct_output_dir_with_experiment_and_trailing_slash():
         experiment_name="my_experiment",
         model_run_name="run_123",
     )
-    assert result == "/scratch/output/my_experiment/ck-out-run_123/"
+    assert result == "/scratch/output/my_experiment/run_123/artifacts/"
 
 
 def test_construct_output_dir_with_experiment_no_trailing_slash():
@@ -217,33 +217,27 @@ def test_construct_output_dir_with_experiment_no_trailing_slash():
         experiment_name="my_experiment",
         model_run_name="run_123",
     )
-    assert result == "/scratch/output/my_experiment/ck-out-run_123/"
+    assert result == "/scratch/output/my_experiment/run_123/artifacts/"
 
 
-def test_construct_output_dir_without_experiment_trailing_slash():
-    """Test output dir construction without experiment name, with trailing slash."""
-    result = construct_output_dir(
-        output_dir_base="/scratch/output/", experiment_name="", model_run_name="run_123"
-    )
-    assert result == "/scratch/output/ck-out-run_123/"
+def test_construct_output_dir_empty_experiment_name_raises():
+    """Empty experiment_name must raise ValueError (legacy fallback retired)."""
+    with pytest.raises(ValueError, match="experiment_name is required"):
+        construct_output_dir(
+            output_dir_base="/scratch/output/",
+            experiment_name="",
+            model_run_name="run_123",
+        )
 
 
-def test_construct_output_dir_without_experiment_no_trailing_slash():
-    """Test output dir construction without experiment name, no trailing slash."""
-    result = construct_output_dir(
-        output_dir_base="/scratch/output", experiment_name="", model_run_name="run_123"
-    )
-    assert result == "/scratch/output/ck-out-run_123/"
-
-
-def test_construct_output_dir_experiment_name_none():
-    """Test output dir construction when experiment_name is None."""
-    result = construct_output_dir(
-        output_dir_base="/scratch/output/",
-        experiment_name=None,
-        model_run_name="run_123",
-    )
-    assert result == "/scratch/output/ck-out-run_123/"
+def test_construct_output_dir_none_experiment_name_raises():
+    """None experiment_name must raise ValueError (legacy fallback retired)."""
+    with pytest.raises(ValueError, match="experiment_name is required"):
+        construct_output_dir(
+            output_dir_base="/scratch/output/",
+            experiment_name=None,
+            model_run_name="run_123",
+        )
 
 
 # Tests for configure_dataset_for_format()

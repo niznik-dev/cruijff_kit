@@ -4,58 +4,79 @@ This document describes the canonical file layout for cruijff_kit experiments. U
 
 ## Experiment Directory
 
-Each experiment lives in a single directory. The root contains the experiment plan, results summary, and subdirectories for logs, runs, and analysis.
+Each experiment lives in a single self-contained directory. The root contains the experiment plan, the generated dataset, results summary, and subdirectories for skill logs, per-run config, per-run training artifacts, and cross-run analysis.
 
 ```
 {experiment_dir}/
 ├── experiment_summary.yaml      # Experiment design (from design-experiment)
 ├── summary.md                   # Post-run results summary (from summarize-experiment)
-├── logs/                        # All skill pipeline logs
+├── {dataset}.json               # Generated dataset (e.g. last_digits_k10_N2000.json)
+├── logs/                        # Skill pipeline logs
 │   ├── design-experiment.log
 │   ├── scaffold-experiment.log
+│   ├── scaffold-prepare-data.log
 │   ├── scaffold-torchtune.log
 │   ├── scaffold-inspect.log
 │   ├── run-experiment.log
 │   ├── run-torchtune.log
 │   ├── run-inspect.log
-│   ├── analyze-experiment.log
-│   └── summarize-experiment.log
-├── {run_name}/                  # Per-run directory (one per run)
+│   ├── summarize-experiment.log
+│   └── analyze-experiment.log
+├── {run_name}/                  # Self-contained per-run directory (one per run)
 │   ├── setup_finetune.yaml      # Fine-tuning configuration input
 │   ├── finetune.yaml            # Generated torchtune config
 │   ├── finetune.slurm           # Generated SLURM script
-│   ├── slurm-*.out              # SLURM stdout (stays in run dir)
-│   └── eval/                    # Evaluation configs and results
-│       ├── eval_config.yaml     # Evaluation configuration
-│       ├── {task}_epoch{N}.slurm
-│       ├── slurm-*.out          # Eval SLURM stdout
-│       └── logs/                # inspect-ai evaluation logs
-│           └── *.eval
-└── analysis/                    # Visualizations and reports
+│   ├── eval/                    # Evaluation configs and results
+│   │   ├── eval_config.yaml     # Evaluation configuration
+│   │   ├── {task}_epoch{N}.slurm
+│   │   ├── slurm-*.out          # Eval SLURM stdout (when present)
+│   │   └── logs/                # inspect-ai evaluation logs
+│   │       └── *.eval
+│   └── artifacts/               # Training artifacts (checkpoints + W&B + GPU metrics)
+│       ├── slurm-*.out          # Training SLURM stdout
+│       ├── gpu_metrics.csv      # GPU utilization from nvidia-smi
+│       ├── torchtune_config.yaml # Resolved torchtune config
+│       ├── logs/
+│       │   └── wandb/           # Weights & Biases run data
+│       ├── epoch_0/             # Checkpoint for epoch 0
+│       │   ├── adapter_model/   # HF-loadable adapter directory
+│       │   ├── adapter_weights/ # Raw adapter weight files
+│       │   ├── original/        # Base model snapshot
+│       │   ├── model.safetensors # Merged model
+│       │   ├── config.json
+│       │   ├── generation_config.json
+│       │   ├── torchtune_config.yaml
+│       │   ├── gpu_metrics.csv
+│       │   ├── slurm-*.out
+│       │   ├── tokenizer.json
+│       │   ├── tokenizer_config.json
+│       │   ├── special_tokens_map.json
+│       │   ├── LICENSE.txt
+│       │   ├── README.md
+│       │   └── USE_POLICY.md
+│       └── epoch_N/             # Additional epoch checkpoints (if multi-epoch)
+│           └── ...
+└── analysis/                    # Cross-run visualizations and reports
     ├── report.md                # Markdown report with metrics
     ├── *.html                   # Interactive HTML plots
     └── *.png                    # Static plot exports
 ```
 
-## Output Directory
+For a multi-run experiment (e.g. comparing two models), each run gets its own self-contained `{run_name}/` directory at the experiment root, with configs, `eval/`, and `artifacts/` all nested inside. A run can be copied as a unit (`cp -r {run_name}/ elsewhere/`).
 
-Fine-tuning outputs (model checkpoints, WandB logs, GPU metrics) are written to a separate output directory to keep experiment configs and large model artifacts on different storage paths.
+## Training Artifact Directory
 
-```
-{output_dir_base}/ck-out-{run_name}/
-├── epoch_0/                     # Checkpoint for epoch 0
-│   ├── adapter_model.safetensors
-│   ├── adapter_config.json
-│   └── ...
-├── epoch_1/                     # Checkpoint for epoch 1 (if >1 epoch)
-│   └── ...
-├── slurm-*.out                  # Training SLURM stdout
-├── gpu_metrics.csv              # GPU utilization from nvidia-smi
-└── logs/
-    └── wandb/                   # Weights & Biases run data
+Training artifacts live at `{run_name}/artifacts/` inside the experiment directory — they are *not* written to a separate base path. The relevant fields in `experiment_summary.yaml`:
+
+```yaml
+output:
+  base_directory: "{experiment_dir}"          # Set to the experiment dir itself
+  checkpoint_pattern: "{run_name}/artifacts/epoch_{N}"
 ```
 
-The `output_dir_base` is configured in `experiment_summary.yaml` under `output.base_directory`.
+So the resolved checkpoint path for a given run is `{experiment_dir}/{run_name}/artifacts/epoch_{N}/`. See the tree above for the full contents of `{run_name}/artifacts/`.
+
+> **Note:** A few files (`gpu_metrics.csv`, `torchtune_config.yaml`, `slurm-*.out`) appear both at the top of `{run_name}/artifacts/` and inside `epoch_0/`. The top-level copies are the live job's record; the per-epoch copies are snapshotted alongside the checkpoint.
 
 ## Per-Stage Artifacts
 
@@ -63,7 +84,7 @@ The `output_dir_base` is configured in `experiment_summary.yaml` under `output.b
 |-------|---------|----------|
 | design-experiment | `experiment_summary.yaml`, `logs/design-experiment.log` | Experiment dir |
 | scaffold-experiment | Run directories, configs, SLURM scripts, `logs/scaffold-*.log` | Experiment dir |
-| run-experiment | SLURM outputs, checkpoints, eval logs, `logs/run-*.log` | Experiment dir + output dir |
+| run-experiment | SLURM outputs, checkpoints, eval logs, `logs/run-*.log` | Experiment dir |
 | summarize-experiment | `summary.md`, `logs/summarize-experiment.log` | Experiment dir |
 | analyze-experiment | `analysis/` directory, `logs/analyze-experiment.log` | Experiment dir |
 | archive-experiment | `archive.log`, archived metadata | Archive dir (originals deleted) |
@@ -91,11 +112,9 @@ After archiving with `archive-experiment`, the experiment is reduced to its irre
 
 ## Where SLURM `.out` Files Land
 
-SLURM writes `.out` files to the directory from which `sbatch` is invoked:
+| Job Type | `.out` Location |
+|----------|-----------------|
+| Fine-tuning (training) | `{experiment_dir}/{run_name}/artifacts/slurm-*.out`, plus a per-epoch copy at `{run_name}/artifacts/epoch_N/slurm-*.out` |
+| Evaluation | `{run_dir}/eval/slurm-*.out` |
 
-| Job Type | Submitted From | `.out` Location |
-|----------|---------------|-----------------|
-| Fine-tuning | `{run_dir}/` | `{run_dir}/slurm-*.out` |
-| Evaluation | `{run_dir}/eval/` | `{run_dir}/eval/slurm-*.out` |
-
-Training SLURM outputs may also appear in the output directory (`ck-out-{run_name}/slurm-*.out`) depending on the job's working directory configuration.
+Training jobs write `.out` files into the run's `artifacts/` directory, not the run dir root. Eval `.out` files live in `eval/` directly.

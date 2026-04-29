@@ -65,14 +65,14 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
             eval_logs.mkdir(parents=True)
             (eval_logs / "test_task_epoch0.eval").write_text('{"results": {}}')
 
-        # Output directory with fake checkpoint
-        ck_out = out_base / f"ck-out-{rn}"
-        ck_out.mkdir(parents=True)
-        epoch_dir = ck_out / "epoch_0"
+        # Output directory with fake checkpoint (nested inside the run dir)
+        artifacts = run_dir / "artifacts"
+        artifacts.mkdir()
+        epoch_dir = artifacts / "epoch_0"
         epoch_dir.mkdir()
         # Write a fake checkpoint (larger than metadata to test size reporting)
         (epoch_dir / "adapter_model.safetensors").write_bytes(b"\x00" * 4096)
-        (ck_out / "gpu_metrics.csv").write_text("timestamp,gpu_util\n")
+        (artifacts / "gpu_metrics.csv").write_text("timestamp,gpu_util\n")
 
     # Optional extras
     if extras:
@@ -286,7 +286,7 @@ def test_delete_originals(tmp_path):
 
     assert not Path(exp_dir).exists()
     for rn in run_names:
-        assert not (Path(out_base) / f"ck-out-{rn}").exists()
+        assert not (Path(out_base) / rn / "artifacts").exists()
 
 
 # --- dry run tests ---

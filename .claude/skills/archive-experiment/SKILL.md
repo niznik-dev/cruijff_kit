@@ -5,7 +5,7 @@ description: Archive a completed experiment, preserving all experiment files whi
 
 # Archive Experiment
 
-Archive a completed experiment by copying the entire experiment directory and deleting only the large checkpoint directories (`ck-out-*/`).
+Archive a completed experiment by copying the entire experiment directory and deleting only the large checkpoint directories (`*/artifacts/`).
 
 ## Your Task
 
@@ -92,7 +92,7 @@ python src/tools/experiment/archive_experiment.py <experiment_dir> [--force] [--
 The script will:
 1. Copy the entire experiment directory to the archive
 2. Verify the archive (file existence + size check)
-3. Delete originals: checkpoint directories (`ck-out-*/`) and experiment directory
+3. Delete originals: checkpoint directories (`*/artifacts/`) and experiment directory
 4. Report results
 
 ### 6. Report Results
@@ -121,7 +121,7 @@ The **entire experiment directory** is copied to the archive, preserving its ori
 
 | Artifact | Why Safe |
 |----------|---------|
-| Model checkpoints (`ck-out-*/`) | Reproducible via fine-tuning; these are the only large artifacts |
+| Model checkpoints (`*/artifacts/`) | Reproducible via fine-tuning; these are the only large artifacts |
 
 ## Error Handling
 

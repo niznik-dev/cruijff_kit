@@ -142,8 +142,8 @@ output:
                                    # Format: {scratch_dir}/ck-projects/{project}/{experiment_name}
                                    # Example: "{scratch_dir}/ck-projects/{project}/my_experiment_2025-10-22"
   checkpoint_pattern: string       # REQUIRED: Pattern for checkpoint paths relative to base_directory
-                                   # Standard value: "ck-out-{run_name}/epoch_{N}"
-                                   # Full checkpoint path: {base_directory}/ck-out-{run_name}/epoch_{N}
+                                   # Standard value: "{run_name}/artifacts/epoch_{N}"
+                                   # Full checkpoint path: {base_directory}/{run_name}/artifacts/epoch_{N}
   wandb_project: string            # REQUIRED: Weights & Biases project name
 
 # =============================================================================

@@ -107,7 +107,7 @@ No jobs still PENDING or RUNNING.
 
 **Verify model checkpoints:**
 ```bash
-ls {output_dir_base}/ck-out-{run_name}/epoch_{N}/
+ls {output_dir_base}/{run_name}/artifacts/epoch_{N}/
 ```
 
 For each COMPLETED job, verify checkpoint directory exists with:
