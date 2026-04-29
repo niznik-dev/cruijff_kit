@@ -44,6 +44,8 @@ def run_setup_finetune(run_dir, model_name="Llama-3.2-1B-Instruct", extra_args=N
         "/fake/path/",
         "--output_dir_base",
         "/fake/output/",
+        "--experiment_name",
+        "test_experiment",
         "--models_dir",
         "/fake/models/",
         "--my_wandb_run_name",
