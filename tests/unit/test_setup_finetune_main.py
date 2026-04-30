@@ -153,6 +153,23 @@ class TestMainYamlGeneration:
         assert "dataset_val" not in config
         assert "run_val_every_n_steps" not in config
 
+    def test_validation_preserved_when_nonzero(self, run_main, tmp_path, setup_yaml):
+        """run_val_every_n_steps>0 should preserve validation config end-to-end.
+
+        Guards against regression of the scaffold-torchtune agent silently emitting
+        run_val_every_n_steps=0 despite validation_during_training=true in the
+        experiment design.
+        """
+        with open(setup_yaml) as f:
+            cfg = yaml.safe_load(f)
+        cfg["run_val_every_n_steps"] = 50
+        with open(setup_yaml, "w") as f:
+            yaml.dump(cfg, f)
+
+        config, _ = run_main()
+        assert config["run_val_every_n_steps"] == 50
+        assert "dataset_val" in config
+
 
 class TestMainSlurmGeneration:
     """Tests for SLURM script generation."""

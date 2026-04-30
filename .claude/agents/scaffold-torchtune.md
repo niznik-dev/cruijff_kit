@@ -90,7 +90,7 @@ These are *example* parameters that the user might vary. There may be other para
    - `controls.batch_size` - Batch size (if not varied)
    - `controls.system_prompt` - Training system prompt
    - `controls.prompt` - Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
-   - `controls.validation_during_training` - Whether to run validation (impacts `run_val_every_n_steps`)
+   - `controls.validation_during_training` - Whether to run validation during training. Translates to `run_val_every_n_steps`: if `true`, set to `50` (the `finetune_template.yaml` default); if `false`, set to `0` (which causes `setup_finetune.py` to drop the validation dataset config). Do not emit `0` when the user requested validation — that silently disables it.
    - `controls.gradient_accumulation_steps` - Gradient accumulation
    - `controls.weight_decay` - Optimizer weight decay
    - `controls.lora_dropout` - LoRA dropout
@@ -238,7 +238,7 @@ lora_dropout: {from controls.lora_dropout, if present}
 # Training configuration (common across runs)
 epochs: {from controls.epochs}
 log_every_n_steps: {use template default, typically 1}
-run_val_every_n_steps: {use template default, typically 0}
+run_val_every_n_steps: {50 if controls.validation_during_training else 0}
 
 # Checkpoint Options
 stash_adapter_weights: 'true'  # From template default
