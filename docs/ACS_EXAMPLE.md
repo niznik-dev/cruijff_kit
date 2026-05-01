@@ -28,6 +28,8 @@ To get familiar with the workflow, we recommend generating a small dataset with 
 
 #### Download and Convert
 
+Run these from the directory you want the verbose intermediate file to land in (it's written to the current working directory). The converted condensed/terse files go to `--output-dir` regardless.
+
 ```bash
 # Step 1: Extract verbose-format data from HuggingFace
 python blueprints/folktexts/generate_data.py \
@@ -140,7 +142,7 @@ This skill reads the evaluation logs from both runs and generates an `analysis/`
 - **`report.md`** - A markdown report with accuracy comparisons, confidence intervals, and if `risk_scorer` is selected for binary tasks, calibration metrics like ECE, Brier score, and AUC
 - **HTML plots** - Side-by-side comparisons of base vs. fine-tuned performance, viewable in any browser
 - **Static PNG exports** - If `playwright` is installed, PNG versions of all plots are generated automatically
-- **Calibration and ROC curves** - If `risk_scorer` is selected, additional diagnostic plots show how well the model's confidence aligns with actual outcomes
+- **Calibration and ROC curves** - If `risk_scorer` is selected, additional diagnostic plots show how well the model's confidence aligns with actual outcomes (fine-tuned runs only — base models don't produce usable logprobs in zeroshot mode, so their calibration columns will be empty)
 
 You can also run `/summarize-experiment` for a lightweight text summary of key metrics.
 
@@ -173,7 +175,7 @@ Using both `match` and `risk_scorer` together (as in this example) gives you acc
 
 ---
 
-### Other ACS Tasks
+## Other ACS Tasks
 
 Five prediction tasks based on the `folktexts` framework are available, all using the same ACS feature set:
 

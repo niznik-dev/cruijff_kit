@@ -15,21 +15,36 @@ For an end-to-end walkthrough using the Claude Code skills (recommended), see [A
 
 For experiments with multiple runs (e.g., parameter sweeps):
 
-1. Create an experiment directory with a subdirectory for each run
-2. Copy and customize `setup_finetune.yaml` for each run
-3. Generate configs for all runs:
+1. Create an experiment directory with a subdirectory for each run. Experiments typically live outside the repo (e.g. under `{ck_data_dir}/ck-projects/{project}/{experiment_name}/`); the canonical layout is described in [ARTIFACT_LOCATIONS.md](ARTIFACT_LOCATIONS.md).
+2. Copy and customize `setup_finetune.yaml` for each run.
+3. Generate fine-tuning configs for all runs. After `make install` the package is importable from anywhere, so `python -m` works regardless of where the experiment dir lives:
    ```bash
    for dir in run_*/; do
-     (cd "$dir" && python ../../src/tools/torchtune/setup_finetune.py)
+     (cd "$dir" && python -m cruijff_kit.tools.torchtune.setup_finetune)
    done
    ```
-4. Submit all jobs with a stagger delay to prevent HuggingFace cache race conditions:
+4. Submit all fine-tuning jobs with a stagger delay to prevent HuggingFace cache race conditions:
    ```bash
    for dir in run_*/; do
      (cd "$dir" && sbatch finetune.slurm)
      sleep 5
    done
    ```
+5. Once fine-tuning completes, set up evaluation. Each run gets an `eval/` subdirectory with an `eval_config.yaml` (see `.claude/skills/scaffold-experiment/evaluators/inspect_agent.md` for the full schema). Render the eval SLURM scripts:
+   ```bash
+   for dir in run_*/eval/; do
+     (cd "$dir" && python -m cruijff_kit.tools.inspect.setup_inspect \
+       --config eval_config.yaml \
+       --model_name Llama-3.2-1B-Instruct)
+   done
+   ```
+   This produces one `{task}_epoch{N}.slurm` per checkpoint. Submit them:
+   ```bash
+   for slurm in run_*/eval/*_epoch*.slurm; do
+     (cd "$(dirname "$slurm")" && sbatch "$(basename "$slurm")")
+   done
+   ```
+   View results with `inspect view` (on della, append `--port=$(get_free_port)`).
 
 ## Troubleshooting
 
