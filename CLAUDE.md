@@ -67,7 +67,7 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 - **scaffold-experiment** ✅ - Create organized directory structures, configs, and SLURM scripts for all runs
 - **run-experiment** ✅ - Submit jobs to SLURM and monitor their progress until completion
 - **summarize-experiment** ✅ - Generate summary.md with key metrics (loss, accuracy) after experiment completion
-- **analyze-experiment** ✅ - Generate interactive HTML visualizations from evaluation logs using inspect-viz (currently supports capitalization experiments)
+- **analyze-experiment** ✅ - Generate interactive HTML visualizations from evaluation logs using inspect-viz; selects views based on experimental variables (model, factor, task, metric) and adds calibration / ROC plots when `risk_scorer` is present
 - **analyze-to-pdf** ✅ - Convert analysis reports (markdown) to PDF using pandoc
 - **archive-experiment** ✅ - Archive completed experiments, preserving all experiment files while deleting checkpoint directories
 
@@ -99,7 +99,7 @@ To validate that the complete workflow (design, scaffold, run) is functioning co
 | **Base vs Fine-tuned** | `.claude/workflow_test_base.yaml` | 1 base + 1 fine-tuned (rank4) | ~12 min | Base model evaluation |
 | **Recipe Defaults** | `.claude/workflow_test_recipe.yaml` | 2 fine-tuned (rank4, rank16) | ~12 min | base_recipe inheritance |
 
-All use Llama-3.2-1B-Instruct with words_5L_80P_1000.json under `ck-projects/capitalization/`
+All use Llama-3.2-1B-Instruct with `{ck_data_dir}/capitalization/words_5L_80P_1000.json` as input data
 
 **Purpose:** Catch regressions in skills, ensure documentation changes don't break workflows, validate end-to-end integration.
 
