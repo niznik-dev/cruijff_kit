@@ -42,7 +42,7 @@ fixtures/
 
 | Fixture | Based on | Purpose |
 |---------|----------|---------|
-| `design/experiment_summary.yaml` | Template + workflow_test.yaml | Reference design; validates schema |
+| `design/experiment_summary.yaml` | Template + workflow_test.md | Reference design; validates schema |
 | `scaffold/torchtune/*/setup_finetune.yaml` | test_setup_finetune_main.py pattern | Input to setup_finetune.py |
 | `scaffold/inspect/*/eval/eval_config.yaml` | test_setup_inspect.py pattern | Input to setup_inspect.py |
 | `summarize/slurm_training_output.txt` | Synthetic (uses `__SCRATCH__` placeholders) | Loss regex extraction testing |
