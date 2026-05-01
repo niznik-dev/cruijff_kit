@@ -87,28 +87,39 @@ So the resolved checkpoint path for a given run is `{experiment_dir}/{run_name}/
 | run-experiment | SLURM outputs, checkpoints, eval logs, `logs/run-*.log` | Experiment dir |
 | summarize-experiment | `summary.md`, `logs/summarize-experiment.log` | Experiment dir |
 | analyze-experiment | `analysis/` directory, `logs/analyze-experiment.log` | Experiment dir |
-| archive-experiment | `archive.log`, archived metadata | Archive dir (originals deleted) |
+| archive-experiment | `archive.log`, mirrored experiment dir minus `*/artifacts/` | Archive dir (originals deleted) |
 
 ## Archive Directory
 
-After archiving with `archive-experiment`, the experiment is reduced to its irreplaceable metadata:
+After archiving with `archive-experiment`, the experiment is mirrored under its project, with per-run `artifacts/` directories deleted as the only large items:
 
 ```
-{archive_base}/{experiment_name}/
+{archive_base}/{project}/{experiment_name}/
 ├── experiment_summary.yaml      # Reproduces the experiment via scaffold + run
-├── findings.md                  # What was learned (from findings/report/summary)
-├── summary.md                   # Quick results reference
+├── findings.md                  # What was learned (only if user wrote one)
+├── summary.md                   # Quick results reference (if produced)
+├── {dataset}.json               # Generated dataset
 ├── logs/                        # Skill pipeline logs
 │   ├── design-experiment.log
 │   └── ...
-├── eval_logs/                   # Evaluation results
-│   └── {run_name}/
-│       └── *.eval
+├── {run_name}/                  # Per-run dir, mirroring the experiment layout
+│   ├── setup_finetune.yaml
+│   ├── finetune.yaml
+│   ├── finetune.slurm
+│   └── eval/
+│       ├── eval_config.yaml
+│       ├── {task}_epoch{N}.slurm
+│       └── logs/
+│           └── *.eval
 ├── analysis/                    # Reports and visualizations
 │   ├── report.md
 │   └── *.html
 └── archive.log                  # Archive process log
 ```
+
+The default `{archive_base}` is `ck-archive/` as a sibling of the experiment's grandparent dir. For an experiment at `__SCRATCH__/ck-projects/{project}/{experiment_name}/`, the archive lands at `__SCRATCH__/ck-archive/{project}/{experiment_name}/`. The `{project}` layer is required — `experiment.project` must be set in `experiment_summary.yaml`.
+
+Symlinks are not archived. Per-run `artifacts/` directories are not archived (the only large items, regenerable by re-running fine-tuning).
 
 ## Where SLURM `.out` Files Land
 
