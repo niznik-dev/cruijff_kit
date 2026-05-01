@@ -10,11 +10,11 @@ This page lists all models currently supported by cruijff_kit. The canonical sou
 | Llama-3.2-1B-Instruct | Llama | Instruct | 1B | 1 | 40G | `tune download meta-llama/Llama-3.2-1B-Instruct --output-dir <model_dir> --hf-token <token>` |
 | Llama-3.2-3B-Instruct | Llama | Instruct | 3B | 1 | 80G | `tune download meta-llama/Llama-3.2-3B-Instruct --output-dir <model_dir> --hf-token <token>` |
 | Llama-3.1-8B-Instruct | Llama | Instruct | 8B | 1 | 80G | `tune download meta-llama/Llama-3.1-8B-Instruct --output-dir <model_dir> --hf-token <token>` |
-| Llama-3.3-70B-Instruct | Llama | Instruct | 70B | 4 | 320G | `tune download meta-llama/Llama-3.3-70B-Instruct --output-dir <model_dir> --hf-token <token>` |
+| Llama-3.3-70B-Instruct | Llama | Instruct | 70B | 4 | 80G | `tune download meta-llama/Llama-3.3-70B-Instruct --output-dir <model_dir> --hf-token <token>` |
 | Qwen2.5-3B | Qwen | Base | 3B | 1 | 80G | `tune download Qwen/Qwen2.5-3B --output-dir <model_dir>` |
 | Qwen2.5-3B-Instruct | Qwen | Instruct | 3B | 1 | 80G | `tune download Qwen/Qwen2.5-3B-Instruct --output-dir <model_dir>` |
 
-**VRAM** is the minimum GPU memory required per GPU. The SLURM memory allocation matches VRAM to ensure checkpoint saving doesn't cause out-of-memory errors.
+**VRAM** is the per-GPU partition size you should request. For multi-GPU models like Llama-3.3-70B-Instruct, the same per-GPU partition is requested for each of the `GPUs` cards.
 
 ## Notes
 
