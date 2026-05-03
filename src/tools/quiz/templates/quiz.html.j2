@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quiz: {{ spec.title | e }} — cruijff_kit</title>
+<style>
+:root {
+  --bg: #fafafa;
+  --fg: #1a1a1a;
+  --muted: #666;
+  --border: #ddd;
+  --accent: #2563eb;
+  --correct: #16a34a;
+  --incorrect: #dc2626;
+  --card-bg: #fff;
+  --reveal-bg: #f3f4f6;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  max-width: 760px;
+  margin: 2em auto;
+  padding: 0 1em 4em;
+  line-height: 1.55;
+}
+h1 { margin: 0 0 0.2em; font-size: 1.6em; }
+h2 { font-size: 1.15em; margin: 0 0 0.5em; }
+.intro {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1em 1.2em;
+  margin-bottom: 1.5em;
+  color: var(--muted);
+}
+.experiments {
+  font-size: 0.85em;
+  color: var(--muted);
+  margin-top: 2em;
+  padding-top: 1em;
+  border-top: 1px solid var(--border);
+}
+.experiments code { font-size: 0.95em; }
+.range-hint { display: block; font-size: 0.85em; color: var(--muted); margin-top: 0.3em; }
+.brand {
+  font-size: 0.85em;
+  color: var(--muted);
+  text-align: center;
+  padding: 0.4em 0.8em;
+  background: var(--reveal-bg);
+  border-radius: 4px;
+  margin-bottom: 1.5em;
+}
+.brand a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.brand a:hover { text-decoration: underline; }
+details.appendix {
+  margin-top: 1.5em;
+  margin-bottom: 2.5em;
+  padding: 0.6em 0.8em;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+details.appendix > summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.2em 0;
+  list-style: revert;
+}
+details.appendix[open] > summary { margin-bottom: 0.8em; border-bottom: 1px solid var(--border); padding-bottom: 0.5em; }
+.writeup {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 0.5em;
+}
+.writeup img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 4px; margin: 0.5em 0; }
+.writeup table { border-collapse: collapse; width: 100%; margin: 0.8em 0; font-size: 0.9em; }
+.writeup table th, .writeup table td { border: 1px solid var(--border); padding: 0.3em 0.6em; text-align: left; }
+.writeup table th { background: var(--reveal-bg); }
+.writeup pre, .yaml-block {
+  background: var(--reveal-bg);
+  padding: 0.8em;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.85em;
+  white-space: pre;
+}
+.yaml-block { max-height: 60vh; overflow-y: auto; }
+.question {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2em 1.4em;
+  margin-bottom: 1.5em;
+}
+.question.locked .input { pointer-events: none; opacity: 0.85; }
+.qmeta { font-size: 0.8em; color: var(--muted); margin-bottom: 0.4em; text-transform: uppercase; letter-spacing: 0.05em; }
+.qprompt { margin-bottom: 0.8em; }
+.qprompt p:first-child { margin-top: 0; }
+.qprompt p:last-child { margin-bottom: 0; }
+.asset img { max-width: 100%; border: 1px solid var(--border); border-radius: 4px; margin: 0.5em 0 1em; }
+.input { margin: 0.5em 0; }
+.choice { display: block; margin: 0.3em 0; padding: 0.4em 0.6em; border-radius: 4px; cursor: pointer; }
+.choice:hover { background: var(--reveal-bg); }
+.choice input { margin-right: 0.5em; }
+.numeric input, textarea, .text-answer input {
+  width: 100%;
+  padding: 0.5em;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 1em;
+}
+textarea { min-height: 6em; resize: vertical; }
+.ranking-list { list-style: none; padding: 0; margin: 0.5em 0; }
+.ranking-list li {
+  display: flex;
+  align-items: center;
+  padding: 0.5em 0.6em;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  margin-bottom: 0.3em;
+}
+.ranking-list .label { flex: 1; }
+.ranking-list button {
+  margin-left: 0.3em;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0.2em 0.5em;
+}
+.ranking-list button:hover:not(:disabled) { background: var(--reveal-bg); }
+.ranking-list button:disabled { opacity: 0.3; cursor: not-allowed; }
+.actions { margin-top: 0.8em; display: flex; gap: 0.5em; flex-wrap: wrap; }
+button.submit, button.reveal {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  padding: 0.5em 1em;
+  border-radius: 4px;
+  font-size: 0.95em;
+  cursor: pointer;
+}
+button.submit:hover, button.reveal:hover { filter: brightness(1.1); }
+button.self-grade {
+  background: #fff;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  padding: 0.5em 1em;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.feedback {
+  margin-top: 0.8em;
+  padding: 0.8em 1em;
+  border-radius: 4px;
+  background: var(--reveal-bg);
+}
+.feedback.correct { border-left: 4px solid var(--correct); }
+.feedback.incorrect { border-left: 4px solid var(--incorrect); }
+.feedback.revealed { border-left: 4px solid var(--accent); }
+.feedback .verdict { font-weight: 600; margin-bottom: 0.4em; }
+.feedback .answer { margin-bottom: 0.6em; font-size: 0.95em; }
+.feedback .explanation { font-size: 0.92em; color: #333; }
+.score-bar {
+  position: sticky;
+  bottom: 0;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border);
+  padding: 0.8em 1em;
+  margin: 1em -1em 0;
+  font-size: 0.95em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.score-bar .progress { color: var(--muted); }
+.score-bar button {
+  background: var(--correct);
+  color: #fff;
+  border: 0;
+  padding: 0.5em 1em;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.score-bar button:disabled { background: #aaa; cursor: not-allowed; }
+.final {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5em;
+  margin-top: 1em;
+  display: none;
+}
+.final.shown { display: block; }
+.final .score { font-size: 1.6em; font-weight: 600; margin-bottom: 0.5em; }
+.final .breakdown li { margin-bottom: 0.3em; }
+code { background: var(--reveal-bg); padding: 1px 4px; border-radius: 3px; font-size: 0.92em; }
+hr { border: 0; border-top: 1px solid var(--border); margin: 1.5em 0; }
+</style>
+{% if mathjax_needed %}
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+{% endif %}
+</head>
+<body>
+
+<div class="brand">
+A <a href="https://github.com/niznik-dev/cruijff_kit" target="_blank" rel="noopener">cruijff_kit</a>-generated quiz
+</div>
+
+<h1>{{ spec.title | e }}</h1>
+<div class="intro">{{ intro_html | safe }}</div>
+
+{% if experiment_summary_yaml %}
+<details class="appendix">
+<summary>Full experimental specification</summary>
+<pre class="yaml-block">{{ experiment_summary_yaml | e }}</pre>
+</details>
+{% endif %}
+
+<form id="quiz">
+{% for q in questions %}
+<section class="question" data-id="{{ q.id }}" data-type="{{ q.type }}">
+  <div class="qmeta">Question {{ loop.index }} of {{ questions | length }} · {{ q.type | replace('_', ' ') }}</div>
+  <div class="qprompt">{{ q.prompt_html | safe }}</div>
+
+  {% if q.asset and q.asset.kind == 'png' %}
+  <div class="asset">
+    <img src="{{ q.asset.data_url }}" alt="{{ q.asset.alt | default('') | e }}">
+  </div>
+  {% endif %}
+
+  <div class="input">
+  {% if q.type in ('multiple_choice', 'anomaly_hunt') or (q.type == 'image_read' and q.answer_type == 'multiple_choice') %}
+    {% for choice in q.choices %}
+    <label class="choice">
+      <input type="radio" name="{{ q.id }}" value="{{ loop.index0 }}">
+      {{ choice | e }}
+    </label>
+    {% endfor %}
+
+  {% elif q.type in ('numerical_estimate', 'equation_or_baseline') or (q.type == 'image_read' and q.answer_type == 'numeric_with_tolerance') %}
+    <div class="numeric">
+      <input type="number"
+             step="{{ q.step | default('any') }}"
+             {% if q.min is defined %}min="{{ q.min }}"{% endif %}
+             {% if q.max is defined %}max="{{ q.max }}"{% endif %}
+             name="{{ q.id }}"
+             placeholder="{{ q.unit | default('your answer') | e }}">
+      {% if q.min is defined and q.max is defined %}
+      <span class="range-hint">Range: {{ q.min }}–{{ q.max }}{% if q.unit %} {{ q.unit | e }}{% endif %}</span>
+      {% endif %}
+    </div>
+
+  {% elif q.type == 'image_read' and q.answer_type == 'string' %}
+    <div class="text-answer">
+      <input type="text" name="{{ q.id }}" placeholder="your answer">
+    </div>
+
+  {% elif q.type == 'ranking' %}
+    <ol class="ranking-list">
+      {% for item in q["items"] %}
+      <li data-item="{{ item | e }}">
+        <span class="label">{{ item | e }}</span>
+        <button type="button" class="rank-up" aria-label="move up">▲</button>
+        <button type="button" class="rank-down" aria-label="move down">▼</button>
+      </li>
+      {% endfor %}
+    </ol>
+
+  {% elif q.type == 'free_text_intuition' %}
+    <textarea name="{{ q.id }}" placeholder="Write your answer here..."></textarea>
+
+  {% endif %}
+  </div>
+
+  <div class="actions">
+    {% if q.type == 'free_text_intuition' %}
+    <button type="button" class="reveal">Reveal Model Answer</button>
+    {% else %}
+    <button type="button" class="submit">Submit</button>
+    {% endif %}
+  </div>
+
+  <div class="feedback" hidden></div>
+</section>
+{% endfor %}
+</form>
+
+<div class="score-bar">
+  <span class="progress">0 / {{ questions | length }} answered</span>
+  <button type="button" id="finalize" disabled>See Final Score &amp; Full Analysis</button>
+</div>
+
+<div class="final" id="final">
+  <div class="score"></div>
+  <ul class="breakdown"></ul>
+</div>
+
+{% if writeup_html %}
+<details id="writeup-appendix" class="appendix" hidden>
+<summary>Full experiment write-up (results, tables, graphs)</summary>
+<div class="writeup">{{ writeup_html | safe }}</div>
+</details>
+{% endif %}
+
+{% if spec.experiments %}
+<div class="experiments">
+<strong>Source experiment{{ 's' if spec.experiments | length > 1 else '' }}:</strong>
+{% for exp in spec.experiments %}<code>{{ exp.name | e }}</code>{% if not loop.last %}, {% endif %}{% endfor %}
+</div>
+{% endif %}
+
+<script>
+// Question metadata is embedded so we can grade client-side.
+const QUESTIONS = {{ questions_json | safe }};
+const TOTAL = QUESTIONS.length;
+
+const state = {};  // qid -> { answered: bool, correct: bool|null }
+QUESTIONS.forEach(q => { state[q.id] = { answered: false, correct: null }; });
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function arraysEqual(a, b) {
+  if (a.length !== b.length) return false;
+  return a.every((v, i) => v === b[i]);
+}
+
+function gradeQuestion(q, root) {
+  if (q.type === 'multiple_choice' || q.type === 'anomaly_hunt' ||
+      (q.type === 'image_read' && q.answer_type === 'multiple_choice')) {
+    const sel = root.querySelector(`input[name="${q.id}"]:checked`);
+    if (!sel) return { ok: false, reason: 'Pick one option.' };
+    const idx = parseInt(sel.value, 10);
+    return { correct: idx === q.answer_index, given: q.choices[idx] };
+  }
+  if (q.type === 'numerical_estimate' || q.type === 'equation_or_baseline' ||
+      (q.type === 'image_read' && q.answer_type === 'numeric_with_tolerance')) {
+    const inp = root.querySelector(`input[name="${q.id}"]`);
+    if (inp.value === '') return { ok: false, reason: 'Enter a number.' };
+    const v = parseFloat(inp.value);
+    if (Number.isNaN(v)) return { ok: false, reason: 'Enter a valid number.' };
+    if (q.min !== undefined && v < q.min) return { ok: false, reason: `Value must be at least ${q.min}.` };
+    if (q.max !== undefined && v > q.max) return { ok: false, reason: `Value must be at most ${q.max}.` };
+    const tol = q.tolerance || 0;
+    return { correct: Math.abs(v - q.answer) <= tol, given: v };
+  }
+  if (q.type === 'image_read' && q.answer_type === 'string') {
+    const inp = root.querySelector(`input[name="${q.id}"]`);
+    if (!inp.value.trim()) return { ok: false, reason: 'Enter your answer.' };
+    return { correct: inp.value.trim().toLowerCase() === String(q.answer).trim().toLowerCase(), given: inp.value };
+  }
+  if (q.type === 'ranking') {
+    const items = Array.from(root.querySelectorAll('.ranking-list li')).map(li => li.dataset.item);
+    return { correct: arraysEqual(items, q.answer_order), given: items.join(' → ') };
+  }
+  return { ok: false, reason: 'Unknown question type.' };
+}
+
+function renderFeedback(q, result) {
+  const fb = document.createElement('div');
+  let cls = 'feedback';
+  let verdict = '';
+  let answerLine = '';
+  if (q.type === 'free_text_intuition') {
+    cls += ' revealed';
+    verdict = 'Model answer';
+    answerLine = `<div class="answer">${escapeHtml(q.model_answer)}</div>`;
+    if (q.key_points && q.key_points.length) {
+      answerLine += '<div class="answer"><strong>Key points:</strong><ul>' +
+        q.key_points.map(p => `<li>${escapeHtml(p)}</li>`).join('') + '</ul></div>';
+    }
+  } else if (result.correct) {
+    cls += ' correct';
+    verdict = '✓ Correct';
+  } else {
+    cls += ' incorrect';
+    verdict = '✗ Not quite';
+    let answerText = '';
+    if (q.type === 'multiple_choice' || q.type === 'anomaly_hunt' ||
+        (q.type === 'image_read' && q.answer_type === 'multiple_choice')) {
+      answerText = q.choices[q.answer_index];
+    } else if (q.type === 'ranking') {
+      answerText = q.answer_order.join(' → ');
+    } else {
+      answerText = String(q.answer);
+      if (q.tolerance) answerText += ` (± ${q.tolerance})`;
+    }
+    answerLine = `<div class="answer"><strong>Correct:</strong> ${escapeHtml(answerText)}</div>`;
+  }
+  return { className: cls, html: `<div class="verdict">${verdict}</div>${answerLine}<div class="explanation">${q.explanation_html || escapeHtml(q.explanation || '')}</div>` };
+}
+
+function updateProgress() {
+  const answered = Object.values(state).filter(s => s.answered).length;
+  document.querySelector('.score-bar .progress').textContent = `${answered} / ${TOTAL} answered`;
+  document.getElementById('finalize').disabled = answered < TOTAL;
+}
+
+document.querySelectorAll('section.question').forEach(section => {
+  const qid = section.dataset.id;
+  const q = QUESTIONS.find(x => x.id === qid);
+
+  // Ranking buttons
+  section.querySelectorAll('.rank-up, .rank-down').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const li = btn.closest('li');
+      const ul = li.parentNode;
+      if (btn.classList.contains('rank-up') && li.previousElementSibling) {
+        ul.insertBefore(li, li.previousElementSibling);
+      } else if (btn.classList.contains('rank-down') && li.nextElementSibling) {
+        ul.insertBefore(li.nextElementSibling, li);
+      }
+    });
+  });
+
+  // Submit button
+  const submitBtn = section.querySelector('button.submit');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', () => {
+      const result = gradeQuestion(q, section);
+      if (result.ok === false) { alert(result.reason); return; }
+      const fb = renderFeedback(q, result);
+      const fbDiv = section.querySelector('.feedback');
+      fbDiv.className = fb.className;
+      fbDiv.innerHTML = fb.html;
+      fbDiv.hidden = false;
+      section.classList.add('locked');
+      submitBtn.disabled = true;
+      state[qid] = { answered: true, correct: result.correct };
+      updateProgress();
+      if (window.MathJax && window.MathJax.typesetPromise) MathJax.typesetPromise([fbDiv]);
+    });
+  }
+
+  // Reveal button (free_text_intuition)
+  const revealBtn = section.querySelector('button.reveal');
+  if (revealBtn) {
+    revealBtn.addEventListener('click', () => {
+      const fb = renderFeedback(q, { correct: null });
+      const fbDiv = section.querySelector('.feedback');
+      fbDiv.className = fb.className;
+      fbDiv.innerHTML = fb.html +
+        '<div class="actions" style="margin-top:0.6em;">' +
+        '<button type="button" class="self-grade" data-grade="true">I got it</button>' +
+        '<button type="button" class="self-grade" data-grade="false">I missed it</button>' +
+        '</div>';
+      fbDiv.hidden = false;
+      revealBtn.disabled = true;
+      // Self-grade buttons
+      fbDiv.querySelectorAll('.self-grade').forEach(b => {
+        b.addEventListener('click', () => {
+          const grade = b.dataset.grade === 'true';
+          state[qid] = { answered: true, correct: grade };
+          fbDiv.querySelectorAll('.self-grade').forEach(x => x.disabled = true);
+          b.style.background = grade ? 'var(--correct)' : 'var(--incorrect)';
+          b.style.color = '#fff';
+          updateProgress();
+        });
+      });
+      section.classList.add('locked');
+      if (window.MathJax && window.MathJax.typesetPromise) MathJax.typesetPromise([fbDiv]);
+    });
+  }
+});
+
+document.getElementById('finalize').addEventListener('click', () => {
+  const correct = Object.values(state).filter(s => s.correct).length;
+  const final = document.getElementById('final');
+  final.classList.add('shown');
+  final.querySelector('.score').textContent = `Score: ${correct} / ${TOTAL}`;
+  const breakdown = final.querySelector('.breakdown');
+  breakdown.innerHTML = '';
+  QUESTIONS.forEach((q, i) => {
+    const s = state[q.id];
+    const li = document.createElement('li');
+    const mark = s.correct ? '✓' : '✗';
+    li.innerHTML = `${mark} <strong>Q${i + 1}</strong> (${q.type.replace(/_/g, ' ')})`;
+    li.style.color = s.correct ? 'var(--correct)' : 'var(--incorrect)';
+    breakdown.appendChild(li);
+  });
+  // Reveal the full write-up appendix (was hidden until completion)
+  const writeup = document.getElementById('writeup-appendix');
+  if (writeup) {
+    writeup.hidden = false;
+    writeup.open = true;
+  }
+  // Scroll to the score; the writeup sits just below it
+  final.scrollIntoView({ behavior: 'smooth' });
+});
+</script>
+
+</body>
+</html>

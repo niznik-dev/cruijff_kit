@@ -1,0 +1,26 @@
+{
+  "skill_name": "create-quiz",
+  "evals": [
+    {
+      "id": 1,
+      "name": "single-experiment-rich",
+      "prompt": "I want to share the length_sweep_nth14 experiment with a colleague who hasn't seen the results yet — make me a quiz they can take to check whether their intuition matches what the data actually showed. The experiment lives at /scratch/gpfs/MSALGANIK/mjs3/ck-experiments/length_sweep_nth14/.",
+      "expected_output": "A self-contained quiz.html in the experiment's quiz/ directory with 6-10 questions, mix of types (at least one image-read, one numerical, one ranking, one free-text), every answer cites a row/figure/section in analysis/report.md. Full-precision numbers preserved (n=2000 per cell).",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "two-experiment-comparison",
+      "prompt": "Build a comparison quiz from /scratch/gpfs/MSALGANIK/mjs3/ck-experiments/length_sweep_nth14 and /scratch/gpfs/MSALGANIK/mjs3/ck-experiments/consistency_curve_nth14_k20 — I want to see if people can keep the two experiments straight and notice where they agree vs disagree.",
+      "expected_output": "A self-contained quiz.html that includes at least one comparison question requiring both experiments to answer (e.g. 'k=20, N=500 — which experiment got higher accuracy?'). The intro names both experiments. Questions still average 6-10 across both.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "skill-prerequisites-missing",
+      "prompt": "make a quiz from this experiment: /scratch/gpfs/MSALGANIK/mjs3/ck-experiments/bit_parity_3B_validation_2026-03-28",
+      "expected_output": "If analysis/report.md does NOT exist for that experiment, the skill should stop and tell the user to run analyze-experiment first — not silently produce a low-quality quiz with no grounding. If report.md does exist, produce a normal quiz.",
+      "files": []
+    }
+  ]
+}

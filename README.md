@@ -107,7 +107,7 @@ If you have [Claude Code](https://docs.anthropic.com/en/docs/claude-code), use t
 | 3 | `/run-experiment` | Submit jobs, monitor progress, validate outputs |
 | 4 | `/summarize-experiment` | Collect key metrics (loss, accuracy) into summary |
 
-Additional skills: `/create-inspect-task` for custom evaluations, `/analyze-experiment` for visualizations.
+Additional skills: `/create-inspect-task` for custom evaluations, `/analyze-experiment` for visualizations, `/create-quiz` to turn experiment results into a self-grading HTML quiz.
 
 See `.claude/skills/*/SKILL.md` for detailed documentation on each skill.
 
