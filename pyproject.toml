@@ -44,7 +44,7 @@ dev = [
 ]
 
 [tool.setuptools.package-dir]
-cruijff_kit = "."
+cruijff_kit = "src"
 
 [tool.setuptools]
 packages = [
@@ -55,18 +55,18 @@ packages = [
   "cruijff_kit.tools.inspect",
   "cruijff_kit.tools.inspect.scorers",
   "cruijff_kit.tools.slurm",
-  "cruijff_kit.sanity_checks",
-  "cruijff_kit.sanity_checks.model_organisms",
-  "tabular_to_text_gen",
-  "tabular_to_text_gen.lib",
-  "tabular_to_text_gen.lib.perturbations",
-  "tabular_to_text_gen.lib.templates",
+  "cruijff_kit.tools.model_organisms",
+  "cruijff_kit.tabular_to_text_gen",
+  "cruijff_kit.tabular_to_text_gen.lib",
+  "cruijff_kit.tabular_to_text_gen.lib.perturbations",
+  "cruijff_kit.tabular_to_text_gen.lib.templates",
 ]
 
 [tool.ruff]
 line-length = 88
+cache-dir = ".cache/ruff"
 # Exclude files derived from external repos (e.g., torchtune) to preserve diffability
-exclude = ["tools/torchtune/custom_recipes/", "tools/torchtune/datasets/"]
+exclude = ["src/tools/torchtune/custom_recipes/", "src/tools/torchtune/datasets/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W"]
@@ -74,3 +74,4 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+cache_dir = ".cache/pytest"

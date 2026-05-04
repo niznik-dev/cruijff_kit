@@ -13,7 +13,7 @@ After dependency checking (checkpoints verified), before job submission. This st
 Run the cache pre-build script from the experiment directory:
 
 ```bash
-python tools/inspect/prebuild_cache.py experiment_summary.yaml
+python src/tools/inspect/prebuild_cache.py experiment_summary.yaml
 ```
 
 The script extracts unique dataset paths from `evaluation.tasks[].dataset`, validates each file exists, and builds the Arrow cache. It prints status per dataset and a summary on completion.

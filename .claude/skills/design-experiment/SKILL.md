@@ -154,13 +154,13 @@ Reference materials for output generation:
 
 This skill uses the **param_selection → validation → generation** pattern:
 
-| Module | Purpose | Lines |
-|--------|---------|-------|
-| param_selection.md | 9-step interactive workflow | ~340 |
-| validation.md | Completeness checklist | ~140 |
-| experiment_generation.md | Create YAML and log files | ~125 |
-| logging.md | Plain text audit trail specification | ~340 |
-| templates/experiment_summary.yaml | YAML schema and structure | ~150 |
+| Module | Purpose |
+|--------|---------|
+| param_selection.md | 9-step interactive workflow |
+| validation.md | Completeness checklist |
+| experiment_generation.md | Create YAML and log files |
+| logging.md | Plain text audit trail specification |
+| templates/experiment_summary.yaml | YAML schema and structure |
 
 **Pattern:** Three action verbs (selection, validation, generation) matching scaffold/run skills, plus cross-cutting logging and templates.
 

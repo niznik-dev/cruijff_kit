@@ -38,7 +38,7 @@ for entry in eval_matrix:
         # Fine-tuned model evaluation - checkpoint paths
         for task in tasks:
             for epoch in epochs:
-                checkpoint_path = f"{output_base}/ck-out-{run_name}/epoch_{epoch}/"
+                checkpoint_path = f"{output_base}/{run_name}/artifacts/epoch_{epoch}/"
                 print(f"Eval: {run_name} / {task} / epoch {epoch}")
 ```
 

@@ -9,11 +9,12 @@
 
 experiment:
   name: string                     # REQUIRED: Experiment identifier (e.g., "cap_4L_lora_rank_comparison")
+  project: string                  # REQUIRED: Blueprint dir name under blueprints/ (e.g., "capitalization")
   question: string                 # REQUIRED: Scientific question being addressed
   date: string                     # REQUIRED: YYYY-MM-DD format
   hypothesis: string               # OPTIONAL: Expected outcome
   purpose: string                  # OPTIONAL: Why this experiment matters
-  directory: string                # REQUIRED: Full path to experiment directory
+  directory: string                # REQUIRED: Full path; convention is {scratch}/ck-projects/{project}/{name}/
 
 # =============================================================================
 # TOOL CONFIGURATION
@@ -60,7 +61,7 @@ data:
   training:
     path: string                   # REQUIRED: Full path to training dataset
     label: string                  # REQUIRED: Filename without extension
-    format: string                 # REQUIRED: "json" or "parquet"
+    format: string                 # REQUIRED: "json"
     size_kb: int                   # REQUIRED: Dataset size in KB
     splits:                        # REQUIRED: Sample counts per split
       train: int
@@ -68,7 +69,7 @@ data:
       test: int
 
   # OPTIONAL: Dataset produced by a generator tool before scaffolding.
-  # When present, scaffold-experiment runs `tools/experiment/prepare_data.py`
+  # When present, scaffold-experiment runs `src/tools/experiment/prepare_data.py`
   # which dispatches on the `tool:` field to the named generator.
   # Currently supported tools: "model_organism", "tabular_to_text_gen".
   # One generator, one dataset per experiment. Multi-dataset support deferred
@@ -80,7 +81,7 @@ data:
     # ---- model_organism fields (when tool == "model_organism") ----
     name: string                   # REQUIRED: Dataset identifier (used in logs)
     input_type: string             # REQUIRED: "bits" | "digits" | "letters"
-    rule: string                   # REQUIRED: see sanity_checks/model_organisms/rules.py
+    rule: string                   # REQUIRED: see src/tools/model_organisms/rules.py
     k: int                         # REQUIRED: Sequence length
     N: int                         # REQUIRED: Number of samples
     # seed: int                    # REQUIRED: Random seed. Declared in tabular_to_text_gen
@@ -137,12 +138,12 @@ data:
 
 output:
   base_directory: string           # REQUIRED: Full path to this experiment's output directory
-                                   # Construction: read "Scratch directory" from claude.local.md, append "ck-outputs/" and experiment name
-                                   # Format: {scratch_dir}/ck-outputs/{experiment_name}
-                                   # Example: "{scratch_dir}/ck-outputs/my_experiment_2025-10-22"
+                                   # Construction: read "Scratch directory" from claude.local.md, append "ck-projects/{project}/" and experiment name
+                                   # Format: {scratch_dir}/ck-projects/{project}/{experiment_name}
+                                   # Example: "{scratch_dir}/ck-projects/{project}/my_experiment_2025-10-22"
   checkpoint_pattern: string       # REQUIRED: Pattern for checkpoint paths relative to base_directory
-                                   # Standard value: "ck-out-{run_name}/epoch_{N}"
-                                   # Full checkpoint path: {base_directory}/ck-out-{run_name}/epoch_{N}
+                                   # Standard value: "{run_name}/artifacts/epoch_{N}"
+                                   # Full checkpoint path: {base_directory}/{run_name}/artifacts/epoch_{N}
   wandb_project: string            # REQUIRED: Weights & Biases project name
 
 # =============================================================================
@@ -193,7 +194,7 @@ evaluation:
       # eval_condition: string     # Name of a condition in data.data_generation.conditions;
                                    # scaffold-inspect resolves this to
                                    # {condition}_test_{hash8}.json via
-                                   # tabular_to_text_gen.lib.config_hash.resolve_dataset_path
+                                   # cruijff_kit.tabular_to_text_gen.lib.config_hash.resolve_dataset_path
 
   matrix:
     # REQUIRED: Which runs evaluate on which tasks at which epochs

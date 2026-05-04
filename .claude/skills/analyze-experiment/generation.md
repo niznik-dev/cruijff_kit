@@ -16,7 +16,7 @@ The generation workflow:
 import os
 from inspect_viz import Data
 from inspect_viz.plot import write_html
-from inspect_viz.view.beta import (
+from inspect_viz.view import (
     scores_by_task,
     scores_heatmap,
     scores_radar_by_task,
@@ -24,7 +24,7 @@ from inspect_viz.view.beta import (
     scores_by_model,
     scores_by_factor,
 )
-from tools.inspect.viz_helpers import sanitize_columns_for_viz
+from cruijff_kit.tools.inspect.viz_helpers import sanitize_columns_for_viz
 
 # Create output directory
 output_dir = os.path.join(experiment_dir, "analysis")
@@ -43,7 +43,7 @@ data = Data.from_dataframe(viz_df)
 **Before using these functions**, run `help()` to verify the API hasn't changed:
 
 ```python
-from inspect_viz.view.beta import scores_by_task
+from inspect_viz.view import scores_by_task
 help(scores_by_task)
 ```
 
@@ -178,7 +178,7 @@ plot = scores_by_model(
 Use descriptive names that indicate the view type and content:
 
 ```python
-# Pattern: {view_type}_{experiment_type}_{metric}.html
+# Pattern: {view_type}_{metric}.html
 
 # Examples:
 "scores_by_task_sample_size_match.html"
@@ -194,7 +194,7 @@ Use descriptive names that indicate the view type and content:
 Instead of hardcoding metrics, detect them from the dataframe:
 
 ```python
-from tools.inspect.viz_helpers import detect_metrics, display_name
+from cruijff_kit.tools.inspect.viz_helpers import detect_metrics, display_name
 
 # Automatically detect available metrics
 detected = detect_metrics(logs_df)
@@ -260,7 +260,7 @@ except ImportError:
 When the experiment used `risk_scorer`, generate overlay plots from per-sample data. These are **matplotlib PNGs** (not inspect-viz HTML), gated on `detected.has_risk_scorer`:
 
 ```python
-from tools.inspect.viz_helpers import (
+from cruijff_kit.tools.inspect.viz_helpers import (
     extract_per_sample_risk_data, generate_roc_overlay,
     generate_calibration_overlay, generate_prediction_histogram,
 )
@@ -328,7 +328,7 @@ After generating visualizations and writing the analysis, create a markdown repo
 
 ```python
 from pathlib import Path
-from tools.inspect.report_generator import generate_report
+from cruijff_kit.tools.inspect.report_generator import generate_report
 
 # Track PNGs generated during this run
 generated_pngs = []
@@ -388,8 +388,8 @@ After generating visualizations and before the report, optionally add compute me
 3. For each job:
    a. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
    b. Read `gpu_metrics.csv` with `summarize_gpu_metrics()`. **Paths differ by job type:**
-      - Fine-tuning: `{output_dir}/ck-out-{run}/gpu_metrics.csv`
-      - Evaluation: `{output_dir}/ck-out-{run}/epoch_{N}/gpu_metrics.csv`
+      - Fine-tuning: `{output_dir}/{run}/artifacts/gpu_metrics.csv`
+      - Evaluation: `{output_dir}/{run}/artifacts/epoch_{N}/gpu_metrics.csv`
    c. If jobstats available: run `run_jobstats(job_id)` for CPU metrics (JSON) and `run_jobstats(job_id, json_mode=False)` for notes. Parse with `parse_jobstats_json()` and `extract_jobstats_notes()`.
 4. Build job dicts combining all sources:
    - **CPU**: from jobstats (`cpu_efficiency_pct`, `cpu_mem_used_gb`, `cpu_mem_allocated_gb`), or seff `cpu_efficiency` as fallback

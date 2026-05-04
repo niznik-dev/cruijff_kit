@@ -8,12 +8,13 @@ This document covers run-experiment-specific logging practices.
 
 ## Log File Locations
 
-Run-experiment creates tool-specific logs:
+Run-experiment creates three logs:
 
-- **Torchtune execution:** `{experiment_dir}/logs/run-torchtune.log`
-- **Inspect-ai execution:** `{experiment_dir}/logs/run-inspect.log`
+- **Orchestration:** `{experiment_dir}/logs/run-experiment.log` — high-level flow (which stages ran, when), kept short
+- **Torchtune execution:** `{experiment_dir}/logs/run-torchtune.log` — detailed per-job records (submissions, status changes, completion)
+- **Inspect-ai execution:** `{experiment_dir}/logs/run-inspect.log` — detailed per-job records (submissions, status changes, completion)
 
-Both created during job execution to record job submissions, status changes, and completion.
+Detailed sub-logs are created during job execution. The orchestration log records skill-level transitions.
 
 ---
 

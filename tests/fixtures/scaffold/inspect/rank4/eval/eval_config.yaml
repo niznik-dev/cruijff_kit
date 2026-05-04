@@ -1,12 +1,12 @@
 # Reference eval_config.yaml for rank4 evaluation
 # Path placeholders: __SCRATCH__, __REPO__ (replaced at test time)
 
-task_script: "__REPO__/experiments/capitalization/inspect_task_capitalization.py@capitalization"
+task_script: "__REPO__/blueprints/capitalization/inspect_task.py@capitalization"
 task_name: "capitalization"
-model_path: "__SCRATCH__/ck-outputs/workflow_test_2026-03-16/ck-out-Llama-3.2-1B-Instruct_rank4/epoch_0"
+model_path: "__SCRATCH__/ck-projects/capitalization/workflow_test_2026-03-16/Llama-3.2-1B-Instruct_rank4/artifacts/epoch_0"
 model_hf_name: "hf/Llama-3.2-1B-Instruct_rank4_epoch_0"
-output_dir: "__SCRATCH__/ck-outputs/workflow_test_2026-03-16/ck-out-Llama-3.2-1B-Instruct_rank4/"
-data_path: "__REPO__/data/green/capitalization/words_5L_80P_1000.json"
+output_dir: "__SCRATCH__/ck-projects/capitalization/workflow_test_2026-03-16/Llama-3.2-1B-Instruct_rank4/artifacts/"
+data_path: "__REPO__/tests/fixtures/data/words_5L_80P_10.json"
 vis_label: "rank4"
 use_chat_template: true
 epoch: 0

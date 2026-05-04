@@ -8,7 +8,7 @@
 
 metadata:
   name_pattern: "workflow_test_recipe_{date}"
-  type: "sanity_check"  # Goes in ck-sanity-checks/
+  project: "capitalization"
   scientific_question: >-
     Verify that base_recipe correctly provides default hyperparameters from
     torchtune recipes, with proper override precedence for experiment parameters.
@@ -26,7 +26,7 @@ models:
 
 dataset:
   task: "capitalization"
-  path: "data/green/capitalization/words_5L_80P_1000.json"
+  path: "{ck_data_dir}/capitalization/words_5L_80P_1000.json"
   format: "json"
   description: "5-letter words, 80% train split, 1000 samples"
   splits:
@@ -49,7 +49,7 @@ training_runs:
 evaluation:
   tasks:
     - name: "capitalization"
-      script: "experiments/capitalization/inspect_task_capitalization.py"
+      script: "blueprints/capitalization/inspect_task.py"
       dataset: "same"
       description: "Tests word capitalization accuracy"
 

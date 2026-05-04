@@ -50,7 +50,7 @@ Note: Some runs must complete before other runs can begin (e.g., a model must be
 
 ## Architecture
 
-For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md). Key highlights:
+For detailed architecture documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE.md). Key highlights:
 
 - **Two-stage configuration**: User-friendly YAML → generated torchtune configs + SLURM scripts
 - **Custom torchtune recipes**: Enhanced with validation support and checkpoint management
@@ -67,7 +67,7 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 - **scaffold-experiment** ✅ - Create organized directory structures, configs, and SLURM scripts for all runs
 - **run-experiment** ✅ - Submit jobs to SLURM and monitor their progress until completion
 - **summarize-experiment** ✅ - Generate summary.md with key metrics (loss, accuracy) after experiment completion
-- **analyze-experiment** ✅ - Generate interactive HTML visualizations from evaluation logs using inspect-viz (currently supports capitalization experiments)
+- **analyze-experiment** ✅ - Generate interactive HTML visualizations from evaluation logs using inspect-viz; selects views based on experimental variables (model, factor, task, metric) and adds calibration / ROC plots when `risk_scorer` is present
 - **analyze-to-pdf** ✅ - Convert analysis reports (markdown) to PDF using pandoc
 - **archive-experiment** ✅ - Archive completed experiments, preserving all experiment files while deleting checkpoint directories
 
@@ -79,7 +79,7 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 
 **Note**: All skills are optional convenience tools. Users can perform the same operations manually by running the underlying Python scripts and shell commands directly.
 
-**Architecture**: The primary workflow skills (scaffold-experiment, run-experiment) use modular documentation with `optimizers/` and `evaluators/` subdirectories for tool-specific logic. See [SKILLS_ARCHITECTURE_SUMMARY.md](SKILLS_ARCHITECTURE_SUMMARY.md) for the complete skills architecture.
+**Architecture**: The primary workflow skills (scaffold-experiment, run-experiment) use modular documentation with `optimizers/` and `evaluators/` subdirectories for tool-specific logic. See [SKILLS_ARCHITECTURE_SUMMARY.md](docs/SKILLS_ARCHITECTURE_SUMMARY.md) for the complete skills architecture.
 
 ## Workflow Testing
 
@@ -99,7 +99,7 @@ To validate that the complete workflow (design, scaffold, run) is functioning co
 | **Base vs Fine-tuned** | `.claude/workflow_test_base.yaml` | 1 base + 1 fine-tuned (rank4) | ~12 min | Base model evaluation |
 | **Recipe Defaults** | `.claude/workflow_test_recipe.yaml` | 2 fine-tuned (rank4, rank16) | ~12 min | base_recipe inheritance |
 
-All use Llama-3.2-1B-Instruct with words_5L_80P_1000.json in `ck-sanity-checks/`
+All use Llama-3.2-1B-Instruct with `{ck_data_dir}/capitalization/words_5L_80P_1000.json` as input data
 
 **Purpose:** Catch regressions in skills, ensure documentation changes don't break workflows, validate end-to-end integration.
 
@@ -161,60 +161,9 @@ ruff format --check <changed files>
 
 Fix any errors before committing. CI runs these checks and will fail the build on lint violations.
 
-## Data Access Policies
+## Data Location
 
-cruijff_kit implements a three-tier data access system for Claude Code, using a traffic light metaphor:
-
-**⚠️ EXPERIMENTAL FEATURE**: This data access system has not been extensively tested. Researchers should:
-- **Avoid using the red tier** until this feature has been validated
-- **Use the yellow tier with caution** and verify Claude Code's behavior
-- Report any unexpected access patterns or behavior
-
-### 🔴 Red Tier (`data/red/`) - No Access
-
-**Claude Code MUST NOT access any files in this directory.**
-
-This tier contains highly sensitive data:
-- Raw data with personally identifiable information (PII)
-- Data under strict IRB protocols or ethical restrictions
-- Proprietary datasets with legal restrictions
-- Confidential information
-
-**Behavior**: If asked to access files in `data/red/`, refuse the request and explain that these files are marked as highly sensitive.
-
-### 🟡 Yellow Tier (`data/yellow/`) - Permission Required
-
-**Claude Code MAY access files ONLY with explicit user permission.**
-
-This tier contains research data with moderate privacy considerations:
-- De-identified social science data
-- Datasets with usage agreements or restrictions
-- Research collaborator datasets
-- Data requiring case-by-case access decisions
-
-**Behavior**: Before accessing any file in `data/yellow/`, ask the user for explicit permission, explain what you need to do with the data, and wait for confirmation.
-
-**Per-dataset permissions**: Datasets may include a `README.md` or `PERMISSIONS.md` file documenting standing permissions.
-
-### 🟢 Green Tier (`data/green/`) - Full Access
-
-**Claude Code has FULL ACCESS to all files in this directory.**
-
-This tier contains data safe for AI assistance:
-- Synthetic data generated for testing
-- Publicly available datasets
-- Test fixtures and example data
-- Educational datasets
-- Generated word lists and bit sequences
-
-**Behavior**: You may freely read, analyze, process, and work with files in `data/green/` without asking for permission.
-
-### Implementation
-
-Each tier directory contains a `CLAUDE.md` file with detailed access rules. See:
-- `data/red/CLAUDE.md`
-- `data/yellow/CLAUDE.md`
-- `data/green/CLAUDE.md`
+All input data lives outside the repo at `{ck_data_dir}` (configured in `claude.local.md`), organized as `{ck_data_dir}/{project}/`. The repo no longer contains a `data/` directory — datasets are user-provisioned and not version-controlled.
 
 ## Project Status
 
@@ -225,13 +174,13 @@ Each tier directory contains a `CLAUDE.md` file with detailed access rules. See:
 ## Documentation
 
 - **README.md**: Project overview, quick start, and experiment workflow
-- **ARCHITECTURE.md**: Detailed architecture, data flow, and skill workflow diagrams
-- **SUPPORTED_MODELS.md**: Supported models and resource requirements
-- **PREREQUISITES.md**: Required skills, accounts, and tutorial links
-- **WORKFLOW_GUIDE.md**: Manual workflow instructions (without Claude Code)
-- **ARTIFACT_LOCATIONS.md**: Canonical experiment directory layout and file locations
-- **SKILLS_ARCHITECTURE_SUMMARY.md**: How skills are organized and orchestrated
+- **docs/ARCHITECTURE.md**: Detailed architecture, data flow, and skill workflow diagrams
+- **docs/SUPPORTED_MODELS.md**: Supported models and resource requirements
+- **docs/PREREQUISITES.md**: Required skills, accounts, and tutorial links
+- **docs/WORKFLOW_GUIDE.md**: Manual workflow instructions (without Claude Code)
+- **docs/ARTIFACT_LOCATIONS.md**: Canonical experiment directory layout and file locations
+- **docs/SKILLS_ARCHITECTURE_SUMMARY.md**: How skills are organized and orchestrated
 - **CHANGELOG.md**: Release history
 - **KNOWN_ISSUES.md**: Current limitations and workarounds
-- **Experiment-specific READMEs**: Located in `experiments/*/README.md`
+- **Blueprint-specific READMEs**: Located in `blueprints/*/README.md`
 - **claude.local.md**: User-specific environment configuration (not version controlled)

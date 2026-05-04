@@ -38,7 +38,7 @@ If exists, check final status in file.
 ### Check for Existing Checkpoints
 
 ```bash
-ls {output_dir_base}/ck-out-{run_name}/epoch_{N}/ 2>/dev/null
+ls {output_dir_base}/{run_name}/artifacts/epoch_{N}/ 2>/dev/null
 ```
 
 If checkpoint exists, job completed successfully (skip resubmission).

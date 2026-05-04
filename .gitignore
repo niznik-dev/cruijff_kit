@@ -2,8 +2,6 @@
 *_m.yaml
 *_m.slurm
 
-# Personal notes/docs (not for repo)
-docs/
 *.pyc
 __pycache__/
 cruijff_kit.egg-info/
@@ -16,23 +14,15 @@ catboost_info/
 .pytest_cache/
 htmlcov/
 
+# Tool caches (centralized — pyproject.toml routes pytest + ruff here)
+.cache/
+
 # Environment-specific configuration (users should customize from template)
 claude.local.md
 
 # User-specific cache directory (i.e., torchtune recipes)
 .claude/cache/
 
-# Data access tiers - exclude all data files but keep documentation
-data/red/*
-!data/red/CLAUDE.md
-data/yellow/*
-!data/yellow/CLAUDE.md
-data/green/*
-!data/green/CLAUDE.md
-experiments/capitalization/eval_output/
-experiments/capitalization/*/*.txt
-experiments/capitalization/*/*.csv
-experiments/capitalization/*/*.png
 logs/
 finetune.slurm
 finetune.yaml

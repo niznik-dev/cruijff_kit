@@ -1,13 +1,13 @@
 # Data Loading: Loading Evaluation Logs
 
-This module describes how to load evaluation logs and prepare data for visualization using the helper functions in `tools/inspect/viz_helpers.py`.
+This module describes how to load evaluation logs and prepare data for visualization using the helper functions in `src/tools/inspect/viz_helpers.py`.
 
 ## Automatic Deduplication
 
 When multiple evaluations exist for the same model+epoch+vis_label (e.g., from re-runs), use `deduplicate_eval_files()` to keep only the most recent:
 
 ```python
-from tools.inspect.viz_helpers import deduplicate_eval_files
+from cruijff_kit.tools.inspect.viz_helpers import deduplicate_eval_files
 
 # Collect all .eval files
 eval_files = [os.path.join(log_dir, f) for f in os.listdir(log_dir) if f.endswith('.eval')]
@@ -32,7 +32,7 @@ logs_df = evals_df_prep(kept)
 Use `parse_eval_metadata()` to extract structured metadata from eval files:
 
 ```python
-from tools.inspect.viz_helpers import evals_df_prep, parse_eval_metadata
+from cruijff_kit.tools.inspect.viz_helpers import evals_df_prep, parse_eval_metadata
 
 # Load eval files
 logs_df = evals_df_prep(eval_files)
@@ -54,7 +54,7 @@ logs_df = parse_eval_metadata(logs_df)
 Prepare eval-level dataframes from a list of .eval file paths:
 
 ```python
-from tools.inspect.viz_helpers import evals_df_prep
+from cruijff_kit.tools.inspect.viz_helpers import evals_df_prep
 
 logs_df = evals_df_prep(kept)  # kept is list of .eval file paths
 ```
@@ -64,7 +64,7 @@ logs_df = evals_df_prep(kept)  # kept is list of .eval file paths
 Dynamically detect available score columns:
 
 ```python
-from tools.inspect.viz_helpers import detect_metrics, display_name
+from cruijff_kit.tools.inspect.viz_helpers import detect_metrics, display_name
 
 detected = detect_metrics(logs_df)
 # detected.accuracy  -> e.g., ['match', 'includes'] (accuracy metric names)
@@ -99,7 +99,7 @@ subdirs = get_subdirs_from_config(config)
 Load per-sample `(y_true, y_score)` pairs from eval files for ROC and calibration plots:
 
 ```python
-from tools.inspect.viz_helpers import extract_per_sample_risk_data
+from cruijff_kit.tools.inspect.viz_helpers import extract_per_sample_risk_data
 
 risk_data = extract_per_sample_risk_data(kept)  # list[PerSampleRiskData]
 # Each entry has: model_name, y_true, y_score, n_total, n_valid

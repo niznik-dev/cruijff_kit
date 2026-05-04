@@ -4,7 +4,7 @@ import hashlib
 
 import pytest
 
-from tabular_to_text_gen.lib.config_hash import (
+from cruijff_kit.tabular_to_text_gen.lib.config_hash import (
     build_generation_config,
     canonicalize,
     file_sha256,

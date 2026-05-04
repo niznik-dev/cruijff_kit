@@ -21,28 +21,27 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 ### Derive Paths from claude.local.md
 
 1. Read the **Scratch directory** field from `claude.local.md`
-2. Determine experiment type based on user intent or working directory context:
-   - If the user mentions "sanity check" or is working in a sanity-checks directory → `experiment_type = "sanity_check"`
-   - Otherwise → `experiment_type = "experiment"`
-3. Derive the experiment directory:
-   - **Experiments**: `{scratch_dir}/ck-experiments/{experiment_name}/`
-   - **Sanity checks**: `{scratch_dir}/ck-sanity-checks/{experiment_name}/`
-4. Derive the output directory:
-   - `{scratch_dir}/ck-outputs/{experiment_name}/`
+2. Determine the `project` — this matches a blueprint directory under `blueprints/` (e.g. `capitalization`, `folktexts`, `model_organism`). Ask the user if ambiguous.
+3. Derive the experiment directory: `{scratch_dir}/ck-projects/{project}/{experiment_name}/`
+4. Outputs nest inside the experiment directory (configs, checkpoints, logs, eval results are all co-located per run).
 
 ### Directory Structure
 
-- **Experiments** (research tasks): `{scratch_dir}/ck-experiments/{experiment_name}/`
-- **Sanity checks** (simple fine-tuning verification): `{scratch_dir}/ck-sanity-checks/{sanity_check_name}/`
-
-**Outputs are automatically grouped:**
-- Output directory: `{scratch_dir}/ck-outputs/{experiment_or_sanity_check_name}/ck-out-{run_name}/`
+```
+{scratch_dir}/ck-projects/{project}/{experiment_name}/
+├── {run_name_1}/
+│   ├── setup_finetune.yaml
+│   ├── finetune.yaml
+│   ├── finetune.slurm
+│   ├── artifacts/epoch_{N}/             # model checkpoints
+│   └── eval/                             # eval scripts and logs
+└── {run_name_2}/
+    └── ...
+```
 
 ### Confirm with User
 
-**Are you working on a sanity check or a research experiment?**
-- Log the detected path for user confirmation
-- Note that outputs will be grouped under the same name in ck-outputs/
+- Show the user the resolved `ck-projects/{project}/{experiment_name}/` path and confirm before proceeding.
 
 ---
 
@@ -95,7 +94,7 @@ With the schema in hand, consult `references/tabular_to_text_gen.md` and walk th
 
 Record these in the `data_generation` section of `experiment_summary.yaml` (see template). This section drives dataset generation and path resolution; it is the single source of truth for everything about the generated text.
 
-Each run references a condition by name (`training_condition: dict_full`), and each eval task does the same (`eval_condition: dict_synonym`). At scaffold time, scaffold-torchtune and scaffold-inspect call `tabular_to_text_gen.lib.config_hash.resolve_dataset_path(data_generation, condition, split, output_dir)` to derive the canonical `{condition}_{split}_{hash8}.json` path and substitute it into the generated torchtune / inspect configs.
+Each run references a condition by name (`training_condition: dict_full`), and each eval task does the same (`eval_condition: dict_synonym`). At scaffold time, scaffold-torchtune and scaffold-inspect call `cruijff_kit.tabular_to_text_gen.lib.config_hash.resolve_dataset_path(data_generation, condition, split, output_dir)` to derive the canonical `{condition}_{split}_{hash8}.json` path and substitute it into the generated torchtune / inspect configs.
 
 **Advise:** "After we finalize the experiment design, you'll run the `convert-tabular-to-text` skill to generate the actual datasets before scaffolding. If the hashed files already exist from a prior experiment, they'll be reused."
 
@@ -136,17 +135,17 @@ If the user chooses `context_placement: system_prompt`, the data_generation cont
 
 ### Workflow Architecture
 
-The experiment workflow uses an **orchestrator → worker** pattern:
+The experiment workflow uses two architectural patterns:
 
-- **Scaffolding (current):** `scaffold-experiment` reads experiment_summary.yaml and launches:
+- **Scaffolding** (orchestrator → worker subagents): `scaffold-experiment` reads experiment_summary.yaml and launches:
   - `scaffold-torchtune` agent → generates torchtune configs
   - `scaffold-inspect` agent → generates inspect-ai configs
 
-- **Execution (planned):** `run-experiment` will launch:
-  - `run-torchtune` agent → submit and monitor fine-tuning jobs
-  - `run-inspect` agent → submit and monitor evaluation jobs (after training)
+- **Execution** (orchestrator → modules in main conversation): `run-experiment` reads experiment_summary.yaml and dispatches to tool-specific modules (no subagent delegation):
+  - `optimizers/torchtune/` modules → submit and monitor fine-tuning jobs
+  - `evaluators/inspect/` modules → submit and monitor evaluation jobs (after training)
 
-**Why document tools:** Orchestrators use tool specifications to route to the correct worker agents. This architecture enables future support for multiple tool options (e.g., axolotl, lm-eval-harness).
+**Why document tools:** Orchestrators use tool specifications to route to the correct worker (whether subagent or module). This architecture enables future support for multiple tool options (e.g., axolotl, lm-eval-harness).
 
 **Note:** While these are currently the only options, explicitly confirming and documenting tool choices now will make it easier to support multiple tools in future iterations. These will be documented in the `tools` section of experiment_summary.yaml.
 
@@ -162,7 +161,7 @@ The experiment workflow uses an **orchestrator → worker** pattern:
 - Training dataset location and format
 - Required splits: train, validation (optional), test (optional)
 
-**Note:** If the dataset needs to be created, check `experiments/{task}/README.md` for:
+**Note:** If the dataset needs to be created, check `blueprints/{project}/README.md` for:
 - Dataset naming conventions (e.g., parameter-based filenames)
 - Preprocessing script details and usage
 - Expected output formats and locations
@@ -224,7 +223,7 @@ If user says "yes" (default), add the constraint/partition values from `claude.l
 **Advanced settings (calculate from prior runs if available):**
 - Batch sizes - estimate from GPU memory usage in prior runs
 - Dataset packing - enabled by default, affects batch size
-- For help estimating: check `{scratch_dir}/*/slurm-*.out` for similar runs
+- For help estimating: check `{scratch_dir}/ck-projects/*/slurm-*.out` for similar runs
 - **Consult past compute utilization analyses** - If previous experiments have `analysis/compute_metrics.json` or a compute section in `report.md`, use that data to inform time limits, memory allocations, and GPU resource requests for new runs
 
 ### Generate Runs List
@@ -318,7 +317,7 @@ Help the user choose a descriptive experiment name that includes:
 
 **Example patterns:**
 - `cap_8L_lora_comparison_2025-10-18` (capitalization, varying LoRA rank)
-- `twins_model_sizes_2025-10-22` (synthetic twins, varying model size)
+- `model_organism_majority_2026-04-15` (model_organism, varying input length)
 - `reasoning_ablation_2025-11-01` (reasoning task, ablation study)
 
 ### Run Names
@@ -363,8 +362,8 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 **Model:** Suggest downloading with appropriate tool
 
 **Dataset:**
-1. **Check for existing preprocessing scripts:** Look in `experiments/{task}/` for scripts like `preprocess_*.py`
-2. **Consult task README:** Check `experiments/{task}/README.md` for dataset creation instructions
+1. **Check for existing preprocessing scripts:** Look in `blueprints/{project}/` for scripts like `preprocess_*.py`
+2. **Consult task README:** Check `blueprints/{project}/README.md` for dataset creation instructions
 3. **Use the proper tool:** Run the task-specific preprocessing script with appropriate parameters
 4. **Model-organism sanity checks:** Declare in `data.data_generation` with `tool: model_organism` instead (see `references/model_organisms.md`); scaffold will generate the file before subagents run.
 5. **DON'T:** Write ad-hoc Python code or copy dataset creation code from previous experiments

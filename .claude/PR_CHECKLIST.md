@@ -8,21 +8,21 @@ Consider whether these files need updates based on your changes:
 
 ### Core Documentation
 - [ ] **README.md** - Public-facing features, installation, quick start
-- [ ] **ARCHITECTURE.md** - System design, data flow, skill workflow diagrams
-- [ ] **SUPPORTED_MODELS.md** - Supported models and resource requirements
-- [ ] **PREREQUISITES.md** - Required skills, accounts, and tutorials
-- [ ] **WORKFLOW_GUIDE.md** - Manual workflow instructions
-- [ ] **SKILLS_ARCHITECTURE_SUMMARY.md** - Skill relationships and workflows
+- [ ] **docs/ARCHITECTURE.md** - System design, data flow, skill workflow diagrams
+- [ ] **docs/SUPPORTED_MODELS.md** - Supported models and resource requirements
+- [ ] **docs/PREREQUISITES.md** - Required skills, accounts, and tutorials
+- [ ] **docs/WORKFLOW_GUIDE.md** - Manual workflow instructions
+- [ ] **docs/SKILLS_ARCHITECTURE_SUMMARY.md** - Skill relationships and workflows
 - [ ] **CLAUDE.md** - Workflow instructions, terminology, git process
 
 ### Component Documentation
 - [ ] **Skill docs** (`.claude/skills/*/`) - If you modified skill behavior or added submodules
-- [ ] **Experiment READMEs** (`experiments/*/README.md`) - If you changed experiment structure
-- [ ] **Tool docs** (`tools/*/`) - If you modified torchtune recipes, inspect tasks, etc.
+- [ ] **Blueprint READMEs** (`blueprints/*/README.md`) - If you changed blueprint structure
+- [ ] **Tool docs** (`src/tools/*/`) - If you modified torchtune recipes, inspect tasks, etc.
 
 ### Common Scenarios
-- **Added/removed a skill?** → Update SKILLS_ARCHITECTURE_SUMMARY.md
-- **Changed config structure?** → Update ARCHITECTURE.md and relevant READMEs
+- **Added/removed a skill?** → Update docs/SKILLS_ARCHITECTURE_SUMMARY.md
+- **Changed config structure?** → Update docs/ARCHITECTURE.md and relevant READMEs
 - **Modified workflow?** → Update CLAUDE.md and skill documentation
 - **Added CLI commands?** → Update README.md usage section
 

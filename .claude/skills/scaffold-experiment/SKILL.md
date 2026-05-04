@@ -30,7 +30,7 @@ This ensures the entire experiment is ready to execute from training through eva
 2. **Verify experiment_summary.yaml exists** - Ensure design phase is complete
 3. **Read tool specifications** - Parse experiment_summary.yaml to identify preparation and evaluation tools
 4. **Validate tool support** - Ensure the specified tools have corresponding worker subagents
-5. **Prepare data (if applicable)** - If `data.data_generation` block is present, run `tools/experiment/prepare_data.py` to materialize the declared dataset before subagents launch
+5. **Prepare data (if applicable)** - If `data.data_generation` block is present, run `src/tools/experiment/prepare_data.py` to materialize the declared dataset before subagents launch
 6. **Launch preparation and evaluation subagents in parallel** - Use Task tool to launch both simultaneously
 7. **Wait for both subagents to complete** - Each will report back when done
 8. **Create orchestration log** - Document the scaffolding process in `logs/scaffold-experiment.log`
@@ -140,7 +140,7 @@ python -m cruijff_kit.tools.experiment.prepare_data {experiment_dir}
 - Exits 1 on any failure. If this happens, **do not launch subagents** — report the error and direct the user to `logs/scaffold-prepare-data.log`.
 
 **Currently supported generators:**
-- `model_organism` — cheap, deterministic sequence datasets (`sanity_checks/model_organisms/`). See template schema for parameters.
+- `model_organism` — cheap, deterministic sequence datasets (`src/tools/model_organisms/`). See template schema for parameters.
 
 ### Step 1: Launch Preparation Subagent
 
@@ -236,7 +236,7 @@ After completing orchestration, provide a comprehensive summary:
 ## Scaffold Experiment Complete
 
 Successfully scaffolded experiment:
-`/scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/`
+`/scratch/gpfs/MSALGANIK/niznik/ck-projects/capitalization/cap_4L_lora_lr_sweep_2025-10-22/`
 
 ### Fine-Tuning Configurations (scaffold-torchtune)
 
@@ -277,7 +277,7 @@ Successfully scaffolded experiment:
 2. Run `run-experiment` skill to execute the complete workflow:
    - Fine-tuning via `run-torchtune`
    - Evaluation via `run-inspect`
-3. Run `analyze-experiment` skill to interpret results (planned)
+3. Run `analyze-experiment` skill to interpret results
 
 ## Validation Before Completion
 

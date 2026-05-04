@@ -4,16 +4,22 @@ import random
 
 import pytest
 
-from tabular_to_text_gen.lib.perturbations.clause_addition import (
+from cruijff_kit.tabular_to_text_gen.lib.perturbations.clause_addition import (
     clause_addition_perturbation,
 )
-from tabular_to_text_gen.lib.perturbations.engine import (
+from cruijff_kit.tabular_to_text_gen.lib.perturbations.engine import (
     apply_perturbations,
     build_perturbation_chain,
 )
-from tabular_to_text_gen.lib.perturbations.reorder import reorder_perturbation
-from tabular_to_text_gen.lib.perturbations.shorthand import shorthand_perturbation
-from tabular_to_text_gen.lib.perturbations.synonym import synonym_perturbation
+from cruijff_kit.tabular_to_text_gen.lib.perturbations.reorder import (
+    reorder_perturbation,
+)
+from cruijff_kit.tabular_to_text_gen.lib.perturbations.shorthand import (
+    shorthand_perturbation,
+)
+from cruijff_kit.tabular_to_text_gen.lib.perturbations.synonym import (
+    synonym_perturbation,
+)
 
 
 # ---------------------------------------------------------------------------

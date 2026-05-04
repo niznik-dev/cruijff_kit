@@ -57,11 +57,11 @@ The subagent performs these operations autonomously:
 
 ### Step 4: Generate eval_config.yaml
 
-For each evaluation, create `eval_config.yaml` in the eval directory with all experiment-specific configuration. See `agents/scaffold-inspect.md` for the full schema (required keys, optional task args, metadata, scorer config).
+For each evaluation, create `eval_config.yaml` in the eval directory with all experiment-specific configuration. See `.claude/agents/scaffold-inspect.md` for the full schema (required keys, optional task args, metadata, scorer config).
 
 ### Step 5: Render SLURM scripts via setup_inspect.py
 
-After writing `eval_config.yaml`, call `setup_inspect.py` to render the SLURM script from the template. See `agents/scaffold-inspect.md` for full CLI reference and details on what the renderer handles.
+After writing `eval_config.yaml`, call `setup_inspect.py` to render the SLURM script from the template. See `.claude/agents/scaffold-inspect.md` for full CLI reference and details on what the renderer handles.
 
 ### Eval time limit (ask user)
 

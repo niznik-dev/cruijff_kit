@@ -31,7 +31,7 @@ Ask the user for the source data file path, then read the structure:
 
 ```bash
 cd {cruijff_kit_path} && python -c "
-from tabular_to_text_gen.lib.readers import read_tabular
+from cruijff_kit.tabular_to_text_gen.lib.readers import read_tabular
 df = read_tabular('{source_path}')
 print('Columns:', list(df.columns))
 print('Shape:', df.shape)
@@ -57,7 +57,7 @@ Generate a skeleton schema from the selected columns:
 ```bash
 cd {cruijff_kit_path} && python -c "
 import yaml
-from tabular_to_text_gen.lib.schema import Schema
+from cruijff_kit.tabular_to_text_gen.lib.schema import Schema
 skeleton = Schema.generate_skeleton('{source_path}', {columns_list})
 print(yaml.dump(skeleton, default_flow_style=False))
 "

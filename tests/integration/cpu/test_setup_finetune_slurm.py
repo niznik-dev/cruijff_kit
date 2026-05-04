@@ -12,8 +12,8 @@ from cruijff_kit.tools.torchtune.model_configs import MODEL_CONFIGS
 
 # Get repo root relative to this test file
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
-SCRIPT_PATH = REPO_ROOT / "tools/torchtune/setup_finetune.py"
-TEMPLATES_PATH = REPO_ROOT / "tools/torchtune/templates"
+SCRIPT_PATH = REPO_ROOT / "src/tools/torchtune/setup_finetune.py"
+TEMPLATES_PATH = REPO_ROOT / "src/tools/torchtune/templates"
 
 
 @pytest.fixture
@@ -44,6 +44,8 @@ def run_setup_finetune(run_dir, model_name="Llama-3.2-1B-Instruct", extra_args=N
         "/fake/path/",
         "--output_dir_base",
         "/fake/output/",
+        "--experiment_name",
+        "test_experiment",
         "--models_dir",
         "/fake/models/",
         "--my_wandb_run_name",

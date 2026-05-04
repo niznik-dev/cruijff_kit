@@ -1,6 +1,6 @@
 # Logging - design-experiment
 
-**See [shared/logging_spec.md](../../shared/logging_spec.md) for complete format specification and general logging guidelines.**
+**See [shared/logging_spec.md](../shared/logging_spec.md) for complete format specification and general logging guidelines.**
 
 This document covers design-experiment-specific logging practices.
 
@@ -78,7 +78,7 @@ Created during the planning workflow to record all verification steps, calculati
 Details: Beginning experiment design
 Experiment: cap_4L_lora_rank_comparison
 Type: sanity_check
-Directory: {scratch_dir}/cap_4L_lora_rank_comparison
+Directory: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison
 Result: success
 ```
 
@@ -87,7 +87,7 @@ Result: success
 ```
 [2025-10-22 14:30:00] CONSULT_PRIOR_EXPERIMENT
 Details: Examining prior experiment for design insights
-Path: {scratch_dir}/prior_cap_experiment
+Path: {scratch_dir}/ck-projects/capitalization/prior_cap_experiment
 Files examined: experiment_summary.yaml, run_001/results.json, run_001/slurm-12345.out
 Insights: LoRA rank 4 achieved 95% accuracy; ~2 min/epoch on same hardware; no issues
 Influence: Using same dataset and model size; testing higher ranks to explore capacity limits
@@ -133,7 +133,7 @@ Result: failure
 ```
 [2025-10-22 14:30:01] VERIFY_DATASET
 Details: Verifying dataset file exists
-Path: /path/to/cruijff_kit/data/green/words_5L_80P_1000.json
+Path: {ck_data_dir}/capitalization/words_5L_80P_1000.json
 Size: 84 KB
 Result: success
 ```
@@ -156,7 +156,7 @@ Result: success
 [2025-10-22 14:30:02] VERIFY_EVAL_TASK
 Details: Verifying evaluation task script exists
 Task: capitalization
-Path: /path/to/cruijff_kit/experiments/capitalization/cap_task.py
+Path: /path/to/cruijff_kit/blueprints/capitalization/inspect_task.py
 Size: 12 KB
 Result: success
 ```
@@ -166,7 +166,7 @@ Result: success
 ```
 [2025-10-22 14:30:02] SEARCH_PRIOR_RUNS
 Details: Searching for prior runs to estimate training speed
-Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/ck-out-*'
+Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/artifacts/*'
 Found: 3 prior run logs
 Result: success
 ```
@@ -176,7 +176,7 @@ Result: success
 ```
 [2025-10-22 14:30:03] EXTRACT_TRAINING_SPEED
 Details: Extracting training speed from prior run
-Source: {scratch_dir}/prior_exp/run1/slurm-123.out
+Source: {scratch_dir}/ck-projects/capitalization/prior_exp/run1/slurm-123.out
 Speed: 2.5 it/s
 Estimated: 120 seconds/epoch
 Result: success
@@ -327,7 +327,7 @@ Result: success
 ```
 [2025-10-22 14:30:08] CREATE_YAML
 Details: Writing experiment configuration
-Path: {scratch_dir}/cap_4L_lora_rank_comparison/experiment_summary.yaml
+Path: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison/experiment_summary.yaml
 Size: 1456 bytes
 Result: success
 ```
@@ -337,7 +337,7 @@ Result: success
 ```
 [2025-10-22 14:30:08] CREATE_LOG
 Details: Writing design log
-Path: {scratch_dir}/cap_4L_lora_rank_comparison/logs/design-experiment.log
+Path: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison/logs/design-experiment.log
 Entries: 14
 Result: success
 ```
@@ -406,7 +406,7 @@ Separate entries with a blank line for readability.
 Details: Beginning experiment design
 Experiment: cap_4L_lora_rank_comparison
 Type: sanity_check
-Directory: {scratch_dir}/cap_4L_lora_rank_comparison
+Directory: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison
 Result: success
 
 [2025-10-22 14:30:01] VERIFY_MODEL
@@ -418,7 +418,7 @@ Result: success
 
 [2025-10-22 14:30:01] VERIFY_DATASET
 Details: Verifying dataset file exists
-Path: /path/to/cruijff_kit/data/green/words_5L_80P_1000.json
+Path: {ck_data_dir}/capitalization/words_5L_80P_1000.json
 Size: 84 KB
 Result: success
 
@@ -433,19 +433,19 @@ Result: success
 [2025-10-22 14:30:02] VERIFY_EVAL_TASK
 Details: Verifying evaluation task script exists
 Task: capitalization
-Path: /path/to/cruijff_kit/experiments/capitalization/cap_task.py
+Path: /path/to/cruijff_kit/blueprints/capitalization/inspect_task.py
 Size: 12 KB
 Result: success
 
 [2025-10-22 14:30:02] SEARCH_PRIOR_RUNS
 Details: Searching for prior runs to estimate training speed
-Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/ck-out-*'
+Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/artifacts/*'
 Found: 3 prior run logs
 Result: success
 
 [2025-10-22 14:30:03] EXTRACT_TRAINING_SPEED
 Details: Extracting training speed from prior run
-Source: {scratch_dir}/prior_exp/run1/slurm-123.out
+Source: {scratch_dir}/ck-projects/capitalization/prior_exp/run1/slurm-123.out
 Speed: 2.5 it/s
 Estimated: 120 seconds/epoch
 Result: success
@@ -492,13 +492,13 @@ Result: success
 
 [2025-10-22 14:30:08] CREATE_YAML
 Details: Writing experiment configuration
-Path: {scratch_dir}/cap_4L_lora_rank_comparison/experiment_summary.yaml
+Path: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison/experiment_summary.yaml
 Size: 1456 bytes
 Result: success
 
 [2025-10-22 14:30:08] CREATE_LOG
 Details: Writing design log
-Path: {scratch_dir}/cap_4L_lora_rank_comparison/logs/design-experiment.log
+Path: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison/logs/design-experiment.log
 Entries: 14
 Result: success
 
