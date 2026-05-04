@@ -24,7 +24,7 @@ from inspect_viz.view import (
     scores_by_model,
     scores_by_factor,
 )
-from tools.inspect.viz_helpers import sanitize_columns_for_viz
+from cruijff_kit.tools.inspect.viz_helpers import sanitize_columns_for_viz
 
 # Create output directory
 output_dir = os.path.join(experiment_dir, "analysis")
@@ -194,7 +194,7 @@ Use descriptive names that indicate the view type and content:
 Instead of hardcoding metrics, detect them from the dataframe:
 
 ```python
-from tools.inspect.viz_helpers import detect_metrics, display_name
+from cruijff_kit.tools.inspect.viz_helpers import detect_metrics, display_name
 
 # Automatically detect available metrics
 detected = detect_metrics(logs_df)
@@ -260,7 +260,7 @@ except ImportError:
 When the experiment used `risk_scorer`, generate overlay plots from per-sample data. These are **matplotlib PNGs** (not inspect-viz HTML), gated on `detected.has_risk_scorer`:
 
 ```python
-from tools.inspect.viz_helpers import (
+from cruijff_kit.tools.inspect.viz_helpers import (
     extract_per_sample_risk_data, generate_roc_overlay,
     generate_calibration_overlay, generate_prediction_histogram,
 )
@@ -328,7 +328,7 @@ After generating visualizations and writing the analysis, create a markdown repo
 
 ```python
 from pathlib import Path
-from tools.inspect.report_generator import generate_report
+from cruijff_kit.tools.inspect.report_generator import generate_report
 
 # Track PNGs generated during this run
 generated_pngs = []

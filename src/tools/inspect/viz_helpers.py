@@ -5,7 +5,7 @@ This module provides utilities for loading experiment data and preparing it
 for visualization with inspect-viz pre-built views.
 
 Example usage:
-    from tools.inspect.viz_helpers import evals_df_prep, parse_eval_metadata, detect_metrics
+    from cruijff_kit.tools.inspect.viz_helpers import evals_df_prep, parse_eval_metadata, detect_metrics
 
     # Load and prepare evaluation logs
     logs_df = evals_df_prep(eval_files)

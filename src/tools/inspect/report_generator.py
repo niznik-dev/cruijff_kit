@@ -5,7 +5,7 @@ This module produces structured markdown reports with metrics, confidence interv
 and model comparisons for stakeholders.
 
 Example usage:
-    from tools.inspect.report_generator import generate_report
+    from cruijff_kit.tools.inspect.report_generator import generate_report
 
     # Generate report from evaluation dataframe
     report = generate_report(

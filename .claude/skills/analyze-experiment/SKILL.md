@@ -101,7 +101,7 @@ Create markdown report with metrics and comparisons:
 
 Uses `src/tools/inspect/report_generator.py`:
 ```python
-from tools.inspect.report_generator import generate_report
+from cruijff_kit.tools.inspect.report_generator import generate_report
 
 report = generate_report(
     df=logs_df,
