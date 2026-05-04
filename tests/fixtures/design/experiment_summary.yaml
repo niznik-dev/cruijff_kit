@@ -1,5 +1,5 @@
 # Reference experiment_summary.yaml for testing
-# Based on workflow_test.yaml parameters (LoRA rank comparison)
+# Based on workflow_test.md parameters (LoRA rank comparison)
 #
 # Path convention: __SCRATCH__ and __REPO__ are placeholders replaced at test
 # time with tmp_path subdirectories. See tests/fixtures/README.md.

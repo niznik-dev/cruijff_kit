@@ -95,9 +95,9 @@ To validate that the complete workflow (design, scaffold, run) is functioning co
 
 | Option | Spec File | Runs | Duration | Tests |
 |--------|-----------|------|----------|-------|
-| **LoRA Comparison** | `.claude/workflow_test.yaml` | 2 fine-tuned (rank4, rank8) | ~12 min | Parameter variations |
-| **Base vs Fine-tuned** | `.claude/workflow_test_base.yaml` | 1 base + 1 fine-tuned (rank4) | ~12 min | Base model evaluation |
-| **Recipe Defaults** | `.claude/workflow_test_recipe.yaml` | 2 fine-tuned (rank4, rank16) | ~12 min | base_recipe inheritance |
+| **LoRA Comparison** | `.claude/workflow_test.md` | 2 fine-tuned (rank4, rank8) | ~12 min | Parameter variations |
+| **Base vs Fine-tuned** | `.claude/workflow_test_base.md` | 1 base + 1 fine-tuned (rank4) | ~12 min | Base model evaluation |
+| **Recipe Defaults** | `.claude/workflow_test_recipe.md` | 2 fine-tuned (rank4, rank16) | ~12 min | base_recipe inheritance |
 
 All use Llama-3.2-1B-Instruct with `{ck_data_dir}/capitalization/words_5L_80P_1000.json` as input data
 
