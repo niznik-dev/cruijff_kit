@@ -64,6 +64,10 @@ python -c "import cruijff_kit; print('cruijff_kit installed successfully')"
 
 cruijff_kit uses a `claude.local.md` file to store environment-specific settings. This file is git-ignored and stays on your machine.
 
+**Recommended (Claude Code users)**: run `/setup` — it walks you through `claude.local.md.template` interactively, auto-detects what it can, and writes a populated `claude.local.md`. Re-run `/setup` later to validate that nothing has drifted (it never overwrites without an explicit "start over" instruction from you).
+
+**Manual**: copy and edit the template directly:
+
 ```bash
 cp claude.local.md.template claude.local.md
 ```

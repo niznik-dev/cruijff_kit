@@ -13,44 +13,15 @@ Guide the user through designing their experiment by asking questions, verifying
 
 ## Prerequisites Check
 
-**Before starting the workflow**, verify the user's environment is configured:
-
-### 1. Check for claude.local.md
+Quick existence check — `claude.local.md` must be present before designing an experiment, because every output path and SLURM default is read from it:
 
 ```bash
 ls -la claude.local.md
 ```
 
-**If missing**, stop and inform the user:
+**If missing**, stop and tell the user to run `/setup` first — that skill walks them through `claude.local.md.template` interactively. Do not try to write a `claude.local.md` from this skill.
 
-```
-⚠️ Missing claude.local.md
-
-Before designing experiments, you need to configure your local environment:
-
-1. Copy the template:
-   cp claude.local.md.template claude.local.md
-
-2. Edit claude.local.md with your settings:
-   - HPC username and group
-   - Scratch directory paths
-   - SLURM account
-   - Conda environment name
-
-3. Run /design-experiment again
-
-See claude.local.md.template for a complete example.
-```
-
-### 2. Validate key fields
-
-If `claude.local.md` exists, check for placeholder values that haven't been replaced:
-
-```bash
-grep -n '<[^>]*>' claude.local.md
-```
-
-Review any matches. Lines in example commands (Quick Commands, etc.) will legitimately contain angle brackets — ignore those. But any angle-bracketed values in the **settings sections** (HPC Environment, SLURM Defaults, Common Paths) indicate unresolved placeholders. If found, warn the user that some fields may need updating before proceeding.
+If `claude.local.md` is present but you suspect drift (placeholders not filled in, fields that look stale), suggest the user run `/setup` in validate mode to get a structured health check rather than trying to validate inline here.
 
 ## Workflow
 
