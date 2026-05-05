@@ -6,7 +6,7 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ### Added
 
-- `create-quiz` skill — turn a completed experiment into a self-contained, self-grading HTML quiz that tests a recipient's intuition about the *results* (not the process). The recipient gets a self-contained intro (task description with example input → output, experimental axes, baselines) plus 6–8 questions across multiple_choice, numerical_estimate, and ranking types. Each answer reveals an explanation that quotes the relevant numbers inline. The full `analysis/report.md` write-up (with PNG figures base64-embedded) is hidden until the recipient clicks "See Final Score & Full Analysis" so the quiz works as an intuition test before serving as a teaching artifact. The full `experiment_summary.yaml` is exposed as a "Full experimental specification" `<details>` panel between the intro and the first question for recipients who want every fine-tuning detail. The HTML banner advertises [cruijff_kit](https://github.com/niznik-dev/cruijff_kit) and the page is fully portable — no backend, no recipient tracking, only inline CSS / vanilla JS / base64 images. Renders via `cruijff_kit.tools.quiz.render_quiz` (Jinja2 template + python-markdown). Two-experiment mode is supported and requires at least one comparison question. Skill content was iterated against the [skill-creator](https://github.com/anthropics/skills/tree/main/skills/skill-creator) workflow (`evals/iteration-1/` carries the validator-driven feedback that fixed five SKILL.md defects in the first iteration). (#453)
+- `create-quiz` skill — turn one or two completed experiments into a self-contained, self-grading HTML quiz that tests a recipient's intuition about the results. (#453)
 
 ### Changed
 
