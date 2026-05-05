@@ -32,6 +32,7 @@ dependencies = [
     "tokenizers>=0.22.1",
     "scikit-learn",
     "matplotlib",
+    "markdown",
 ]
 
 [project.optional-dependencies]
@@ -56,11 +57,15 @@ packages = [
   "cruijff_kit.tools.inspect.scorers",
   "cruijff_kit.tools.slurm",
   "cruijff_kit.tools.model_organisms",
+  "cruijff_kit.tools.quiz",
   "cruijff_kit.tabular_to_text_gen",
   "cruijff_kit.tabular_to_text_gen.lib",
   "cruijff_kit.tabular_to_text_gen.lib.perturbations",
   "cruijff_kit.tabular_to_text_gen.lib.templates",
 ]
+
+[tool.setuptools.package-data]
+"cruijff_kit.tools.quiz" = ["templates/*.j2"]
 
 [tool.ruff]
 line-length = 88

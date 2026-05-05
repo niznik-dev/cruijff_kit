@@ -4,6 +4,14 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `create-quiz` skill — turn one or two completed experiments into a self-contained, self-grading HTML quiz that tests a recipient's intuition about the results. (#453)
+
+### Changed
+
+- `python-markdown` added as a runtime dependency (used by the quiz renderer for intro / prompt / explanation / write-up markdown).
+
 ## [0.2.2] - 2026-04-23
 
 ### Added
