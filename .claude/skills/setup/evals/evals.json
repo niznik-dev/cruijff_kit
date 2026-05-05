@@ -1,0 +1,38 @@
+{
+  "skill_name": "setup",
+  "_note": "Each eval assumes a fresh Claude Code session in a cruijff_kit checkout at the repo root. Before running each eval, prepare claude.local.md as described in the `precondition` field. Tests are not automated — a human runs the prompt, observes behavior, and grades against the assertions in `expected_output`.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "greenfield-new-user",
+      "precondition": "No claude.local.md present. claude.local.md.template present at the repo root.",
+      "prompt": "I just cloned cruijff_kit and I have no idea what to configure first. Can you set me up?",
+      "expected_output": "Skill detects greenfield mode, walks the user through the template section by section with rationale for each, auto-detects whoami / id -gn / pwd, allows [skip] for optional sections (W&B, shared datasets), confirms before writing, writes claude.local.md only after explicit consent. logs/setup.log appended with DETECT_MODE / READ_TEMPLATE / AUTODETECT / COLLECT_VALUE / WRITE_CONFIG action types.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "validate-existing-clean",
+      "precondition": "claude.local.md present and fully filled (no placeholders remain in settings sections). All required fields populated. Conda env named in the file actually exists.",
+      "prompt": "Is my cruijff_kit environment configured correctly?",
+      "expected_output": "Skill detects validate mode (does not overwrite claude.local.md). Runs all three validation classes: placeholder scan (clean), required-field check (all 6 present), env probes (conda env, scratch dir, gh, optional module). Reports a structured GREEN/YELLOW/RED summary. Points at /design-experiment as next step. logs/setup.log appended with DETECT_MODE / VALIDATE_PLACEHOLDER / VALIDATE_FIELD / VALIDATE_ENV action types.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "validate-with-placeholders",
+      "precondition": "claude.local.md present but with at least 2 unfilled placeholders in settings sections (e.g. <your_slurm_account> in SLURM Defaults, <your_wandb_entity> in Weights & Biases). Other fields filled in.",
+      "prompt": "validate my setup",
+      "expected_output": "Skill flags the unfilled placeholders with line numbers + section + concrete fix. Distinguishes RED (required field missing, e.g. SLURM Account) from YELLOW (optional field skipped, e.g. wandb entity). Does NOT flag <placeholder> tokens that legitimately appear in the Quick Commands section. Does not modify claude.local.md.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "user-wants-to-start-over",
+      "precondition": "claude.local.md present (any state).",
+      "prompt": "My claude.local.md is a mess, I want to redo it from scratch.",
+      "expected_output": "Skill confirms intent before destructive action, renames the existing file to claude.local.md.bak.<YYYY-MM-DD>, then proceeds with greenfield walkthrough. Never deletes the old file. Logs the rename with RENAME_BACKUP action (or the equivalent — the SKILL.md doesn't currently define one, so this prompt also exercises whether the skill author thought about this case).",
+      "files": []
+    }
+  ]
+}

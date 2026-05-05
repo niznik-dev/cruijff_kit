@@ -61,6 +61,9 @@ For detailed architecture documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE
 
 cruijff_kit includes Claude Code skills to streamline common workflows. These skills are optional - all workflows can also be performed manually.
 
+### Setup
+- **setup** ✅ - First-time setup walkthrough OR validate-existing health check for `claude.local.md` (HPC paths, SLURM defaults, conda env). Run this before anything else.
+
 ### Primary Workflows
 - **design-experiment** ✅ - Plan a series of runs that collectively make up an experiment
 - **convert-tabular-to-text** ✅ - Convert tabular data to text representations for LLM experiments (use after design, before scaffold)
