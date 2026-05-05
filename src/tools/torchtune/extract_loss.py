@@ -6,7 +6,7 @@ from custom torchtune recipe stdout (epoch|step|Loss: value format).
 
 import re
 
-LOSS_PATTERN = re.compile(r"(\d+)\|(\d+)\|Loss: ([0-9.]+)")
+LOSS_PATTERN = re.compile(r"(\d+)\|(\d+)\|Loss: ([0-9.eE+-]+)")
 
 
 def extract_losses(text: str) -> list[tuple[int, int, float]]:
