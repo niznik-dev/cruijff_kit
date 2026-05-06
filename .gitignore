@@ -23,6 +23,9 @@ claude.local.md
 # User-specific cache directory (i.e., torchtune recipes)
 .claude/cache/
 
+# Skill-creator iteration outputs (per-skill workspaces, not committed)
+.claude/skills/*-workspace/
+
 logs/
 finetune.slurm
 finetune.yaml

@@ -64,6 +64,10 @@ python -c "import cruijff_kit; print('cruijff_kit installed successfully')"
 
 cruijff_kit uses a `claude.local.md` file to store environment-specific settings. This file is git-ignored and stays on your machine.
 
+**Recommended (Claude Code users)**: run `/ck-setup` — it walks you through `claude.local.md.template` interactively, auto-detects what it can, and writes a populated `claude.local.md`. Re-run `/ck-setup` later to validate that nothing has drifted (it never overwrites without an explicit "start over" instruction from you).
+
+**Manual**: copy and edit the template directly:
+
 ```bash
 cp claude.local.md.template claude.local.md
 ```
@@ -107,7 +111,7 @@ If you have [Claude Code](https://docs.anthropic.com/en/docs/claude-code), use t
 | 3 | `/run-experiment` | Submit jobs, monitor progress, validate outputs |
 | 4 | `/summarize-experiment` | Collect key metrics (loss, accuracy) into summary |
 
-Additional skills: `/create-inspect-task` for custom evaluations, `/analyze-experiment` for visualizations.
+Additional skills: `/create-inspect-task` for custom evaluations, `/analyze-experiment` for visualizations, `/create-quiz` to turn experiment results into a self-grading HTML quiz.
 
 See `.claude/skills/*/SKILL.md` for detailed documentation on each skill.
 

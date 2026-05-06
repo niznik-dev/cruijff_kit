@@ -16,47 +16,63 @@ cruijff_kit is a research toolkit for fine-tuning and evaluating LLMs on social 
 
 ```
 cruijff_kit/
-├── src/tools/              # Core workflow orchestration scripts
-│   ├── torchtune/      # Fine-tuning setup and custom recipes
-│   │   ├── setup_finetune.py  # Generate fine-tuning configs and SLURM scripts
-│   │   ├── datasets/          # Custom dataset classes
-│   │   │   └── chat_completion.py  # Chat template-based dataset
-│   │   ├── custom_recipes/    # Modified torchtune recipes
-│   │   └── templates/         # YAML/SLURM templates
-│   ├── inspect/        # Evaluation setup and analysis
-│   │   ├── setup_inspect.py   # Generate evaluation SLURM scripts from template
-│   │   ├── templates/         # SLURM templates
-│   │   │   └── eval_template.slurm  # Eval job template (GPU monitoring, log mgmt)
-│   │   ├── parse_eval_log.py  # Parse inspect-ai evaluation logs
-│   │   └── heterogeneity/     # Group-level fairness analysis
-│   │       ├── heterogeneity_eval.py    # Inspect-ai task wrapper
-│   │       ├── heterogeneity_report.py  # Standalone analysis script
-│   │       └── README.md                # Usage documentation
-│   └── model_organisms/  # Synthetic sequence-labeling framework (input × rule × format × design)
-│       ├── inputs.py    # Input-type registry (bits, digits, letters)
-│       ├── rules.py     # Output-rule registry (parity, first, majority, …)
-│       ├── formats.py   # Text-rendering registry (spaced, dense, comma, …)
-│       ├── generate.py  # Dataset generator CLI
-│       └── inspect_task.py # Unified inspect-ai evaluation task
+├── src/
+│   ├── tools/                      # Core workflow orchestration scripts
+│   │   ├── torchtune/              # Fine-tuning setup and custom recipes
+│   │   │   ├── setup_finetune.py        # Generate fine-tuning configs and SLURM scripts
+│   │   │   ├── config_recipe_loader.py  # Load and merge torchtune recipe configs
+│   │   │   ├── extract_loss.py          # Pull loss curves out of training logs
+│   │   │   ├── model_configs.py         # Per-model GPU/tokenizer settings
+│   │   │   ├── custom_recipes/          # Modified torchtune recipes
+│   │   │   ├── datasets/                # Custom dataset classes (chat_completion, text_completion)
+│   │   │   ├── templates/               # YAML/SLURM templates
+│   │   │   └── yaml_refs/               # Reference yaml fragments
+│   │   ├── inspect/                # Evaluation setup and analysis
+│   │   │   ├── setup_inspect.py         # Generate evaluation SLURM scripts from template
+│   │   │   ├── parse_eval_log.py        # Parse inspect-ai evaluation logs
+│   │   │   ├── prebuild_cache.py        # Pre-build HF datasets cache before SLURM dispatch
+│   │   │   ├── report_generator.py      # Build markdown reports from eval logs
+│   │   │   ├── summary_binary.py        # Binary-classification summary helpers
+│   │   │   ├── viz_helpers.py           # Plot/data adapters for inspect-viz
+│   │   │   ├── scorers/                 # Custom scorers (risk_scorer, calibration_metrics, …)
+│   │   │   ├── templates/               # SLURM templates (eval_template.slurm)
+│   │   │   └── heterogeneity/           # Group-level fairness analysis
+│   │   ├── experiment/             # Experiment-level operations
+│   │   │   ├── archive_experiment.py    # Archive a completed experiment
+│   │   │   └── prepare_data.py          # Top-level dataset preparation entry point
+│   │   ├── slurm/                  # SLURM-side helpers
+│   │   │   └── compute_metrics.py       # GPU metrics aggregation
+│   │   └── model_organisms/        # Synthetic sequence-labeling framework
+│   │       ├── inputs.py                # Input-type registry (bits, digits, letters)
+│   │       ├── rules.py                 # Output-rule registry (parity, first, majority, …)
+│   │       ├── formats.py               # Text-rendering registry (spaced, dense, …)
+│   │       ├── generate.py              # Dataset generator CLI
+│   │       └── inspect_task.py          # Unified inspect-ai evaluation task
+│   ├── utils/                      # Shared utilities and helpers
+│   │   ├── layout.py                    # Layout constants (e.g. ARTIFACTS_DIR)
+│   │   ├── run_names.py                 # Random name generation for runs
+│   │   ├── logger.py                    # Structured logging utilities
+│   │   ├── finetune_custom_metrics.py   # Custom metrics for torchtune
+│   │   ├── check_if_model_is_finetuned.py  # Model state inspection
+│   │   ├── calc_token_stats.py          # Token-count statistics for datasets
+│   │   └── spot_check.py                # Quick model inference testing
+│   └── tabular_to_text_gen/        # Tabular→text conversion pipeline (own ARCHITECTURE.md)
+│       ├── convert.py                   # CLI entry point
+│       ├── lib/                         # Conversion engine + perturbations + templates
+│       └── schemas/                     # Schema YAML files for source datasets
 │
-├── blueprints/           # Task blueprints (5-slot shape: README, inspect_task.py, generate_data.py, optional modifiers/ + baseline.py)
-│   ├── capitalization/ # Generalization test with word capitalization
-│   ├── folktexts/      # Demographic prediction from ACS text
-│   └── model_organism/ # Synthetic framework pointer (code lives in src/tools/model_organisms/)
+├── blueprints/                     # Task blueprints (5-slot shape: README, inspect_task.py, generate_data.py, optional modifiers/ + baseline.py)
+│   ├── capitalization/             # Generalization test with word capitalization
+│   ├── folktexts/                  # Demographic prediction from ACS text
+│   └── model_organism/             # Synthetic framework pointer (code lives in src/tools/model_organisms/)
 │
-├── src/utils/              # Shared utilities and helpers
-│   ├── run_names.py    # Random name generation for experiments
-│   ├── finetune_custom_metrics.py  # Custom metrics for torchtune
-│   ├── check_if_model_is_finetuned.py  # Model state inspection
-│   ├── logger.py       # Structured logging utilities
-│   └── spot_check.py   # Quick model inference testing
-│
-├── tests/              # Test suite (pytest)
-│   ├── unit/           # Unit tests (no GPU required)
-│   └── integration/    # Integration tests (GPU/cluster required)
-│
-├── logs/               # Experiment outputs and logs
-│
+├── docs/                           # Architecture, workflow, and reference docs
+├── tests/                          # Test suite (pytest)
+│   ├── unit/                       # Unit tests (no GPU required)
+│   └── integration/                # Integration tests (GPU/cluster required)
+├── .claude/                        # Claude Code skills and project config
+│   └── skills/                     # Primary + utility skills (design-experiment, scaffold-experiment, …)
+└── assets/                         # Static assets used by docs
 ```
 
 ## Data Organization
@@ -232,7 +248,7 @@ from cruijff_kit.utils import run_names
 
 After running setup_finetune.py:
 ```
-task_directory/
+{run_name}/
 ├── setup_finetune.yaml    # User config
 ├── finetune.yaml          # Generated torchtune config
 └── finetune.slurm         # Generated SLURM script
@@ -240,14 +256,15 @@ task_directory/
 
 After running finetune:
 ```
-output_dir/
-├── epoch_0/
-│   ├── adapter_model.safetensors  # LoRA weights
-│   └── adapter_config.json
-├── epoch_1/
-│   └── ...
-└── logs/
-    └── wandb/
+{run_name}/
+└── artifacts/
+    ├── epoch_0/
+    │   ├── adapter_model.safetensors  # LoRA weights
+    │   └── adapter_config.json
+    ├── epoch_1/
+    │   └── ...
+    └── logs/
+        └── wandb/
 ```
 
 ## Key Conventions
@@ -342,6 +359,7 @@ Use Claude Code skills to automate multi-run experiments. Skills generate all co
 3. **Execute:** Use `run-experiment` skill to run fine-tuning and evaluation
 4. **Summarize:** Use `summarize-experiment` skill to generate results summary
 5. **Analyze:** Use `analyze-experiment` skill for detailed analysis and comparison
+6. **Archive:** Use `archive-experiment` skill to archive completed experiments (preserves configs/logs/results, deletes large checkpoints)
 
 **Benefits:**
 - Automated setup for multi-run experiments
@@ -369,7 +387,9 @@ At a high level: hand-write `setup_finetune.yaml` in each run directory under `c
 ### Using Utilities
 
 Common utilities in `src/utils/`:
+- `layout.py` - Layout constants (e.g. `ARTIFACTS_DIR`)
 - `run_names.py` - Generate random experiment names
+- `logger.py` - Structured logging helpers
 - `finetune_custom_metrics.py` - Define training metrics
 - `check_if_model_is_finetuned.py` - Inspect model state
 

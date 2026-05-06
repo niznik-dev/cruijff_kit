@@ -62,7 +62,7 @@ Reports may contain HTML `<details>` blocks (collapsible sections) that LaTeX ca
 
 ```python
 from pathlib import Path
-from tools.inspect.report_generator import expand_details_for_pdf
+from cruijff_kit.tools.inspect.report_generator import expand_details_for_pdf
 
 md_path = Path("{full_path_to_md}")
 text = md_path.read_text()

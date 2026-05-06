@@ -19,6 +19,8 @@ import shutil
 import sys
 from pathlib import Path
 
+from cruijff_kit.utils.layout import ARTIFACTS_DIR
+
 try:
     import yaml
 except ImportError:
@@ -92,18 +94,27 @@ def inventory_experiment(experiment_dir, output_dir_base):
     run_names = [r["name"] for r in runs]
     eval_matrix = config.get("evaluation", {}).get("matrix", [])
 
-    # --- KEEP files: entire experiment directory ---
+    # --- KEEP files: experiment dir minus per-run artifacts/ and minus symlinks.
+    # Lexical filter (relative path parts, not f.resolve()) so symlinks are
+    # judged by where they live in the tree, not where they point. Symlinks
+    # are skipped outright — wandb seeds offline-run dirs with links to
+    # ~/.cache that we never want to dereference into the archive.
+    run_name_set = set(run_names)
     keep_files = []
     for f in sorted(exp_dir.rglob("*")):
-        if f.is_file():
-            rel = f.relative_to(exp_dir)
-            keep_files.append(
-                {
-                    "source": str(f),
-                    "archive_path": str(rel),
-                    "size_bytes": _file_size_bytes(f),
-                }
-            )
+        if f.is_symlink() or not f.is_file():
+            continue
+        rel = f.relative_to(exp_dir)
+        parts = rel.parts
+        if len(parts) >= 2 and parts[0] in run_name_set and parts[1] == ARTIFACTS_DIR:
+            continue
+        keep_files.append(
+            {
+                "source": str(f),
+                "archive_path": str(rel),
+                "size_bytes": _file_size_bytes(f),
+            }
+        )
 
     # Resolve findings.md source (for reporting which file serves as findings)
     findings_source = None
@@ -118,7 +129,7 @@ def inventory_experiment(experiment_dir, output_dir_base):
     delete_paths = []
     out_base = Path(output_dir_base)
     for run_name in run_names:
-        out_dir = out_base / run_name / "artifacts"
+        out_dir = out_base / run_name / ARTIFACTS_DIR
         if out_dir.exists():
             delete_paths.append(
                 {
@@ -248,7 +259,7 @@ def delete_originals(experiment_dir, output_dir_base, run_names):
     # Delete checkpoint directories (the big ones)
     out_base = Path(output_dir_base)
     for run_name in run_names:
-        out_dir = out_base / run_name / "artifacts"
+        out_dir = out_base / run_name / ARTIFACTS_DIR
         if out_dir.exists():
             size = _dir_size_bytes(out_dir)
             try:
@@ -291,7 +302,9 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
 
     Args:
         experiment_dir: Path to the experiment directory.
-        archive_base: Base path for archives (archive lands in {archive_base}/{name}/).
+        archive_base: Base path for archives. The archive lands at
+            {archive_base}/{project}/{experiment_name}/, where project is
+            read from experiment.project in experiment_summary.yaml.
         dry_run: If True, only report what would happen.
         force: If True, archive even if some runs are incomplete.
 
@@ -335,6 +348,14 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
             "message": "No output.base_directory found in experiment_summary.yaml",
         }
 
+    project = config.get("experiment", {}).get("project", "")
+    if not project:
+        return {
+            "status": "error",
+            "message": "No experiment.project found in experiment_summary.yaml. "
+            "Archives are organized by project; add a project field and retry.",
+        }
+
     # Inventory
     inventory = inventory_experiment(str(exp_dir), output_dir_base)
     if inventory["status"] != "success":
@@ -349,7 +370,7 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
         }
 
     experiment_name = inventory["experiment_name"]
-    archive_dir = str(Path(archive_base) / experiment_name)
+    archive_dir = str(Path(archive_base) / project / experiment_name)
 
     if dry_run:
         return {
@@ -425,7 +446,8 @@ def main():
     parser.add_argument(
         "--archive-base",
         default=None,
-        help="Base directory for archives (default: sibling of experiment parent)",
+        help="Base directory for archives "
+        "(default: ck-archive/ as sibling of the experiment's grandparent dir)",
     )
     parser.add_argument(
         "--pretty", "-p", action="store_true", help="Pretty-print JSON output"
@@ -433,10 +455,12 @@ def main():
 
     args = parser.parse_args()
 
-    # Default archive base: ck-archive/ as sibling of the experiment's parent
+    # Default archive base: ck-archive/ as sibling of the experiment's
+    # grandparent dir. For {scratch}/ck-projects/{project}/{exp}/ this lands
+    # at {scratch}/ck-archive/{exp}/.
     if args.archive_base is None:
-        exp_parent = Path(args.experiment_dir).parent
-        archive_base = str(exp_parent.parent / "ck-archive")
+        exp_parent = Path(args.experiment_dir).resolve().parent
+        archive_base = str(exp_parent.parent.parent / "ck-archive")
     else:
         archive_base = args.archive_base
 

@@ -7,6 +7,7 @@ import yaml
 from pathlib import Path
 
 from cruijff_kit.utils import run_names
+from cruijff_kit.utils.layout import ARTIFACTS_DIR
 from cruijff_kit.tools.torchtune import config_recipe_loader
 from cruijff_kit.tools.torchtune.model_configs import MODEL_CONFIGS, configure_tokenizer
 
@@ -303,7 +304,9 @@ def construct_output_dir(output_dir_base, experiment_name, model_run_name):
     if not output_dir_base.endswith("/"):
         output_dir_base += "/"
 
-    return output_dir_base + experiment_name + "/" + model_run_name + "/artifacts/"
+    return (
+        output_dir_base + experiment_name + "/" + model_run_name + f"/{ARTIFACTS_DIR}/"
+    )
 
 
 def configure_dataset_for_format(config, dataset_label, dataset_ext, dataset_type):

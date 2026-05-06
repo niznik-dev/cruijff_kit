@@ -1,0 +1,27 @@
+{
+  "skill_name": "create-quiz",
+  "_note": "Eval prompts use placeholder paths ({experiment_a}, {experiment_b}, {experiment_c}). Before running, substitute absolute paths to your own completed cruijff_kit experiments. {experiment_a} and {experiment_b} should each have analysis/report.md present. {experiment_c} (eval id=3) should NOT have analysis/report.md, to test the prerequisite-missing branch.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "single-experiment-rich",
+      "prompt": "I want to share a recent experiment with a colleague who hasn't seen the results yet — make me a quiz they can take to check whether their intuition matches what the data actually showed. The experiment lives at {experiment_a}.",
+      "expected_output": "A self-contained quiz.html in the experiment's quiz/ directory with 6-8 questions following the default mix (3 multiple_choice + 2 numerical_estimate + 1 ranking). Every answer cites a row/figure/section in analysis/report.md. Source numbers from report.md are preserved at full precision (no rounding).",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "two-experiment-comparison",
+      "prompt": "Build a comparison quiz from {experiment_a} and {experiment_b} — I want to see if people can keep the two experiments straight and notice where they agree vs disagree.",
+      "expected_output": "A self-contained quiz.html that includes at least one comparison question requiring both experiments to answer (e.g. 'on the shared condition, which experiment got higher accuracy?'). The intro names both experiments. Total 6-8 questions across both.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "skill-prerequisites-missing",
+      "prompt": "make a quiz from this experiment: {experiment_c}",
+      "expected_output": "If analysis/report.md does NOT exist for that experiment, the skill should stop and tell the user to run analyze-experiment first — not silently produce a low-quality quiz with no grounding. If report.md does exist, produce a normal quiz.",
+      "files": []
+    }
+  ]
+}

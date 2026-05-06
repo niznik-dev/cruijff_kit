@@ -27,6 +27,9 @@ Details: {what_happened}
 Result: {outcome}
 ```
 
+**Mandatory fields for job submissions** (SUBMIT_JOB, SUBMIT_EVAL actions):
+- `Job ID: {slurm_job_id}` - SLURM job ID.
+
 **Optional fields** (use when relevant):
 - `Command: {shell_command}` - For actions that ran shell commands
 - `Calculation: {formula}` - For computational actions

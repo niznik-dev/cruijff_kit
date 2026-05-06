@@ -1,5 +1,7 @@
 """Tests for src/tools/experiment/archive_experiment.py"""
 
+from pathlib import Path
+
 import yaml
 
 from cruijff_kit.tools.experiment.archive_experiment import (
@@ -29,7 +31,11 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
 
     # experiment_summary.yaml
     config = {
-        "experiment": {"name": exp_name, "directory": str(exp_dir)},
+        "experiment": {
+            "name": exp_name,
+            "project": "capitalization",
+            "directory": str(exp_dir),
+        },
         "output": {"base_directory": str(out_base)},
         "runs": [
             {"name": rn, "type": "fine-tuned", "model": "test", "parameters": {}}
@@ -139,6 +145,37 @@ def test_inventory_with_analysis(tmp_path):
     archive_paths = [kf["archive_path"] for kf in result["keep_files"]]
     assert "analysis/report.md" in archive_paths
     assert "analysis/plot.html" in archive_paths
+
+
+def test_inventory_skips_symlinks_under_artifacts(tmp_path):
+    """Symlinks (e.g. wandb's pointers to ~/.cache) are not archived.
+
+    Regression: an earlier filter resolved symlink targets to decide if a
+    file lived under {run}/artifacts/. Symlinks pointing outside the
+    experiment dir slipped through and pulled external content into the
+    archive.
+    """
+    exp_dir_str, out_base = _make_experiment(tmp_path)
+    exp_dir = Path(exp_dir_str)
+
+    # External target outside the experiment dir
+    external = tmp_path / "external_cache" / "secret.log"
+    external.parent.mkdir()
+    external.write_text("don't archive me")
+
+    # Lookalike of wandb's offline-run/.../debug-core.log pointing at ~/.cache
+    wandb_dir = exp_dir / "run_rank4" / "artifacts" / "logs" / "wandb"
+    wandb_dir.mkdir(parents=True)
+    (wandb_dir / "debug-core.log").symlink_to(external)
+
+    # And a symlink under eval/ to simulate a stray symlink outside artifacts/
+    (exp_dir / "run_rank4" / "eval" / "stray.log").symlink_to(external)
+
+    result = inventory_experiment(str(exp_dir), out_base)
+    archive_paths = [kf["archive_path"] for kf in result["keep_files"]]
+
+    assert "run_rank4/artifacts/logs/wandb/debug-core.log" not in archive_paths
+    assert "run_rank4/eval/stray.log" not in archive_paths
 
 
 # --- findings.md resolution tests ---
@@ -369,3 +406,35 @@ def test_archive_nonexistent_dir(tmp_path):
 
     assert result["status"] == "error"
     assert "not found" in result["message"]
+
+
+def test_archive_path_includes_project(tmp_path):
+    """Archive path is {archive_base}/{project}/{experiment_name}/."""
+    exp_dir, _ = _make_experiment(tmp_path)
+    archive_base = str(tmp_path / "ck-archive")
+
+    result = archive_experiment(exp_dir, archive_base, dry_run=True)
+
+    assert result["status"] == "success"
+    expected = str(
+        tmp_path / "ck-archive" / "capitalization" / "test_experiment_2026-03-23"
+    )
+    assert result["archive_path"] == expected
+
+
+def test_archive_missing_project_field(tmp_path):
+    """experiment.project missing → error before any work happens."""
+    exp_dir, _ = _make_experiment(tmp_path)
+    # Strip the project field from the yaml
+    summary_path = Path(exp_dir) / "experiment_summary.yaml"
+    config = yaml.safe_load(summary_path.read_text())
+    del config["experiment"]["project"]
+    summary_path.write_text(yaml.dump(config))
+
+    archive_base = str(tmp_path / "ck-archive")
+    result = archive_experiment(exp_dir, archive_base, dry_run=True)
+
+    assert result["status"] == "error"
+    assert "project" in result["message"]
+    # Original experiment untouched
+    assert Path(exp_dir).exists()

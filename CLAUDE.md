@@ -61,14 +61,18 @@ For detailed architecture documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE
 
 cruijff_kit includes Claude Code skills to streamline common workflows. These skills are optional - all workflows can also be performed manually.
 
+### Setup
+- **ck-setup** ✅ - First-time setup walkthrough OR validate-existing health check for `claude.local.md` (HPC paths, SLURM defaults, conda env). Run this before anything else.
+
 ### Primary Workflows
 - **design-experiment** ✅ - Plan a series of runs that collectively make up an experiment
 - **convert-tabular-to-text** ✅ - Convert tabular data to text representations for LLM experiments (use after design, before scaffold)
 - **scaffold-experiment** ✅ - Create organized directory structures, configs, and SLURM scripts for all runs
 - **run-experiment** ✅ - Submit jobs to SLURM and monitor their progress until completion
 - **summarize-experiment** ✅ - Generate summary.md with key metrics (loss, accuracy) after experiment completion
-- **analyze-experiment** ✅ - Generate interactive HTML visualizations from evaluation logs using inspect-viz (currently supports capitalization experiments)
+- **analyze-experiment** ✅ - Generate interactive HTML visualizations from evaluation logs using inspect-viz; selects views based on experimental variables (model, factor, task, metric) and adds calibration / ROC plots when `risk_scorer` is present
 - **analyze-to-pdf** ✅ - Convert analysis reports (markdown) to PDF using pandoc
+- **create-quiz** ✅ - Turn one or two completed experiments into a self-contained, self-grading HTML quiz that tests a recipient's intuition. Each answer cites the row/figure/section it came from
 - **archive-experiment** ✅ - Archive completed experiments, preserving all experiment files while deleting checkpoint directories
 
 ### Utility
@@ -99,7 +103,7 @@ To validate that the complete workflow (design, scaffold, run) is functioning co
 | **Base vs Fine-tuned** | `.claude/workflow_test_base.md` | 1 base + 1 fine-tuned (rank4) | ~12 min | Base model evaluation |
 | **Recipe Defaults** | `.claude/workflow_test_recipe.md` | 2 fine-tuned (rank4, rank16) | ~12 min | base_recipe inheritance |
 
-All use Llama-3.2-1B-Instruct with words_5L_80P_1000.json under `ck-projects/capitalization/`
+All use Llama-3.2-1B-Instruct with `{ck_data_dir}/capitalization/words_5L_80P_1000.json` as input data
 
 **Purpose:** Catch regressions in skills, ensure documentation changes don't break workflows, validate end-to-end integration.
 
