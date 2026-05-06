@@ -241,7 +241,6 @@ Estimate SLURM time limits, GPU counts, and memory allocations using `src/tools/
 
 Search for `compute_metrics.json` files from past experiments:
 - `{scratch_dir}/ck-projects/*/analysis/compute_metrics.json`
-- `{scratch_dir}/ck-sanity-checks/*/analysis/compute_metrics.json`
 
 **Note:** `compute_metrics.json` lives in `{experiment_dir}/analysis/`, NOT in the output directory.
 
