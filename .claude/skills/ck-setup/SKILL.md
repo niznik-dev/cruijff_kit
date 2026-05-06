@@ -123,7 +123,7 @@ If any of these fail, the skill should error loud, not silently produce somethin
 ## Out of scope (explicitly)
 
 - Validating HuggingFace tokens, Princeton SSO, or any other authenticated external service. Point at `docs/PREREQUISITES.md` instead.
-- Running fine-tuning, eval, or any GPU work as a "smoke test." That's the job of `workflow_test.yaml` (see CLAUDE.md), not first-time setup.
+- Running fine-tuning, eval, or any GPU work as a "smoke test." That's the job of the workflow test specs in `.claude/workflow_tests/` (see CLAUDE.md), not first-time setup.
 - Splitting `claude.local.md` into Claude-specific and tool-agnostic config files. That's tracked separately as #457.
 - Auto-installing the conda environment. The user runs `make install` per `claude.local.md.template` — the skill verifies the env *exists*, doesn't create it.
 - Migrating an old `claude.local.md` to a new schema. If the template gains fields, validate-mode will flag the missing ones; the user fills them in by hand.
