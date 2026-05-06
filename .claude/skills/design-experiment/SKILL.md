@@ -19,9 +19,9 @@ Quick existence check — `claude.local.md` must be present before designing an 
 ls -la claude.local.md
 ```
 
-**If missing**, stop and tell the user to run `/setup` first — that skill walks them through `claude.local.md.template` interactively. Do not try to write a `claude.local.md` from this skill.
+**If missing**, stop and tell the user to run `/ck-setup` first — that skill walks them through `claude.local.md.template` interactively. Do not try to write a `claude.local.md` from this skill.
 
-If `claude.local.md` is present but you suspect drift (placeholders not filled in, fields that look stale), suggest the user run `/setup` in validate mode to get a structured health check rather than trying to validate inline here.
+If `claude.local.md` is present but you suspect drift (placeholders not filled in, fields that look stale), suggest the user run `/ck-setup` in validate mode to get a structured health check rather than trying to validate inline here.
 
 ## Workflow
 

@@ -1,9 +1,9 @@
 ---
-name: setup
-description: Interactive setup and validation skill for new and returning cruijff_kit users. Walks a new user through creating their `claude.local.md` from the template (HPC paths, SLURM defaults, conda env, model locations, wandb config), or — if a `claude.local.md` already exists — runs a lightweight health check that flags placeholders, missing required fields, and basic environment problems (conda env missing, scratch directory unreachable, `gh` not on PATH). Use whenever the user says they're new, asks how to get started, says their environment isn't working, or asks "what should I run first?" Phrases that should trigger this skill: "set me up", "I'm new to cruijff_kit", "validate my setup", "validate my config", "is my environment ready?", "is my environment configured correctly?", "first-time setup", "what do I need to configure?", "health check", "redo my config", "start over with claude.local.md".
+name: ck-setup
+description: First-time setup for new cruijff_kit users — walks through claude.local.md configuration. Re-run for a health check on an existing config.
 ---
 
-# Setup
+# ck-setup
 
 You help users get a working cruijff_kit environment. There are two modes — pick based on whether `claude.local.md` already exists:
 
@@ -24,10 +24,11 @@ Mode detection above maps roughly: greenfield ↔ new user, validate ↔ returni
 ## Your task
 
 1. Detect mode (greenfield vs validate) by checking for `claude.local.md`.
-2. **Greenfield**: walk through the template section-by-section, prompt the user for each value, write `claude.local.md` at the repo root.
-3. **Validate**: read the existing file, scan for placeholders and missing fields, run environment probes, report findings.
-4. Point the user at next steps (`docs/PREREQUISITES.md` for accounts and Software Carpentry tutorials; `/design-experiment` for their first experiment).
-5. Log the run to `logs/setup.log`.
+2. Greet the user and tell them what's about to happen — mode, estimated time, the kind of questions or checks they'll see.
+3. **Greenfield**: walk through the template section-by-section, prompt the user for each value, write `claude.local.md` at the repo root.
+4. **Validate**: read the existing file, scan for placeholders and missing fields, run environment probes, report findings.
+5. Point the user at next steps (`docs/PREREQUISITES.md` for accounts and Software Carpentry tutorials; `/design-experiment` for their first experiment).
+6. Log the run to `logs/ck-setup.log`.
 
 See the modular sub-files for details:
 
@@ -56,7 +57,27 @@ ls -la claude.local.md claude.local.md.template
 - **Template only** → greenfield mode.
 - **Template missing** → stop. Ask the user where they are; the skill assumes the repo root.
 
-### 2a. Greenfield → `walkthrough.md`
+### 2. Greet the user and set expectations
+
+After detecting mode and before diving into work, greet the user and tell them what's about to happen. Tone: friendly, like welcoming someone on day one. Don't assume technical fluency — name what you're going to do in plain language.
+
+**Greenfield mode** (no `claude.local.md`):
+
+> Hey! Welcome to cruijff_kit. I'll walk you through creating your `claude.local.md` — a personal config file the toolkit uses to learn about your HPC cluster, your SLURM account, and your conda environment.
+>
+> This takes about 5 minutes. I'll ask ~10–15 short questions, one at a time, and explain why each one matters. If you're not sure of an answer, you can say `[skip]` and we'll come back to it later. Before I write the file, I'll show you a summary and ask you to confirm.
+>
+> Ready when you are.
+
+**Validate mode** (`claude.local.md` already exists):
+
+> Hey! I see you already have a `claude.local.md`. I'll do a quick health check — about 30 seconds — to make sure your environment is set up right.
+>
+> I'll scan for any placeholders that haven't been filled in, check that the required fields are present, and run a few lightweight probes (does your conda env exist, is your scratch directory reachable, is `gh` on PATH). I won't change anything in your config. At the end you'll get a green / yellow / red summary with concrete next steps for anything that needs attention.
+
+Then proceed to the chosen mode below.
+
+### 3a. Greenfield → `walkthrough.md`
 
 The template is 158 lines and covers HPC, SLURM, conda, GitHub, wandb, paths, and quick commands. Walk it section-by-section. For each section:
 
@@ -67,7 +88,7 @@ The template is 158 lines and covers HPC, SLURM, conda, GitHub, wandb, paths, an
 
 When all sections are done, write the populated content to `claude.local.md` at the repo root.
 
-### 2b. Validate → `validation.md`
+### 3b. Validate → `validation.md`
 
 Three classes of check:
 
@@ -81,7 +102,7 @@ Three classes of check:
 
 Report a per-check pass/fail with the concrete remediation step beside each fail. Don't return a binary "all good / all bad" — partial-pass is normal and useful.
 
-### 3. Point at next steps
+### 4. Point at next steps
 
 After either mode, finish with two pointers:
 
@@ -94,7 +115,7 @@ A successful run satisfies all of:
 
 - ✓ Either `claude.local.md` was created (greenfield) or a structured validation report was produced (validate).
 - ✓ The user knows what the next step is (`/design-experiment` or "fix these N findings first").
-- ✓ `logs/setup.log` was appended with the action types from `logging.md`.
+- ✓ `logs/ck-setup.log` was appended with the action types from `logging.md`.
 - ✓ No existing `claude.local.md` was overwritten without explicit user consent.
 
 If any of these fail, the skill should error loud, not silently produce something half-correct.

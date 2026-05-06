@@ -5,7 +5,7 @@ See [shared/logging_spec.md](../shared/logging_spec.md) for the format and gener
 ## Log file location
 
 ```
-logs/setup.log
+logs/ck-setup.log
 ```
 
 Relative to the cruijff_kit repo root (where `claude.local.md` lives). If `logs/` doesn't exist, create it. Append on re-runs (don't truncate) so the audit trail across multiple validate-mode runs is preserved.
