@@ -32,7 +32,7 @@ Required:
 | `tool` | Generator identifier | Must be `model_organism` for this schema |
 | `name` | Dataset identifier | Used in logs; not a filename |
 | `input_type` | `bits` \| `digits` \| `letters` | Alphabet |
-| `rule` | Output rule | See `src/tools/model_organisms/rules.py` registry. Universal rules: `first`, `last`, `nth`, `length`, `constant`, `coin`. Bits-only: `parity`, `majority`. Digits/letters-only: `min`, `max`. |
+| `rule` | Output rule | See `src/tools/model_organisms/rules.py` registry. Universal rules: `first`, `last`, `nth`, `length`, `constant`, `coin`. Bits-only: `parity`, `majority`. Digits/letters-only: `min`, `max`. Bits/digits-only (linear DGP): `weighted_sum`, `weighted_sum_binary`. |
 | `k` | Sequence length | Positive int |
 | `N` | Number of samples | Must not exceed alphabet^k |
 | `seed` | Random seed | Any int |
@@ -47,6 +47,46 @@ Optional:
 | `rule_kwargs` | `{}` | Extra params for rules that take them (e.g. `{p: 0.7}` for `coin`, `{x: 3}` for `nth`) |
 | `split` | `0.8` | Train fraction for `in_distribution` and `ood` |
 | `ood_tests` | — | **Required** when `design: ood`; list of per-split overrides |
+
+### `rule_kwargs` for `weighted_sum` / `weighted_sum_binary`
+
+Both rules implement a linear DGP `output = w·x + intercept`; the binary
+variant additionally thresholds (or sigmoid-samples) the result. They
+share the following `rule_kwargs`:
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `weights` | `list[int] \| None` | `None` | Explicit weight vector of length `k`. If given, distribution params are ignored. |
+| `weight_max` | `int` | `3` | Magnitudes drawn uniformly from `{-W, …, -1, 1, …, W}` (excluding zero). |
+| `sparsity` | `float` | `0.0` | Probability that a drawn weight is masked to zero (applied after the magnitude draw). |
+| `weight_seed` | `int \| None` | `None` (uses dataset `seed`) | Seed for the **DGP**: weight draws, sparsity mask, and (binary rule) per-sequence label-noise stream. See "Seed semantics" below. |
+| `intercept` | `int \| "balanced"` | `0` | DGP intercept. `"balanced"` resolves to `round(-sum(w_i) · E[x_i])` (`E[x_i]` = 0.5 for bits, 4.5 for digits). |
+| `noise_scale` | `float` | `0.0` | **Binary only.** `0` → deterministic `z > 0` threshold; `> 0` → Bernoulli sample with `p = σ(z / noise_scale)`. Stochastic samples are deterministic per `(weight_seed, sequence)`. |
+
+**Seed semantics.** These rules expose two seeds with separate roles:
+- `seed` (positional arg to `generate()`) controls *which sequences you observe* (primary + OOD sampling, `coin` labels, MC samplers).
+- `weight_seed` (in `rule_kwargs`, defaults to `seed`) controls *what the DGP is and how its noise behaves* (weights, sparsity mask, binary-stochastic label stream).
+
+Fixing `weight_seed` and varying `seed` gives you fresh sequence samples of the *same* DGP — including the same per-sequence label-noise pattern. Fixing `seed` and varying `weight_seed` gives you the same sequence sample under different DGPs. Note this differs from `coin`, whose stochastic labels key on the dataset `seed`; `weighted_sum_binary` keys on `weight_seed` deliberately, so that the "same DGP, fresh sample" pattern is a clean comparison.
+
+**Output format** (non-binary): spaced + signed + zero-padded. Width is
+computed once per dataset from the resolved weights and intercept:
+`max(1, ceil(log10(sum(|w_i|) · alphabet_max + |intercept| + 1)))`. Example:
+weights `[1, 2, -1, 3, 0, 1, -2, 1]` on digits → max `|output| = 99` →
+2-digit width → output `42` renders as `+ 4 2`.
+
+**Top-level dataset metadata** for these rules also records:
+`resolved_weights`, `intercept`, `format_width`, `weight_seed`,
+`noise_scale` (binary only), and `bayes_accuracy` (binary stochastic
+only — the optimal-classifier upper bound, useful for interpreting FT
+gains).
+
+**OOD note:** the resolved DGP (weights, intercept, format width) is
+fixed at the dataset level; OOD splits inherit it. Use OOD specs to
+vary the input distribution (e.g., `format`, `N`), not the DGP.
+
+`weighted_sum_binary` generalizes `majority` (with weights `[1,…,1]` and
+`intercept="balanced"`) and `constant` (degenerate all-zero weights).
 
 ## Example: memorization
 
@@ -159,7 +199,7 @@ When the user says "I want a sanity check on parity" (or similar), gather:
    - If ood: ask for the test-variant specs (k values, N per variant, any format overrides)
 5. **Seed** — default 42 unless they care
 6. **Format** — default `spaced`; ask only if they bring it up
-7. **Rule kwargs** — only if the rule needs them (e.g., `coin` needs `p`; `nth` needs `x`)
+7. **Rule kwargs** — only if the rule needs them (e.g., `coin` needs `p`; `nth` needs `x`; `weighted_sum*` accept the linear-DGP fields documented above)
 
 Then author both the `data.data_generation` entry (with `tool: model_organism`)
 and the `data.training` block. Log the schema version and dataset parameters in

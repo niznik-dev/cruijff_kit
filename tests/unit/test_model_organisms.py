@@ -47,8 +47,14 @@ class TestRegistries:
             "majority",
             "min",
             "max",
+            "weighted_sum",
+            "weighted_sum_binary",
         }
         assert "spaced" in list_formats()
+
+    def test_weighted_sum_rules_applicable_to_bits_and_digits_only(self):
+        for name in ("weighted_sum", "weighted_sum_binary"):
+            assert get_rule(name).applicable == frozenset({"bits", "digits"})
 
     def test_bits_alphabet(self):
         assert get_input("bits").alphabet == ("0", "1")
@@ -567,4 +573,531 @@ class TestOOD:
                 seed=1,
                 design="ood",
                 ood_tests=[{"k": 12}],
+            )
+
+
+# =============================================================================
+# Rule.prepare hook
+# =============================================================================
+
+
+class TestPrepareHook:
+    """Generic checks for the prepare extension to the Rule dataclass.
+
+    Behavioral coverage of weighted-sum-specific resolution lives below.
+    """
+
+    def test_existing_rules_have_no_prepare(self):
+        for name in (
+            "parity",
+            "first",
+            "last",
+            "nth",
+            "length",
+            "constant",
+            "coin",
+            "majority",
+            "min",
+            "max",
+        ):
+            assert get_rule(name).prepare is None
+
+    def test_weighted_sum_rules_have_prepare(self):
+        for name in ("weighted_sum", "weighted_sum_binary"):
+            assert get_rule(name).prepare is not None
+
+    def test_existing_rules_support_ood(self):
+        # Default supports_ood=True; existing OOD tests rely on this.
+        for name in (
+            "parity",
+            "first",
+            "last",
+            "nth",
+            "length",
+            "constant",
+            "coin",
+            "majority",
+            "min",
+            "max",
+        ):
+            assert get_rule(name).supports_ood is True
+
+    def test_weighted_sum_rules_do_not_support_ood(self):
+        for name in ("weighted_sum", "weighted_sum_binary"):
+            assert get_rule(name).supports_ood is False
+
+    def test_prepare_output_surfaces_at_top_level_metadata(self):
+        d = generate(
+            input_type="digits",
+            rule="weighted_sum",
+            k=3,
+            N=5,
+            seed=1,
+            design="memorization",
+            rule_kwargs={"weights": [1, 2, -1], "intercept": 0},
+        )
+        assert d["metadata"]["resolved_weights"] == [1, 2, -1]
+        assert d["metadata"]["intercept"] == 0
+        assert d["metadata"]["format_width"] == 2  # max |w·x|=27 → 2 digits
+
+
+# =============================================================================
+# weighted_sum (linear regression DGP)
+# =============================================================================
+
+
+class TestWeightedSum:
+    def test_explicit_weights_arithmetic(self):
+        d = generate(
+            input_type="digits",
+            rule="weighted_sum",
+            k=3,
+            N=10,
+            seed=1,
+            design="memorization",
+            rule_kwargs={"weights": [1, 2, -1], "intercept": 5},
+        )
+        assert d["metadata"]["resolved_weights"] == [1, 2, -1]
+        assert d["metadata"]["intercept"] == 5
+        for row in d["train"]:
+            tokens = [int(t) for t in row["input"].split()]
+            z = tokens[0] + 2 * tokens[1] - tokens[2] + 5
+            assert row["output"] == _format_signed_spaced_str(
+                z, d["metadata"]["format_width"]
+            )
+
+    def test_output_format_signed_spaced_zero_padded(self):
+        # weights=[1,2,-1,3,0,1,-2,1] on digits → max |output| = 99 → width 2
+        d = generate(
+            input_type="digits",
+            rule="weighted_sum",
+            k=8,
+            N=20,
+            seed=2,
+            design="memorization",
+            rule_kwargs={
+                "weights": [1, 2, -1, 3, 0, 1, -2, 1],
+                "intercept": 0,
+            },
+        )
+        assert d["metadata"]["format_width"] == 2
+        for row in d["train"]:
+            parts = row["output"].split(" ")
+            # Always: one sign char + format_width digit chars
+            assert len(parts) == 3
+            assert parts[0] in {"+", "-"}
+            assert all(p.isdigit() and len(p) == 1 for p in parts[1:])
+
+    def test_distribution_drawn_weights_deterministic_per_seed(self):
+        a = generate(
+            input_type="digits",
+            rule="weighted_sum",
+            k=6,
+            N=2,
+            seed=1,
+            design="memorization",
+            rule_kwargs={"weight_max": 3, "weight_seed": 99},
+        )
+        b = generate(
+            input_type="digits",
+            rule="weighted_sum",
+            k=6,
+            N=2,
+            seed=2,  # different DATASET seed
+            design="memorization",
+            rule_kwargs={"weight_max": 3, "weight_seed": 99},
+        )
+        assert a["metadata"]["resolved_weights"] == b["metadata"]["resolved_weights"]
+
+    def test_weight_seed_defaults_to_dataset_seed(self):
+        d = generate(
+            input_type="digits",
+            rule="weighted_sum",
+            k=4,
+            N=2,
+            seed=1234,
+            design="memorization",
+            rule_kwargs={"weight_max": 2},
+        )
+        assert d["metadata"]["weight_seed"] == 1234
+
+    def test_drawn_weights_excluded_zero_then_masked(self):
+        # No sparsity → weights all in {-W,…,-1,1,…,W}, never zero.
+        d = generate(
+            input_type="digits",
+            rule="weighted_sum",
+            k=200,  # large enough that "no zeros" is statistically meaningful
+            N=2,
+            seed=1,
+            design="memorization",
+            rule_kwargs={"weight_max": 5, "sparsity": 0.0, "weight_seed": 7},
+        )
+        weights = d["metadata"]["resolved_weights"]
+        assert all(w != 0 for w in weights)
+        assert all(-5 <= w <= 5 for w in weights)
+
+    def test_sparsity_one_zeros_all_weights(self):
+        d = generate(
+            input_type="digits",
+            rule="weighted_sum",
+            k=8,
+            N=4,
+            seed=3,
+            design="memorization",
+            rule_kwargs={
+                "weight_max": 3,
+                "sparsity": 1.0,
+                "intercept": 7,
+                "weight_seed": 5,
+            },
+        )
+        assert d["metadata"]["resolved_weights"] == [0] * 8
+        # All-zero weights → output is the formatted intercept everywhere.
+        assert all(r["output"] == d["train"][0]["output"] for r in d["train"])
+
+    def test_balanced_intercept_digits(self):
+        # E[x_i] for digits = 4.5 → intercept = round(-sum(w) * 4.5).
+        d = generate(
+            input_type="digits",
+            rule="weighted_sum",
+            k=4,
+            N=2,
+            seed=1,
+            design="memorization",
+            rule_kwargs={"weights": [1, 1, 1, 1], "intercept": "balanced"},
+        )
+        assert d["metadata"]["intercept"] == round(-4 * 4.5)
+
+    def test_balanced_intercept_bits(self):
+        d = generate(
+            input_type="bits",
+            rule="weighted_sum",
+            k=8,
+            N=2,
+            seed=1,
+            design="memorization",
+            rule_kwargs={"weights": [1] * 8, "intercept": "balanced"},
+        )
+        assert d["metadata"]["intercept"] == round(-8 * 0.5)  # = -4
+
+    def test_format_width_handles_all_zero_weights_zero_intercept(self):
+        d = generate(
+            input_type="digits",
+            rule="weighted_sum",
+            k=4,
+            N=2,
+            seed=1,
+            design="memorization",
+            rule_kwargs={
+                "weight_max": 1,
+                "sparsity": 1.0,
+                "intercept": 0,
+                "weight_seed": 11,
+            },
+        )
+        assert d["metadata"]["format_width"] == 1
+        # Output is 0 with width 1: "+ 0".
+        assert d["train"][0]["output"] == "+ 0"
+
+    def test_k_one_edge_case(self):
+        d = generate(
+            input_type="digits",
+            rule="weighted_sum",
+            k=1,
+            N=10,
+            seed=1,
+            design="memorization",
+            rule_kwargs={"weights": [2], "intercept": -3},
+        )
+        # Max |output| = 2*9 + 3 = 21 → width 2
+        assert d["metadata"]["format_width"] == 2
+        for row in d["train"]:
+            x = int(row["input"])
+            assert row["output"] == _format_signed_spaced_str(2 * x - 3, 2)
+
+    def test_letters_rejected(self):
+        with pytest.raises(ValueError, match="not applicable"):
+            generate(
+                input_type="letters",
+                rule="weighted_sum",
+                k=3,
+                N=4,
+                seed=1,
+                design="memorization",
+                rule_kwargs={"weights": [1, 1, 1]},
+            )
+
+    def test_weights_length_mismatch_rejected(self):
+        with pytest.raises(ValueError, match="weights has length"):
+            generate(
+                input_type="digits",
+                rule="weighted_sum",
+                k=3,
+                N=4,
+                seed=1,
+                design="memorization",
+                rule_kwargs={"weights": [1, 2]},
+            )
+
+    def test_invalid_intercept_rejected(self):
+        with pytest.raises(ValueError, match="intercept must be"):
+            generate(
+                input_type="digits",
+                rule="weighted_sum",
+                k=2,
+                N=4,
+                seed=1,
+                design="memorization",
+                rule_kwargs={"weights": [1, 1], "intercept": 1.5},
+            )
+
+
+def _format_signed_spaced_str(value: int, width: int) -> str:
+    """Local helper mirroring the rule's output format for assertions."""
+    return " ".join(f"{value:+0{width + 1}d}")
+
+
+# =============================================================================
+# weighted_sum_binary (linear classification DGP)
+# =============================================================================
+
+
+class TestWeightedSumBinary:
+    def test_deterministic_threshold_z_gt_zero(self):
+        # z > 0 → "1", z <= 0 → "0".
+        d = generate(
+            input_type="bits",
+            rule="weighted_sum_binary",
+            k=4,
+            N=16,  # exhaust 2**4 space
+            seed=1,
+            design="memorization",
+            rule_kwargs={"weights": [1, 1, 1, 1], "intercept": -2},
+        )
+        assert d["metadata"]["noise_scale"] == 0.0
+        assert "bayes_accuracy" not in d["metadata"]
+        for row in d["train"]:
+            n_ones = sum(int(t) for t in row["input"].split())
+            z = n_ones - 2
+            assert row["output"] == ("1" if z > 0 else "0")
+
+    def test_stochastic_sample_deterministic_per_seed_and_sequence(self):
+        kwargs = dict(
+            input_type="bits",
+            rule="weighted_sum_binary",
+            k=4,
+            N=16,
+            seed=1,
+            design="memorization",
+            rule_kwargs={
+                "weights": [1, 1, 1, 1],
+                "intercept": -2,
+                "noise_scale": 1.0,
+                "weight_seed": 17,
+            },
+        )
+        a = generate(**kwargs)
+        b = generate(**kwargs)
+        assert [r["output"] for r in a["train"]] == [r["output"] for r in b["train"]]
+
+    def test_stochastic_changes_when_weight_seed_changes(self):
+        base = dict(
+            input_type="bits",
+            rule="weighted_sum_binary",
+            k=6,
+            N=64,
+            seed=1,
+            design="memorization",
+            rule_kwargs={
+                "weights": [1] * 6,
+                "intercept": -3,
+                "noise_scale": 1.0,
+            },
+        )
+        a = generate(
+            **{**base, "rule_kwargs": {**base["rule_kwargs"], "weight_seed": 1}}
+        )
+        b = generate(
+            **{**base, "rule_kwargs": {**base["rule_kwargs"], "weight_seed": 2}}
+        )
+        a_outs = [r["output"] for r in a["train"]]
+        b_outs = [r["output"] for r in b["train"]]
+        # At least one disagreement is overwhelmingly likely with σ-noise=1.0.
+        assert a_outs != b_outs
+
+    def test_balanced_intercept_produces_balanced_classes(self):
+        # Deterministic threshold + balanced intercept on bits → ~50/50.
+        # With weights=[1]*8 (sum=8) and balanced intercept (-4), z>0
+        # iff #ones > 4, which is 93/256 ≈ 36% (asymmetric because z=0
+        # rounds to "0"). A noisier setting gives a closer-to-50 split:
+        # with sigmoid noise, classes are exactly E[#ones>4]+0.5*E[#ones=4]
+        # = 0.5 by construction.
+        d = generate(
+            input_type="bits",
+            rule="weighted_sum_binary",
+            k=8,
+            N=256,  # all 2**8 sequences
+            seed=1,
+            design="memorization",
+            rule_kwargs={
+                "weights": [1] * 8,
+                "intercept": "balanced",
+                "noise_scale": 1.0,
+                "weight_seed": 0,
+            },
+        )
+        ones = sum(1 for r in d["train"] if r["output"] == "1")
+        # σ-Bernoulli sample around z=0 mean → expect ~50/50 within
+        # binomial tolerance over 256 draws (3σ ≈ 24).
+        assert 100 <= ones <= 156
+
+    def test_bayes_accuracy_present_only_when_stochastic(self):
+        d_det = generate(
+            input_type="bits",
+            rule="weighted_sum_binary",
+            k=4,
+            N=4,
+            seed=1,
+            design="memorization",
+            rule_kwargs={"weights": [1, 1, 1, 1], "intercept": -2},
+        )
+        assert "bayes_accuracy" not in d_det["metadata"]
+
+        d_stoch = generate(
+            input_type="bits",
+            rule="weighted_sum_binary",
+            k=4,
+            N=4,
+            seed=1,
+            design="memorization",
+            rule_kwargs={
+                "weights": [1, 1, 1, 1],
+                "intercept": -2,
+                "noise_scale": 1.0,
+            },
+        )
+        assert "bayes_accuracy" in d_stoch["metadata"]
+        assert 0.5 <= d_stoch["metadata"]["bayes_accuracy"] <= 1.0
+
+    def test_bayes_accuracy_matches_empirical_optimal(self):
+        # Enumerate all 2**8 = 256 bit sequences, generate stochastic
+        # labels, then compute the empirical accuracy of the
+        # Bayes-optimal classifier (predict argmax_y p(y|x)). Should
+        # match the recorded bayes_accuracy within statistical tolerance.
+        from itertools import product
+
+        d = generate(
+            input_type="bits",
+            rule="weighted_sum_binary",
+            k=8,
+            N=256,
+            seed=42,
+            design="memorization",
+            rule_kwargs={
+                "weights": [1, -1, 2, 1, -2, 1, 1, -1],
+                "intercept": 0,
+                "noise_scale": 1.5,
+                "weight_seed": 7,
+            },
+        )
+        recorded = d["metadata"]["bayes_accuracy"]
+
+        # Bayes-optimal classifier: predict 1 iff z > 0 (i.e. p > 0.5).
+        weights = d["metadata"]["resolved_weights"]
+        intercept = d["metadata"]["intercept"]
+        labels = {r["input"]: r["output"] for r in d["train"]}
+        correct = 0
+        for seq in product(("0", "1"), repeat=8):
+            inp = " ".join(seq)
+            z = sum(w * int(x) for w, x in zip(weights, seq)) + intercept
+            pred = "1" if z > 0 else "0"
+            if labels[inp] == pred:
+                correct += 1
+        empirical = correct / 256
+        # One stochastic draw per sequence → variance of empirical
+        # accuracy is bounded by p(1-p) ≤ 0.25; 256 draws → 3σ ≤ 0.10.
+        assert abs(empirical - recorded) < 0.10
+
+    def test_letters_rejected(self):
+        with pytest.raises(ValueError, match="not applicable"):
+            generate(
+                input_type="letters",
+                rule="weighted_sum_binary",
+                k=3,
+                N=4,
+                seed=1,
+                design="memorization",
+                rule_kwargs={"weights": [1, 1, 1]},
+            )
+
+    def test_negative_noise_scale_rejected(self):
+        with pytest.raises(ValueError, match="noise_scale"):
+            generate(
+                input_type="bits",
+                rule="weighted_sum_binary",
+                k=2,
+                N=4,
+                seed=1,
+                design="memorization",
+                rule_kwargs={
+                    "weights": [1, 1],
+                    "intercept": 0,
+                    "noise_scale": -0.5,
+                },
+            )
+
+    def test_invalid_sparsity_rejected(self):
+        with pytest.raises(ValueError, match="sparsity"):
+            generate(
+                input_type="bits",
+                rule="weighted_sum_binary",
+                k=2,
+                N=4,
+                seed=1,
+                design="memorization",
+                rule_kwargs={"weight_max": 2, "sparsity": 1.5},
+            )
+
+    def test_invalid_weight_max_rejected(self):
+        with pytest.raises(ValueError, match="weight_max"):
+            generate(
+                input_type="bits",
+                rule="weighted_sum_binary",
+                k=2,
+                N=4,
+                seed=1,
+                design="memorization",
+                rule_kwargs={"weight_max": 0},
+            )
+
+    def test_ood_design_rejected_for_weighted_sum_binary(self):
+        with pytest.raises(ValueError, match="does not support design='ood'"):
+            generate(
+                input_type="bits",
+                rule="weighted_sum_binary",
+                k=6,
+                N=64,
+                seed=1,
+                design="ood",
+                split=0.75,
+                rule_kwargs={"weight_max": 2, "intercept": 0},
+                ood_tests=[{"k": 6, "N": 32}],
+            )
+
+    def test_ood_design_rejected_for_weighted_sum(self):
+        # Same rejection applies to the non-binary rule. Tested here (not
+        # under TestWeightedSum) to keep all OOD-rejection coverage
+        # together; the runtime check is generic to any rule with
+        # supports_ood=False.
+        with pytest.raises(ValueError, match="does not support design='ood'"):
+            generate(
+                input_type="digits",
+                rule="weighted_sum",
+                k=4,
+                N=20,
+                seed=1,
+                design="ood",
+                split=0.8,
+                rule_kwargs={"weights": [1, 2, -1, 1]},
+                ood_tests=[{"k": 4, "N": 5}],
             )
