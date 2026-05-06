@@ -94,6 +94,7 @@ These are *example* parameters that the user might vary. There may be other para
    - `controls.gradient_accumulation_steps` - Gradient accumulation
    - `controls.weight_decay` - Optimizer weight decay
    - `controls.lora_dropout` - LoRA dropout
+   - `controls.cpus_per_task` - SLURM cores per task (`#SBATCH --cpus-per-task`). Overrides the `MODEL_CONFIGS[model]["slurm"]["cpus"]` default when set; otherwise the model-specific default is used. Note: data loading is single-process inside the torchtune recipe, so allocating more cores does not by itself parallelize batch prep — see issue #449.
 
 4. **Resources:**
    - `models.base[0].name` - Model identifier
@@ -234,6 +235,7 @@ seed: {from run.parameters.seed, if present}
 gradient_accumulation_steps: {from controls.gradient_accumulation_steps, if present}
 weight_decay: {from controls.weight_decay, if present}
 lora_dropout: {from controls.lora_dropout, if present}
+cpus_per_task: {from controls.cpus_per_task, if present}  # SLURM-only; overrides MODEL_CONFIGS default
 
 # Training configuration (common across runs)
 epochs: {from controls.epochs}

@@ -15,7 +15,16 @@ from cruijff_kit.tools.torchtune.model_configs import MODEL_CONFIGS, configure_t
 script_dir = Path(__file__).parent
 
 # Skip these when writing the yaml file
-SLURM_ONLY = ["time", "gpus", "conda_env", "account", "partition", "constraint", "mem"]
+SLURM_ONLY = [
+    "time",
+    "gpus",
+    "conda_env",
+    "account",
+    "partition",
+    "constraint",
+    "mem",
+    "cpus_per_task",
+]
 # Meta-arguments that are not torchtune config parameters
 META_ARGS = ["training_samples"]
 
@@ -584,6 +593,18 @@ def create_parser():
         "--mem", type=str, help="Slurm memory allocation (e.g., '40G', '16G')"
     )
     parser.add_argument("--constraint", type=str, help="Slurm constraint to use")
+    parser.add_argument(
+        "--cpus_per_task",
+        type=int,
+        default=None,
+        help=(
+            "Cores requested per SLURM task (#SBATCH --cpus-per-task). "
+            "Overrides MODEL_CONFIGS[model]['slurm']['cpus'] when set. "
+            "Note: increasing this allocates cores but does not parallelize the "
+            "data loader — the DataLoader's num_workers is set inside the "
+            "torchtune recipe and is currently 0, so the extra cores stay idle."
+        ),
+    )
 
     # ------ Training Step Guard -----
     parser.add_argument(
@@ -933,8 +954,11 @@ def main():
     model_gpus = slurm_config.get("gpus", 1)
     gpus = args.gpus if args.gpus != 1 else model_gpus
 
-    # CPUs: use model config value
-    cpus = slurm_config.get("cpus", 4)
+    # CPUs: CLI override > MODEL_CONFIGS > template default (1)
+    if args.cpus_per_task is not None:
+        cpus = args.cpus_per_task
+    else:
+        cpus = slurm_config.get("cpus", 4)
 
     # Multi-GPU setup: update SLURM and use distributed training
     if gpus > 1:

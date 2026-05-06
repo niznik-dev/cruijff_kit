@@ -224,6 +224,48 @@ class TestMainSlurmGeneration:
         assert "--gres=gpu:4" in slurm
 
 
+class TestCpusPerTask:
+    """Tests for the --cpus_per_task override (issue #449).
+
+    Resolution order: CLI > MODEL_CONFIGS[model]["slurm"]["cpus"] > template default.
+    The fixture's model is Llama-3.2-1B-Instruct, which has cpus=1 in MODEL_CONFIGS.
+    """
+
+    def test_cli_override_writes_to_slurm(self, run_main):
+        _, slurm = run_main(extra_args=["--cpus_per_task", "8"])
+        assert "#SBATCH --cpus-per-task=8" in slurm
+
+    def test_yaml_value_writes_to_slurm(self, run_main, setup_yaml):
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["cpus_per_task"] = 16
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        _, slurm = run_main()
+        assert "#SBATCH --cpus-per-task=16" in slurm
+
+    def test_default_falls_back_to_model_config(self, run_main):
+        # Llama-3.2-1B-Instruct has cpus=1 in MODEL_CONFIGS, so absent any
+        # override the rendered slurm script keeps that value.
+        _, slurm = run_main()
+        assert "#SBATCH --cpus-per-task=1" in slurm
+
+    def test_cli_overrides_yaml(self, run_main, setup_yaml):
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["cpus_per_task"] = 4
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        _, slurm = run_main(extra_args=["--cpus_per_task", "12"])
+        assert "#SBATCH --cpus-per-task=12" in slurm
+
+    def test_cpus_per_task_not_in_finetune_yaml(self, run_main):
+        # cpus_per_task is a SLURM-only knob; it should never appear as a
+        # top-level key in the rendered finetune.yaml.
+        config, _ = run_main(extra_args=["--cpus_per_task", "8"])
+        assert "cpus_per_task" not in config
+
+
 class TestMainConfigPrecedence:
     """Tests for CLI > config_file > argparse_default precedence."""
 
