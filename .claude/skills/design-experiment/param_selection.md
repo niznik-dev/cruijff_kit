@@ -240,7 +240,7 @@ Estimate SLURM time limits, GPU counts, and memory allocations using `src/tools/
 #### 1. Discovery
 
 Search for `compute_metrics.json` files from past experiments:
-- `{scratch_dir}/ck-experiments/*/analysis/compute_metrics.json`
+- `{scratch_dir}/ck-projects/*/analysis/compute_metrics.json`
 - `{scratch_dir}/ck-sanity-checks/*/analysis/compute_metrics.json`
 
 **Note:** `compute_metrics.json` lives in `{experiment_dir}/analysis/`, NOT in the output directory.
@@ -262,7 +262,7 @@ Use the `estimate_from_prior()` function from `src/tools/slurm/estimate_compute.
 
 ```python
 import json, sys
-sys.path.insert(0, "{cruijff_kit_dir}/tools/slurm")
+sys.path.insert(0, "{cruijff_kit_dir}/src/tools/slurm")
 from compute_summary import load_summary
 from estimate_compute import estimate_from_prior
 

@@ -313,7 +313,7 @@ For each run directory:
 
    **With compute estimates** (when `runs[].compute` block exists):
    ```bash
-   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train} --time {compute.time} --gpus {compute.gpus} --mem {compute.mem}"
+   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train} --time {compute.time} --gpus {compute.gpus} --mem {compute.mem}"
    ```
 
    **Example (without compute estimates):**
@@ -323,7 +323,7 @@ For each run directory:
 
    **Example (with compute estimates):**
    ```bash
-   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/tools/torchtune/setup_finetune.py --training_samples 800 --time 0:15:00 --gpus 1 --mem 80G"
+   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/src/tools/torchtune/setup_finetune.py --training_samples 800 --time 0:15:00 --gpus 1 --mem 80G"
    ```
 
 3. **Why this approach:**

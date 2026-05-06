@@ -401,7 +401,7 @@ After generating visualizations and before the report, optionally add compute me
 5. Format with `format_compute_table(jobs, recommendations=recs)` → markdown table with optional recommendations
 6. Build and save compute_metrics.json using `compute_summary.py`:
    ```python
-   from tools.slurm.compute_summary import build_summary, save_summary
+   from cruijff_kit.tools.slurm.compute_summary import build_summary, save_summary
 
    summary = build_summary(
        jobs=jobs,  # list of job metric dicts from steps 3-4
