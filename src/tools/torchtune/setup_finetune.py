@@ -599,10 +599,16 @@ def create_parser():
         default=None,
         help=(
             "Cores requested per SLURM task (#SBATCH --cpus-per-task). "
-            "Overrides MODEL_CONFIGS[model]['slurm']['cpus'] when set. "
-            "Note: increasing this allocates cores but does not parallelize the "
-            "data loader — the DataLoader's num_workers is set inside the "
-            "torchtune recipe and is currently 0, so the extra cores stay idle."
+            "Overrides MODEL_CONFIGS[model]['slurm']['cpus']. "
+            "Intended as a measurement tool for exploring the "
+            "cluster-citizenship vs. GPU-utilization trade-off: more cores "
+            "can give a small GPU-util bump via tokenizer threading and "
+            "OpenMP even at num_workers=0, but the bigger lever (true "
+            "parallel data loading) is recipe-level and blocked by the "
+            "wrapper-only design principle (see #465). If a higher value "
+            "helps consistently for a given model, the principled follow-up "
+            "is a MODEL_CONFIGS default update with measured evidence, not "
+            "permanent reliance on this override."
         ),
     )
 

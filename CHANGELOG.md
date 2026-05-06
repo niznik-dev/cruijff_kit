@@ -7,7 +7,7 @@ All notable changes to cruijff_kit will be documented in this file.
 ### Added
 
 - `create-quiz` skill — turn one or two completed experiments into a self-contained, self-grading HTML quiz that tests a recipient's intuition about the results. (#453)
-- `--cpus_per_task` knob in `setup_finetune.py` (also readable from `setup_finetune.yaml` and `controls.cpus_per_task` in `experiment_summary.yaml`). Overrides `MODEL_CONFIGS[model]["slurm"]["cpus"]` for the generated `#SBATCH --cpus-per-task=`. Note: data loader parallelism (`num_workers`) is inside the torchtune recipe and not exposed under the wrapper-only design principle, so allocating more cores does not by itself parallelize batch prep. (#449)
+- `--cpus_per_task` knob in `setup_finetune.py` (also readable from `setup_finetune.yaml` and `controls.cpus_per_task` in `experiment_summary.yaml`). Overrides `MODEL_CONFIGS[model]["slurm"]["cpus"]` for the generated `#SBATCH --cpus-per-task=`. **Intended as a measurement tool** for exploring the cluster-citizenship vs. GPU-utilization trade-off — allocating more cores can give a small GPU-util bump via tokenizer threading and OpenMP even at `num_workers=0`, but does *not* parallelize data loading itself (that's recipe-level, blocked by the wrapper-only design principle; see #465). If a higher value helps consistently for a given model, the principled follow-up is a `MODEL_CONFIGS` default update with measured evidence, not permanent reliance on the override. (#449)
 
 ### Changed
 

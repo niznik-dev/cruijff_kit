@@ -94,7 +94,7 @@ These are *example* parameters that the user might vary. There may be other para
    - `controls.gradient_accumulation_steps` - Gradient accumulation
    - `controls.weight_decay` - Optimizer weight decay
    - `controls.lora_dropout` - LoRA dropout
-   - `controls.cpus_per_task` - SLURM cores per task (`#SBATCH --cpus-per-task`). Overrides the `MODEL_CONFIGS[model]["slurm"]["cpus"]` default when set; otherwise the model-specific default is used. Note: data loading is single-process inside the torchtune recipe, so allocating more cores does not by itself parallelize batch prep — see issue #449.
+   - `controls.cpus_per_task` - SLURM cores per task (`#SBATCH --cpus-per-task`). Overrides the `MODEL_CONFIGS[model]["slurm"]["cpus"]` default; otherwise the model-specific default applies. **Use sparingly** — primarily a measurement tool for the cluster-citizenship vs. GPU-utilization trade-off. More cores can give a small GPU-util bump via tokenizer threading and OpenMP even with `num_workers=0`, but the bigger lever (true parallel data loading) is recipe-level and blocked by the wrapper-only design principle (see #449, #465). If a value helps consistently for a model, the principled follow-up is a `MODEL_CONFIGS` update, not permanent reliance on this override.
 
 4. **Resources:**
    - `models.base[0].name` - Model identifier
