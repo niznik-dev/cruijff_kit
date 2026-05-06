@@ -600,15 +600,18 @@ def create_parser():
         help=(
             "Cores requested per SLURM task (#SBATCH --cpus-per-task). "
             "Overrides MODEL_CONFIGS[model]['slurm']['cpus']. "
-            "Intended as a measurement tool for exploring the "
-            "cluster-citizenship vs. GPU-utilization trade-off: more cores "
-            "can give a small GPU-util bump via tokenizer threading and "
-            "OpenMP even at num_workers=0, but the bigger lever (true "
-            "parallel data loading) is recipe-level and blocked by the "
-            "wrapper-only design principle (see #465). If a higher value "
-            "helps consistently for a given model, the principled follow-up "
-            "is a MODEL_CONFIGS default update with measured evidence, not "
-            "permanent reliance on this override."
+            "When to use: workloads with long sequences (near max_seq_len) "
+            "or heavy preprocessing (rich chat templates, large per-sample "
+            "transforms) — CPU work per batch scales with these, so extra "
+            "cores can produce a small GPU-util bump via tokenizer "
+            "threading and OpenMP even at num_workers=0. Short-text "
+            "experiments are GPU-dominated and won't benefit; leave this "
+            "unset. The bigger lever (true parallel data loading via "
+            "num_workers > 0) is recipe-level and blocked by the "
+            "wrapper-only design principle (see #465). If a value helps "
+            "consistently across the workloads a given model is used for, "
+            "the principled follow-up is a MODEL_CONFIGS default update "
+            "with measured evidence, not permanent reliance on this override."
         ),
     )
 
