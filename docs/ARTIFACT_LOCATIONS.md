@@ -58,6 +58,7 @@ Each experiment lives in a single self-contained directory. The root contains th
 │           └── ...
 └── analysis/                    # Cross-run visualizations and reports
     ├── report.md                # Markdown report with metrics
+    ├── compute_metrics.json     # Raw compute metrics (JSON, see analyze-experiment/generation.md for schema)
     ├── *.html                   # Interactive HTML plots
     └── *.png                    # Static plot exports
 ```
