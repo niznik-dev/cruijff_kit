@@ -11,6 +11,7 @@ All notable changes to cruijff_kit will be documented in this file.
 ### Changed
 
 - `python-markdown` added as a runtime dependency (used by the quiz renderer for intro / prompt / explanation / write-up markdown).
+- **Breaking:** `model_organism` inspect task replaces the bundled `calibration` flag with two primitives: `logprobs: bool | None` (capability switch) and `top_logprobs: int` (previously hardcoded at 20). Logprobs auto-enable when a configured scorer declares `requires_logprobs = True` (currently only `risk_scorer`). Existing experiment configs using `-T calibration=true` must migrate to placing `risk_scorer` in the YAML `scorer:` list (calibration workflow) or `-T logprobs=true` (raw logprobs only). (#461)
 
 ## [0.2.2] - 2026-04-23
 

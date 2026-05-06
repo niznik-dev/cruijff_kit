@@ -39,12 +39,24 @@ def tiny_dataset(tmp_path):
     return str(path)
 
 
+def _write_config(tmp_path, *, scorers=None):
+    """Write a minimal eval_config.yaml. ``scorers`` is a list of name strings."""
+    config_path = tmp_path / "eval_config.yaml"
+    lines = ["prompt: '{input}'", "system_prompt: ''"]
+    if scorers is not None:
+        lines.append("scorer:")
+        for name in scorers:
+            lines.append(f"  - name: {name}")
+    config_path.write_text("\n".join(lines) + "\n")
+    return str(config_path)
+
+
 class TestDefaults:
     def test_returns_task(self, tiny_dataset):
         t = model_organism(data_path=tiny_dataset)
         assert t.name == "model_organism"
 
-    def test_no_calibration_no_logprobs(self, tiny_dataset):
+    def test_default_no_logprobs(self, tiny_dataset):
         t = model_organism(data_path=tiny_dataset)
         assert t.config.logprobs is None
         assert t.config.top_logprobs is None
@@ -55,37 +67,86 @@ class TestDefaults:
         assert names == ["inspect_ai/match", "inspect_ai/includes"]
 
 
-class TestCalibration:
-    def test_calibration_enables_logprobs(self, tiny_dataset):
-        t = model_organism(data_path=tiny_dataset, calibration=True)
+class TestLogprobs:
+    def test_explicit_true_enables_logprobs(self, tiny_dataset):
+        t = model_organism(data_path=tiny_dataset, logprobs=True)
         assert t.config.logprobs is True
         assert t.config.top_logprobs == 20
 
-    def test_calibration_appends_risk_scorer(self, tiny_dataset):
-        t = model_organism(data_path=tiny_dataset, calibration=True)
-        names = _scorer_names(t.scorer)
-        assert "risk_scorer" in names
-        assert "inspect_ai/match" in names
-        assert "inspect_ai/includes" in names
+    def test_top_logprobs_is_configurable(self, tiny_dataset):
+        t = model_organism(data_path=tiny_dataset, logprobs=True, top_logprobs=50)
+        assert t.config.logprobs is True
+        assert t.config.top_logprobs == 50
 
-    def test_calibration_does_not_duplicate_risk_scorer(self, tiny_dataset, tmp_path):
-        config_path = tmp_path / "eval_config.yaml"
-        config_path.write_text(
-            "prompt: '{input}'\n"
-            "system_prompt: ''\n"
-            "scorer:\n"
-            "  - name: match\n"
-            "    params:\n"
-            "      location: exact\n"
-            "  - name: risk_scorer\n"
-        )
-        t = model_organism(
-            data_path=tiny_dataset,
-            config_path=str(config_path),
-            calibration=True,
-        )
+    def test_top_logprobs_ignored_when_disabled(self, tiny_dataset):
+        t = model_organism(data_path=tiny_dataset, logprobs=False, top_logprobs=50)
+        assert t.config.logprobs is None
+        assert t.config.top_logprobs is None
+
+
+class TestScorerDrivenLogprobs:
+    def test_risk_scorer_auto_enables_logprobs(self, tiny_dataset, tmp_path):
+        config_path = _write_config(tmp_path, scorers=["risk_scorer"])
+        t = model_organism(data_path=tiny_dataset, config_path=config_path)
+        assert t.config.logprobs is True
+        assert t.config.top_logprobs == 20
+
+    def test_risk_scorer_present_no_duplicate(self, tiny_dataset, tmp_path):
+        config_path = _write_config(tmp_path, scorers=["match", "risk_scorer"])
+        t = model_organism(data_path=tiny_dataset, config_path=config_path)
         names = _scorer_names(t.scorer)
         assert names.count("risk_scorer") == 1
+
+    def test_match_only_does_not_enable_logprobs(self, tiny_dataset, tmp_path):
+        config_path = _write_config(tmp_path, scorers=["match"])
+        t = model_organism(data_path=tiny_dataset, config_path=config_path)
+        assert t.config.logprobs is None
+
+    def test_numeric_risk_scorer_does_not_enable_logprobs(self, tiny_dataset, tmp_path):
+        # numeric_risk_scorer parses a float from text completion — no logprobs
+        # needed. A name-based heuristic would over-include it; an attribute
+        # check correctly leaves it alone.
+        config_path = _write_config(tmp_path, scorers=["numeric_risk_scorer"])
+        t = model_organism(data_path=tiny_dataset, config_path=config_path)
+        assert t.config.logprobs is None
+
+
+class TestConflictSemantics:
+    def test_explicit_false_with_risk_scorer_raises(self, tiny_dataset, tmp_path):
+        config_path = _write_config(tmp_path, scorers=["risk_scorer"])
+        with pytest.raises(ValueError, match="risk_scorer.*logprobs=False"):
+            model_organism(
+                data_path=tiny_dataset,
+                config_path=config_path,
+                logprobs=False,
+            )
+
+    def test_explicit_true_with_risk_scorer_works(self, tiny_dataset, tmp_path):
+        config_path = _write_config(tmp_path, scorers=["risk_scorer"])
+        t = model_organism(
+            data_path=tiny_dataset,
+            config_path=config_path,
+            logprobs=True,
+        )
+        assert t.config.logprobs is True
+
+    def test_explicit_false_with_match_only_disables_logprobs(
+        self, tiny_dataset, tmp_path
+    ):
+        config_path = _write_config(tmp_path, scorers=["match"])
+        t = model_organism(
+            data_path=tiny_dataset,
+            config_path=config_path,
+            logprobs=False,
+        )
+        assert t.config.logprobs is None
+
+
+class TestRemovedCalibrationFlag:
+    def test_calibration_kwarg_rejected(self, tiny_dataset):
+        # The old `calibration` flag was removed; passing it must fail loud.
+        with pytest.raises(TypeError):
+            model_organism(data_path=tiny_dataset, calibration=True)
 
 
 class TestVisLabel:

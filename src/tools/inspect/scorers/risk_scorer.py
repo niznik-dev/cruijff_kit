@@ -46,7 +46,7 @@ def mean_risk_score() -> Metric:
 def risk_scorer(option_tokens: list[str] = ("0", "1")):
     """
     Scorer that extracts risk scores from logprobs of the first generated token.
-    - Requires GenerateConfig(logprobs=True, top_logprobs=20) on the Task.
+    - Requires GenerateConfig(logprobs=True, top_logprobs>=2) on the Task.
     - Supports any number of option tokens (binary or multiclass).
     - For binary tasks, returns a risk_score = P(last/positive option token).
     - For all tasks, returns normalized probabilities over all option tokens.
@@ -129,3 +129,10 @@ def risk_scorer(option_tokens: list[str] = ("0", "1")):
         )
 
     return score
+
+
+# Capability marker: the unified `model_organism` task auto-enables logprobs
+# capture when a configured scorer declares this attribute. Set on the factory
+# (not the inner score function) so the task can introspect by name lookup
+# without instantiating the scorer first. See src/tools/model_organisms/inspect_task.py.
+risk_scorer.requires_logprobs = True
