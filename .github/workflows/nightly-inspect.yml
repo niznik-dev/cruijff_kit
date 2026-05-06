@@ -5,13 +5,16 @@ on:
   schedule:
     - cron: '30 7 * * *'  # 2:30 AM EST / 3:30 AM EDT
 
+permissions:
+  contents: read
+
 jobs:
   inspect-smoke:
     runs-on: [self-hosted, della-cruijff-gpu]
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Select GPU
         run: |

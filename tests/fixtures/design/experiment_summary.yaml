@@ -6,11 +6,12 @@
 
 experiment:
   name: "workflow_test_2026-03-16"
+  project: "capitalization"
   question: "Verify that the complete workflow executes correctly for a minimal fine-tuning experiment with two LoRA ranks."
   date: "2026-03-16"
   hypothesis: "Both LoRA ranks produce functional fine-tuned models."
   purpose: "Integration test to validate skills are working after architecture changes."
-  directory: "__SCRATCH__/ck-experiments/workflow_test_2026-03-16"
+  directory: "__SCRATCH__/ck-projects/capitalization/workflow_test_2026-03-16"
 
 tools:
   preparation: "torchtune"
@@ -34,18 +35,18 @@ models:
 
 data:
   training:
-    path: "__REPO__/data/green/capitalization/words_5L_80P_1000.json"
-    label: "words_5L_80P_1000"
+    path: "__REPO__/tests/fixtures/data/words_5L_80P_10.json"
+    label: "words_5L_80P_10"
     format: "json"
-    size_kb: 120
+    size_kb: 1
     splits:
-      train: 800
-      validation: 100
-      test: 100
+      train: 8
+      validation: 1
+      test: 1
 
 output:
-  base_directory: "__SCRATCH__/ck-outputs/workflow_test_2026-03-16"
-  checkpoint_pattern: "ck-out-{run_name}/epoch_{N}"
+  base_directory: "__SCRATCH__/ck-projects/capitalization/workflow_test_2026-03-16"
+  checkpoint_pattern: "{run_name}/artifacts/epoch_{N}"
   wandb_project: "cruijff_kit_tests"
 
 runs:
@@ -69,7 +70,7 @@ evaluation:
 
   tasks:
     - name: "capitalization"
-      script: "__REPO__/experiments/capitalization/inspect_task_capitalization.py"
+      script: "__REPO__/blueprints/capitalization/inspect_task.py"
       dataset: "same"
       description: "Tests word capitalization accuracy"
 

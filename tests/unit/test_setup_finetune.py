@@ -14,6 +14,9 @@ from cruijff_kit.tools.torchtune.setup_finetune import (
     extract_flat_params,
     compute_training_steps,
     warn_on_low_steps,
+    warn_on_excessive_checkpoints,
+    _estimate_checkpoint_size_gb,
+    _suggest_checkpoint_subset,
     RECIPE_PARAM_MAPPING,
 )
 
@@ -204,7 +207,7 @@ def test_construct_output_dir_with_experiment_and_trailing_slash():
         experiment_name="my_experiment",
         model_run_name="run_123",
     )
-    assert result == "/scratch/output/my_experiment/ck-out-run_123/"
+    assert result == "/scratch/output/my_experiment/run_123/artifacts/"
 
 
 def test_construct_output_dir_with_experiment_no_trailing_slash():
@@ -214,71 +217,30 @@ def test_construct_output_dir_with_experiment_no_trailing_slash():
         experiment_name="my_experiment",
         model_run_name="run_123",
     )
-    assert result == "/scratch/output/my_experiment/ck-out-run_123/"
+    assert result == "/scratch/output/my_experiment/run_123/artifacts/"
 
 
-def test_construct_output_dir_without_experiment_trailing_slash():
-    """Test output dir construction without experiment name, with trailing slash."""
-    result = construct_output_dir(
-        output_dir_base="/scratch/output/", experiment_name="", model_run_name="run_123"
-    )
-    assert result == "/scratch/output/ck-out-run_123/"
+def test_construct_output_dir_empty_experiment_name_raises():
+    """Empty experiment_name must raise ValueError (legacy fallback retired)."""
+    with pytest.raises(ValueError, match="experiment_name is required"):
+        construct_output_dir(
+            output_dir_base="/scratch/output/",
+            experiment_name="",
+            model_run_name="run_123",
+        )
 
 
-def test_construct_output_dir_without_experiment_no_trailing_slash():
-    """Test output dir construction without experiment name, no trailing slash."""
-    result = construct_output_dir(
-        output_dir_base="/scratch/output", experiment_name="", model_run_name="run_123"
-    )
-    assert result == "/scratch/output/ck-out-run_123/"
-
-
-def test_construct_output_dir_experiment_name_none():
-    """Test output dir construction when experiment_name is None."""
-    result = construct_output_dir(
-        output_dir_base="/scratch/output/",
-        experiment_name=None,
-        model_run_name="run_123",
-    )
-    assert result == "/scratch/output/ck-out-run_123/"
+def test_construct_output_dir_none_experiment_name_raises():
+    """None experiment_name must raise ValueError (legacy fallback retired)."""
+    with pytest.raises(ValueError, match="experiment_name is required"):
+        construct_output_dir(
+            output_dir_base="/scratch/output/",
+            experiment_name=None,
+            model_run_name="run_123",
+        )
 
 
 # Tests for configure_dataset_for_format()
-
-
-def test_configure_dataset_parquet_with_validation():
-    """Test parquet format configuration with validation dataset."""
-    config = {
-        "dataset": {"data_dir": "/data/my_dataset"},
-        "dataset_val": {"data_dir": "/data/my_dataset"},
-    }
-
-    result = configure_dataset_for_format(
-        config,
-        dataset_label="my_dataset",
-        dataset_ext=".parquet",
-        dataset_type="instruct_dataset",  # type doesn't matter for parquet
-    )
-
-    assert result["dataset_label"] == "my_dataset"
-    assert result["dataset"]["data_dir"] == "/data/my_dataset/train.parquet"
-    assert result["dataset_val"]["data_dir"] == "/data/my_dataset/validation.parquet"
-
-
-def test_configure_dataset_parquet_without_validation():
-    """Test parquet format configuration without validation dataset."""
-    config = {"dataset": {"data_dir": "/data/my_dataset"}}
-
-    result = configure_dataset_for_format(
-        config,
-        dataset_label="my_dataset",
-        dataset_ext=".parquet",
-        dataset_type="instruct_dataset",
-    )
-
-    assert result["dataset_label"] == "my_dataset"
-    assert result["dataset"]["data_dir"] == "/data/my_dataset/train.parquet"
-    assert "dataset_val" not in result
 
 
 def test_configure_dataset_json_instruct_with_validation():
@@ -729,3 +691,108 @@ def test_warn_on_low_steps_below_50_but_above_3x_warmup():
         warnings.simplefilter("always")
         warn_on_low_steps(step_info, num_warmup_steps=5)
         assert len(w) == 0
+
+
+# Tests for _estimate_checkpoint_size_gb()
+
+
+def test_estimate_checkpoint_size_gb_llama_1b():
+    """1B model should yield ~2.5 GB."""
+    assert _estimate_checkpoint_size_gb("Llama-3.2-1B-Instruct") == 2.5
+
+
+def test_estimate_checkpoint_size_gb_llama_8b():
+    """8B model should yield ~20 GB."""
+    assert _estimate_checkpoint_size_gb("Llama-3.1-8B-Instruct") == 20.0
+
+
+def test_estimate_checkpoint_size_gb_unknown_returns_none():
+    """Model name with no NB pattern should return None."""
+    assert _estimate_checkpoint_size_gb("some-unrecognized-model") is None
+
+
+def test_estimate_checkpoint_size_gb_none_input():
+    """None model name should return None."""
+    assert _estimate_checkpoint_size_gb(None) is None
+
+
+# Tests for _suggest_checkpoint_subset()
+
+
+def test_suggest_checkpoint_subset_100_epochs():
+    """100 epochs with default target_count=10 -> every 10th epoch."""
+    assert _suggest_checkpoint_subset(100) == "9,19,29,39,49,59,69,79,89,99"
+
+
+def test_suggest_checkpoint_subset_ends_on_last_epoch():
+    """Suggestion must always include the final epoch."""
+    result = _suggest_checkpoint_subset(53)
+    assert result.split(",")[-1] == "52"
+
+
+# Tests for warn_on_excessive_checkpoints()
+
+
+def test_warn_on_excessive_checkpoints_below_threshold():
+    """No warning when checkpoint count is at or below threshold."""
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_excessive_checkpoints(
+            "all", epochs=10, model_name="Llama-3.2-1B-Instruct"
+        )
+        assert len(w) == 0
+
+
+def test_warn_on_excessive_checkpoints_all_over_threshold():
+    """'all' with epochs > threshold should warn."""
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_excessive_checkpoints(
+            "all", epochs=100, model_name="Llama-3.2-1B-Instruct"
+        )
+        assert len(w) == 1
+        msg = str(w[0].message)
+        assert "100 checkpoints" in msg
+        assert "250 GB total" in msg  # 100 * 2.5
+
+
+def test_warn_on_excessive_checkpoints_explicit_list_over_threshold():
+    """An explicit list of >10 epochs should warn."""
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_excessive_checkpoints(list(range(15)), epochs=50)
+        assert len(w) == 1
+        assert "15 checkpoints" in str(w[0].message)
+
+
+def test_warn_on_excessive_checkpoints_empty_list_no_warning():
+    """An empty list ('none') should not warn."""
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_excessive_checkpoints([], epochs=100)
+        assert len(w) == 0
+
+
+def test_warn_on_excessive_checkpoints_unknown_model_omits_size():
+    """Warning should still fire but without a size estimate when model is unknown."""
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_excessive_checkpoints("all", epochs=50, model_name=None)
+        assert len(w) == 1
+        msg = str(w[0].message)
+        assert "50 checkpoints" in msg
+        assert "GB total" not in msg
+        assert "checkpoint size unknown" in msg
+
+
+def test_warn_on_excessive_checkpoints_unparseable_model_name():
+    """Model name that doesn't match NB pattern (e.g. 'gemma4') should still warn
+    and name the model so the user can see why size couldn't be estimated."""
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        warn_on_excessive_checkpoints("all", epochs=50, model_name="gemma4")
+        assert len(w) == 1
+        msg = str(w[0].message)
+        assert "50 checkpoints" in msg
+        assert "GB total" not in msg
+        assert "checkpoint size unknown for 'gemma4'" in msg

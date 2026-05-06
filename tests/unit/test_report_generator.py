@@ -14,6 +14,7 @@ from cruijff_kit.tools.inspect.report_generator import (
     _format_calibration_table,
     _format_inspect_view_commands,
     _format_model_table,
+    _read_splits_from_metadata,
 )
 
 
@@ -583,3 +584,90 @@ class TestExpandDetailsForPdf:
         # Content is still present
         assert "log1.eval" in expanded
         assert "inspect view start" in expanded
+
+
+# =============================================================================
+# _read_splits_from_metadata()
+# =============================================================================
+
+
+class TestReadSplitsFromMetadata:
+    """Covers both the historical one-sidecar-per-split layout and the
+    bundled layout introduced with train+validation co-generation, where
+    the train sidecar carries validation counts under ``extra_splits``.
+    """
+
+    def _write_sidecar(self, tmp_path: Path, split: str, meta: dict) -> Path:
+        data_path = tmp_path / f"cond_full_{split}_s42.json"
+        data_path.write_text("[]")
+        meta_path = data_path.with_suffix(".meta.json")
+        meta_path.write_text(_json_dumps(meta))
+        return data_path
+
+    def test_separate_sidecars_per_split(self, tmp_path):
+        """Historical layout: one data file + one sidecar per split."""
+        train_path = self._write_sidecar(tmp_path, "train", {"row_count": 80})
+        self._write_sidecar(tmp_path, "validation", {"row_count": 10})
+        self._write_sidecar(tmp_path, "test", {"row_count": 10})
+
+        splits = _read_splits_from_metadata(str(train_path))
+
+        assert splits == {"train": 80, "validation": 10, "test": 10}
+
+    def test_bundled_train_and_validation(self, tmp_path):
+        """Bundled layout: train sidecar's row_count spans train+validation,
+        and extra_splits carries the validation count. No sibling validation
+        sidecar exists on disk.
+        """
+        train_path = self._write_sidecar(
+            tmp_path,
+            "train",
+            {"row_count": 90, "extra_splits": {"validation": 10}},
+        )
+        self._write_sidecar(tmp_path, "test", {"row_count": 10})
+
+        splits = _read_splits_from_metadata(str(train_path))
+
+        assert splits == {"train": 80, "validation": 10, "test": 10}
+
+    def test_bundled_without_separate_test(self, tmp_path):
+        """Bundled train+validation with no test file at all."""
+        train_path = self._write_sidecar(
+            tmp_path,
+            "train",
+            {"row_count": 5, "extra_splits": {"validation": 2}},
+        )
+
+        splits = _read_splits_from_metadata(str(train_path))
+
+        assert splits == {"train": 3, "validation": 2}
+
+    def test_no_sidecars_returns_empty(self, tmp_path):
+        """No sidecar files on disk — returns an empty dict, not an error."""
+        training_path = tmp_path / "cond_full_train_s42.json"
+        # Intentionally do not create any .meta.json files.
+
+        splits = _read_splits_from_metadata(str(training_path))
+
+        assert splits == {}
+
+    def test_zero_primary_with_extras(self, tmp_path):
+        """A degenerate case: the primary split has zero rows but extras
+        are populated. Primary is omitted (preserving the prior truthy
+        check), extras are still picked up.
+        """
+        train_path = self._write_sidecar(
+            tmp_path,
+            "train",
+            {"row_count": 7, "extra_splits": {"validation": 7}},
+        )
+
+        splits = _read_splits_from_metadata(str(train_path))
+
+        assert splits == {"validation": 7}
+
+
+def _json_dumps(obj) -> str:
+    import json
+
+    return json.dumps(obj)

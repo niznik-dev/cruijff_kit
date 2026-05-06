@@ -15,8 +15,8 @@ from pathlib import Path
 import yaml
 
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
-SETUP_FINETUNE = REPO_ROOT / "tools" / "torchtune" / "setup_finetune.py"
-SETUP_INSPECT = REPO_ROOT / "tools" / "inspect" / "setup_inspect.py"
+SETUP_FINETUNE = REPO_ROOT / "src" / "tools" / "torchtune" / "setup_finetune.py"
+SETUP_INSPECT = REPO_ROOT / "src" / "tools" / "inspect" / "setup_inspect.py"
 
 
 def test_setup_finetune(work_dir: Path):
@@ -58,12 +58,12 @@ def test_setup_finetune(work_dir: Path):
 def test_setup_inspect(work_dir: Path):
     """Run setup_inspect.py with a minimal eval_config, verify outputs."""
     config = {
-        "task_script": "experiments/capitalization/inspect_task_capitalization.py@capitalization",
+        "task_script": "blueprints/capitalization/inspect_task.py@capitalization",
         "task_name": "capitalization",
         "model_path": "/fake/checkpoint/epoch_0",
         "model_hf_name": "hf/smoke_test_epoch_0",
         "output_dir": "/fake/output/",
-        "data_path": "data/green/capitalization/words_5L_80P_1000.json",
+        "data_path": "tests/fixtures/data/words_5L_80P_10.json",
         "vis_label": "smoke_test",
         "use_chat_template": True,
         "epoch": 0,

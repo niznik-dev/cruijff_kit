@@ -90,7 +90,7 @@ These are *example* parameters that the user might vary. There may be other para
    - `controls.batch_size` - Batch size (if not varied)
    - `controls.system_prompt` - Training system prompt
    - `controls.prompt` - Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
-   - `controls.validation_during_training` - Whether to run validation (impacts `run_val_every_n_steps`)
+   - `controls.validation_during_training` - Whether to run validation during training. Translates to `run_val_every_n_steps`: if `true`, set to `50` (the `finetune_template.yaml` default); if `false`, set to `0` (which causes `setup_finetune.py` to drop the validation dataset config). Do not emit `0` when the user requested validation — that silently disables it.
    - `controls.gradient_accumulation_steps` - Gradient accumulation
    - `controls.weight_decay` - Optimizer weight decay
    - `controls.lora_dropout` - LoRA dropout
@@ -99,7 +99,7 @@ These are *example* parameters that the user might vary. There may be other para
    - `models.base[0].name` - Model identifier
    - `models.base[0].path` - Full path to model directory
    - `data.training.path` - Full path to training dataset
-   - `data.training.format` - "json" or "parquet"
+   - `data.training.format` - "json"
    - `output.base_directory` - Where checkpoints are saved
    - `output.wandb_project` - Weights & Biases project name
 
@@ -160,13 +160,13 @@ Extract environment-specific settings:
 
 **IMPORTANT:** Read `output.base_directory` from experiment_summary.yaml (NOT from claude.local.md).
 
-The base_directory contains the full path: `{output_base}/ck-outputs/{experiment_name}`
-- Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-outputs/workflow_test_2025-11-28`
+The base_directory contains the full path: `{output_base}/ck-projects/{project}/{experiment_name}`
+- Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/workflow_test_2025-11-28`
 
 Parse this into two components for setup_finetune.yaml:
 - `output_dir_base` = everything up to and including the last directory before experiment name
   - Extract by splitting on `/` and taking all but the last component, then rejoining with `/` and adding trailing `/`
-  - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-outputs/`
+  - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/`
 - `experiment_name` = the final directory component
   - Extract by splitting on `/` and taking the last non-empty component
   - Example: `workflow_test_2025-11-28`
@@ -177,19 +177,40 @@ Parse this into two components for setup_finetune.yaml:
 
 For each run, create a `setup_finetune.yaml` file by:
 
-1. **Determine dataset extension** based on format:
-   - Check `data.training.format` in experiment_summary.yaml
-   - If `json` → `dataset_ext: '.json'`
-   - If `parquet` → `dataset_ext: '/'`
+1. **Determine dataset path** — check the run in this order:
 
-2. **Extract dataset information from experiment_summary.yaml:**
-   - Dataset path from `data.training.path`
-   - Extract `dataset_label` from `data.training.label`
-   - Dataset format from `data.training.format`
-   - Convert format to extension: `json` → `.json`, `parquet` → `/`
-   - Dataset location: use parent directory of dataset path as `input_dir_base`, set `input_formatting: ''` (empty string)
+   **If `run.training_condition` is set** (generated-text experiments):
+   - The run names a condition in `data.data_generation.conditions`.
+   - Compute the canonical path with the shared resolver:
+     ```python
+     from cruijff_kit.tabular_to_text_gen.lib.config_hash import resolve_dataset_path
+     path = resolve_dataset_path(
+         experiment["data"]["data_generation"],
+         run["training_condition"],
+         "train",
+         f"{scratch_dir}/ck-data/generated",   # same directory convert.py writes to
+     )
+     ```
+   - This returns `{scratch_dir}/ck-data/generated/{condition}_train_{hash8}.json` — the exact file convert.py produces for the same `data_generation` block.
+   - Extract `dataset_label` from the filename stem, `dataset_ext` from the extension, and `input_dir_base` from the parent directory as for the literal-path case below.
+   - Set `input_formatting: ''`.
+   - Log the resolved path into `logs/scaffold-torchtune.log` so the audit trail captures exactly which file backed this run.
 
-3. **Populate template with run-specific values:**
+   **Else if `run.dataset_path` (or `run.parameters.dataset_path`) is set** (literal-path escape hatch for legacy / externally produced files):
+   - Use the literal path verbatim; do not resolve.
+   - Extract `dataset_label` from the filename stem.
+   - Extract `dataset_ext` from the file extension (e.g., `.json`).
+   - Extract `input_dir_base` from the parent directory.
+   - Set `input_formatting: ''`.
+
+   **Else** (standard single-file experiments):
+   - Use `data.training.path` from experiment_summary.yaml.
+   - Extract `dataset_label` from `data.training.label`.
+   - Determine `dataset_ext` from `data.training.format`: `json` → `.json`.
+   - Extract `input_dir_base` from parent directory of dataset path.
+   - Set `input_formatting: ''`.
+
+2. **Populate template with run-specific values:**
 
 ```yaml
 # Run identification
@@ -197,12 +218,12 @@ my_wandb_project: {from claude.local.md, or use experiment-level project name}
 my_wandb_run_name: {directory_name, e.g., "rank8_lr1e-5"}
 
 # Directory Configuration (for dataset path construction)
-input_dir_base: {parent directory of data.training.path}
+input_dir_base: {parent directory of resolved dataset path}
 input_formatting: ''  # Usually empty string
 
 # Dataset Configuration
-dataset_label: {from data.training.label, e.g., "words_4L_80P_300"}
-dataset_ext: {from data.training.format, convert: "json" → ".json", "parquet" → "/"}
+dataset_label: {resolved dataset label}
+dataset_ext: {resolved extension, e.g., ".json"}
 
 # Model Configuration
 torchtune_model_name: {from models.base[0].name, e.g., "Llama-3.2-1B-Instruct"}
@@ -212,6 +233,7 @@ model_checkpoint: {from models.base[0].path}
 lora_rank: {from run.parameters.lora_rank, if present}
 lr: {from run.parameters.lr, format as 1e-5 or 5e-5, if present}
 batch_size: {from run.parameters.batch_size if varies, if present}
+seed: {from run.parameters.seed, if present}
 
 # Additional hyperparameters (optional, only if specified in controls)
 gradient_accumulation_steps: {from controls.gradient_accumulation_steps, if present}
@@ -221,7 +243,7 @@ lora_dropout: {from controls.lora_dropout, if present}
 # Training configuration (common across runs)
 epochs: {from controls.epochs}
 log_every_n_steps: {use template default, typically 1}
-run_val_every_n_steps: {use template default, typically 0}
+run_val_every_n_steps: {50 if controls.validation_during_training else 0}
 
 # Checkpoint Options
 stash_adapter_weights: 'true'  # From template default
@@ -271,7 +293,7 @@ For each run directory:
 
 1. **Find cruijff_kit location:**
    - Read claude.local.md to find "Working directory" (typically `/home/{username}/cruijff_kit`)
-   - The setup script is at: `{working_dir}/tools/torchtune/setup_finetune.py`
+   - The setup script is at: `{working_dir}/src/tools/torchtune/setup_finetune.py`
    - If not found, check current working directory with `pwd` - you're likely already in cruijff_kit
 
 2. **Execute setup script with conda environment:**
@@ -280,10 +302,14 @@ For each run directory:
 
    Instead, use `bash -c` with a single compound command:
    ```bash
-   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train}"
+   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {training_samples}"
    ```
 
-   The `--training_samples` flag enables the training step guard, which computes total training steps and warns if they are dangerously low (e.g., warmup never completes, or fewer than 50 steps total). The value comes from `data.training.splits.train` in experiment_summary.yaml.
+   The `--training_samples` flag enables the training step guard, which computes total training steps and warns if they are dangerously low (e.g., warmup never completes, or fewer than 50 steps total).
+
+   **Determining training_samples:**
+   - **Standard experiments:** Use `data.training.splits.train` from experiment_summary.yaml
+   - **Per-run dataset override**: Read the `.meta.json` sidecar file alongside the dataset to get `row_count`. The sidecar path is the dataset path with `.json` replaced by `.meta.json` (e.g., `dict_full_train_a1b2c3d4.meta.json`). If the sidecar does not exist, omit the `--training_samples` flag (the step guard will be skipped).
 
    **With compute estimates** (when `runs[].compute` block exists):
    ```bash
@@ -292,7 +318,7 @@ For each run directory:
 
    **Example (without compute estimates):**
    ```bash
-   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-experiments/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/tools/torchtune/setup_finetune.py --training_samples 800"
+   bash -c "cd /scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/cap_wordlen_comparison_2025-11-07/Llama-3.2-1B-Instruct_5L && conda run -n cruijff python /home/sarahep/cruijff_kit/src/tools/torchtune/setup_finetune.py --training_samples 800"
    ```
 
    **Example (with compute estimates):**
@@ -325,15 +351,15 @@ For each run directory:
 **Finding cruijff_kit:**
 1. Read claude.local.md → "Working directory" field (e.g., `/home/sarahep/cruijff_kit`)
 2. If not in claude.local.md, check current directory: `pwd` (you may already be in cruijff_kit)
-3. The setup script is always at: `{cruijff_kit_location}/tools/torchtune/setup_finetune.py`
+3. The setup script is always at: `{cruijff_kit_location}/src/tools/torchtune/setup_finetune.py`
 
 **Common locations:**
 - `/home/{username}/cruijff_kit/` (typical user setup)
 - `{scratch_dir}/GitHub/cruijff_kit/` (some users)
 
 **If script fails with path issues:**
-- Try: `python tools/torchtune/setup_finetune.py` (relative path if you're in the right place)
-- Check if file exists: `ls {path}/tools/torchtune/setup_finetune.py`
+- Try: `python src/tools/torchtune/setup_finetune.py` (relative path if you're in the right place)
+- Check if file exists: `ls {path}/src/tools/torchtune/setup_finetune.py`
 
 ## Error Handling
 
@@ -401,12 +427,12 @@ Details: mkdir /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/ra
 Result: Directory created successfully
 
 [2025-10-24 16:30:12] GENERATE_YAML: rank8_lr1e-5/setup_finetune.yaml
-Details: Template: experiments/capitalization/setup_finetune.yaml
+Details: Generated from src/tools/torchtune/templates/finetune_template.yaml
 Parameters: rank=8, lr=1e-5, batch_size=4, epochs=1
 Result: File created (237 bytes)
 
 [2025-10-24 16:30:15] RUN_SETUP: rank8_lr1e-5
-Command: cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/rank8_lr1e-5 && python ../../GitHub/cruijff_kit/tools/torchtune/setup_finetune.py
+Command: cd /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/rank8_lr1e-5 && python ../../GitHub/cruijff_kit/src/tools/torchtune/setup_finetune.py
 Result: Success - generated finetune.yaml and finetune.slurm
 
 [2025-10-24 16:31:00] COMPLETE: All runs scaffolded
@@ -467,6 +493,7 @@ Know where to find parameters in finetune.yaml:
 - `lr` (learning rate) → `optimizer.lr` (nested under optimizer section, note: two-space indent)
 - `batch_size` → `batch_size` (top level)
 - `epochs` → `epochs` (top level)
+- `seed` → `seed` (top level)
 - `my_wandb_run_name` → `my_wandb_run_name` (top level)
 - `output_dir` → `output_dir` (top level, should include run name)
 

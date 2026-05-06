@@ -57,15 +57,15 @@ Details: Parsing slurm-12345679.out
 Result: Final loss = 0.198 (epoch 2, step 500)
 
 [2025-12-05 14:00:04] EXTRACT_ACCURACY: rank4_lr1e-5/capitalization/epoch0
-Command: python tools/inspect/parse_eval_log.py {path}
+Command: python src/tools/inspect/parse_eval_log.py {path}
 Result: Accuracy = 0.85, samples = 100, scorer = exact_match
 
 [2025-12-05 14:00:05] EXTRACT_ACCURACY: rank8_lr1e-5/capitalization/epoch0
-Command: python tools/inspect/parse_eval_log.py {path}
+Command: python src/tools/inspect/parse_eval_log.py {path}
 Result: Accuracy = 0.91, samples = 100, scorer = exact_match
 
 [2025-12-05 14:00:06] EXTRACT_ACCURACY: base_model/capitalization
-Command: python tools/inspect/parse_eval_log.py {path}
+Command: python src/tools/inspect/parse_eval_log.py {path}
 Result: Accuracy = 0.45, samples = 100, scorer = exact_match
 
 [2025-12-05 14:00:10] GENERATE_SUMMARY
@@ -89,7 +89,7 @@ Details: No SLURM output file found
 Result: N/A (run may have failed or not started)
 
 [2025-12-05 14:00:05] EXTRACT_ACCURACY: rank16_lr1e-5/capitalization/epoch0
-Command: python tools/inspect/parse_eval_log.py {path}
+Command: python src/tools/inspect/parse_eval_log.py {path}
 Result: ERROR - File not found: {path}
 Explanation: Evaluation may not have completed
 ```

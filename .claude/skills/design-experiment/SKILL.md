@@ -60,7 +60,7 @@ Follow the three-stage process:
 
 Guide the user through 9 interactive steps to gather all experiment parameters:
 1. Determine experiment purpose and location (sanity check vs research experiment)
-2. Understand the experiment (scientific question, variables)
+2. Understand the experiment (scientific question, variables, and whether tabular-to-text data generation is needed)
 3. Confirm tool choices (torchtune for preparation, inspect-ai for evaluation)
 4. Design training runs (models, datasets, hyperparameters)
 5. Design evaluation runs (tasks, epochs, evaluation matrix)
@@ -154,13 +154,13 @@ Reference materials for output generation:
 
 This skill uses the **param_selection → validation → generation** pattern:
 
-| Module | Purpose | Lines |
-|--------|---------|-------|
-| param_selection.md | 9-step interactive workflow | ~340 |
-| validation.md | Completeness checklist | ~140 |
-| experiment_generation.md | Create YAML and log files | ~125 |
-| logging.md | Plain text audit trail specification | ~340 |
-| templates/experiment_summary.yaml | YAML schema and structure | ~150 |
+| Module | Purpose |
+|--------|---------|
+| param_selection.md | 9-step interactive workflow |
+| validation.md | Completeness checklist |
+| experiment_generation.md | Create YAML and log files |
+| logging.md | Plain text audit trail specification |
+| templates/experiment_summary.yaml | YAML schema and structure |
 
 **Pattern:** Three action verbs (selection, validation, generation) matching scaffold/run skills, plus cross-cutting logging and templates.
 

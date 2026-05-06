@@ -33,7 +33,7 @@ Your tasks:
    - Create run directory based on run name in experiment_summary.yaml
    - Generate setup_finetune.yaml from appropriate template
    - If runs[].compute block exists, include time/gpus/mem in setup_finetune.yaml and pass as --time/--gpus/--mem CLI args to setup_finetune.py
-   - Execute setup_finetune.py to generate finetune.yaml and finetune.slurm
+   - Execute setup_finetune.py to generate finetune.yaml and finetune.slurm (canonical invocation in `.claude/agents/scaffold-torchtune.md`)
    - Verify outputs were created successfully
 5. For control/base model runs: Create ONLY the run directory (no training configs needed)
 6. Create a detailed log at {experiment_dir}/logs/scaffold-torchtune.log

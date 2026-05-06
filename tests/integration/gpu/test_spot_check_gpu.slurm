@@ -19,9 +19,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/../../.."
 
 # Fill in paths before submitting:
-#   --data  JSON file with "input"/"output" keys (e.g., data/green/acs/acs_income_verbose_50000_80P.json)
+#   --data  JSON file with "input"/"output" keys (e.g., {ck_data_dir}/folktexts/acs_income_verbose_50000_80P.json)
 #   --base  Pretrained HF model directory (e.g., /path/to/pretrained-llms/Llama-3.2-3B-Instruct)
-#   --ft    Fine-tuned checkpoint directory (e.g., /path/to/ck-outputs/.../epoch_2)
+#   --ft    Fine-tuned checkpoint directory (e.g., /path/to/{run_name}/artifacts/epoch_2)
 bash tests/integration/gpu/test_spot_check_gpu.sh \
     --data <DATA_PATH> \
     --base <BASE_MODEL_PATH> \

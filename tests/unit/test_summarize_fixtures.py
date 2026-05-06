@@ -112,6 +112,32 @@ class TestLossExtraction:
                     f"pad_token_id line should not match: {line}"
                 )
 
+    def test_extracts_scientific_notation_loss(self):
+        """Converged-model logs emit losses in sci-notation; the regex must capture them."""
+        line = "3|750|Loss: 6.0498432503663935e-06: 100%|##########| 250/250 [12:05<00:00,  2.90s/it]"
+        losses = extract_losses(line)
+        assert len(losses) == 1
+        assert losses[0][2] == pytest.approx(6.0498e-6, rel=1e-4)
+
+    def test_extracts_positive_exponent_loss(self):
+        """Edge case: very large losses (early training, divergence) may use e+ notation."""
+        line = "1|1|Loss: 2.5e+02: starting"
+        losses = extract_losses(line)
+        assert len(losses) == 1
+        assert losses[0][2] == pytest.approx(250.0)
+
+    def test_mixed_decimal_and_sci_notation(self):
+        """A realistic converging-then-converged log mixes both formats."""
+        text = (
+            "1|10|Loss: 1.234: ...\n2|20|Loss: 5.6e-05: ...\n3|30|Loss: 7.89e-08: ...\n"
+        )
+        losses = extract_losses(text)
+        assert [step for _, step, _ in losses] == [10, 20, 30]
+        assert losses[0][2] == pytest.approx(1.234)
+        assert losses[1][2] == pytest.approx(5.6e-5)
+        assert losses[2][2] == pytest.approx(7.89e-8)
+        assert final_loss(text)[2] == pytest.approx(7.89e-8)
+
 
 class TestEvalResultParsing:
     def test_status_is_success(self, eval_result):

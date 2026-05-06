@@ -18,7 +18,7 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
-SETUP_FINETUNE = REPO_ROOT / "tools" / "torchtune" / "setup_finetune.py"
+SETUP_FINETUNE = REPO_ROOT / "src" / "tools" / "torchtune" / "setup_finetune.py"
 DATA_PATH = REPO_ROOT / "tests" / "fixtures" / "words_5L_80P_50.json"
 MODELS_DIR = os.environ.get("CK_MODELS_DIR", "/scratch/gpfs/MSALGANIK/pretrained-llms")
 MODEL_NAME = "Llama-3.2-1B-Instruct"
@@ -59,6 +59,8 @@ def main():
                 "",
                 "--output_dir_base",
                 str(output_dir),
+                "--experiment_name",
+                "smoke_test",
                 "--models_dir",
                 MODELS_DIR,
                 "--my_wandb_run_name",
@@ -100,13 +102,15 @@ def main():
         print("PASS: torchtune training")
 
         # Step 3: Verify checkpoint exists and is non-empty
-        # setup_finetune.py creates output under output_dir_base/ck-out-{run_name}/
-        ck_out_dirs = list(output_dir.glob("ck-out-*"))
-        assert len(ck_out_dirs) > 0, f"No ck-out-* directory found in {output_dir}"
+        # setup_finetune.py creates output under output_dir_base/{experiment_name}/{run_name}/artifacts/
+        artifacts_dirs = list(output_dir.glob("smoke_test/*/artifacts"))
+        assert len(artifacts_dirs) > 0, (
+            f"No */artifacts directory found in {output_dir}/smoke_test/"
+        )
 
-        checkpoint_dirs = list(ck_out_dirs[0].glob("epoch_*"))
+        checkpoint_dirs = list(artifacts_dirs[0].glob("epoch_*"))
         assert len(checkpoint_dirs) > 0, (
-            f"No epoch_* checkpoint directory found in {ck_out_dirs[0]}"
+            f"No epoch_* checkpoint directory found in {artifacts_dirs[0]}"
         )
 
         # Check for actual checkpoint files (safetensors or bin)

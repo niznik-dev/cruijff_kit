@@ -89,11 +89,31 @@ class TestMainYamlGeneration:
         config, _ = run_main()
         assert config["batch_size"] == 2
 
+    def test_seed_default(self, run_main):
+        """When seed is not specified, the default (14 — Cruijff's number) is used."""
+        config, _ = run_main()
+        assert config["seed"] == 14
+
+    def test_seed_via_cli(self, run_main):
+        """--seed on the command line flows through to finetune.yaml."""
+        config, _ = run_main(extra_args=["--seed", "7"])
+        assert config["seed"] == 7
+
+    def test_seed_via_config_file(self, run_main, setup_yaml):
+        """seed in setup_finetune.yaml flows through to finetune.yaml."""
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["seed"] = 23
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        config, _ = run_main()
+        assert config["seed"] == 23
+
     def test_output_dir_constructed(self, run_main, tmp_path):
         config, _ = run_main()
         output_dir = config["output_dir"]
         assert "test_exp" in output_dir
-        assert "ck-out-" in output_dir
+        assert "/artifacts/" in output_dir
         assert str(tmp_path) in output_dir
 
     def test_input_dir_constructed(self, run_main, tmp_path):
@@ -132,6 +152,23 @@ class TestMainYamlGeneration:
         config, _ = run_main()
         assert "dataset_val" not in config
         assert "run_val_every_n_steps" not in config
+
+    def test_validation_preserved_when_nonzero(self, run_main, tmp_path, setup_yaml):
+        """run_val_every_n_steps>0 should preserve validation config end-to-end.
+
+        Guards against regression of the scaffold-torchtune agent silently emitting
+        run_val_every_n_steps=0 despite validation_during_training=true in the
+        experiment design.
+        """
+        with open(setup_yaml) as f:
+            cfg = yaml.safe_load(f)
+        cfg["run_val_every_n_steps"] = 50
+        with open(setup_yaml, "w") as f:
+            yaml.dump(cfg, f)
+
+        config, _ = run_main()
+        assert config["run_val_every_n_steps"] == 50
+        assert "dataset_val" in config
 
 
 class TestMainSlurmGeneration:
@@ -203,6 +240,31 @@ class TestMainConfigPrecedence:
     def test_custom_run_name(self, run_main):
         config, _ = run_main(extra_args=["--my_wandb_run_name", "my_run"])
         assert config["my_wandb_run_name"] == "my_run"
+
+    def test_epochs_to_save_string_from_config_parsed_to_list(
+        self, run_main, setup_yaml
+    ):
+        """A comma-separated string in the config file must go through
+        parse_epochs and come out as a list of ints (regression for #431)."""
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["epochs_to_save"] = "3,5"
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        config, _ = run_main()
+        assert config["epochs_to_save"] == [3, 5]
+
+    def test_quoted_bool_string_from_config_parsed_to_bool(self, run_main, setup_yaml):
+        """A quoted string like "true" in the config file must go through
+        parse_bool and land as a Python bool, not a truthy string
+        (regression for #431)."""
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["packed"] = "true"
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        config, _ = run_main()
+        assert config["dataset"]["packed"] is True
 
 
 class TestMainDatasetTypes:

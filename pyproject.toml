@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cruijff_kit"
-version = "0.2.0"
+version = "0.2.2"
 description = "A toolkit for research with social data and LLMs"
 readme = "README.md"
 license = {text = "MIT"}
@@ -24,7 +24,7 @@ dependencies = [
     "torchvision",
     "wandb",
     "h5py",
-    "inspect-ai>=0.3.163",
+    "inspect-ai==0.3.209",  # pinned: registry prefix changed at 0.3.200; revisit before relaxing
     "inspect-viz",
     "datasets",
     "peft",
@@ -32,6 +32,7 @@ dependencies = [
     "tokenizers>=0.22.1",
     "scikit-learn",
     "matplotlib",
+    "markdown",
 ]
 
 [project.optional-dependencies]
@@ -44,7 +45,7 @@ dev = [
 ]
 
 [tool.setuptools.package-dir]
-cruijff_kit = "."
+cruijff_kit = "src"
 
 [tool.setuptools]
 packages = [
@@ -55,12 +56,22 @@ packages = [
   "cruijff_kit.tools.inspect",
   "cruijff_kit.tools.inspect.scorers",
   "cruijff_kit.tools.slurm",
+  "cruijff_kit.tools.model_organisms",
+  "cruijff_kit.tools.quiz",
+  "cruijff_kit.tabular_to_text_gen",
+  "cruijff_kit.tabular_to_text_gen.lib",
+  "cruijff_kit.tabular_to_text_gen.lib.perturbations",
+  "cruijff_kit.tabular_to_text_gen.lib.templates",
 ]
+
+[tool.setuptools.package-data]
+"cruijff_kit.tools.quiz" = ["templates/*.j2"]
 
 [tool.ruff]
 line-length = 88
+cache-dir = ".cache/ruff"
 # Exclude files derived from external repos (e.g., torchtune) to preserve diffability
-exclude = ["tools/torchtune/custom_recipes/", "tools/torchtune/datasets/"]
+exclude = ["src/tools/torchtune/custom_recipes/", "src/tools/torchtune/datasets/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W"]
@@ -68,3 +79,4 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+cache_dir = ".cache/pytest"

@@ -1,4 +1,6 @@
-"""Tests for tools/experiment/archive_experiment.py"""
+"""Tests for src/tools/experiment/archive_experiment.py"""
+
+from pathlib import Path
 
 import yaml
 
@@ -21,14 +23,19 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
         run_names = ["run_rank4", "run_rank8"]
 
     exp_name = "test_experiment_2026-03-23"
-    exp_dir = tmp_path / "ck-experiments" / exp_name
-    out_base = tmp_path / "ck-outputs" / exp_name
+    # Under the unified ck-projects/ layout, experiment dir and output base
+    # point to the same location — outputs nest inside each run's dir.
+    exp_dir = tmp_path / "ck-projects" / "capitalization" / exp_name
     exp_dir.mkdir(parents=True)
-    out_base.mkdir(parents=True)
+    out_base = exp_dir
 
     # experiment_summary.yaml
     config = {
-        "experiment": {"name": exp_name, "directory": str(exp_dir)},
+        "experiment": {
+            "name": exp_name,
+            "project": "capitalization",
+            "directory": str(exp_dir),
+        },
         "output": {"base_directory": str(out_base)},
         "runs": [
             {"name": rn, "type": "fine-tuned", "model": "test", "parameters": {}}
@@ -64,14 +71,14 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
             eval_logs.mkdir(parents=True)
             (eval_logs / "test_task_epoch0.eval").write_text('{"results": {}}')
 
-        # Output directory with fake checkpoint
-        ck_out = out_base / f"ck-out-{rn}"
-        ck_out.mkdir(parents=True)
-        epoch_dir = ck_out / "epoch_0"
+        # Output directory with fake checkpoint (nested inside the run dir)
+        artifacts = run_dir / "artifacts"
+        artifacts.mkdir()
+        epoch_dir = artifacts / "epoch_0"
         epoch_dir.mkdir()
         # Write a fake checkpoint (larger than metadata to test size reporting)
         (epoch_dir / "adapter_model.safetensors").write_bytes(b"\x00" * 4096)
-        (ck_out / "gpu_metrics.csv").write_text("timestamp,gpu_util\n")
+        (artifacts / "gpu_metrics.csv").write_text("timestamp,gpu_util\n")
 
     # Optional extras
     if extras:
@@ -140,6 +147,37 @@ def test_inventory_with_analysis(tmp_path):
     assert "analysis/plot.html" in archive_paths
 
 
+def test_inventory_skips_symlinks_under_artifacts(tmp_path):
+    """Symlinks (e.g. wandb's pointers to ~/.cache) are not archived.
+
+    Regression: an earlier filter resolved symlink targets to decide if a
+    file lived under {run}/artifacts/. Symlinks pointing outside the
+    experiment dir slipped through and pulled external content into the
+    archive.
+    """
+    exp_dir_str, out_base = _make_experiment(tmp_path)
+    exp_dir = Path(exp_dir_str)
+
+    # External target outside the experiment dir
+    external = tmp_path / "external_cache" / "secret.log"
+    external.parent.mkdir()
+    external.write_text("don't archive me")
+
+    # Lookalike of wandb's offline-run/.../debug-core.log pointing at ~/.cache
+    wandb_dir = exp_dir / "run_rank4" / "artifacts" / "logs" / "wandb"
+    wandb_dir.mkdir(parents=True)
+    (wandb_dir / "debug-core.log").symlink_to(external)
+
+    # And a symlink under eval/ to simulate a stray symlink outside artifacts/
+    (exp_dir / "run_rank4" / "eval" / "stray.log").symlink_to(external)
+
+    result = inventory_experiment(str(exp_dir), out_base)
+    archive_paths = [kf["archive_path"] for kf in result["keep_files"]]
+
+    assert "run_rank4/artifacts/logs/wandb/debug-core.log" not in archive_paths
+    assert "run_rank4/eval/stray.log" not in archive_paths
+
+
 # --- findings.md resolution tests ---
 
 
@@ -149,7 +187,11 @@ def test_findings_from_explicit_file(tmp_path):
     result = inventory_experiment(exp_dir, out_base)
 
     assert result["findings_source"] == str(
-        tmp_path / "ck-experiments" / "test_experiment_2026-03-23" / "findings.md"
+        tmp_path
+        / "ck-projects"
+        / "capitalization"
+        / "test_experiment_2026-03-23"
+        / "findings.md"
     )
 
 
@@ -173,7 +215,13 @@ def test_findings_none_when_nothing_exists(tmp_path):
     """No findings, report, or summary → None."""
     exp_dir, out_base = _make_experiment(tmp_path)
     # Remove summary.md
-    (tmp_path / "ck-experiments" / "test_experiment_2026-03-23" / "summary.md").unlink()
+    (
+        tmp_path
+        / "ck-projects"
+        / "capitalization"
+        / "test_experiment_2026-03-23"
+        / "summary.md"
+    ).unlink()
     result = inventory_experiment(exp_dir, out_base)
 
     assert result["findings_source"] is None
@@ -275,7 +323,7 @@ def test_delete_originals(tmp_path):
 
     assert not Path(exp_dir).exists()
     for rn in run_names:
-        assert not (Path(out_base) / f"ck-out-{rn}").exists()
+        assert not (Path(out_base) / rn / "artifacts").exists()
 
 
 # --- dry run tests ---
@@ -358,3 +406,35 @@ def test_archive_nonexistent_dir(tmp_path):
 
     assert result["status"] == "error"
     assert "not found" in result["message"]
+
+
+def test_archive_path_includes_project(tmp_path):
+    """Archive path is {archive_base}/{project}/{experiment_name}/."""
+    exp_dir, _ = _make_experiment(tmp_path)
+    archive_base = str(tmp_path / "ck-archive")
+
+    result = archive_experiment(exp_dir, archive_base, dry_run=True)
+
+    assert result["status"] == "success"
+    expected = str(
+        tmp_path / "ck-archive" / "capitalization" / "test_experiment_2026-03-23"
+    )
+    assert result["archive_path"] == expected
+
+
+def test_archive_missing_project_field(tmp_path):
+    """experiment.project missing → error before any work happens."""
+    exp_dir, _ = _make_experiment(tmp_path)
+    # Strip the project field from the yaml
+    summary_path = Path(exp_dir) / "experiment_summary.yaml"
+    config = yaml.safe_load(summary_path.read_text())
+    del config["experiment"]["project"]
+    summary_path.write_text(yaml.dump(config))
+
+    archive_base = str(tmp_path / "ck-archive")
+    result = archive_experiment(exp_dir, archive_base, dry_run=True)
+
+    assert result["status"] == "error"
+    assert "project" in result["message"]
+    # Original experiment untouched
+    assert Path(exp_dir).exists()

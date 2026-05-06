@@ -18,9 +18,7 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
-TASK_SCRIPT = (
-    REPO_ROOT / "experiments" / "capitalization" / "inspect_task_capitalization.py"
-)
+TASK_SCRIPT = REPO_ROOT / "blueprints" / "capitalization" / "inspect_task.py"
 DATA_PATH = REPO_ROOT / "tests" / "fixtures" / "words_5L_80P_50.json"
 MODELS_DIR = os.environ.get("CK_MODELS_DIR", "/scratch/gpfs/MSALGANIK/pretrained-llms")
 MODEL_NAME = "Llama-3.2-1B-Instruct"
