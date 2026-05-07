@@ -74,6 +74,14 @@ Run through this checklist before presenting the plan:
 - ✓ Sufficient space for checkpoints
 - ✓ Warning issued if disk space is tight
 
+### Compute Estimates Validation (if present)
+- ✓ If any `runs[].compute` block exists, verify:
+  - `time` is in HH:MM:SS format (e.g., "0:15:00")
+  - `gpus` is a positive integer
+  - `mem` matches pattern like "80G" (number followed by unit)
+- ✓ If `evaluation.compute` block exists, apply same checks
+- ✓ Compute blocks are optional — their absence is NOT an error
+
 ### YAML Structure Validation
 - ✓ All required top-level sections present (experiment, tools, controls, models, data, output, runs, evaluation)
 - ✓ Proper nesting and indentation

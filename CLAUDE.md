@@ -61,6 +61,9 @@ For detailed architecture documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE
 
 cruijff_kit includes Claude Code skills to streamline common workflows. These skills are optional - all workflows can also be performed manually.
 
+### Setup
+- **ck-setup** ✅ - First-time setup walkthrough OR validate-existing health check for `claude.local.md` (HPC paths, SLURM defaults, conda env). Run this before anything else.
+
 ### Primary Workflows
 - **design-experiment** ✅ - Plan a series of runs that collectively make up an experiment
 - **convert-tabular-to-text** ✅ - Convert tabular data to text representations for LLM experiments (use after design, before scaffold)
@@ -96,9 +99,9 @@ To validate that the complete workflow (design, scaffold, run) is functioning co
 
 | Option | Spec File | Runs | Duration | Tests |
 |--------|-----------|------|----------|-------|
-| **LoRA Comparison** | `.claude/workflow_test.yaml` | 2 fine-tuned (rank4, rank8) | ~12 min | Parameter variations |
-| **Base vs Fine-tuned** | `.claude/workflow_test_base.yaml` | 1 base + 1 fine-tuned (rank4) | ~12 min | Base model evaluation |
-| **Recipe Defaults** | `.claude/workflow_test_recipe.yaml` | 2 fine-tuned (rank4, rank16) | ~12 min | base_recipe inheritance |
+| **LoRA Comparison** | `.claude/workflow_tests/workflow_test.md` | 2 fine-tuned (rank4, rank8) | ~12 min | Parameter variations |
+| **Base vs Fine-tuned** | `.claude/workflow_tests/workflow_test_base.md` | 1 base + 1 fine-tuned (rank4) | ~12 min | Base model evaluation |
+| **Recipe Defaults** | `.claude/workflow_tests/workflow_test_recipe.md` | 2 fine-tuned (rank4, rank16) | ~12 min | base_recipe inheritance |
 
 All use Llama-3.2-1B-Instruct with `{ck_data_dir}/capitalization/words_5L_80P_1000.json` as input data
 

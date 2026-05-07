@@ -30,7 +30,8 @@ TASK_ARG_KEYS = [
     "vis_label",
     "use_chat_template",
     "split",
-    "calibration",
+    "logprobs",
+    "top_logprobs",
 ]
 
 # Keys in eval_config.yaml that become --metadata args in the inspect command

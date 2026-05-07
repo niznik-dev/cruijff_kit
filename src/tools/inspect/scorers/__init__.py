@@ -14,6 +14,15 @@ from .calibration_metrics import (
     auc_score as auc_score,
 )
 
+# Underlying scorer factories keyed by registered name. Used for capability
+# introspection (e.g., `requires_logprobs`) before instantiation.
+SCORER_FACTORIES = {
+    "match": match,
+    "includes": includes,
+    "risk_scorer": risk_scorer,
+    "numeric_risk_scorer": numeric_risk_scorer,
+}
+
 # Registry of available scorers and their constructors.
 # Task files use build_scorers() to instantiate scorers from YAML config.
 SCORER_REGISTRY = {
@@ -28,6 +37,22 @@ SCORER_REGISTRY = {
         numeric_risk_scorer(**params) if params else numeric_risk_scorer()
     ),
 }
+
+
+def configured_scorers_require_logprobs(config: dict) -> bool:
+    """Return True if any scorer in the YAML config declares it needs logprobs.
+
+    Detection is attribute-based (not name-based): a scorer factory opts in by
+    setting ``requires_logprobs = True``. This avoids over-including scorers
+    whose names happen to match a heuristic but which read text completion
+    instead of logprobs (e.g., `numeric_risk_scorer`).
+    """
+    for entry in config.get("scorer", []) or []:
+        factory = SCORER_FACTORIES.get(entry.get("name"))
+        if factory is not None and getattr(factory, "requires_logprobs", False):
+            return True
+    return False
+
 
 # Default scorers when no config is provided
 DEFAULT_SCORERS = [

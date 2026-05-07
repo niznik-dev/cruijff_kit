@@ -12,10 +12,16 @@ Usage::
         -T data_path=/path/to/dataset.json \\
         -T config_path=/path/to/eval_config.yaml
 
-Calibration opt-in (enables logprobs + appends ``risk_scorer`` if not
-already configured via YAML)::
+Logprob capture is enabled in two ways:
 
-    ... -T calibration=true
+1. Implicitly — list a scorer in the YAML ``scorer:`` block whose factory sets
+   ``requires_logprobs = True`` (e.g., ``risk_scorer``). The task auto-enables
+   logprobs because the scorer needs them.
+2. Explicitly — pass ``-T logprobs=true`` to capture logprobs for downstream
+   analysis without configuring a logprob-consuming scorer.
+
+If a scorer requires logprobs but the user passes ``-T logprobs=false``, the
+task fails with a clear configuration error rather than silently overriding.
 """
 
 import yaml
@@ -24,7 +30,11 @@ from inspect_ai.dataset import Sample, hf_dataset
 from inspect_ai.model import GenerateConfig
 from inspect_ai.solver import chain, generate, system_message
 
-from cruijff_kit.tools.inspect.scorers import build_scorers, risk_scorer
+from cruijff_kit.tools.inspect.scorers import (
+    SCORER_FACTORIES,
+    build_scorers,
+    configured_scorers_require_logprobs,
+)
 
 
 @task
@@ -35,7 +45,8 @@ def model_organism(
     temperature: float = 1e-7,
     max_tokens: int = 5,
     use_chat_template: bool = True,
-    calibration: bool = False,
+    logprobs: bool | None = None,
+    top_logprobs: int = 20,
     vis_label: str = "",
 ) -> Task:
     """
@@ -48,8 +59,14 @@ def model_organism(
         temperature: Generation temperature.
         max_tokens: Max tokens to generate.
         use_chat_template: If True, prepend a system_message solver.
-        calibration: If True, enable logprobs and append risk_scorer to the
-            scorer list (unless already listed via YAML).
+        logprobs: Capture top logprobs for the generated tokens. ``None`` (the
+            default) means "auto" — enabled when a configured scorer declares
+            it needs logprobs, otherwise off. Pass ``True``/``False`` to force.
+            Passing ``False`` while configuring a scorer that requires
+            logprobs raises a ValueError.
+        top_logprobs: Number of top logprobs to capture per generated token
+            when logprobs are enabled. Default 20; multiclass / tokenization
+            variants may need more to keep all option tokens in the top-k.
         vis_label: Optional suffix for the task name (useful for multi-variant
             eval runs across a single experiment).
     """
@@ -91,11 +108,26 @@ def model_organism(
         )
 
     scorers = build_scorers(config)
-    if calibration:
-        configured_names = {entry["name"] for entry in config.get("scorer", [])}
-        if "risk_scorer" not in configured_names:
-            scorers.append(risk_scorer())
-        generate_config = GenerateConfig(logprobs=True, top_logprobs=20)
+    scorer_needs_logprobs = configured_scorers_require_logprobs(config)
+
+    if logprobs is False and scorer_needs_logprobs:
+        required = [
+            entry["name"]
+            for entry in config.get("scorer", []) or []
+            if getattr(
+                SCORER_FACTORIES.get(entry.get("name")), "requires_logprobs", False
+            )
+        ]
+        raise ValueError(
+            f"Scorer(s) {required} require logprobs, but logprobs=False was "
+            "explicitly set. Either remove the logprobs override or drop the "
+            "logprob-dependent scorer from the YAML config."
+        )
+
+    enable_logprobs = bool(logprobs) or (logprobs is None and scorer_needs_logprobs)
+
+    if enable_logprobs:
+        generate_config = GenerateConfig(logprobs=True, top_logprobs=top_logprobs)
     else:
         generate_config = GenerateConfig()
 

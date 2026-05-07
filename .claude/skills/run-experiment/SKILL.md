@@ -42,12 +42,6 @@ This ensures the entire experiment runs from training through evaluation with pr
 - Currently supported: inspect-ai
 - Future: custom evaluation frameworks
 
-### Detailed Workflows
-
-For step-by-step execution details:
-- **Torchtune execution:** [workflows/torchtune.md](workflows/torchtune.md)
-- **Inspect execution:** [workflows/inspect.md](workflows/inspect.md)
-
 ## Reading Tool Specifications
 
 Parse experiment_summary.yaml "tools" section to identify frameworks:
