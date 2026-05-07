@@ -8,7 +8,7 @@ cruijff_kit's workflow is built from a small set of skills, each with a focused 
 
 Three distinct concepts, three distinct names:
 
-- **Project** — task family / research domain blueprint (`blueprints/capitalization/`, `blueprints/folktexts/`, `blueprints/model_organism/`)
+- **Project** — task family / research domain blueprint (`blueprints/capitalization/`, `blueprints/folktexts/`, `blueprints/model_organisms/`)
 - **Experiment** — a designed set of runs under a project, defined by an `experiment_summary.yaml`
 - **Inspect-ai task** — evaluation script at `blueprints/{project}/inspect_task.py` — the `@task` function inspect-ai invokes
 

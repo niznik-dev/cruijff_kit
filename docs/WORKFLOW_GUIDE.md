@@ -7,7 +7,7 @@ This guide covers manual workflows for users who prefer direct control or don't 
 For full instructions on a specific experiment, see the blueprint README, e.g.:
 - [Capitalization](../blueprints/capitalization/README.md) — generalization test on word capitalization
 - [Folktexts (ACS)](../blueprints/folktexts/README.md) — demographic prediction tasks
-- [Model Organism](../blueprints/model_organism/README.md) — synthetic sequence-labeling sanity checks
+- [Model Organisms](../blueprints/model_organisms/README.md) — sequence-labeling tasks with known ground-truth rules
 
 For an end-to-end walkthrough using the Claude Code skills (recommended), see [ACS_EXAMPLE.md](ACS_EXAMPLE.md).
 

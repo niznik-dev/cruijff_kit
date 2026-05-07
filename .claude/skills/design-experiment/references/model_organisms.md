@@ -15,9 +15,10 @@ deferred follow-up — see the tracking issue in the repo.
 
 ## When to use this
 
-- The user wants a **sanity check** or **ablation** using deterministic
-  sequence data (bits / digits / letters + an output rule like parity,
-  majority, count, first, last, etc.).
+- The user wants to run a **model-organism experiment** or an
+  **ablation** using deterministic sequence data (bits / digits /
+  letters + an output rule like parity, majority, count, first, last,
+  etc.).
 - Generation is **cheap, deterministic Python** — fast, no external deps.
 - For expensive or flaky generators (LLM rewrites, web scrapers), use a
   dedicated skill like `convert-tabular-to-text` instead. Do **not** put
@@ -190,11 +191,11 @@ The `data.training` block is **still required** — point it at the same file.
 
 ## Conversation flow — what to ask the user
 
-When the user says "I want a sanity check on parity" (or similar), gather:
+When the user says "I want to test parity" or "I want a model-organism experiment with parity" (or similar), gather:
 
 1. **Input type and rule** — "bits parity? or digits/letters with a different rule?"
 2. **Sequence length k** — single int (or a small list if varying k across runs)
-3. **Sample count N** — default 100–500 for sanity checks
+3. **Sample count N** — default 100–500 for quick experiments
 4. **Design** — memorization, in_distribution, or ood?
    - If ood: ask for the test-variant specs (k values, N per variant, any format overrides)
 5. **Seed** — default 42 unless they care

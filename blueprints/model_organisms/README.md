@@ -1,6 +1,6 @@
-# Model Organism
+# Model Organisms
 
-Synthetic sequence-labeling tasks for sanity-checking fine-tuning and evaluation workflows. A "model organism" experiment is defined by four choices:
+Sequence-labeling tasks with known ground-truth rules — useful for verifying that fine-tuning and evaluation workflows produce expected results. A "model organism" experiment is defined by four choices:
 
 | Axis | Options | Role |
 |---|---|---|

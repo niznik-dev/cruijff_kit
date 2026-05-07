@@ -23,7 +23,6 @@ SAMPLE_EXPERIMENT_SUMMARY = {
     "experiment": {
         "name": "cap_test_2025-10-22",
         "date": "2025-10-22",
-        "type": "sanity_check",
         "question": "Test question",
     },
     "models": {

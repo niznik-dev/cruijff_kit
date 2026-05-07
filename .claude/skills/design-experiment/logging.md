@@ -77,7 +77,6 @@ Created during the planning workflow to record all verification steps, calculati
 [2025-10-22 14:30:00] START_DESIGN
 Details: Beginning experiment design
 Experiment: cap_4L_lora_rank_comparison
-Type: sanity_check
 Directory: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison
 Result: success
 ```
@@ -405,7 +404,6 @@ Separate entries with a blank line for readability.
 [2025-10-22 14:30:00] START_DESIGN
 Details: Beginning experiment design
 Experiment: cap_4L_lora_rank_comparison
-Type: sanity_check
 Directory: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison
 Result: success
 

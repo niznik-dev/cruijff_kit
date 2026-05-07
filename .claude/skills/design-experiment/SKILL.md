@@ -30,7 +30,7 @@ Follow the three-stage process:
 ### 1. Parameter Selection → `param_selection.md`
 
 Guide the user through 9 interactive steps to gather all experiment parameters:
-1. Determine experiment purpose and location (sanity check vs research experiment)
+1. Determine experiment location
 2. Understand the experiment (scientific question, variables, and whether tabular-to-text data generation is needed)
 3. Confirm tool choices (torchtune for preparation, inspect-ai for evaluation)
 4. Design training runs (models, datasets, hyperparameters)
