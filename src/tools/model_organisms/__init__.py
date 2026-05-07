@@ -1,4 +1,4 @@
-"""Model-organisms framework: parameterized sanity-check dataset generator.
+"""Model-organisms framework: parameterized dataset generator for sequence-labeling tasks with known ground-truth rules.
 
 Submodules register input types, rules, and formats at import time, so
 importing this package (or any submodule) ensures the registries are

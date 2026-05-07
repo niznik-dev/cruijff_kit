@@ -8,12 +8,20 @@ All notable changes to cruijff_kit will be documented in this file.
 
 - `setup` skill — interactive first-time walkthrough of `claude.local.md.template`, or validate-mode health check for an existing `claude.local.md` (placeholder scan, required-field check, lightweight env probes). (#365)
 - `create-quiz` skill — turn one or two completed experiments into a self-contained, self-grading HTML quiz that tests a recipient's intuition about the results. (#453)
+- `weighted_sum` and `weighted_sum_binary` rules in the `model_organisms` framework — linear-DGP outputs (`w·x + intercept`) with optional Bernoulli noise; analytical or 20k-sample Monte Carlo Bayes-accuracy reporting (#462, @msalganik)
+- `Rule.prepare` hook for dataset-level state (resolved weights, format width) and `Rule.supports_ood` flag for rules to opt out of OOD designs (#462, @msalganik)
 
 ### Changed
 
 - `design-experiment` no longer inlines the `claude.local.md` prerequisite check; defers to `/setup` for greenfield walkthrough or validation. (#365)
 - `python-markdown` added as a runtime dependency (used by the quiz renderer for intro / prompt / explanation / write-up markdown).
 - **Breaking:** `model_organism` inspect task replaces the bundled `calibration` flag with two primitives: `logprobs: bool | None` (capability switch) and `top_logprobs: int` (previously hardcoded at 20). Logprobs auto-enable when a configured scorer declares `requires_logprobs = True` (currently only `risk_scorer`). Existing experiment configs using `-T calibration=true` must migrate to placing `risk_scorer` in the YAML `scorer:` list (calibration workflow) or `-T logprobs=true` (raw logprobs only). (#461)
+- **Breaking:** Renamed `blueprints/model_organism/` → `blueprints/model_organisms/` for consistency with the `src/tools/model_organisms/` module. Existing `experiment_summary.yaml` files with `experiment.project: model_organism` must update to `model_organisms`. (#462)
+- Dropped legacy "synthetic" and "sanity check" framing from model-organisms documentation, blueprint READMEs, and the `design-experiment` skill — described as sequence-labeling tasks with known ground-truth rules instead (#462)
+
+### Removed
+
+- Vestigial `sanity_check vs research experiment` dichotomy in the `design-experiment` skill — was unused post-folder-reorg (#441), with the `experiment.type` field already removed from the schema (#462)
 
 ## [0.2.2] - 2026-04-23
 

@@ -4,7 +4,7 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 
 ## Workflow Overview
 
-1. **Determine experiment location** - Auto-detect sanity_check vs experiment
+1. **Determine experiment location** - Identify project blueprint and experiment directory
 2. **Understand the experiment** - What variables? What's the scientific question?
 3. **Confirm tool choices** - Which optimizer and evaluator to use
 4. **Design training runs** - Models, datasets, hyperparameters
@@ -21,7 +21,7 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 ### Derive Paths from claude.local.md
 
 1. Read the **Scratch directory** field from `claude.local.md`
-2. Determine the `project` — this matches a blueprint directory under `blueprints/` (e.g. `capitalization`, `folktexts`, `model_organism`). Ask the user if ambiguous.
+2. Determine the `project` — this matches a blueprint directory under `blueprints/` (e.g. `capitalization`, `folktexts`, `model_organisms`). Ask the user if ambiguous.
 3. Derive the experiment directory: `{scratch_dir}/ck-projects/{project}/{experiment_name}/`
 4. Outputs nest inside the experiment directory (configs, checkpoints, logs, eval results are all co-located per run).
 
@@ -166,7 +166,7 @@ The experiment workflow uses two architectural patterns:
 - Preprocessing script details and usage
 - Expected output formats and locations
 
-**Model-organism sanity checks:** If the user wants a sequence-task sanity check (parity, majority, count-digits, etc.) generated from the model-organisms framework, do NOT hand-write a preprocessing script — declare the dataset in a `data.data_generation` block with `tool: model_organism`. See `references/model_organisms.md` for the parameter reference, conversation flow, and YAML examples. `scaffold-experiment` will materialize the file before subagents run.
+**Model-organism experiments:** If the user wants a sequence-task experiment (parity, majority, count-digits, etc.) generated from the model-organisms framework, do NOT hand-write a preprocessing script — declare the dataset in a `data.data_generation` block with `tool: model_organism`. See `references/model_organisms.md` for the parameter reference, conversation flow, and YAML examples. `scaffold-experiment` will materialize the file before subagents run.
 
 ### What Variables Are You Testing?
 - Different model sizes?
@@ -209,10 +209,10 @@ When designing experiments, you can vary any of these parameters. Add varied par
 **GPU Allocation (small models only):**
 
 For models that fit on a GPU partition smaller than a full GPU (1B models require ~20GB VRAM), ask:
-> "Use a full dedicated GPU for complete utilization metrics? (Recommended for experiments, optional for sanity checks)"
+> "Use a full dedicated GPU for complete utilization metrics? (Recommended; choose 'no' for faster queue times if you don't need GPU utilization metrics.)"
 
-- **Yes (default for experiments):** Uses the full-GPU constraint/partition from `claude.local.md` — guarantees a dedicated GPU with complete nvidia-smi metrics (GPU utilization, memory, power). This is the standard choice for experiments where compute observability matters.
-- **No (acceptable for sanity checks):** May land on a shared or MIG-partitioned GPU where GPU utilization reports as `[N/A]`. Memory and power metrics are still available. Faster queue times.
+- **Yes (default):** Uses the full-GPU constraint/partition from `claude.local.md` — guarantees a dedicated GPU with complete nvidia-smi metrics (GPU utilization, memory, power). This is the standard choice when compute observability matters.
+- **No:** May land on a shared or MIG-partitioned GPU where GPU utilization reports as `[N/A]`. Memory and power metrics are still available. Faster queue times.
 
 If user says "yes" (default), add the constraint/partition values from `claude.local.md` SLURM Defaults to `experiment_summary.yaml` under the run's `slurm_overrides` section (e.g., `slurm_overrides: {constraint: "gpu80"}`). If "no", omit `slurm_overrides` — scaffold will not pass constraint/partition, and the SLURM lines stay commented out.
 
@@ -438,7 +438,7 @@ Help the user choose a descriptive experiment name that includes:
 
 **Example patterns:**
 - `cap_8L_lora_comparison_2025-10-18` (capitalization, varying LoRA rank)
-- `model_organism_majority_2026-04-15` (model_organism, varying input length)
+- `model_organisms_majority_2026-04-15` (model_organisms, varying input length)
 - `reasoning_ablation_2025-11-01` (reasoning task, ablation study)
 
 ### Run Names
@@ -486,7 +486,7 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 1. **Check for existing preprocessing scripts:** Look in `blueprints/{project}/` for scripts like `preprocess_*.py`
 2. **Consult task README:** Check `blueprints/{project}/README.md` for dataset creation instructions
 3. **Use the proper tool:** Run the task-specific preprocessing script with appropriate parameters
-4. **Model-organism sanity checks:** Declare in `data.data_generation` with `tool: model_organism` instead (see `references/model_organisms.md`); scaffold will generate the file before subagents run.
+4. **Model-organism experiments:** Declare in `data.data_generation` with `tool: model_organism` instead (see `references/model_organisms.md`); scaffold will generate the file before subagents run.
 5. **DON'T:** Write ad-hoc Python code or copy dataset creation code from previous experiments
 6. **WHY:** Task-specific scripts ensure correct format, naming conventions, and reproducibility
 
@@ -534,8 +534,7 @@ Proceed to `experiment_generation.md` to create the files.
 ```
 I'll help you design this experiment. Let me start by understanding what you want to test.
 
-I see you're working in [directory]. This looks like a [sanity check / research experiment].
-I'll create the experiment in: {base_dir}{experiment_name}/
+I see you're working in [directory]. I'll create the experiment in: {base_dir}{experiment_name}/
 
 What scientific question are you trying to answer?
 ```

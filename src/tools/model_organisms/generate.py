@@ -151,11 +151,35 @@ def generate(
             f"Applicable: {sorted(rule_def.applicable)}"
         )
 
+    if design == "ood" and not rule_def.supports_ood:
+        raise ValueError(
+            f"Rule {rule!r} does not support design='ood'. The rule's "
+            "dataset-level state (e.g. resolved weights, format width) "
+            "cannot be safely shared across OOD splits. Use "
+            "design='memorization' or design='in_distribution', or "
+            "file a follow-up issue if you have a concrete "
+            "length-generalization or distribution-shift use case."
+        )
+
     rule_kwargs = dict(rule_kwargs or {})
     # Seed is always available to rules (coin needs it for determinism);
     # explicit user-supplied seed in rule_kwargs wins so a caller can
     # decouple the label seed from the sampling seed if they want.
     rule_kwargs.setdefault("seed", seed)
+
+    # Rule-level dataset prep (e.g. weighted_sum draws/normalizes weights
+    # and computes the output format width). Runs at most once per
+    # generate() call; rules without state keep prepare=None.
+    prepared: dict = {}
+    if rule_def.prepare is not None:
+        prepared = rule_def.prepare(
+            input_type=input_type,
+            k=k,
+            N=N,
+            seed=seed,
+            rule_kwargs=rule_kwargs,
+        )
+    fn_kwargs = {**rule_kwargs, **prepared}
 
     primary_rng = random.Random(seed)
     sequences = _sample_sequences_unique(input_def.alphabet, k, N, primary_rng)
@@ -171,16 +195,19 @@ def generate(
         "seed": seed,
         "design": design,
     }
+    # Surface prepared (resolved) values at top level for downstream
+    # analyses (coefficient recovery, optimal-classifier upper bound, …).
+    metadata.update(prepared)
 
     if design == "memorization":
-        rows = _build_rows(sequences, rule_def.fn, rule_kwargs, formatter)
+        rows = _build_rows(sequences, rule_def.fn, fn_kwargs, formatter)
         return {"train": rows, "validation": rows, "metadata": metadata}
 
     # Both in_distribution and ood start with a primary train/val split.
     n_train, _ = _split_indices(N, split)
     metadata["split"] = split
-    train_rows = _build_rows(sequences[:n_train], rule_def.fn, rule_kwargs, formatter)
-    val_rows = _build_rows(sequences[n_train:], rule_def.fn, rule_kwargs, formatter)
+    train_rows = _build_rows(sequences[:n_train], rule_def.fn, fn_kwargs, formatter)
+    val_rows = _build_rows(sequences[n_train:], rule_def.fn, fn_kwargs, formatter)
     result: dict = {"train": train_rows, "validation": val_rows}
 
     if design == "in_distribution":
@@ -210,6 +237,11 @@ def generate(
         ood_formatter = get_format(r["format"])
         ood_rule_kwargs = dict(r["rule_kwargs"])
         ood_rule_kwargs.setdefault("seed", seed)
+        # Future rules with prepare AND supports_ood=True can share their
+        # resolved state across splits via this merge. Rules without
+        # prepare see prepared={} → no-op. Today's prepared rules
+        # (weighted_sum*) set supports_ood=False and never reach here.
+        ood_rule_kwargs.update(prepared)
         # Per-index RNG keeps samples reproducible even if another OOD spec
         # is added to the list later.
         ood_rng = random.Random(f"{seed}.ood.{i}")
