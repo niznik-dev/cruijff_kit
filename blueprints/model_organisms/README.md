@@ -1,11 +1,11 @@
-# Model Organism
+# Model Organisms
 
-Synthetic sequence-labeling tasks for sanity-checking fine-tuning and evaluation workflows. A "model organism" experiment is defined by four choices:
+Sequence-labeling tasks with known ground-truth rules — useful for verifying that fine-tuning and evaluation workflows produce expected results. A "model organism" experiment is defined by four choices:
 
 | Axis | Options | Role |
 |---|---|---|
 | **input_type** | `bits`, `digits`, `letters` | What the model sees in each prompt |
-| **rule** | `parity`, `first`, `last`, `nth`, `length`, `constant`, `coin`, `majority`, `min`, `max` | How the target is computed from the input |
+| **rule** | `parity`, `first`, `last`, `nth`, `length`, `constant`, `coin`, `majority`, `min`, `max`, `weighted_sum`, `weighted_sum_binary` | How the target is computed from the input |
 | **fmt** (format) | `spaced`, `dense`, `comma`, `tab`, `pipe` | How the sequence is rendered as text |
 | **design** | `memorization`, `in_distribution`, `ood` | What train/test split you want |
 
@@ -46,6 +46,31 @@ data:
 ```
 
 The `scaffold-experiment` skill reads this block and invokes the generator automatically before scaffolding the fine-tuning runs.
+
+### Linear DGP rules (`weighted_sum`, `weighted_sum_binary`)
+
+These rules apply to `bits` and `digits` and define a linear data-generating process `output = w · x + intercept`. They share these `rule_kwargs`:
+
+```yaml
+rule_kwargs:
+  # Either give weights explicitly...
+  weights: [1, 2, -1, 3, 0, 1, -2, 1]
+  # ...or let them be drawn:
+  weight_max: 3                # magnitudes uniform on {-W,…,-1,1,…,W}
+  sparsity: 0.0                # P(drawn weight masked to 0)
+  weight_seed: 42              # default = dataset seed
+
+  intercept: balanced          # int, or "balanced" (round(-sum(w)·E[x_i]))
+
+  # weighted_sum_binary only:
+  noise_scale: 0.0             # 0 → deterministic z>0 threshold;
+                               # >0 → σ-Bernoulli sample (deterministic
+                               # per (weight_seed, sequence))
+```
+
+`weighted_sum` formats outputs as a spaced + signed + zero-padded integer string (e.g. `+ 4 2`); width is computed once per dataset from the resolved weights and intercept. `weighted_sum_binary` outputs `"0"` or `"1"`.
+
+Top-level metadata captures `resolved_weights`, `intercept`, `format_width`, `weight_seed`, and (for binary stochastic) `bayes_accuracy` — the optimal-classifier upper bound.
 
 To run the generator manually (outside the skill workflow):
 

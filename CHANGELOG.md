@@ -13,12 +13,18 @@ All notable changes to cruijff_kit will be documented in this file.
 - `create-quiz` skill — turn one or two completed experiments into a self-grading HTML quiz that tests a recipient's intuition (#454, @msalganik)
 - Compute estimates in `design-experiment` based on previous runs (#349, @sarahepedersen)
 
+#### Evaluation & Metrics
+- `weighted_sum` and `weighted_sum_binary` rules in the `model_organisms` framework — linear-DGP outputs (`w·x + intercept`) with optional Bernoulli noise; analytical or 20k-sample Monte Carlo Bayes-accuracy reporting (#462, @msalganik)
+- `Rule.prepare` hook for dataset-level state (resolved weights, format width) and `Rule.supports_ood` flag for rules to opt out of OOD designs (#462, @msalganik)
+
 ### Changed
 
 - **Breaking:** Folder reorganization — flat `src/` layout, `projects/` → `blueprints/`, all artifacts unified under `ck-projects/{project}/{experiment_name}/`. The `experiments/`, `data/`, and `synthetic_twins/` directories are retired; input data is now user-provisioned via `{ck_data_dir}`. `experiment_summary.yaml` schema gains `experiment.project` and drops `type`. (#441)
 - **Breaking:** `model_organism` inspect task replaces `calibration` flag with `logprobs` (capability switch) and `top_logprobs`. Logprobs auto-enable when a configured scorer declares `requires_logprobs`. Existing `-T calibration=true` configs must migrate to placing `risk_scorer` in `scorer:` (for calibration metrics) or `-T logprobs=true` (raw logprobs only). (#463, @msalganik)
+- **Breaking:** Renamed `blueprints/model_organism/` → `blueprints/model_organisms/` for consistency with the `src/tools/model_organisms/` module. Existing `experiment_summary.yaml` files with `experiment.project: model_organism` must update to `model_organisms`. (#462)
 - `design-experiment` defers `claude.local.md` validation to `/setup` (#458)
 - Workflow test specs converted from YAML to plaintext briefs (#445)
+- Dropped legacy "synthetic" and "sanity check" framing from model-organisms documentation, blueprint READMEs, and the `design-experiment` skill — described as sequence-labeling tasks with known ground-truth rules instead (#462)
 - `python-markdown` added as a runtime dependency (used by `create-quiz` for markdown rendering)
 
 ### Fixed
@@ -30,6 +36,7 @@ All notable changes to cruijff_kit will be documented in this file.
 
 - Parquet support in fine-tune/eval workflow, subsumed by folder reorg (#441)
 - Duplicative `workflows/` directory in run-experiment skill (#468)
+- Vestigial `sanity_check vs research experiment` dichotomy in the `design-experiment` skill — was unused post-folder-reorg (#441), with the `experiment.type` field already removed from the schema (#462)
 
 ## [0.2.2] - 2026-04-23
 

@@ -200,7 +200,7 @@ Current blueprints:
 
 ### Model Organisms (`src/tools/model_organisms/`)
 
-Composable framework for synthetic sequence-labeling tasks. An experiment is specified by choosing an input type (`bits`, `digits`, `letters`), an output rule (`parity`, `first`, `last`, `majority`, `constant`, `coin`, …), a format (`spaced`, `dense`, `comma`, `tab`, `pipe`), and a design (`memorization`, `in_distribution`, `ood`). Single unified inspect-ai task evaluates any combination; data generation is invoked by `scaffold-experiment` via a `data.data_generation` block with `tool: model_organism`.
+Composable framework for sequence-labeling tasks with known ground-truth rules. An experiment is specified by choosing an input type (`bits`, `digits`, `letters`), an output rule (`parity`, `first`, `last`, `majority`, `constant`, `coin`, …), a format (`spaced`, `dense`, `comma`, `tab`, `pipe`), and a design (`memorization`, `in_distribution`, `ood`). Single unified inspect-ai task evaluates any combination; data generation is invoked by `scaffold-experiment` via a `data.data_generation` block with `tool: model_organism`.
 
 ## Package Structure
 
