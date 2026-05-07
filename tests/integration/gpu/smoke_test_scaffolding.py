@@ -35,6 +35,8 @@ def test_setup_finetune(work_dir: Path):
             "/fake/input/",
             "--output_dir_base",
             "/fake/output/",
+            "--experiment_name",
+            "smoke_test",
             "--models_dir",
             "/fake/models/",
             "--my_wandb_run_name",
