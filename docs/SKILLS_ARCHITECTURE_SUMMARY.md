@@ -2,7 +2,7 @@
 
 ## Overview
 
-cruijff_kit's workflow is built from a small set of skills, each with a focused responsibility, that together take an experiment from design through analysis. Two of the skills (`scaffold-experiment`, `run-experiment`) are heavily modularized internally — their `SKILL.md` orchestrates submodules in `optimizers/`, `evaluators/`, and `workflows/` subdirectories, plus subagents in `.claude/agents/`.
+cruijff_kit's workflow is built from a small set of skills, each with a focused responsibility, that together take an experiment from design through analysis. Two of the skills (`scaffold-experiment`, `run-experiment`) are heavily modularized internally — their `SKILL.md` orchestrates submodules in `optimizers/` and `evaluators/` subdirectories, plus subagents in `.claude/agents/`.
 
 ## Terminology
 
@@ -25,8 +25,8 @@ SCAFFOLD   →  scaffold-experiment
                 └─ scaffold-inspect    (subagent, parallel)
 
 RUN        →  run-experiment
-                ├─ workflows/torchtune.md   (fine-tuning pipeline)
-                └─ workflows/inspect.md     (evaluation pipeline; sequential, after fine-tuning)
+                ├─ optimizers/torchtune/    (fine-tuning pipeline)
+                └─ evaluators/inspect/      (evaluation pipeline; sequential, after fine-tuning)
 
 ANALYZE    →  summarize-experiment
               analyze-experiment
@@ -93,17 +93,14 @@ scaffold-experiment/
 run-experiment/
 ├── SKILL.md                       # High-level orchestration
 ├── logging.md
-├── workflows/
-│   ├── torchtune.md               # Fine-tuning pipeline
-│   └── inspect.md                 # Evaluation pipeline (post fine-tuning)
-├── optimizers/torchtune/
+├── optimizers/torchtune/          # Fine-tuning pipeline
 │   ├── main.md
 │   ├── run_selection.md
 │   ├── job_submission.md
 │   ├── monitoring.md
 │   ├── parsing.md
 │   └── validation.md
-├── evaluators/inspect/
+├── evaluators/inspect/            # Evaluation pipeline (post fine-tuning)
 │   ├── main.md
 │   ├── evaluation_selection.md
 │   ├── dependency_checking.md
@@ -148,7 +145,7 @@ ck-projects/{project}/{experiment_name}/
 
 **2. Sequential dependencies.** `run-experiment` enforces fine-tuning before evaluation — eval jobs require completed checkpoints. The order is encoded in the workflow modules, not in user discipline.
 
-**3. Modular documentation.** For complex skills, `SKILL.md` is the entry point and submodules in `optimizers/`, `evaluators/`, `workflows/` are loaded on demand. Smaller files reduce context cost and hallucination risk.
+**3. Modular documentation.** For complex skills, `SKILL.md` is the entry point and submodules in `optimizers/` and `evaluators/` are loaded on demand. Smaller files reduce context cost and hallucination risk.
 
 **4. Subagents for tool-specific scaffolding.** `scaffold-experiment` delegates torchtune and inspect-ai config generation to dedicated subagents in `.claude/agents/`, run in parallel since their outputs are independent.
 
