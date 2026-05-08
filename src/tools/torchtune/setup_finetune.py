@@ -976,6 +976,25 @@ def main():
         elif gpus == 1 and "distributed" in custom_recipe:
             custom_recipe = custom_recipe.replace("distributed", "single_device")
 
+        # Verify the (possibly auto-switched) recipe resolves to a real module on disk.
+        # Without this, e.g. a single-device _nightly recipe with gpus>1 silently rewrites to
+        # _distributed_nightly, which doesn't exist (see issue #474), and the SLURM job
+        # fails late at runtime instead of at scaffold time.
+        recipe_module_path = (
+            Path(__file__).parent
+            / "custom_recipes"
+            / f"{custom_recipe.rsplit('.', 1)[-1]}.py"
+        )
+        if not recipe_module_path.exists():
+            raise FileNotFoundError(
+                f"Resolved custom_recipe '{custom_recipe}' does not exist at "
+                f"{recipe_module_path}. This usually means the auto-switch between "
+                f"single_device and distributed produced a recipe variant that hasn't "
+                f"been implemented yet. If you requested validation_during_training=true "
+                f"on a multi-GPU run, that combination is tracked in "
+                f"https://github.com/niznik-dev/cruijff_kit/issues/474."
+            )
+
         if gpus == 1:
             slurm_script = slurm_script.replace(
                 "lora_finetune_single_device", custom_recipe + ".__main__"

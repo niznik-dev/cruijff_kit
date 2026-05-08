@@ -110,9 +110,9 @@ setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
 - `src/tools/torchtune/templates/finetune_template.yaml` - Base template for torchtune configs
 
 - `src/tools/torchtune/custom_recipes/` - Modified torchtune recipes
-  - `lora_finetune_single_device_stable.py` - Single GPU with custom features
-  - `lora_finetune_distributed_stable.py` - Multi-GPU distributed training
-  - `lora_finetune_single_device_nightly.py` - With validation loss tracking
+  - `lora_finetune_single_device_nightly.py` - Default for single-GPU runs; supports `run_val_every_n_steps` / `dataset_val`
+  - `lora_finetune_distributed_stable.py` - Multi-GPU distributed training (no val support yet — see #474)
+  - `lora_finetune_single_device_stable.py` - Older single-GPU recipe without val loop; retained as escape hatch for non-nightly torchtune installs
   - `custom_recipe_utils.py` - Shared utilities for recipes
 
 **Custom features added to torchtune:**
@@ -302,9 +302,9 @@ python setup_finetune.py --custom_recipe cruijff_kit.tools.torchtune.custom_reci
 ```
 
 Available custom recipes:
-- `lora_finetune_single_device_stable.py` - Single GPU with selective epoch saving
-- `lora_finetune_distributed_stable.py` - Multi-GPU distributed training
-- `lora_finetune_single_device_nightly.py` - With validation loss tracking (requires torchtune nightly)
+- `lora_finetune_single_device_nightly.py` - Default for single-GPU; supports validation during training (requires torchtune nightly)
+- `lora_finetune_distributed_stable.py` - Multi-GPU distributed training (no val support yet — see #474)
+- `lora_finetune_single_device_stable.py` - Older single-GPU recipe; retained as escape hatch for non-nightly torchtune installs
 
 ## Key Abstractions
 

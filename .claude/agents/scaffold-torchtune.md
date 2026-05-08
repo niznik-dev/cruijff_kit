@@ -269,10 +269,18 @@ system_prompt: {from controls.system_prompt, often empty string ""}
 prompt: {from controls.prompt, e.g., "Capitalize the given word: {input}\n"}
 
 # Custom Recipe (REQUIRED)
-# Select based on model size:
-#   - Llama 1B, 3B, 8B models (1 GPU): lora_finetune_single_device_stable
-#   - Llama 70B models (multi-GPU): lora_finetune_distributed_stable
-custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_{single_device|distributed}_stable
+# Select based on GPU count:
+#   - Single-GPU runs (1B / 3B / 8B): lora_finetune_single_device_nightly
+#       The `_nightly` recipe supports `run_val_every_n_steps` / `dataset_val`.
+#       The `make install` and `make install-dev` targets force torchtune nightly,
+#       so this is the supported baseline for new experiments.
+#   - Multi-GPU runs (70B): lora_finetune_distributed_stable
+#       No `_distributed_nightly` exists yet (tracked in #474). If
+#       `controls.validation_during_training: true` is set for a multi-GPU run,
+#       you MUST emit a loud warning at scaffold time AND in the run log
+#       (see "Multi-GPU validation warning" below) — validation will be silently
+#       skipped because the distributed recipe has no val loop.
+custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly  # or lora_finetune_distributed_stable for multi-GPU
 ```
 
 4. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
@@ -385,6 +393,26 @@ For each run directory:
 **If model or dataset paths don't exist:**
 - Warn user but proceed (paths might be correct on compute nodes)
 - Note in log which paths couldn't be verified
+
+### Multi-GPU validation warning
+
+If a run has `gpus > 1` (i.e., uses the `_distributed_stable` recipe) AND
+`controls.validation_during_training: true` is set in `experiment_summary.yaml`,
+the distributed recipe has no validation loop and val will be silently skipped.
+
+You MUST:
+
+1. Emit a clearly visible warning to the user when reporting scaffold results, e.g.:
+   ```
+   ⚠️  WARNING: Run '{run_name}' requested validation_during_training=true but
+   uses the distributed (multi-GPU) recipe, which does not yet support
+   mid-training validation. Validation will be SKIPPED for this run.
+   Tracked in https://github.com/niznik-dev/cruijff_kit/issues/474.
+   ```
+2. Log the same warning to `logs/scaffold-torchtune.log` for that run.
+3. Do NOT silently strip `validation_during_training` from the config — leave the
+   experiment_summary.yaml as-is so the audit trail still shows what was requested.
+4. Continue scaffolding the run (treat as a non-fatal warning, not an error).
 
 ## Logging
 

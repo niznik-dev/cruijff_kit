@@ -43,7 +43,7 @@ torchtune_model_name: Llama-3.2-1B-Instruct
 prompt: "Capitalize the given word: {input}\n"
 batch_size: 1
 epochs: 1
-custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable
+custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly
 ```
 
 Use a colon separator (not a newline) between instruction and input for best results. Then run:

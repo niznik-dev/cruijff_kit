@@ -4,6 +4,14 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- `scaffold-torchtune` defaults single-GPU runs to `_single_device_nightly` so `validation_during_training` is no longer silently dropped (#471)
+
+### Fixed
+
+- `setup_finetune.py` now errors at scaffold time when the GPU-count auto-switch resolves to a non-existent recipe (e.g. `_distributed_nightly`), instead of failing late at SLURM runtime. Multi-GPU val support tracked in #474. (#471)
+
 ## [0.3.0] - 2026-05-07
 
 ### Added
