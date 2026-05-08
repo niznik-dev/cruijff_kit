@@ -34,13 +34,15 @@ This ensures the entire experiment runs from training through evaluation with pr
 
 ### Tool Modules
 
-**Optimizer modules:** See [optimizers/](optimizers/) for tool-specific execution logic
-- Currently supported: torchtune (fine-tuning)
-- Future: DSPy (prompt optimization), custom trainers
+This skill invokes callable Python submitters that handle SLURM submission, drip-feed under the gpu-test QoS cap, monitoring to terminal state, and canonical log emission as a side-effect. The Python is the source of truth; the prose modules under `optimizers/` and `evaluators/` describe the schemas and flow for downstream readers.
 
-**Evaluator modules:** See [evaluators/](evaluators/) for tool-specific execution logic
-- Currently supported: inspect-ai
-- Future: custom evaluation frameworks
+**Optimizer modules:** See [optimizers/](optimizers/) for the schema description.
+- torchtune (fine-tuning) → `python -m cruijff_kit.tools.run.submit_torchtune <experiment_dir>` (writes `logs/run-torchtune.log` + `logs/run-torchtune.state.json`)
+
+**Evaluator modules:** See [evaluators/](evaluators/) for the schema description.
+- inspect-ai → `python -m cruijff_kit.tools.run.submit_inspect <experiment_dir>` (writes `logs/run-inspect.log` + `logs/run-inspect.state.json`)
+
+Both submitters are resume-safe: re-invoking after an interruption reads the JSON state file and skips already-submitted entries. Both emit canonical `SUBMIT_JOB:` / `SUBMIT_EVAL:` lines that `analyze-experiment`'s compute-utilization step harvests. Future tools (DSPy, custom trainers, custom evaluators) plug in here as additional submitters.
 
 ## Reading Tool Specifications
 
@@ -66,11 +68,9 @@ tools:
 **Why?** Evaluation jobs need optimized model checkpoints.
 
 **Implementation:**
-1. Execute optimizer module (torchtune fine-tuning)
-2. Monitor until ALL optimization jobs complete
-3. Only then execute evaluator module (inspect evaluation)
-4. Monitor until ALL evaluation jobs complete
-5. Report combined results
+1. Run `python -m cruijff_kit.tools.run.submit_torchtune <experiment_dir>` — submits, drip-feeds, monitors, writes `logs/run-torchtune.log` + `logs/run-torchtune.state.json`. Blocks until all jobs reach terminal state.
+2. Only after step 1 returns successfully, run `python -m cruijff_kit.tools.run.submit_inspect <experiment_dir>` — same pattern for evaluations, writes `logs/run-inspect.log` + `logs/run-inspect.state.json`. Blocks until terminal.
+3. Append a high-level summary to `logs/run-experiment.log` (the orchestration log). The detailed per-job records already live in the per-tool logs.
 
 ## Logging
 
@@ -217,11 +217,11 @@ After completing the experiment, offer to analyze the results:
 ## Important Notes
 
 **Orchestration principles:**
-- This skill orchestrates by loading tool modules into the main conversation context (no subagent delegation, unlike scaffold-experiment)
-- Each tool module maintains its own detailed log
-- Sequential execution is mandatory (evaluation requires optimization complete)
-- Partial success is acceptable (some runs succeed, others fail)
-- Tool modules can be executed independently if needed
+- This skill invokes callable Python submitters (`src/tools/run/submit_*.py`) that handle the operational work and emit canonical execution logs as a side-effect. No prose-by-prose recipe; the script is the contract.
+- Each submitter maintains its own detailed log (`logs/run-torchtune.log`, `logs/run-inspect.log`) AND a JSON resume state file alongside it.
+- Sequential execution is mandatory (evaluation requires optimization complete).
+- Partial success is acceptable (some runs succeed, others fail) — the state files capture which ones.
+- Each submitter can be invoked directly (CLI or `from cruijff_kit.tools.run import submit_torchtune; submit_torchtune.run(experiment_dir)`).
 
 **Relationship to other skills:**
 - **Before:** design-experiment, scaffold-experiment

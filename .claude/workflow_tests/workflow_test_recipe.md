@@ -76,6 +76,8 @@ Standard:
 - All run directories created
 - Training jobs complete successfully and produce `epoch_0/` checkpoint dirs
 - Evaluation jobs complete successfully and produce result logs
+- `logs/run-torchtune.log` and `logs/run-inspect.log` exist with canonical `SUBMIT_JOB:` / `SUBMIT_EVAL:` blocks
+- After running `analyze-experiment`, `analysis/report.md` contains a `## Compute Utilization` header and `analysis/compute_metrics.json` exists (closes #451)
 
 Recipe-specific:
 

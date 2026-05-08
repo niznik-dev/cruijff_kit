@@ -9,7 +9,15 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
+
+# Canonical run-experiment log shape lives at
+# .claude/skills/run-experiment/logging.md and is enforced by
+# src/tools/run/_submit_common.py. Both regexes mirror those in
+# .claude/skills/analyze-experiment/generation.md:387-388.
+SUBMIT_JOB_RE = re.compile(r"SUBMIT_JOB: ([\w.-]+)\n.*?\nJob ID: (\d+)", re.DOTALL)
+SUBMIT_EVAL_RE = re.compile(r"SUBMIT_EVAL: ([\w./-]+)\n.*?\nJob ID: (\d+)", re.DOTALL)
 
 
 def parse_seff_output(seff_text: str) -> dict:
@@ -582,3 +590,54 @@ def format_compute_table(
                 lines.append("")
 
     return "\n".join(lines)
+
+
+def harvest_jids_from_run_logs(
+    experiment_dir: Path,
+) -> tuple[dict[str, list[tuple[str, str]]], list[str]]:
+    """Parse run-experiment execution logs into job IDs.
+
+    Returns:
+        ({"finetune": [(name, jid), ...], "eval": [(name, jid), ...]}, warnings)
+
+    `warnings` is a list of human-readable strings explaining any missing or
+    malformed log files. When non-empty, callers should:
+      1. Emit each line to stderr (this function already does so).
+      2. Surface them in the rendered report (e.g., as a "*Compute Utilization
+         unavailable: ...*" note) instead of silently omitting the section.
+
+    Pre-#451, analyze-experiment's compute step "skipped silently if no run
+    logs exist." This helper makes the absence loud.
+    """
+    finetune_path = experiment_dir / "logs" / "run-torchtune.log"
+    eval_path = experiment_dir / "logs" / "run-inspect.log"
+
+    finetune_pairs, finetune_warns = _harvest_one(finetune_path, SUBMIT_JOB_RE)
+    eval_pairs, eval_warns = _harvest_one(eval_path, SUBMIT_EVAL_RE)
+
+    warnings = finetune_warns + eval_warns
+    for w in warnings:
+        print(f"WARNING: {w}", file=sys.stderr)
+
+    return {"finetune": finetune_pairs, "eval": eval_pairs}, warnings
+
+
+def _harvest_one(
+    log_path: Path, pattern: re.Pattern[str]
+) -> tuple[list[tuple[str, str]], list[str]]:
+    if not log_path.exists():
+        return [], [
+            f"{log_path} not found — compute utilization cannot be reported "
+            f"for the corresponding job class. Re-run run-experiment, or "
+            f"reconstruct the log from sacct."
+        ]
+    text = log_path.read_text()
+    pairs = pattern.findall(text)
+    if not pairs:
+        return [], [
+            f"{log_path} exists but contains no canonical SUBMIT_JOB / "
+            f"SUBMIT_EVAL entries. Compute utilization cannot be reported "
+            f"for this log. Check that submissions used the run-experiment "
+            f"skill or src/tools/run/submit_*.py."
+        ]
+    return list(pairs), []

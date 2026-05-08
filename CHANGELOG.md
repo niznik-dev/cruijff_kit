@@ -4,15 +4,23 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `src/tools/run/submit_torchtune.py` and `submit_inspect.py` — callable submitters for `run-experiment`. Drip-feed against the gpu-test QoS cap (default `MAX_SUBMIT=25`), 5-second stagger, resume-safe JSON state file, canonical `SUBMIT_JOB:` / `SUBMIT_EVAL:` log emission. Replaces the prose-only execution path the skill used to rely on. (#451)
+- `harvest_jids_from_run_logs()` in `src/tools/slurm/compute_metrics.py` — single helper that `analyze-experiment` calls to extract job IDs from `run-torchtune.log` / `run-inspect.log` and surface loud warnings when those logs are missing or malformed. (#451)
+
 ### Changed
 
 - `scaffold-torchtune` defaults single-GPU runs to `_single_device_nightly` so `validation_during_training` is no longer silently dropped (#471)
 - `setup_finetune.py` now picks a GPU-aware default for `--custom_recipe` (single-GPU → `_single_device_nightly`, multi-GPU → `_distributed_stable`), anchoring the recipe choice in code rather than agent prose (#471)
+- `run-experiment` skill now invokes the callable submitters instead of executing prose-by-prose recipes; the skill docs collapse to schema descriptions (#451)
+- `analyze-experiment` no longer silently skips the Compute Utilization section when run logs are missing; a `WARNING:` is printed to stderr and the absence is surfaced as a visible note in `report.md` (#451)
 
 ### Fixed
 
 - `setup_finetune.py` now errors at scaffold time when the GPU-count auto-switch resolves to a non-existent recipe (e.g. `_distributed_nightly`), instead of failing late at SLURM runtime. Multi-GPU val support tracked in #474. (#471)
 - `setup_finetune.py` now warns when `validation_during_training` is requested for a multi-GPU run, in addition to the agent-side warning (#471)
+- Eval-side submitter no longer collapses distinct runs onto a single state-file key when each run has the same eval slurm filename (the bug that bit the `lostmiddle_kxp_3B` experiment, issue #451 comment #2). State key now includes the relative path. (#451)
 
 ## [0.3.0] - 2026-05-07
 
