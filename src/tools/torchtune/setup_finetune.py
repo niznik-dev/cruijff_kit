@@ -933,6 +933,30 @@ def main():
     model_gpus = slurm_config.get("gpus", 1)
     gpus = args.gpus if args.gpus != 1 else model_gpus
 
+    # Default custom_recipe based on GPU count when not explicitly set.
+    # This keeps the GPU-aware recipe choice anchored in code rather than
+    # relying on the scaffold-torchtune agent doc to pick the right one;
+    # the agent can still override by writing custom_recipe explicitly.
+    if args.custom_recipe is None:
+        if gpus == 1:
+            args.custom_recipe = "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly"
+        else:
+            args.custom_recipe = "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_distributed_stable"
+
+    # Warn if validation was requested for a multi-GPU run. The distributed
+    # recipe has no val loop yet (issue #474), so val will be silently skipped
+    # at training time. The scaffold-torchtune agent is supposed to emit this
+    # warning too, but duplicating it here makes the failure loud even when
+    # setup_finetune.py is invoked outside the agent path.
+    if config.get("run_val_every_n_steps", 0) > 0 and gpus > 1:
+        warnings.warn(
+            "validation_during_training was requested for a multi-GPU run, but "
+            "the distributed recipe does not yet support mid-training validation. "
+            "Validation will be SKIPPED. Tracked in "
+            "https://github.com/niznik-dev/cruijff_kit/issues/474.",
+            stacklevel=2,
+        )
+
     # CPUs: use model config value
     cpus = slurm_config.get("cpus", 4)
 
