@@ -224,6 +224,47 @@ class TestMainSlurmGeneration:
         assert "--gres=gpu:4" in slurm
 
 
+class TestCustomRecipeGuard:
+    """Tests for the auto-switch guard added in #471.
+
+    Pre-#471, asking for a single-device recipe with gpus>1 silently rewrote it
+    to the distributed equivalent — including for `_nightly`, where no
+    distributed variant exists. Failures showed up at SLURM runtime instead of
+    scaffold time. The guard now hard-errors when the rewritten recipe doesn't
+    resolve to a real module on disk.
+    """
+
+    NIGHTLY = (
+        "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly"
+    )
+    STABLE_SINGLE = (
+        "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable"
+    )
+    STABLE_DIST = (
+        "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_distributed_stable"
+    )
+
+    def test_single_device_nightly_with_one_gpu_resolves(self, run_main):
+        _, slurm = run_main(extra_args=["--custom_recipe", self.NIGHTLY])
+        assert "lora_finetune_single_device_nightly" in slurm
+
+    def test_single_device_nightly_with_multi_gpu_raises(self, run_main):
+        with pytest.raises(FileNotFoundError, match="474"):
+            run_main(extra_args=["--custom_recipe", self.NIGHTLY, "--gpus", "4"])
+
+    def test_single_device_stable_with_multi_gpu_auto_switches(self, run_main):
+        _, slurm = run_main(
+            extra_args=["--custom_recipe", self.STABLE_SINGLE, "--gpus", "4"]
+        )
+        assert "lora_finetune_distributed_stable" in slurm
+
+    def test_distributed_stable_with_multi_gpu_resolves(self, run_main):
+        _, slurm = run_main(
+            extra_args=["--custom_recipe", self.STABLE_DIST, "--gpus", "4"]
+        )
+        assert "lora_finetune_distributed_stable" in slurm
+
+
 class TestMainConfigPrecedence:
     """Tests for CLI > config_file > argparse_default precedence."""
 
