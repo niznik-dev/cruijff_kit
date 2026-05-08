@@ -933,6 +933,30 @@ def main():
     model_gpus = slurm_config.get("gpus", 1)
     gpus = args.gpus if args.gpus != 1 else model_gpus
 
+    # Default custom_recipe based on GPU count when not explicitly set.
+    # This keeps the GPU-aware recipe choice anchored in code rather than
+    # relying on the scaffold-torchtune agent doc to pick the right one;
+    # the agent can still override by writing custom_recipe explicitly.
+    if args.custom_recipe is None:
+        if gpus == 1:
+            args.custom_recipe = "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly"
+        else:
+            args.custom_recipe = "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_distributed_stable"
+
+    # Warn if validation was requested for a multi-GPU run. The distributed
+    # recipe has no val loop yet (issue #474), so val will be silently skipped
+    # at training time. The scaffold-torchtune agent is supposed to emit this
+    # warning too, but duplicating it here makes the failure loud even when
+    # setup_finetune.py is invoked outside the agent path.
+    if config.get("run_val_every_n_steps", 0) > 0 and gpus > 1:
+        warnings.warn(
+            "validation_during_training was requested for a multi-GPU run, but "
+            "the distributed recipe does not yet support mid-training validation. "
+            "Validation will be SKIPPED. Tracked in "
+            "https://github.com/niznik-dev/cruijff_kit/issues/474.",
+            stacklevel=2,
+        )
+
     # CPUs: use model config value
     cpus = slurm_config.get("cpus", 4)
 
@@ -975,6 +999,25 @@ def main():
             custom_recipe = custom_recipe.replace("single_device", "distributed")
         elif gpus == 1 and "distributed" in custom_recipe:
             custom_recipe = custom_recipe.replace("distributed", "single_device")
+
+        # Verify the (possibly auto-switched) recipe resolves to a real module on disk.
+        # Without this, e.g. a single-device _nightly recipe with gpus>1 silently rewrites to
+        # _distributed_nightly, which doesn't exist (see issue #474), and the SLURM job
+        # fails late at runtime instead of at scaffold time.
+        recipe_module_path = (
+            Path(__file__).parent
+            / "custom_recipes"
+            / f"{custom_recipe.rsplit('.', 1)[-1]}.py"
+        )
+        if not recipe_module_path.exists():
+            raise FileNotFoundError(
+                f"Resolved custom_recipe '{custom_recipe}' does not exist at "
+                f"{recipe_module_path}. This usually means the auto-switch between "
+                f"single_device and distributed produced a recipe variant that hasn't "
+                f"been implemented yet. If you requested validation_during_training=true "
+                f"on a multi-GPU run, that combination is tracked in "
+                f"https://github.com/niznik-dev/cruijff_kit/issues/474."
+            )
 
         if gpus == 1:
             slurm_script = slurm_script.replace(

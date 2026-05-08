@@ -5,6 +5,7 @@ test_setup_finetune.py doesn't cover (helper functions only).
 """
 
 import sys
+import warnings
 import yaml
 from unittest.mock import patch
 
@@ -222,6 +223,109 @@ class TestMainSlurmGeneration:
         _, slurm = run_main(extra_args=["--gpus", "4"])
         assert "lora_finetune_distributed" in slurm
         assert "--gres=gpu:4" in slurm
+
+
+class TestCustomRecipeGuard:
+    """Tests for the auto-switch guard added in #471.
+
+    Pre-#471, asking for a single-device recipe with gpus>1 silently rewrote it
+    to the distributed equivalent — including for `_nightly`, where no
+    distributed variant exists. Failures showed up at SLURM runtime instead of
+    scaffold time. The guard now hard-errors when the rewritten recipe doesn't
+    resolve to a real module on disk.
+    """
+
+    NIGHTLY = (
+        "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly"
+    )
+    STABLE_SINGLE = (
+        "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable"
+    )
+    STABLE_DIST = (
+        "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_distributed_stable"
+    )
+
+    def test_single_device_nightly_with_one_gpu_resolves(self, run_main):
+        _, slurm = run_main(extra_args=["--custom_recipe", self.NIGHTLY])
+        assert "lora_finetune_single_device_nightly" in slurm
+
+    def test_single_device_nightly_with_multi_gpu_raises(self, run_main):
+        with pytest.raises(FileNotFoundError, match="474"):
+            run_main(extra_args=["--custom_recipe", self.NIGHTLY, "--gpus", "4"])
+
+    def test_single_device_stable_with_multi_gpu_auto_switches(self, run_main):
+        _, slurm = run_main(
+            extra_args=["--custom_recipe", self.STABLE_SINGLE, "--gpus", "4"]
+        )
+        assert "lora_finetune_distributed_stable" in slurm
+
+    def test_distributed_stable_with_multi_gpu_resolves(self, run_main):
+        _, slurm = run_main(
+            extra_args=["--custom_recipe", self.STABLE_DIST, "--gpus", "4"]
+        )
+        assert "lora_finetune_distributed_stable" in slurm
+
+
+class TestCustomRecipeDefault:
+    """Tests for the GPU-aware --custom_recipe default added in #471.
+
+    Anchors the default recipe choice in code rather than the scaffold-torchtune
+    agent doc, so omitting --custom_recipe still produces a working recipe path.
+    """
+
+    def test_single_gpu_default_is_nightly(self, run_main):
+        """No --custom_recipe + 1 GPU → single_device_nightly (val-capable)."""
+        _, slurm = run_main()
+        assert "lora_finetune_single_device_nightly" in slurm
+
+    def test_multi_gpu_default_is_distributed_stable(self, run_main):
+        """No --custom_recipe + multi-GPU → distributed_stable (no val yet, see #474)."""
+        _, slurm = run_main(extra_args=["--gpus", "4"])
+        assert "lora_finetune_distributed_stable" in slurm
+
+    def test_explicit_custom_recipe_overrides_default(self, run_main):
+        """An explicit --custom_recipe still wins over the default."""
+        _, slurm = run_main(
+            extra_args=[
+                "--custom_recipe",
+                "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable",
+            ]
+        )
+        assert "lora_finetune_single_device_stable" in slurm
+        assert "lora_finetune_single_device_nightly" not in slurm
+
+
+class TestMultiGpuValWarning:
+    """Tests for the Python-side warning when val is requested for multi-GPU.
+
+    The scaffold-torchtune agent is supposed to flag this combination, but
+    setup_finetune.py duplicates the warning so it fires regardless of how
+    the script was invoked. Tracked in #474.
+    """
+
+    def _set_val(self, setup_yaml, n_steps):
+        with open(setup_yaml) as f:
+            cfg = yaml.safe_load(f)
+        cfg["run_val_every_n_steps"] = n_steps
+        with open(setup_yaml, "w") as f:
+            yaml.dump(cfg, f)
+
+    def test_warning_emitted_for_val_plus_multi_gpu(self, run_main, setup_yaml):
+        self._set_val(setup_yaml, 50)
+        with pytest.warns(UserWarning, match="474"):
+            run_main(extra_args=["--gpus", "4"])
+
+    def test_no_warning_for_val_plus_single_gpu(self, run_main, setup_yaml):
+        self._set_val(setup_yaml, 50)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")  # turn any warning into a test failure
+            run_main()
+
+    def test_no_warning_for_no_val_plus_multi_gpu(self, run_main, setup_yaml):
+        self._set_val(setup_yaml, 0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            run_main(extra_args=["--gpus", "4"])
 
 
 class TestMainConfigPrecedence:

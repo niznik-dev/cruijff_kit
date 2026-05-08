@@ -4,6 +4,16 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- `scaffold-torchtune` defaults single-GPU runs to `_single_device_nightly` so `validation_during_training` is no longer silently dropped (#471)
+- `setup_finetune.py` now picks a GPU-aware default for `--custom_recipe` (single-GPU → `_single_device_nightly`, multi-GPU → `_distributed_stable`), anchoring the recipe choice in code rather than agent prose (#471)
+
+### Fixed
+
+- `setup_finetune.py` now errors at scaffold time when the GPU-count auto-switch resolves to a non-existent recipe (e.g. `_distributed_nightly`), instead of failing late at SLURM runtime. Multi-GPU val support tracked in #474. (#471)
+- `setup_finetune.py` now warns when `validation_during_training` is requested for a multi-GPU run, in addition to the agent-side warning (#471)
+
 ## [0.3.0] - 2026-05-07
 
 ### Added

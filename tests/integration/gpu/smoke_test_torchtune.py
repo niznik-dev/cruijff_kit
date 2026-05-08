@@ -92,7 +92,7 @@ def main():
             [
                 "tune",
                 "run",
-                "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_stable.__main__",
+                "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly.__main__",
                 "--config",
                 "finetune.yaml",
             ],
