@@ -6,6 +6,7 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ### Added
 
+- `--cpus_per_task` flag on `setup_finetune.py`, wired through `scaffold-torchtune` as `runs[].compute.cpus_per_task`. Overrides `MODEL_CONFIGS[model]["slurm"]["cpus"]` for the generated `#SBATCH --cpus-per-task=`. Useful for workloads with long sequences or heavy preprocessing where tokenizer threading and OpenMP can give a small GPU-util bump even at `num_workers=0`. Does *not* parallelize data loading itself — that's recipe-level and tracked separately. (#449)
 - `src/tools/run/submit_torchtune.py` and `submit_inspect.py` — callable submitters for `run-experiment`. Drip-feed against the gpu-test QoS cap (default `MAX_SUBMIT=25`), 5-second stagger, resume-safe JSON state file, canonical `SUBMIT_JOB:` / `SUBMIT_EVAL:` log emission. Replaces the prose-only execution path the skill used to rely on. (#451)
 - `harvest_jids_from_run_logs()` in `src/tools/slurm/compute_metrics.py` — single helper that `analyze-experiment` calls to extract job IDs from `run-torchtune.log` / `run-inspect.log` and surface loud warnings when those logs are missing or malformed. (#451)
 - Detach mechanisms for `run-experiment` submitters — SIGINT, SIGTERM, and a sticky `<exp_dir>/logs/.detach` sentinel file. Any path flushes state, emits a canonical `MONITOR_DETACHED` log block, prints a re-attach hint to stderr, and exits cleanly; SLURM jobs continue running. (#479)

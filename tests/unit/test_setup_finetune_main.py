@@ -225,6 +225,36 @@ class TestMainSlurmGeneration:
         assert "--gres=gpu:4" in slurm
 
 
+class TestCpusPerTask:
+    """Tests for the --cpus_per_task override (issue #449).
+
+    Resolution order: CLI > setup_finetune.yaml > MODEL_CONFIGS["slurm"]["cpus"] > 1.
+    The fixture's model is Llama-3.2-1B-Instruct, which has cpus=1 in MODEL_CONFIGS.
+    """
+
+    def test_cli_override_writes_to_slurm(self, run_main):
+        _, slurm = run_main(extra_args=["--cpus_per_task", "8"])
+        assert "#SBATCH --cpus-per-task=8" in slurm
+
+    def test_default_falls_back_to_model_config(self, run_main):
+        _, slurm = run_main()
+        assert "#SBATCH --cpus-per-task=1" in slurm
+
+    def test_cli_overrides_yaml(self, run_main, setup_yaml):
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["cpus_per_task"] = 4
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        _, slurm = run_main(extra_args=["--cpus_per_task", "12"])
+        assert "#SBATCH --cpus-per-task=12" in slurm
+
+    def test_cpus_per_task_not_in_finetune_yaml(self, run_main):
+        # SLURM-only knob; must not leak into the rendered torchtune config.
+        config, _ = run_main(extra_args=["--cpus_per_task", "8"])
+        assert "cpus_per_task" not in config
+
+
 class TestCustomRecipeGuard:
     """Tests for the auto-switch guard added in #471.
 
