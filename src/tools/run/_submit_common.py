@@ -318,15 +318,29 @@ def log_monitor_config(
 
 
 # ---------------------------------------------------------------------------
-# Live monitor settings (logs/monitor.json)
+# Monitor-knob configuration: user config (<repo>/.config/config.json) and
+# live overrides (<exp_dir>/logs/monitor.json)
 # ---------------------------------------------------------------------------
 #
-# The watcher re-reads this file on every poll iteration so `poll_sec`,
-# `stagger_sec`, and `max_submit` can be tuned mid-run without detach +
-# re-attach. Same filesystem-as-control-plane shape as the `.detach`
-# sentinel — anyone with FS access (human, agent, /loop, cron) can edit.
+# Two filesystem-as-control-plane files share the same JSON schema and the
+# same validator:
 #
-# Precedence: monitor.json > CLI flag > env var > built-in default.
+#   <repo>/.config/config.json    — per-checkout user defaults. Read once
+#                                   per process. Power-user territory; ships
+#                                   with the built-in defaults visible.
+#
+#   <exp_dir>/logs/monitor.json   — live overrides for a single run. The
+#                                   watcher re-reads this on every poll
+#                                   iteration so cadence can be tuned mid-run
+#                                   without detach + re-attach.
+#
+# Final precedence (high → low):
+#   monitor.json  >  CLI flag  >  <repo>/.config/config.json  >  built-in default
+
+# Repo root from this file's location: src/tools/run/_submit_common.py -> .. .. .. .
+_USER_CONFIG_PATH = Path(__file__).resolve().parents[3] / ".config" / "config.json"
+_user_config_loaded = False
+_user_config_cache: dict = {}
 
 
 def monitor_config_path(log_path: Path) -> Path:
@@ -337,10 +351,11 @@ def monitor_config_path(log_path: Path) -> Path:
 def _validate_monitor_value(
     key: str, raw: object
 ) -> tuple[bool, float | int | None, str | None]:
-    """Coerce + validate a single monitor.json entry.
+    """Coerce + validate a single monitor-knob entry.
 
     Returns `(ok, coerced_value, error_msg)`. On failure, `coerced_value`
     is None and `error_msg` describes the problem suitable for a warning.
+    Shared between `<repo>/.config/config.json` and `logs/monitor.json`.
     """
     if key in ("poll_sec", "stagger_sec"):
         if isinstance(raw, bool) or not isinstance(raw, (int, float)):
@@ -364,14 +379,13 @@ def _validate_monitor_value(
     return False, None, f"unknown key {key!r}"
 
 
-def _load_monitor_config(log_path: Path) -> tuple[dict, list[str]]:
-    """Read + validate logs/monitor.json. Never raises.
+def _read_validated_config(path: Path) -> tuple[dict, list[str]]:
+    """Read + validate a monitor-knobs JSON file. Never raises.
 
     Returns `(overrides, warnings)`. `overrides` contains only valid,
-    recognized keys with coerced values; `warnings` lists problems
-    suitable for stderr. Missing file -> ({}, []).
+    recognized keys; `warnings` lists problems suitable for stderr.
+    Missing file -> ({}, []) so callers can no-op silently.
     """
-    path = monitor_config_path(log_path)
     if not path.exists():
         return {}, []
     try:
@@ -397,6 +411,35 @@ def _load_monitor_config(log_path: Path) -> tuple[dict, list[str]]:
             continue
         overrides[key] = val
     return overrides, warnings
+
+
+def _load_monitor_config(log_path: Path) -> tuple[dict, list[str]]:
+    """Read + validate the per-run logs/monitor.json. Never raises."""
+    return _read_validated_config(monitor_config_path(log_path))
+
+
+def _load_user_config() -> dict:
+    """Read + validate <repo>/.config/config.json once per process.
+
+    Cached after first successful load. Warnings (malformed JSON, bad
+    values, unknown keys) print to stderr on the first call only.
+    """
+    global _user_config_loaded, _user_config_cache
+    if _user_config_loaded:
+        return _user_config_cache
+    overrides, warnings = _read_validated_config(_USER_CONFIG_PATH)
+    for w in warnings:
+        print(f"WARNING: {w}", file=sys.stderr)
+    _user_config_cache = overrides
+    _user_config_loaded = True
+    return _user_config_cache
+
+
+def _reset_user_config_cache() -> None:
+    """Test helper: drop the process-wide user-config cache."""
+    global _user_config_loaded, _user_config_cache
+    _user_config_loaded = False
+    _user_config_cache = {}
 
 
 def _refresh_monitor_config(cfg: _SubmitConfig) -> None:
@@ -530,9 +573,13 @@ def submit_and_monitor(
     Resumable: existing entries in the state file with terminal state are skipped.
 
     Honors:
-    - `max_submit` queue-depth cap (gpu-test default = 25; override via env or arg).
+    - `max_submit` queue-depth cap (gpu-test default = 25).
     - `stagger_sec` between submissions (HF datasets cache race).
     - `poll_sec` when waiting for queue room or for in-flight jobs.
+
+    All three can be overridden mid-run via `<exp_dir>/logs/monitor.json`.
+    Static defaults read from `<repo>/.config/config.json`; see the
+    resolve_* helpers and the run-experiment SKILL for the precedence chain.
     """
     cfg = _SubmitConfig(
         log_path=log_path,
@@ -811,43 +858,25 @@ def resolve_user(cli_user: str | None) -> str:
 def resolve_max_submit(cli_max: int | None) -> int:
     if cli_max is not None:
         return cli_max
-    env = os.environ.get("MAX_SUBMIT")
-    if env:
-        try:
-            return int(env)
-        except ValueError:
-            print(
-                f"WARNING: ignoring non-integer MAX_SUBMIT env var: {env!r}",
-                file=sys.stderr,
-            )
+    user_val = _load_user_config().get("max_submit")
+    if user_val is not None:
+        return user_val
     return DEFAULT_MAX_SUBMIT
 
 
 def resolve_poll_sec(cli_poll: float | None) -> float:
     if cli_poll is not None:
         return cli_poll
-    env = os.environ.get("POLL_SEC")
-    if env:
-        try:
-            return float(env)
-        except ValueError:
-            print(
-                f"WARNING: ignoring non-numeric POLL_SEC env var: {env!r}",
-                file=sys.stderr,
-            )
+    user_val = _load_user_config().get("poll_sec")
+    if user_val is not None:
+        return user_val
     return DEFAULT_POLL_SEC
 
 
 def resolve_stagger_sec(cli_stagger: float | None) -> float:
     if cli_stagger is not None:
         return cli_stagger
-    env = os.environ.get("STAGGER_SEC")
-    if env:
-        try:
-            return float(env)
-        except ValueError:
-            print(
-                f"WARNING: ignoring non-numeric STAGGER_SEC env var: {env!r}",
-                file=sys.stderr,
-            )
+    user_val = _load_user_config().get("stagger_sec")
+    if user_val is not None:
+        return user_val
     return DEFAULT_STAGGER_SEC

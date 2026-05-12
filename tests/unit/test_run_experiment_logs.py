@@ -979,16 +979,17 @@ class TestMonitorConfig:
         assert cfg.max_submit == common.DEFAULT_MAX_SUBMIT
         assert "max_submit must be an integer" in capsys.readouterr().err
 
-    def test_precedence_file_overrides_cli_and_env(
-        self, tmp_path, monkeypatch, fake_slurm, fast_sleep
+    def test_precedence_monitor_over_cli_over_user_config_over_default(
+        self, tmp_path, user_config_path, fake_slurm, fast_sleep
     ):
-        """Integration: file beats CLI flag beats env var beats default."""
+        """End-to-end precedence: monitor.json > CLI > user config > default."""
         _write_finetune_experiment(tmp_path, ["rank4"], include_control=False)
         logs_dir = tmp_path / "logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        # env: poll_sec=30, file: poll_sec=10, CLI: poll_sec=20.
-        monkeypatch.setenv("POLL_SEC", "30")
+        # User config: poll_sec=30. monitor.json: poll_sec=10. CLI: poll_sec=20.
+        # Final effective value through the run = 10 (monitor.json wins).
+        user_config_path.write_text(json.dumps({"poll_sec": 30}))
         (logs_dir / "monitor.json").write_text(json.dumps({"poll_sec": 10}))
 
         original_sbatch = fake_slurm._sbatch
@@ -1003,7 +1004,8 @@ class TestMonitorConfig:
         submit_torchtune.run(tmp_path, user="testuser", max_submit=10, poll_sec=20)
 
         log = (logs_dir / "run-torchtune.log").read_text()
-        # CLI override sets cfg.poll_sec=20 at entry; file then drops it to 10.
+        # CLI=20 wins over user-config=30 at startup; monitor.json=10 then
+        # drops it from 20 on the first poll iteration.
         assert "poll_sec=10 (was 20)" in log
 
     def test_config_block_does_not_match_jid_harvest_regex(self, tmp_path):
@@ -1022,22 +1024,96 @@ class TestMonitorConfig:
         assert SUBMIT_JOB_RE.findall(log) == []
         assert SUBMIT_EVAL_RE.findall(log) == []
 
-    def test_resolve_poll_sec_env_precedence(self, monkeypatch):
-        """resolve_poll_sec: CLI flag > env var > default."""
-        monkeypatch.setenv("POLL_SEC", "45")
-        assert common.resolve_poll_sec(None) == 45.0
-        assert common.resolve_poll_sec(15.0) == 15.0
-        monkeypatch.delenv("POLL_SEC")
-        assert common.resolve_poll_sec(None) == common.DEFAULT_POLL_SEC
 
-    def test_resolve_stagger_sec_env_precedence(self, monkeypatch):
-        monkeypatch.setenv("STAGGER_SEC", "2.5")
-        assert common.resolve_stagger_sec(None) == 2.5
+# ---------------------------------------------------------------------------
+# (8) User config — <repo>/.config/config.json
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def user_config_path(tmp_path, monkeypatch):
+    """Redirect user-config loading to a per-test temp path with cache reset.
+
+    Yields the (initially-nonexistent) target path. Tests write JSON there
+    to exercise user-config behavior in isolation from the real
+    <repo>/.config/config.json.
+    """
+    path = tmp_path / "user_config.json"
+    monkeypatch.setattr(common, "_USER_CONFIG_PATH", path)
+    common._reset_user_config_cache()
+    yield path
+    common._reset_user_config_cache()
+
+
+class TestUserConfig:
+    """User-level defaults via <repo>/.config/config.json (power-user knob).
+
+    Precedence layer: CLI > user config > built-in default. Live overrides
+    via logs/monitor.json sit above CLI. The file is tracked in the repo
+    so the defaults are visible; power users can edit it and add
+    `git update-index --skip-worktree` if they don't want changes in git status.
+    """
+
+    def test_resolve_max_submit_falls_back_to_user_config(self, user_config_path):
+        user_config_path.write_text(json.dumps({"max_submit": 42}))
+        assert common.resolve_max_submit(None) == 42
+        # CLI flag still wins over user config.
+        assert common.resolve_max_submit(5) == 5
+
+    def test_resolve_poll_sec_falls_back_to_user_config(self, user_config_path):
+        user_config_path.write_text(json.dumps({"poll_sec": 300}))
+        assert common.resolve_poll_sec(None) == 300
+        assert common.resolve_poll_sec(15.0) == 15.0
+
+    def test_resolve_stagger_sec_falls_back_to_user_config(self, user_config_path):
+        user_config_path.write_text(json.dumps({"stagger_sec": 2}))
+        assert common.resolve_stagger_sec(None) == 2
         assert common.resolve_stagger_sec(1.0) == 1.0
-        monkeypatch.delenv("STAGGER_SEC")
+
+    def test_missing_user_config_falls_back_to_built_in_default(self, user_config_path):
+        # File deliberately not written -> loader returns empty -> DEFAULT_*.
+        assert common.resolve_max_submit(None) == common.DEFAULT_MAX_SUBMIT
+        assert common.resolve_poll_sec(None) == common.DEFAULT_POLL_SEC
         assert common.resolve_stagger_sec(None) == common.DEFAULT_STAGGER_SEC
 
-    def test_resolve_poll_sec_bad_env_warns_and_falls_back(self, monkeypatch, capsys):
-        monkeypatch.setenv("POLL_SEC", "fast-please")
+    def test_user_config_bad_value_warns_and_falls_back(self, user_config_path, capsys):
+        user_config_path.write_text(json.dumps({"poll_sec": -5}))
         assert common.resolve_poll_sec(None) == common.DEFAULT_POLL_SEC
-        assert "non-numeric POLL_SEC" in capsys.readouterr().err
+        assert "poll_sec must be > 0" in capsys.readouterr().err
+
+    def test_user_config_malformed_json_warns_and_falls_back(
+        self, user_config_path, capsys
+    ):
+        user_config_path.write_text("{not valid json")
+        assert common.resolve_poll_sec(None) == common.DEFAULT_POLL_SEC
+        assert "not valid JSON" in capsys.readouterr().err
+
+    def test_user_config_warnings_emit_once_per_process(self, user_config_path, capsys):
+        """Cache ensures unknown-key warnings emit on first load, not every resolver call."""
+        user_config_path.write_text(json.dumps({"bogus_key": 99}))
+        common.resolve_poll_sec(None)
+        common.resolve_max_submit(None)
+        common.resolve_stagger_sec(None)
+        err = capsys.readouterr().err
+        assert err.count("bogus_key") == 1
+
+    def test_real_repo_config_matches_built_in_defaults(self):
+        """The shipped <repo>/.config/config.json must match the in-code DEFAULT_*.
+
+        The file is documentation of what the defaults are. If a contributor
+        changes a DEFAULT_* without updating the file (or vice versa), this
+        test catches the drift.
+        """
+        # Use the un-monkeypatched real path. Reset cache to avoid carry-over.
+        common._reset_user_config_cache()
+        path = common._USER_CONFIG_PATH
+        assert path.exists(), (
+            f"shipped repo config missing at {path} — should be tracked"
+        )
+        data = json.loads(path.read_text())
+        assert data == {
+            "poll_sec": common.DEFAULT_POLL_SEC,
+            "stagger_sec": common.DEFAULT_STAGGER_SEC,
+            "max_submit": common.DEFAULT_MAX_SUBMIT,
+        }
+        common._reset_user_config_cache()

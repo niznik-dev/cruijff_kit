@@ -88,7 +88,7 @@ def run(
     (SIGINT / SIGTERM / sentinel) to pick up monitoring without resubmitting.
 
     Precedence for max_submit / poll_sec / stagger_sec: logs/monitor.json
-    > CLI flag > env var (MAX_SUBMIT / POLL_SEC / STAGGER_SEC) > default.
+    > CLI flag > <repo>/.config/config.json > built-in default.
     """
     experiment_dir = experiment_dir.resolve()
     log_path = experiment_dir / "logs" / LOG_NAME
@@ -132,22 +132,25 @@ def main(argv: list[str] | None = None) -> int:
         "--max-submit",
         type=int,
         default=None,
-        help="Cap on concurrent submissions (default: 25, override via MAX_SUBMIT env "
-        "or logs/monitor.json).",
+        help="Cap on concurrent submissions for this run only. Defaults are "
+        "set in <repo>/.config/config.json (built-in: 25). Live mid-run "
+        "override via <exp_dir>/logs/monitor.json.",
     )
     parser.add_argument(
         "--poll-sec",
         type=float,
         default=None,
-        help="Poll interval in seconds (default: 60, override via POLL_SEC env "
-        "or logs/monitor.json).",
+        help="Poll interval in seconds for this run only. Defaults are set "
+        "in <repo>/.config/config.json (built-in: 60). Live mid-run "
+        "override via <exp_dir>/logs/monitor.json.",
     )
     parser.add_argument(
         "--stagger-sec",
         type=float,
         default=None,
-        help="Stagger between submissions in seconds (default: 5, override via "
-        "STAGGER_SEC env or logs/monitor.json).",
+        help="Stagger between submissions in seconds for this run only. "
+        "Defaults are set in <repo>/.config/config.json (built-in: 5). "
+        "Live mid-run override via <exp_dir>/logs/monitor.json.",
     )
     parser.add_argument(
         "--resume-monitor",

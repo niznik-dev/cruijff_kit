@@ -9,11 +9,13 @@ python -m cruijff_kit.tools.run.submit_torchtune <experiment_dir>
 The submitter (`src/tools/run/submit_torchtune.py`) handles every operational step in code:
 
 1. Parses `experiment_summary.yaml` and discovers fine-tuned runs (skips controls).
-2. Drip-feeds `sbatch` for each run's `finetune.slurm`, capping concurrency at `--max-submit` (CLI flag) > `MAX_SUBMIT` (env var) > 25 (gpu-test QoS default).
-3. Staggers between submissions to dodge the HF datasets cache race (`--stagger-sec` > `STAGGER_SEC` env > 5s default).
-4. Polls SLURM (`squeue` first, `sacct` fallback) until every job reaches a terminal state, at the configured cadence (`--poll-sec` > `POLL_SEC` env > 60s default).
+2. Drip-feeds `sbatch` for each run's `finetune.slurm`, capping concurrency at `max_submit`.
+3. Staggers `stagger_sec` between submissions to dodge the HF datasets cache race.
+4. Polls SLURM (`squeue` first, `sacct` fallback) until every job reaches a terminal state, at `poll_sec` cadence.
 5. Emits the canonical 4-line `SUBMIT_JOB:` / `Job ID:` / `Result:` blocks to `logs/run-torchtune.log` (consumed by `analyze-experiment`'s compute step via `harvest_jids_from_run_logs()` in `tools/slurm/compute_metrics.py`).
 6. Persists `logs/run-torchtune.state.json` for resume after interruption — keyed by `{relative_path}/finetune.slurm` so eval jobs in different runs don't collide.
+
+The three knobs (`max_submit`, `stagger_sec`, `poll_sec`) resolve in this order: `--max-submit` / `--stagger-sec` / `--poll-sec` (CLI) > `<repo>/.config/config.json` > built-in defaults (25 / 5 / 60).
 
 ## Detach and resume
 
@@ -27,7 +29,7 @@ Or for a one-shot read across both submitters: `python -m cruijff_kit.tools.run.
 
 ## Live monitor settings
 
-The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll iteration. Any of `poll_sec`, `stagger_sec`, `max_submit` listed there take effect on the next poll, overriding the CLI / env / default values. Changes are recorded as `MONITOR_CONFIG` blocks in the per-tool log. See [the run-experiment skill](../../SKILL.md#live-monitor-settings) for the full precedence chain.
+The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll iteration. Any of `poll_sec`, `stagger_sec`, `max_submit` listed there take effect on the next poll, overriding the CLI and user-config values. Changes are recorded as `MONITOR_CONFIG` blocks in the per-tool log. See [the run-experiment skill](../../SKILL.md#tuning-watcher-cadence-monitorjson--repo-defaults) for the full precedence chain.
 
 ## Prerequisites
 
