@@ -90,6 +90,24 @@ class TestMainYamlGeneration:
         config, _ = run_main()
         assert config["batch_size"] == 2
 
+    def test_batch_size_val_absent_by_default(self, run_main):
+        # No flag → no batch_size_val key. Recipe falls back to cfg.batch_size.
+        config, _ = run_main()
+        assert "batch_size_val" not in config
+
+    def test_batch_size_val_via_cli(self, run_main):
+        config, _ = run_main(extra_args=["--batch_size_val", "128"])
+        assert config["batch_size_val"] == 128
+
+    def test_batch_size_val_via_yaml(self, run_main, setup_yaml):
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["batch_size_val"] = 64
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        config, _ = run_main()
+        assert config["batch_size_val"] == 64
+
     def test_seed_default(self, run_main):
         """When seed is not specified, the default (14 — Cruijff's number) is used."""
         config, _ = run_main()

@@ -88,6 +88,7 @@ Extract the following information from the YAML structure:
 These are *example* parameters that the user might vary. There may be other parameters under `controls`, so check all of them that apply to `setup_finetune.yaml`:
    - `controls.epochs` - Number of training epochs
    - `controls.batch_size` - Batch size (if not varied)
+   - `controls.batch_size_val` - Optional larger batch size for validation passes. Honored by `_single_device_nightly` (the default recipe); silently ignored by `_stable` / `_distributed` recipes since their custom-recipe builds don't read the field. Recipe falls back to `controls.batch_size` when absent.
    - `controls.system_prompt` - Training system prompt
    - `controls.prompt` - Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
    - `controls.validation_during_training` - Whether to run validation during training. Translates to `run_val_every_n_steps`: if `true`, set to `50` (the `finetune_template.yaml` default); if `false`, set to `0` (which causes `setup_finetune.py` to drop the validation dataset config). Do not emit `0` when the user requested validation — that silently disables it.
@@ -239,6 +240,7 @@ seed: {from run.parameters.seed, if present}
 gradient_accumulation_steps: {from controls.gradient_accumulation_steps, if present}
 weight_decay: {from controls.weight_decay, if present}
 lora_dropout: {from controls.lora_dropout, if present}
+batch_size_val: {from controls.batch_size_val or run.parameters.batch_size_val, if present}
 
 # Training configuration (common across runs)
 epochs: {from controls.epochs}
