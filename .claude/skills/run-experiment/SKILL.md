@@ -72,6 +72,29 @@ tools:
 2. Only after step 1 returns successfully, run `python -m cruijff_kit.tools.run.submit_inspect <experiment_dir>` — same pattern for evaluations, writes `logs/run-inspect.log` + `logs/run-inspect.state.json`. Blocks until terminal.
 3. Append a high-level summary to `logs/run-experiment.log` (the orchestration log). The detailed per-job records already live in the per-tool logs.
 
+## Long-Running / Detachable Monitoring
+
+The default flow above blocks until all jobs finish. For experiments that may run for hours, the submitters support **detach** so a watcher can stop without killing the jobs. Three trigger paths converge on a clean exit (flush state → emit canonical `MONITOR_DETACHED` block → return; jobs keep running):
+
+| Mechanism | Who uses it |
+|---|---|
+| `touch <experiment_dir>/logs/.detach` | Anyone — humans, agents, `/loop`, cron. Sentinel is sticky: remove it before re-attaching. |
+| `SIGINT` (Ctrl+C) | A human at the terminal where the submitter is running |
+| `SIGTERM` | A parent process killing the submitter subprocess |
+
+After a clean detach, **re-attaching** is one of:
+
+```
+# One-shot snapshot (read-only; refreshes state from squeue/sacct):
+python -m cruijff_kit.tools.run.status <experiment_dir>
+
+# Continuous re-monitor without resubmitting:
+python -m cruijff_kit.tools.run.submit_torchtune <experiment_dir> --resume-monitor
+python -m cruijff_kit.tools.run.submit_inspect   <experiment_dir> --resume-monitor
+```
+
+`status` is composable with `/loop` (e.g. periodic check-ins from an agent or cron job). It never submits anything and never writes `MONITOR_DETACHED`; it refreshes state, appends `STATE_CHANGE` blocks when SLURM has moved a job since the last refresh, and emits a per-tool `ALL_COMPLETE` block the first time refresh observes all-terminal — so a finished experiment closes its log cleanly without needing a follow-up `--resume-monitor`. `ALL_COMPLETE` is idempotent: at most one block per per-tool log, no matter how many `status` or submitter calls observe completion.
+
 ## Logging
 
 Execution is logged in three files (see logging.md for details).
@@ -136,9 +159,13 @@ After successful execution:
 - Optimization results still valid
 - Report partial success
 
-**If user cancels:**
+**If user cancels (Ctrl+C / SIGTERM / `touch logs/.detach`):**
+- Watcher exits cleanly, writes `MONITOR_DETACHED` to the per-tool log
 - SLURM jobs continue running independently
-- Can resume monitoring by re-running skill
+- To resume monitoring without resubmitting:
+  - `python -m cruijff_kit.tools.run.status <experiment_dir>` for a one-shot snapshot
+  - `python -m cruijff_kit.tools.run.submit_{torchtune,inspect} <experiment_dir> --resume-monitor` to watch until terminal
+- If detach was triggered by the sentinel file, `rm <experiment_dir>/logs/.detach` first (sticky)
 
 ## Validation Checklist
 

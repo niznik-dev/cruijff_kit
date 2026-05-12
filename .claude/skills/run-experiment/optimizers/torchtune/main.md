@@ -15,6 +15,16 @@ The submitter (`src/tools/run/submit_torchtune.py`) handles every operational st
 5. Emits the canonical 4-line `SUBMIT_JOB:` / `Job ID:` / `Result:` blocks to `logs/run-torchtune.log` (consumed by `analyze-experiment`'s compute step via `harvest_jids_from_run_logs()` in `tools/slurm/compute_metrics.py`).
 6. Persists `logs/run-torchtune.state.json` for resume after interruption — keyed by `{relative_path}/finetune.slurm` so eval jobs in different runs don't collide.
 
+## Detach and resume
+
+The submitter exits cleanly on `SIGINT`, `SIGTERM`, or when `<experiment_dir>/logs/.detach` is present. State is flushed and a `MONITOR_DETACHED` block is appended to the log; SLURM jobs are untouched. To re-attach the monitor without resubmitting:
+
+```
+python -m cruijff_kit.tools.run.submit_torchtune <experiment_dir> --resume-monitor
+```
+
+Or for a one-shot read across both submitters: `python -m cruijff_kit.tools.run.status <experiment_dir>`.
+
 ## Prerequisites
 
 - `experiment_summary.yaml` exists.

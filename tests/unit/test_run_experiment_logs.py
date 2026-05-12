@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import re
+import signal
 import subprocess
 from pathlib import Path
 
@@ -23,6 +24,7 @@ import pytest
 import yaml
 
 from cruijff_kit.tools.run import _submit_common as common
+from cruijff_kit.tools.run import status as run_status
 from cruijff_kit.tools.run import submit_inspect, submit_torchtune
 
 
@@ -333,11 +335,13 @@ class TestDripFeed:
 
         submit_torchtune.run(tmp_path, user="testuser", max_submit=2)
 
-        # Both jobs eventually submitted, but at least one POLL_SEC sleep
-        # happened due to back-pressure.
+        # Both jobs eventually submitted, but at least one full back-pressure
+        # poll cycle (DEFAULT_POLL_SEC total) elapsed before the second sbatch.
+        # We assert on the SUM rather than an exact-value match because
+        # interruptible sleeps chunk into 1s slices for sentinel polling.
         assert len(fake_slurm.submissions) == 2
-        assert any(s == common.DEFAULT_POLL_SEC for s in fast_sleep), (
-            f"expected a {common.DEFAULT_POLL_SEC}s back-pressure sleep, "
+        assert sum(fast_sleep) >= common.DEFAULT_POLL_SEC, (
+            f"expected at least {common.DEFAULT_POLL_SEC}s of back-pressure sleep, "
             f"got sleeps {fast_sleep}"
         )
 
@@ -356,9 +360,11 @@ class TestDripFeed:
 
         submit_torchtune.run(tmp_path, user="testuser", max_submit=10)
 
-        stagger_sleeps = [s for s in fast_sleep if s == common.DEFAULT_STAGGER_SEC]
-        assert len(stagger_sleeps) >= 1, (
-            f"expected at least one {common.DEFAULT_STAGGER_SEC}s stagger sleep, "
+        # At least one stagger (DEFAULT_STAGGER_SEC total) happened between
+        # the two submissions. Sum-based rather than exact-match because
+        # interruptible sleeps chunk into 1s slices for sentinel polling.
+        assert sum(fast_sleep) >= common.DEFAULT_STAGGER_SEC, (
+            f"expected at least {common.DEFAULT_STAGGER_SEC}s of stagger sleep, "
             f"got {fast_sleep}"
         )
 
@@ -412,3 +418,416 @@ class TestEvalCollisionRegression:
         assert "run_a/eval/capitalization.slurm" in state
         assert "run_b/eval/capitalization.slurm" in state
         assert len(state) == 2
+
+
+# ---------------------------------------------------------------------------
+# (4) Detach mechanisms — sentinel + signal
+# ---------------------------------------------------------------------------
+
+
+class TestDetach:
+    """Detach exits cleanly, jobs continue, MONITOR_DETACHED is logged.
+
+    All three trigger paths (sentinel, SIGINT, SIGTERM) converge on the same
+    exit. Tests poke at the module-level signal flag directly to avoid
+    sending real signals to the test runner.
+    """
+
+    def test_sentinel_blocks_all_submissions_when_present_pre_run(
+        self, tmp_path, fake_slurm, fast_sleep
+    ):
+        """Sentinel created before submit_* runs → no sbatch happens."""
+        _write_finetune_experiment(tmp_path, ["rank4", "rank8"], include_control=False)
+        logs_dir = tmp_path / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        (logs_dir / common.SENTINEL_NAME).touch()
+
+        summary = submit_torchtune.run(tmp_path, user="testuser", max_submit=10)
+
+        assert fake_slurm.submissions == []
+        assert summary == {}  # nothing in state to summarize
+        log = (logs_dir / "run-torchtune.log").read_text()
+        assert "MONITOR_DETACHED" in log
+        assert "reason=sentinel" in log
+
+    def test_sentinel_mid_drip_feed_stops_further_submissions(
+        self, tmp_path, fake_slurm, fast_sleep
+    ):
+        """Sentinel appearing after the first submission halts the drip-feed."""
+        _write_finetune_experiment(
+            tmp_path, ["rank4", "rank8", "rank16"], include_control=False
+        )
+        original_sbatch = fake_slurm._sbatch
+        logs_dir = tmp_path / "logs"
+
+        def sbatch_then_sentinel(argv, kwargs):
+            r = original_sbatch(argv, kwargs)
+            # After the first submission, drop the sentinel.
+            if len(fake_slurm.submissions) == 1:
+                logs_dir.mkdir(parents=True, exist_ok=True)
+                (logs_dir / common.SENTINEL_NAME).touch()
+            return r
+
+        fake_slurm._sbatch = sbatch_then_sentinel
+
+        summary = submit_torchtune.run(tmp_path, user="testuser", max_submit=10)
+
+        # Exactly one job submitted — sentinel caught the stagger sleep.
+        assert len(fake_slurm.submissions) == 1
+        assert summary == {"PENDING": 1}
+        log = (logs_dir / "run-torchtune.log").read_text()
+        assert "MONITOR_DETACHED" in log
+
+    def test_sentinel_during_monitor_returns_without_terminal_states(
+        self, tmp_path, fake_slurm, fast_sleep
+    ):
+        """Sentinel during the monitor loop exits with jobs still RUNNING.
+
+        Uses resume_monitor=True with a pre-seeded RUNNING state — this is
+        the cleanest way to exercise the monitor-side detach path without
+        racing the drip-feed.
+        """
+        _write_finetune_experiment(tmp_path, ["rank4"], include_control=False)
+        logs_dir = tmp_path / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+
+        # Pre-seed state as if a previous submitter dispatched and exited.
+        fake_slurm.in_queue["1000"] = "RUNNING"
+        (logs_dir / "run-torchtune.state.json").write_text(
+            json.dumps(
+                {
+                    "rank4/finetune.slurm": {
+                        "job_id": "1000",
+                        "submitted_at": "2026-05-11 14:00:00",
+                        "state": "RUNNING",
+                    }
+                }
+            )
+        )
+        # Sentinel is present from the start — monitor bails on first sleep.
+        (logs_dir / common.SENTINEL_NAME).touch()
+
+        summary = submit_torchtune.run(
+            tmp_path, user="testuser", max_submit=10, resume_monitor=True
+        )
+
+        assert summary == {"RUNNING": 1}
+        log = (logs_dir / "run-torchtune.log").read_text()
+        assert "MONITOR_DETACHED" in log
+        assert "ALL_COMPLETE" not in log
+
+    def test_sigterm_during_drip_feed(self, tmp_path, fake_slurm, fast_sleep):
+        """Simulating SIGTERM mid-drip-feed halts further submissions."""
+        _write_finetune_experiment(
+            tmp_path, ["rank4", "rank8", "rank16"], include_control=False
+        )
+        original_sbatch = fake_slurm._sbatch
+
+        def sbatch_then_sigterm(argv, kwargs):
+            r = original_sbatch(argv, kwargs)
+            if len(fake_slurm.submissions) == 1:
+                # Simulate SIGTERM by calling the handler directly. Avoids
+                # actually signalling the test runner.
+                common._on_detach_signal(signal.SIGTERM, None)
+            return r
+
+        fake_slurm._sbatch = sbatch_then_sigterm
+
+        summary = submit_torchtune.run(tmp_path, user="testuser", max_submit=10)
+
+        assert len(fake_slurm.submissions) == 1
+        assert summary == {"PENDING": 1}
+        log = (tmp_path / "logs" / "run-torchtune.log").read_text()
+        assert "MONITOR_DETACHED" in log
+        assert "reason=SIGTERM" in log
+
+    def test_detach_state_resets_between_calls(self, tmp_path, fake_slurm, fast_sleep):
+        """A SIGTERM-flagged state from one call is cleared at the start of the next.
+
+        Without _reset_detach_state(), a subsequent submitter call in the
+        same process would detach immediately on entry — a real hazard for
+        tests and any in-process orchestrator.
+        """
+        common._on_detach_signal(signal.SIGTERM, None)
+        assert common._detach_signal_received == "SIGTERM"
+
+        _write_finetune_experiment(tmp_path, ["rank4"], include_control=False)
+        original_sbatch = fake_slurm._sbatch
+
+        def sbatch_then_finish(argv, kwargs):
+            r = original_sbatch(argv, kwargs)
+            fake_slurm.finish_all("COMPLETED")
+            return r
+
+        fake_slurm._sbatch = sbatch_then_finish
+
+        summary = submit_torchtune.run(tmp_path, user="testuser", max_submit=10)
+
+        # The pre-existing signal flag did NOT cause an early exit.
+        assert len(fake_slurm.submissions) == 1
+        assert summary == {"COMPLETED": 1}
+
+
+# ---------------------------------------------------------------------------
+# (5) --resume-monitor flag
+# ---------------------------------------------------------------------------
+
+
+class TestResumeMonitor:
+    def test_resume_monitor_skips_submit_phase(self, tmp_path, fake_slurm, fast_sleep):
+        """With existing state, --resume-monitor never calls sbatch."""
+        _write_finetune_experiment(tmp_path, ["rank4"], include_control=False)
+        logs_dir = tmp_path / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+
+        # Pre-seed a state file as if the run was already submitted.
+        fake_slurm.in_queue["1000"] = "RUNNING"
+        seeded_state = {
+            "rank4/finetune.slurm": {
+                "job_id": "1000",
+                "submitted_at": "2026-05-11 14:00:00",
+                "state": "RUNNING",
+            }
+        }
+        (logs_dir / "run-torchtune.state.json").write_text(json.dumps(seeded_state))
+
+        # When monitor refreshes, the job transitions to COMPLETED.
+        def transition_to_done():
+            fake_slurm.finish_all("COMPLETED")
+
+        original_sleep = common.time.sleep
+
+        def sleep_then_finish(s):
+            original_sleep(s)
+            transition_to_done()
+
+        # Mock the sleep so the first poll causes the transition.
+        common.time.sleep = sleep_then_finish
+        try:
+            summary = submit_torchtune.run(
+                tmp_path, user="testuser", max_submit=10, resume_monitor=True
+            )
+        finally:
+            common.time.sleep = original_sleep
+
+        assert fake_slurm.submissions == [], "resume-monitor must not call sbatch"
+        assert summary == {"COMPLETED": 1}
+        log = (logs_dir / "run-torchtune.log").read_text()
+        assert "ALL_COMPLETE" in log
+
+    def test_resume_monitor_with_no_state_warns_and_returns_empty(
+        self, tmp_path, fake_slurm, fast_sleep, capsys
+    ):
+        """No state file → loud stderr warning, no sbatch, empty summary."""
+        (tmp_path / "logs").mkdir()
+
+        summary = submit_inspect.run(
+            tmp_path, user="testuser", max_submit=10, resume_monitor=True
+        )
+
+        assert summary == {}
+        assert fake_slurm.submissions == []
+        captured = capsys.readouterr()
+        assert "no state" in captured.err.lower()
+
+
+# ---------------------------------------------------------------------------
+# (6) status command — read-only snapshot
+# ---------------------------------------------------------------------------
+
+
+class TestStatus:
+    def test_snapshot_reads_both_state_files_when_present(
+        self, tmp_path, fake_slurm, fast_sleep
+    ):
+        logs_dir = tmp_path / "logs"
+        logs_dir.mkdir()
+
+        (logs_dir / "run-torchtune.state.json").write_text(
+            json.dumps(
+                {
+                    "rank4/finetune.slurm": {
+                        "job_id": "1000",
+                        "submitted_at": "2026-05-11 14:00:00",
+                        "state": "COMPLETED",
+                    }
+                }
+            )
+        )
+        (logs_dir / "run-inspect.state.json").write_text(
+            json.dumps(
+                {
+                    "rank4/eval/cap.slurm": {
+                        "job_id": "1001",
+                        "submitted_at": "2026-05-11 14:30:00",
+                        "state": "RUNNING",
+                    }
+                }
+            )
+        )
+        fake_slurm.in_queue["1001"] = "RUNNING"
+
+        snapshots = run_status.snapshot(tmp_path)
+
+        assert set(snapshots.keys()) == {"torchtune", "inspect"}
+        assert snapshots["torchtune"]["rank4/finetune.slurm"]["state"] == "COMPLETED"
+        assert snapshots["inspect"]["rank4/eval/cap.slurm"]["state"] == "RUNNING"
+
+    def test_snapshot_skips_missing_state_files(self, tmp_path, fake_slurm):
+        (tmp_path / "logs").mkdir()
+        # Only torchtune state exists.
+        (tmp_path / "logs" / "run-torchtune.state.json").write_text(json.dumps({}))
+
+        snapshots = run_status.snapshot(tmp_path)
+
+        assert "torchtune" in snapshots
+        assert "inspect" not in snapshots
+
+    def test_snapshot_does_not_call_sbatch(self, tmp_path, fake_slurm):
+        """status reads + refreshes; it must never submit anything."""
+        (tmp_path / "logs").mkdir()
+        (tmp_path / "logs" / "run-torchtune.state.json").write_text(
+            json.dumps(
+                {
+                    "x/finetune.slurm": {
+                        "job_id": "1000",
+                        "submitted_at": "2026-05-11 14:00:00",
+                        "state": "COMPLETED",
+                    }
+                }
+            )
+        )
+
+        run_status.snapshot(tmp_path)
+        assert fake_slurm.submissions == []
+
+    def test_format_table_empty_returns_helpful_message(self):
+        out = run_status.format_table({})
+        assert "No state files" in out
+
+    def test_format_table_includes_sections_and_totals(self):
+        snapshots = {
+            "torchtune": {
+                "rank4/finetune.slurm": {
+                    "job_id": "1000",
+                    "submitted_at": "2026-05-11 14:00:00",
+                    "state": "COMPLETED",
+                }
+            },
+            "inspect": {
+                "rank4/eval/cap.slurm": {
+                    "job_id": "1001",
+                    "submitted_at": "2026-05-11 14:30:00",
+                    "state": "RUNNING",
+                }
+            },
+        }
+        out = run_status.format_table(snapshots)
+        assert "[torchtune]" in out
+        assert "[inspect]" in out
+        assert "COMPLETED" in out
+        assert "RUNNING" in out
+        assert "Total:" in out
+        assert "2 tool(s)" in out
+
+    def test_status_emits_all_complete_when_observing_all_terminal(
+        self, tmp_path, fake_slurm
+    ):
+        """When status refresh sees all entries terminal, ALL_COMPLETE lands."""
+        logs_dir = tmp_path / "logs"
+        logs_dir.mkdir()
+        (logs_dir / "run-torchtune.state.json").write_text(
+            json.dumps(
+                {
+                    "rank4/finetune.slurm": {
+                        "job_id": "1000",
+                        "submitted_at": "2026-05-11 14:00:00",
+                        "state": "COMPLETED",
+                    }
+                }
+            )
+        )
+
+        run_status.snapshot(tmp_path)
+
+        log = (logs_dir / "run-torchtune.log").read_text()
+        assert "ALL_COMPLETE" in log
+        assert "COMPLETED=1" in log
+
+    def test_status_does_not_emit_all_complete_when_jobs_in_flight(
+        self, tmp_path, fake_slurm
+    ):
+        """Don't write ALL_COMPLETE while anything is still PENDING/RUNNING."""
+        logs_dir = tmp_path / "logs"
+        logs_dir.mkdir()
+        fake_slurm.in_queue["1000"] = "RUNNING"
+        (logs_dir / "run-torchtune.state.json").write_text(
+            json.dumps(
+                {
+                    "rank4/finetune.slurm": {
+                        "job_id": "1000",
+                        "submitted_at": "2026-05-11 14:00:00",
+                        "state": "RUNNING",
+                    }
+                }
+            )
+        )
+
+        run_status.snapshot(tmp_path)
+
+        log_path = logs_dir / "run-torchtune.log"
+        # Log may not even exist if no STATE_CHANGE blocks were written.
+        if log_path.exists():
+            assert "ALL_COMPLETE" not in log_path.read_text()
+
+    def test_status_all_complete_emit_is_idempotent(self, tmp_path, fake_slurm):
+        """Repeated status calls on a finished experiment never duplicate ALL_COMPLETE."""
+        logs_dir = tmp_path / "logs"
+        logs_dir.mkdir()
+        (logs_dir / "run-torchtune.state.json").write_text(
+            json.dumps(
+                {
+                    "rank4/finetune.slurm": {
+                        "job_id": "1000",
+                        "submitted_at": "2026-05-11 14:00:00",
+                        "state": "COMPLETED",
+                    }
+                }
+            )
+        )
+
+        run_status.snapshot(tmp_path)
+        run_status.snapshot(tmp_path)
+        run_status.snapshot(tmp_path)
+
+        log = (logs_dir / "run-torchtune.log").read_text()
+        assert log.count("ALL_COMPLETE") == 1
+
+    def test_resume_monitor_after_status_emitted_all_complete_no_duplicate(
+        self, tmp_path, fake_slurm, fast_sleep
+    ):
+        """The guard inside log_all_complete also protects --resume-monitor."""
+        _write_finetune_experiment(tmp_path, ["rank4"], include_control=False)
+        logs_dir = tmp_path / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        (logs_dir / "run-torchtune.state.json").write_text(
+            json.dumps(
+                {
+                    "rank4/finetune.slurm": {
+                        "job_id": "1000",
+                        "submitted_at": "2026-05-11 14:00:00",
+                        "state": "COMPLETED",
+                    }
+                }
+            )
+        )
+
+        # Status writes the first (only) ALL_COMPLETE block.
+        run_status.snapshot(tmp_path)
+        # --resume-monitor would try to emit on exit; guard must skip it.
+        submit_torchtune.run(
+            tmp_path, user="testuser", max_submit=10, resume_monitor=True
+        )
+
+        log = (logs_dir / "run-torchtune.log").read_text()
+        assert log.count("ALL_COMPLETE") == 1

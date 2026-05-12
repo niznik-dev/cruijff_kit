@@ -27,6 +27,7 @@ from pathlib import Path
 
 from cruijff_kit.tools.run._submit_common import (
     TodoItem,
+    monitor_only,
     resolve_max_submit,
     resolve_user,
     submit_and_monitor,
@@ -72,13 +73,29 @@ def run(
     experiment_dir: Path,
     user: str | None = None,
     max_submit: int | None = None,
+    resume_monitor: bool = False,
 ) -> dict:
-    """Programmatic entrypoint (also used by tests)."""
+    """Programmatic entrypoint (also used by tests).
+
+    `resume_monitor=True` skips the submission phase entirely and re-attaches
+    a watcher to the existing state file. Useful after a clean detach
+    (SIGINT / SIGTERM / sentinel) to pick up monitoring without resubmitting.
+    """
     experiment_dir = experiment_dir.resolve()
-    todo = _build_todo(experiment_dir)
     log_path = experiment_dir / "logs" / LOG_NAME
     state_path = experiment_dir / "logs" / STATE_NAME
 
+    if resume_monitor:
+        return monitor_only(
+            log_path=log_path,
+            state_path=state_path,
+            action_type="SUBMIT_EVAL",
+            user=resolve_user(user),
+            experiment_dir=experiment_dir,
+            max_submit=resolve_max_submit(max_submit),
+        )
+
+    todo = _build_todo(experiment_dir)
     return submit_and_monitor(
         todo=todo,
         log_path=log_path,
@@ -104,9 +121,20 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Cap on concurrent submissions (default: 25, override via MAX_SUBMIT env).",
     )
+    parser.add_argument(
+        "--resume-monitor",
+        action="store_true",
+        help="Skip submission; re-attach a watcher to the existing state file. "
+        "Use after a clean detach to resume monitoring without resubmitting.",
+    )
     args = parser.parse_args(argv)
 
-    summary = run(args.experiment_dir, user=args.user, max_submit=args.max_submit)
+    summary = run(
+        args.experiment_dir,
+        user=args.user,
+        max_submit=args.max_submit,
+        resume_monitor=args.resume_monitor,
+    )
     print(f"Done. Terminal-state breakdown: {summary}")
     return 0
 

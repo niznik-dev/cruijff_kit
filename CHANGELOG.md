@@ -8,6 +8,10 @@ All notable changes to cruijff_kit will be documented in this file.
 
 - `src/tools/run/submit_torchtune.py` and `submit_inspect.py` — callable submitters for `run-experiment`. Drip-feed against the gpu-test QoS cap (default `MAX_SUBMIT=25`), 5-second stagger, resume-safe JSON state file, canonical `SUBMIT_JOB:` / `SUBMIT_EVAL:` log emission. Replaces the prose-only execution path the skill used to rely on. (#451)
 - `harvest_jids_from_run_logs()` in `src/tools/slurm/compute_metrics.py` — single helper that `analyze-experiment` calls to extract job IDs from `run-torchtune.log` / `run-inspect.log` and surface loud warnings when those logs are missing or malformed. (#451)
+- Detach mechanisms for `run-experiment` submitters — SIGINT, SIGTERM, and a sticky `<exp_dir>/logs/.detach` sentinel file. Any path flushes state, emits a canonical `MONITOR_DETACHED` log block, prints a re-attach hint to stderr, and exits cleanly; SLURM jobs continue running. (#479)
+- `--resume-monitor` flag on `submit_torchtune` and `submit_inspect` — skips the submit phase and re-attaches a watcher to the existing state file. Idempotent; safe to invoke repeatedly. (#479)
+- `src/tools/run/status.py` — consolidated read-only snapshot command. Reads both state files, refreshes in-flight entries from `squeue`/`sacct`, prints a table (or `--json`). Emits a per-tool `ALL_COMPLETE` block when refresh first observes all-terminal so the pipeline log closes cleanly without a follow-up `--resume-monitor`. Composes with `/loop`, cron, or interactive use. (#479)
+- `log_all_complete()` is now idempotent — at most one `ALL_COMPLETE` block per per-tool log regardless of how many submitters or `status` calls emit it. (#479)
 
 ### Changed
 

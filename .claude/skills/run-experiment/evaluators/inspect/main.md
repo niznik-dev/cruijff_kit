@@ -16,6 +16,16 @@ The submitter (`src/tools/run/submit_inspect.py`) handles every operational step
 4. Emits canonical 4-line `SUBMIT_EVAL:` / `Job ID:` / `Result:` blocks to `logs/run-inspect.log`. The eval-job identifier is `{run_name}/{task}/epoch{N}` (or `{run_name}/{task}` when no epoch suffix exists), matching the regex in `analyze-experiment`'s compute step.
 5. Persists `logs/run-inspect.state.json` keyed by `{run_name}/eval/{slurm_filename}` so distinct runs with the same eval slurm filename don't collide on a single state-file key (the bug from issue #451 comment #2).
 
+## Detach and resume
+
+The submitter exits cleanly on `SIGINT`, `SIGTERM`, or when `<experiment_dir>/logs/.detach` is present. State is flushed and a `MONITOR_DETACHED` block is appended to the log; SLURM jobs are untouched. To re-attach the monitor without resubmitting:
+
+```
+python -m cruijff_kit.tools.run.submit_inspect <experiment_dir> --resume-monitor
+```
+
+Or for a one-shot read across both submitters: `python -m cruijff_kit.tools.run.status <experiment_dir>`.
+
 ## Prerequisites
 
 - `experiment_summary.yaml` exists.

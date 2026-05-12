@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -52,6 +53,94 @@ TERMINAL_STATES = {
 
 def _now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+# ---------------------------------------------------------------------------
+# Detach (signal + sentinel)
+# ---------------------------------------------------------------------------
+#
+# Watching is detachable. Three trigger paths converge on the same exit:
+# flush state -> log MONITOR_DETACHED -> exit. Jobs keep running either way.
+#
+# - SIGINT  (Ctrl+C, human at a terminal)
+# - SIGTERM (parent process killing the subprocess)
+# - touch <exp_dir>/logs/.detach  (anyone, including agents that no longer
+#   hold the process handle; the sentinel persists across invocations so
+#   re-attach via --resume-monitor will also exit until removed)
+
+SENTINEL_NAME = ".detach"
+
+_detach_signal_received: str | None = None  # set by handler; "SIGINT" / "SIGTERM"
+
+
+def _on_detach_signal(signum, frame):  # noqa: ARG001 — signal handler signature
+    global _detach_signal_received
+    _detach_signal_received = "SIGINT" if signum == signal.SIGINT else "SIGTERM"
+
+
+def install_detach_handlers() -> None:
+    """Install SIGINT/SIGTERM handlers that flip the module-level flag."""
+    signal.signal(signal.SIGINT, _on_detach_signal)
+    signal.signal(signal.SIGTERM, _on_detach_signal)
+
+
+def _reset_detach_state() -> None:
+    """Reset the in-memory signal flag (does NOT touch the sentinel file)."""
+    global _detach_signal_received
+    _detach_signal_received = None
+
+
+def sentinel_path(log_path: Path) -> Path:
+    """The detach sentinel lives next to the per-tool log files."""
+    return log_path.parent / SENTINEL_NAME
+
+
+def detach_requested(log_path: Path) -> tuple[bool, str | None]:
+    """Return (True, reason) if anything has asked us to stop watching.
+
+    reason is one of: "SIGINT", "SIGTERM", "sentinel", or None.
+    """
+    if _detach_signal_received:
+        return True, _detach_signal_received
+    if sentinel_path(log_path).exists():
+        return True, "sentinel"
+    return False, None
+
+
+def _interruptible_sleep(
+    seconds: float, log_path: Path, check_interval: float = 1.0
+) -> bool:
+    """Sleep up to `seconds`, returning True if detach was requested mid-sleep.
+
+    Polls `detach_requested` every `check_interval` seconds. The 1s default
+    bounds the worst-case "how long after touch .detach does the monitor
+    notice" at 1 second, which is plenty responsive without spinning.
+    """
+    elapsed = 0.0
+    while elapsed < seconds:
+        chunk = min(check_interval, seconds - elapsed)
+        time.sleep(chunk)
+        elapsed += chunk
+        detached, _ = detach_requested(log_path)
+        if detached:
+            return True
+    return False
+
+
+def _reattach_hint(experiment_dir: Path, action_type: str, reason: str) -> str:
+    """Loud banner shown after detach so the agent re-reading later sees how to resume."""
+    submitter = "submit_torchtune" if action_type == "SUBMIT_JOB" else "submit_inspect"
+    sentinel_note = ""
+    if reason == "sentinel":
+        sentinel_note = (
+            f"\n   NOTE: sentinel is sticky — remove it before re-attaching:\n"
+            f"         rm {experiment_dir}/logs/{SENTINEL_NAME}"
+        )
+    return (
+        f"\n⏸  Monitor detached (reason={reason}). Jobs continue running.{sentinel_note}\n"
+        f"   Check status:  python -m cruijff_kit.tools.run.status {experiment_dir}\n"
+        f"   Re-attach:     python -m cruijff_kit.tools.run.{submitter} {experiment_dir} --resume-monitor\n"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -155,11 +244,38 @@ def log_state_change(
 
 
 def log_all_complete(log_path: Path, summary: dict) -> None:
+    """Write the ALL_COMPLETE closing block. Idempotent — skips if one is
+    already present in this log.
+
+    This lets `status` emit ALL_COMPLETE when it observes all-terminal without
+    risking duplicates from a later `--resume-monitor` invocation, and also
+    closes a latent issue where running `--resume-monitor` twice on a finished
+    experiment would have written two ALL_COMPLETE blocks.
+    """
+    if log_path.exists() and "ALL_COMPLETE" in log_path.read_text():
+        return
     parts = ", ".join(f"{k}={v}" for k, v in sorted(summary.items()))
     block = (
         f"[{_now()}] ALL_COMPLETE\n"
         f"Details: terminal-state breakdown: {parts}\n"
         f"Result: done"
+    )
+    append_log(log_path, block)
+
+
+def log_monitor_detached(log_path: Path, reason: str, summary: dict) -> None:
+    """Canonical 'monitor stopped watching' block.
+
+    Reason is one of "SIGINT", "SIGTERM", "sentinel". Jobs are unaffected;
+    this only records that the watcher exited. analyze-experiment's
+    SUBMIT_JOB/SUBMIT_EVAL/Job ID regex won't match this block, so the
+    harvest path is undisturbed.
+    """
+    parts = ", ".join(f"{k}={v}" for k, v in sorted(summary.items())) or "(no state)"
+    block = (
+        f"[{_now()}] MONITOR_DETACHED\n"
+        f"Details: reason={reason}; state breakdown: {parts}\n"
+        f"Result: monitoring paused; jobs continue"
     )
     append_log(log_path, block)
 
@@ -257,7 +373,11 @@ def submit_and_monitor(
     stagger_sec: float = DEFAULT_STAGGER_SEC,
     poll_sec: float = DEFAULT_POLL_SEC,
 ) -> dict:
-    """Drip-feed-submit `todo` and poll until all jobs reach terminal state.
+    """Default flow: submit drip-fed, then monitor to terminal.
+
+    Both phases honor detach (SIGINT/SIGTERM/sentinel). On detach, flushes
+    state, emits MONITOR_DETACHED, prints a re-attach hint to stderr, and
+    returns the partial summary. Jobs continue running.
 
     Returns a dict summarizing terminal-state counts (e.g. {"COMPLETED": 2}).
     Resumable: existing entries in the state file with terminal state are skipped.
@@ -277,6 +397,8 @@ def submit_and_monitor(
         stagger_sec=stagger_sec,
         poll_sec=poll_sec,
     )
+    _reset_detach_state()
+    install_detach_handlers()
 
     state = read_state(state_path)
     state = _refresh_in_flight_state(state, log_path)
@@ -284,11 +406,123 @@ def submit_and_monitor(
 
     pending = _filter_pending(todo, state, experiment_dir)
     state = _drip_feed_submit(pending, state, cfg)
+    if _finalize_if_detached(state, cfg) is not None:
+        return _summarize(state)
+
     state = _monitor_to_terminal(state, cfg)
+    if _finalize_if_detached(state, cfg) is not None:
+        return _summarize(state)
 
     summary = _summarize(state)
     log_all_complete(log_path, summary)
     return summary
+
+
+def submit_only(
+    todo: Iterable[TodoItem],
+    log_path: Path,
+    state_path: Path,
+    action_type: str,
+    user: str,
+    experiment_dir: Path,
+    max_submit: int = DEFAULT_MAX_SUBMIT,
+    stagger_sec: float = DEFAULT_STAGGER_SEC,
+    poll_sec: float = DEFAULT_POLL_SEC,
+) -> dict:
+    """Submit phase only — drip-feed-submits then returns without monitoring.
+
+    Honors detach: if requested mid-drip-feed, flushes state, emits
+    MONITOR_DETACHED, and returns early. Currently not wired to a CLI flag
+    (the default `submit_and_monitor` covers the dispatch+watch case); kept
+    available for tests and future composition.
+    """
+    cfg = _SubmitConfig(
+        log_path=log_path,
+        state_path=state_path,
+        action_type=action_type,
+        user=user,
+        experiment_dir=experiment_dir,
+        max_submit=max_submit,
+        stagger_sec=stagger_sec,
+        poll_sec=poll_sec,
+    )
+    _reset_detach_state()
+    install_detach_handlers()
+
+    state = read_state(state_path)
+    state = _refresh_in_flight_state(state, log_path)
+    write_state_atomic(state_path, state)
+
+    pending = _filter_pending(todo, state, experiment_dir)
+    state = _drip_feed_submit(pending, state, cfg)
+    _finalize_if_detached(state, cfg)
+    return _summarize(state)
+
+
+def monitor_only(
+    log_path: Path,
+    state_path: Path,
+    action_type: str,
+    user: str,
+    experiment_dir: Path,
+    max_submit: int = DEFAULT_MAX_SUBMIT,
+    stagger_sec: float = DEFAULT_STAGGER_SEC,
+    poll_sec: float = DEFAULT_POLL_SEC,
+) -> dict:
+    """Re-attach to an existing state file and watch to terminal — no new submissions.
+
+    Powers `--resume-monitor`. If the state file is missing or empty, warns
+    loudly to stderr and returns an empty summary rather than silently no-op.
+
+    Honors detach: emits MONITOR_DETACHED on signal/sentinel and returns early.
+    """
+    cfg = _SubmitConfig(
+        log_path=log_path,
+        state_path=state_path,
+        action_type=action_type,
+        user=user,
+        experiment_dir=experiment_dir,
+        max_submit=max_submit,
+        stagger_sec=stagger_sec,
+        poll_sec=poll_sec,
+    )
+    _reset_detach_state()
+    install_detach_handlers()
+
+    state = read_state(state_path)
+    if not state:
+        print(
+            f"WARNING: no state at {state_path}; nothing to monitor. "
+            f"Run the submitter without --resume-monitor first to dispatch jobs.",
+            file=sys.stderr,
+        )
+        return {}
+
+    state = _refresh_in_flight_state(state, log_path)
+    write_state_atomic(state_path, state)
+
+    state = _monitor_to_terminal(state, cfg)
+    if _finalize_if_detached(state, cfg) is not None:
+        return _summarize(state)
+
+    summary = _summarize(state)
+    log_all_complete(log_path, summary)
+    return summary
+
+
+def _finalize_if_detached(state: dict, cfg: _SubmitConfig) -> str | None:
+    """If a detach was requested, log MONITOR_DETACHED + print hint; else no-op.
+
+    Returns the detach reason (truthy) so the caller can decide whether to
+    short-circuit, or None if no detach.
+    """
+    detached, reason = detach_requested(cfg.log_path)
+    if not detached:
+        return None
+    summary = _summarize(state)
+    log_monitor_detached(cfg.log_path, reason, summary)
+    sys.stderr.write(_reattach_hint(cfg.experiment_dir, cfg.action_type, reason))
+    return reason
 
 
 def _filter_pending(
@@ -334,14 +568,25 @@ def _drip_feed_submit(
 ) -> dict:
     todo = list(pending)
     while todo:
+        # Detach check before any further submission work.
+        detached, _ = detach_requested(cfg.log_path)
+        if detached:
+            return state
+
         depth = queue_depth(cfg.user)
         room = cfg.max_submit - depth
         if room <= 0:
-            time.sleep(cfg.poll_sec)
+            if _interruptible_sleep(cfg.poll_sec, cfg.log_path):
+                return state
             continue
 
         batch = min(room, len(todo))
         for i in range(batch):
+            # Detach check between submissions inside a batch.
+            detached, _ = detach_requested(cfg.log_path)
+            if detached:
+                return state
+
             item = todo.pop(0)
             key = state_key(item.work_dir, item.slurm_name, cfg.experiment_dir)
             try:
@@ -369,13 +614,15 @@ def _drip_feed_submit(
             write_state_atomic(cfg.state_path, state)
 
             if todo or i < batch - 1:
-                time.sleep(cfg.stagger_sec)
+                if _interruptible_sleep(cfg.stagger_sec, cfg.log_path):
+                    return state
     return state
 
 
 def _monitor_to_terminal(state: dict, cfg: _SubmitConfig) -> dict:
     while not _all_terminal(state):
-        time.sleep(cfg.poll_sec)
+        if _interruptible_sleep(cfg.poll_sec, cfg.log_path):
+            return state
         state = _refresh_in_flight_state(state, cfg.log_path)
         write_state_atomic(cfg.state_path, state)
     return state
