@@ -858,7 +858,8 @@ class TestMonitorConfig:
     Precedence: monitor.json > CLI flag > env var > default. The watcher
     re-reads the file on every poll iteration so an operator (or agent) can
     tune `poll_sec`, `stagger_sec`, `max_submit` mid-run without detach +
-    re-attach. Bad values are warned-and-skipped; missing file is silent.
+    re-attach. Bad values are warned-and-skipped; removing the file reverts
+    each knob to its startup baseline (CLI / config.json / default).
     """
 
     def test_missing_file_is_silent_noop(self, tmp_path, capsys):
@@ -868,10 +869,43 @@ class TestMonitorConfig:
         assert cfg.poll_sec == common.DEFAULT_POLL_SEC
         assert cfg.stagger_sec == common.DEFAULT_STAGGER_SEC
         assert cfg.max_submit == common.DEFAULT_MAX_SUBMIT
-        # No warning, no log file written for this path.
+        # Baseline already equals current → no warning, no log written.
         assert capsys.readouterr().err == ""
         if cfg.log_path.exists():
             assert "MONITOR_CONFIG" not in cfg.log_path.read_text()
+
+    def test_removing_file_reverts_to_baseline(self, tmp_path):
+        """Deleting monitor.json after an override reverts each knob."""
+        cfg = _mk_cfg(tmp_path)
+        config_path = tmp_path / "logs" / "monitor.json"
+
+        config_path.write_text(json.dumps({"poll_sec": 10}))
+        common._refresh_monitor_config(cfg)
+        assert cfg.poll_sec == 10
+
+        config_path.unlink()
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == common.DEFAULT_POLL_SEC
+        log = cfg.log_path.read_text()
+        assert log.count("MONITOR_CONFIG: applied") == 2
+        assert "poll_sec=10 (was 60)" in log
+        assert "poll_sec=60 (was 10)" in log
+
+    def test_revert_respects_cli_baseline_not_builtin_default(self, tmp_path):
+        """Revert target is the startup baseline, not the built-in default."""
+        cfg = _mk_cfg(tmp_path, poll_sec=15)
+        config_path = tmp_path / "logs" / "monitor.json"
+
+        config_path.write_text(json.dumps({"poll_sec": 10}))
+        common._refresh_monitor_config(cfg)
+        assert cfg.poll_sec == 10
+
+        config_path.unlink()
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == 15
+        assert "poll_sec=15 (was 10)" in cfg.log_path.read_text()
 
     def test_file_present_applies_overrides_and_logs(self, tmp_path):
         cfg = _mk_cfg(tmp_path)

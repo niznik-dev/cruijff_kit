@@ -29,7 +29,7 @@ import signal
 import subprocess
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Iterable
@@ -332,7 +332,9 @@ def log_monitor_config(
 #   <exp_dir>/logs/monitor.json   — live overrides for a single run. The
 #                                   watcher re-reads this on every poll
 #                                   iteration so cadence can be tuned mid-run
-#                                   without detach + re-attach.
+#                                   without detach + re-attach. Removing the
+#                                   file reverts each knob to its startup
+#                                   baseline (the next-lower layer).
 #
 # Final precedence (high → low):
 #   monitor.json  >  CLI flag  >  <repo>/.config/config.json  >  built-in default
@@ -443,17 +445,26 @@ def _reset_user_config_cache() -> None:
 
 
 def _refresh_monitor_config(cfg: _SubmitConfig) -> None:
-    """Re-read monitor.json and apply overrides to `cfg` in place.
+    """Re-read monitor.json and reconcile `cfg` against it in place.
 
-    - Silent on missing file.
-    - Warns to stderr (not the run log) on malformed file / bad values
-      and keeps previously-applied values.
+    - File missing → revert each knob to its startup baseline
+      (CLI / <repo>/.config/config.json / built-in default). A
+      MONITOR_CONFIG block fires for any knob that actually changes.
+    - File present → apply overrides; bad values warn to stderr and keep
+      the previously-applied value (sticky for that knob).
     - Emits a MONITOR_CONFIG block to the run log only when at least one
-      knob actually changes value.
+      knob actually changes value (including a revert on file removal).
     """
+    config_path = monitor_config_path(cfg.log_path)
+    file_missing = not config_path.exists()
+
     overrides, warnings = _load_monitor_config(cfg.log_path)
     for w in warnings:
         print(f"WARNING: {w}", file=sys.stderr)
+
+    if file_missing:
+        # Treat absent file as "no overrides anywhere" → revert all knobs.
+        overrides = dict(cfg._baseline)
 
     changes: dict = {}
     for knob in _MONITOR_KNOBS:
@@ -550,6 +561,12 @@ class _SubmitConfig:
     max_submit: int = DEFAULT_MAX_SUBMIT
     stagger_sec: float = DEFAULT_STAGGER_SEC
     poll_sec: float = DEFAULT_POLL_SEC
+    # Startup snapshot of the monitor knobs (CLI / config.json / default). Used
+    # as the revert target when monitor.json is removed mid-run.
+    _baseline: dict = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        self._baseline = {knob: getattr(self, knob) for knob in _MONITOR_KNOBS}
 
 
 def submit_and_monitor(
