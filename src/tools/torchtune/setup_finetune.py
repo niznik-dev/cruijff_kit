@@ -439,6 +439,13 @@ def create_parser():
         "--batch_size", type=int, default=4, help="Batch size for training"
     )
     parser.add_argument(
+        "--batch_size_val",
+        type=int,
+        default=None,
+        help="Batch size for validation passes (defaults to training batch_size). "
+        "Honored by the _single_device_nightly recipe; ignored by stable recipes.",
+    )
+    parser.add_argument(
         "--epochs", type=int, default=1, help="Number of epochs to train for"
     )
     parser.add_argument(
@@ -914,6 +921,10 @@ def main():
         elif key == "max_seq_len":
             # Update tokenizer's max_seq_len
             config["tokenizer"]["max_seq_len"] = value
+        elif key == "batch_size_val":
+            # Only emit when set; absent key → recipe falls back to cfg.batch_size.
+            if value is not None:
+                config["batch_size_val"] = value
         # The rest are straightforward
         else:
             config[key] = value
