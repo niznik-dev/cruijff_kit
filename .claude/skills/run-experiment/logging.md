@@ -33,6 +33,7 @@ Detailed sub-logs are created during job execution. The orchestration log record
 | `RESOURCE_STATUS` | Report GPU utilization from gpu_metrics.csv during monitoring |
 | `ALL_COMPLETE` | Mark all fine-tuning jobs finished |
 | `MONITOR_DETACHED` | Watcher exited via SIGINT / SIGTERM / sentinel; jobs continue running |
+| `MONITOR_CONFIG` | Watcher applied a live edit from `logs/monitor.json` (poll/stagger/max_submit) |
 
 ### Inspect-ai Actions
 
@@ -54,6 +55,7 @@ Detailed sub-logs are created during job execution. The orchestration log record
 | `RESOURCE_STATUS` | Report GPU utilization from gpu_metrics.csv during monitoring |
 | `ALL_COMPLETE` | Mark all evaluations finished |
 | `MONITOR_DETACHED` | Watcher exited via SIGINT / SIGTERM / sentinel; jobs continue running |
+| `MONITOR_CONFIG` | Watcher applied a live edit from `logs/monitor.json` (poll/stagger/max_submit) |
 
 ---
 
@@ -128,6 +130,21 @@ Result: Training started
 Details: All 4 jobs reached terminal states
 Result: 4 COMPLETED, 0 FAILED
 Duration: 45 minutes
+```
+
+### Live Monitor Settings (MONITOR_CONFIG)
+
+The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll
+iteration. When at least one knob changes, a `MONITOR_CONFIG` block lands
+in the per-tool log. Unchanged knobs are still shown so the active
+picture is complete. The block contains no `Job ID:` line, so the
+`SUBMIT_JOB:` / `SUBMIT_EVAL:` harvest regex used by `analyze-experiment`
+does not match it.
+
+```
+[2025-11-11 11:30:00] MONITOR_CONFIG: applied
+Details: poll_sec=30 (was 60); stagger_sec=5 (unchanged); max_submit=25 (unchanged)
+Result: settings updated from logs/monitor.json
 ```
 
 ### Inspect-ai Execution

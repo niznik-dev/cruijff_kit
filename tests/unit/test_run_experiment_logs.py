@@ -831,3 +831,323 @@ class TestStatus:
 
         log = (logs_dir / "run-torchtune.log").read_text()
         assert log.count("ALL_COMPLETE") == 1
+
+
+# ---------------------------------------------------------------------------
+# (7) Live monitor settings (#480) — logs/monitor.json
+# ---------------------------------------------------------------------------
+
+
+def _mk_cfg(tmp_path: Path, **overrides) -> "common._SubmitConfig":
+    """Build a _SubmitConfig pointing at tmp_path's logs/ for refresh tests."""
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    return common._SubmitConfig(
+        log_path=logs_dir / "run-torchtune.log",
+        state_path=logs_dir / "run-torchtune.state.json",
+        action_type="SUBMIT_JOB",
+        user="testuser",
+        experiment_dir=tmp_path,
+        **overrides,
+    )
+
+
+class TestMonitorConfig:
+    """Live monitor settings via logs/monitor.json (#480).
+
+    Precedence: monitor.json > CLI flag > env var > default. The watcher
+    re-reads the file on every poll iteration so an operator (or agent) can
+    tune `poll_sec`, `stagger_sec`, `max_submit` mid-run without detach +
+    re-attach. Bad values are warned-and-skipped; removing the file reverts
+    each knob to its startup baseline (CLI / config.json / default).
+    """
+
+    def test_missing_file_is_silent_noop(self, tmp_path, capsys):
+        cfg = _mk_cfg(tmp_path)
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == common.DEFAULT_POLL_SEC
+        assert cfg.stagger_sec == common.DEFAULT_STAGGER_SEC
+        assert cfg.max_submit == common.DEFAULT_MAX_SUBMIT
+        # Baseline already equals current → no warning, no log written.
+        assert capsys.readouterr().err == ""
+        if cfg.log_path.exists():
+            assert "MONITOR_CONFIG" not in cfg.log_path.read_text()
+
+    def test_removing_file_reverts_to_baseline(self, tmp_path):
+        """Deleting monitor.json after an override reverts each knob."""
+        cfg = _mk_cfg(tmp_path)
+        config_path = tmp_path / "logs" / "monitor.json"
+
+        config_path.write_text(json.dumps({"poll_sec": 10}))
+        common._refresh_monitor_config(cfg)
+        assert cfg.poll_sec == 10
+
+        config_path.unlink()
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == common.DEFAULT_POLL_SEC
+        log = cfg.log_path.read_text()
+        assert log.count("MONITOR_CONFIG: applied") == 2
+        assert "poll_sec=10 (was 60)" in log
+        assert "poll_sec=60 (was 10)" in log
+
+    def test_revert_respects_cli_baseline_not_builtin_default(self, tmp_path):
+        """Revert target is the startup baseline, not the built-in default."""
+        cfg = _mk_cfg(tmp_path, poll_sec=15)
+        config_path = tmp_path / "logs" / "monitor.json"
+
+        config_path.write_text(json.dumps({"poll_sec": 10}))
+        common._refresh_monitor_config(cfg)
+        assert cfg.poll_sec == 10
+
+        config_path.unlink()
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == 15
+        assert "poll_sec=15 (was 10)" in cfg.log_path.read_text()
+
+    def test_file_present_applies_overrides_and_logs(self, tmp_path):
+        cfg = _mk_cfg(tmp_path)
+        (tmp_path / "logs" / "monitor.json").write_text(json.dumps({"poll_sec": 10}))
+
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == 10
+        assert cfg.stagger_sec == common.DEFAULT_STAGGER_SEC
+        assert cfg.max_submit == common.DEFAULT_MAX_SUBMIT
+        log = cfg.log_path.read_text()
+        assert "MONITOR_CONFIG: applied" in log
+        assert "poll_sec=10 (was 60)" in log
+        # Unchanged knobs are still shown so the active picture is complete.
+        assert "stagger_sec=5 (unchanged)" in log
+        assert "max_submit=25 (unchanged)" in log
+
+    def test_live_update_mid_run(self, tmp_path):
+        """Two successive edits each emit their own MONITOR_CONFIG block."""
+        cfg = _mk_cfg(tmp_path)
+        config_path = tmp_path / "logs" / "monitor.json"
+
+        config_path.write_text(json.dumps({"poll_sec": 20}))
+        common._refresh_monitor_config(cfg)
+        config_path.write_text(json.dumps({"poll_sec": 5}))
+        common._refresh_monitor_config(cfg)
+
+        log = cfg.log_path.read_text()
+        assert log.count("MONITOR_CONFIG: applied") == 2
+        assert "poll_sec=20 (was 60)" in log
+        assert "poll_sec=5 (was 20)" in log
+        assert cfg.poll_sec == 5
+
+    def test_unchanged_file_does_not_repeat_log(self, tmp_path):
+        """File present but values match current cfg → no repeated logging."""
+        cfg = _mk_cfg(tmp_path)
+        (tmp_path / "logs" / "monitor.json").write_text(json.dumps({"poll_sec": 30}))
+
+        common._refresh_monitor_config(cfg)
+        common._refresh_monitor_config(cfg)
+        common._refresh_monitor_config(cfg)
+
+        log = cfg.log_path.read_text()
+        assert log.count("MONITOR_CONFIG: applied") == 1
+
+    def test_malformed_json_warns_and_keeps_values(self, tmp_path, capsys):
+        cfg = _mk_cfg(tmp_path, poll_sec=42.0)
+        (tmp_path / "logs" / "monitor.json").write_text("{not valid json")
+
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == 42.0
+        captured = capsys.readouterr()
+        assert "not valid JSON" in captured.err
+        if cfg.log_path.exists():
+            assert "MONITOR_CONFIG" not in cfg.log_path.read_text()
+
+    def test_non_object_json_warns_and_keeps_values(self, tmp_path, capsys):
+        """Top-level must be an object; arrays / scalars are rejected."""
+        cfg = _mk_cfg(tmp_path)
+        (tmp_path / "logs" / "monitor.json").write_text(json.dumps([1, 2, 3]))
+
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == common.DEFAULT_POLL_SEC
+        assert "must be a JSON object" in capsys.readouterr().err
+
+    def test_unknown_keys_warned_known_keys_applied(self, tmp_path, capsys):
+        cfg = _mk_cfg(tmp_path)
+        (tmp_path / "logs" / "monitor.json").write_text(
+            json.dumps({"poll_sec": 5, "bogus_key": 99})
+        )
+
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == 5
+        assert "bogus_key" in capsys.readouterr().err
+
+    def test_invalid_values_warned_and_kept(self, tmp_path, capsys):
+        """Out-of-range / wrong-type values: warn, keep last good."""
+        cfg = _mk_cfg(tmp_path)
+        (tmp_path / "logs" / "monitor.json").write_text(
+            json.dumps({"poll_sec": -1, "max_submit": 0, "stagger_sec": "fast"})
+        )
+
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == common.DEFAULT_POLL_SEC
+        assert cfg.max_submit == common.DEFAULT_MAX_SUBMIT
+        assert cfg.stagger_sec == common.DEFAULT_STAGGER_SEC
+        err = capsys.readouterr().err
+        assert "poll_sec must be > 0" in err
+        assert "max_submit must be >= 1" in err
+        assert "stagger_sec must be a number" in err
+
+    def test_max_submit_rejects_float(self, tmp_path, capsys):
+        """max_submit must be an int, not a float (even 25.0)."""
+        cfg = _mk_cfg(tmp_path)
+        (tmp_path / "logs" / "monitor.json").write_text(
+            json.dumps({"max_submit": 25.0})
+        )
+
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.max_submit == common.DEFAULT_MAX_SUBMIT
+        assert "max_submit must be an integer" in capsys.readouterr().err
+
+    def test_precedence_monitor_over_cli_over_user_config_over_default(
+        self, tmp_path, user_config_path, fake_slurm, fast_sleep
+    ):
+        """End-to-end precedence: monitor.json > CLI > user config > default."""
+        _write_finetune_experiment(tmp_path, ["rank4"], include_control=False)
+        logs_dir = tmp_path / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+
+        # User config: poll_sec=30. monitor.json: poll_sec=10. CLI: poll_sec=20.
+        # Final effective value through the run = 10 (monitor.json wins).
+        user_config_path.write_text(json.dumps({"poll_sec": 30}))
+        (logs_dir / "monitor.json").write_text(json.dumps({"poll_sec": 10}))
+
+        original_sbatch = fake_slurm._sbatch
+
+        def sbatch_then_finish(argv, kwargs):
+            r = original_sbatch(argv, kwargs)
+            fake_slurm.finish_all("COMPLETED")
+            return r
+
+        fake_slurm._sbatch = sbatch_then_finish
+
+        submit_torchtune.run(tmp_path, user="testuser", max_submit=10, poll_sec=20)
+
+        log = (logs_dir / "run-torchtune.log").read_text()
+        # CLI=20 wins over user-config=30 at startup; monitor.json=10 then
+        # drops it from 20 on the first poll iteration.
+        assert "poll_sec=10 (was 20)" in log
+
+    def test_config_block_does_not_match_jid_harvest_regex(self, tmp_path):
+        """MONITOR_CONFIG must not false-match the analyze-experiment harvesters."""
+        log_path = tmp_path / "logs" / "run-torchtune.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        common.log_monitor_config(
+            log_path,
+            current={"poll_sec": 30, "stagger_sec": 5, "max_submit": 25},
+            changes={"poll_sec": 60},
+        )
+
+        log = log_path.read_text()
+        assert "MONITOR_CONFIG: applied" in log
+        assert SUBMIT_JOB_RE.findall(log) == []
+        assert SUBMIT_EVAL_RE.findall(log) == []
+
+
+# ---------------------------------------------------------------------------
+# (8) User config — <repo>/.config/config.json
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def user_config_path(tmp_path, monkeypatch):
+    """Redirect user-config loading to a per-test temp path with cache reset.
+
+    Yields the (initially-nonexistent) target path. Tests write JSON there
+    to exercise user-config behavior in isolation from the real
+    <repo>/.config/config.json.
+    """
+    path = tmp_path / "user_config.json"
+    monkeypatch.setattr(common, "_USER_CONFIG_PATH", path)
+    common._reset_user_config_cache()
+    yield path
+    common._reset_user_config_cache()
+
+
+class TestUserConfig:
+    """User-level defaults via <repo>/.config/config.json (power-user knob).
+
+    Precedence layer: CLI > user config > built-in default. Live overrides
+    via logs/monitor.json sit above CLI. The file is tracked in the repo
+    so the defaults are visible; power users can edit it and add
+    `git update-index --skip-worktree` if they don't want changes in git status.
+    """
+
+    def test_resolve_max_submit_falls_back_to_user_config(self, user_config_path):
+        user_config_path.write_text(json.dumps({"max_submit": 42}))
+        assert common.resolve_max_submit(None) == 42
+        # CLI flag still wins over user config.
+        assert common.resolve_max_submit(5) == 5
+
+    def test_resolve_poll_sec_falls_back_to_user_config(self, user_config_path):
+        user_config_path.write_text(json.dumps({"poll_sec": 300}))
+        assert common.resolve_poll_sec(None) == 300
+        assert common.resolve_poll_sec(15.0) == 15.0
+
+    def test_resolve_stagger_sec_falls_back_to_user_config(self, user_config_path):
+        user_config_path.write_text(json.dumps({"stagger_sec": 2}))
+        assert common.resolve_stagger_sec(None) == 2
+        assert common.resolve_stagger_sec(1.0) == 1.0
+
+    def test_missing_user_config_falls_back_to_built_in_default(self, user_config_path):
+        # File deliberately not written -> loader returns empty -> DEFAULT_*.
+        assert common.resolve_max_submit(None) == common.DEFAULT_MAX_SUBMIT
+        assert common.resolve_poll_sec(None) == common.DEFAULT_POLL_SEC
+        assert common.resolve_stagger_sec(None) == common.DEFAULT_STAGGER_SEC
+
+    def test_user_config_bad_value_warns_and_falls_back(self, user_config_path, capsys):
+        user_config_path.write_text(json.dumps({"poll_sec": -5}))
+        assert common.resolve_poll_sec(None) == common.DEFAULT_POLL_SEC
+        assert "poll_sec must be > 0" in capsys.readouterr().err
+
+    def test_user_config_malformed_json_warns_and_falls_back(
+        self, user_config_path, capsys
+    ):
+        user_config_path.write_text("{not valid json")
+        assert common.resolve_poll_sec(None) == common.DEFAULT_POLL_SEC
+        assert "not valid JSON" in capsys.readouterr().err
+
+    def test_user_config_warnings_emit_once_per_process(self, user_config_path, capsys):
+        """Cache ensures unknown-key warnings emit on first load, not every resolver call."""
+        user_config_path.write_text(json.dumps({"bogus_key": 99}))
+        common.resolve_poll_sec(None)
+        common.resolve_max_submit(None)
+        common.resolve_stagger_sec(None)
+        err = capsys.readouterr().err
+        assert err.count("bogus_key") == 1
+
+    def test_real_repo_config_matches_built_in_defaults(self):
+        """The shipped <repo>/.config/config.json must match the in-code DEFAULT_*.
+
+        The file is documentation of what the defaults are. If a contributor
+        changes a DEFAULT_* without updating the file (or vice versa), this
+        test catches the drift.
+        """
+        # Use the un-monkeypatched real path. Reset cache to avoid carry-over.
+        common._reset_user_config_cache()
+        path = common._USER_CONFIG_PATH
+        assert path.exists(), (
+            f"shipped repo config missing at {path} — should be tracked"
+        )
+        data = json.loads(path.read_text())
+        assert data == {
+            "poll_sec": common.DEFAULT_POLL_SEC,
+            "stagger_sec": common.DEFAULT_STAGGER_SEC,
+            "max_submit": common.DEFAULT_MAX_SUBMIT,
+        }
+        common._reset_user_config_cache()

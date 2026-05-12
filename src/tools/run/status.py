@@ -14,6 +14,11 @@ Does NOT submit anything and does not write `MONITOR_DETACHED` or
 any cadence — and the refresh keeps the run logs alive even when no
 monitor is currently attached.
 
+Note: this snapshot is one-shot and doesn't poll, so it doesn't read
+`logs/monitor.json`. That file affects the live watchers
+(`submit_torchtune` / `submit_inspect`); see the run-experiment skill
+for details.
+
 Usage:
     python -m cruijff_kit.tools.run.status <experiment_dir>
     python -m cruijff_kit.tools.run.status <experiment_dir> --json

@@ -95,6 +95,36 @@ python -m cruijff_kit.tools.run.submit_inspect   <experiment_dir> --resume-monit
 
 `status` is composable with `/loop` (e.g. periodic check-ins from an agent or cron job). It never submits anything and never writes `MONITOR_DETACHED`; it refreshes state, appends `STATE_CHANGE` blocks when SLURM has moved a job since the last refresh, and emits a per-tool `ALL_COMPLETE` block the first time refresh observes all-terminal — so a finished experiment closes its log cleanly without needing a follow-up `--resume-monitor`. `ALL_COMPLETE` is idempotent: at most one block per per-tool log, no matter how many `status` or submitter calls observe completion.
 
+## Tuning Watcher Cadence: monitor.json + Repo Defaults
+
+The submitter has three numeric knobs:
+
+| Knob | Built-in | What it controls |
+|---|---|---|
+| `poll_sec` | 60 | Seconds between SLURM state polls |
+| `stagger_sec` | 5 | Delay between successive `sbatch` calls (HF cache race) |
+| `max_submit` | 25 | Cap on simultaneous queued jobs (gpu-test QoS limit) |
+
+Built-in defaults live in `<repo>/.config/config.json`, a tracked file. To change personal defaults across all future experiments, edit that file. If you want to keep local edits out of `git status`, run `git update-index --skip-worktree .config/config.json` once.
+
+For a single experiment, use the CLI flags (`--poll-sec`, `--stagger-sec`, `--max-submit`) at submitter invocation.
+
+For **live mid-run** tuning without detach + re-attach, edit `<experiment_dir>/logs/monitor.json` — the watcher re-reads it on every poll iteration. Same filesystem-as-control-plane shape as `.detach`: anyone with FS access (human, agent, `/loop`, cron) can edit. Recognized keys (all optional):
+
+```json
+{"poll_sec": 30, "stagger_sec": 5, "max_submit": 25}
+```
+
+**Precedence (high → low):** `monitor.json` > CLI flag > `<repo>/.config/config.json` > built-in default. Missing files are silent no-ops. Malformed JSON or out-of-range values emit a `WARNING:` to stderr and the watcher keeps the previous values. Every applied `monitor.json` change writes a canonical `MONITOR_CONFIG` block to the per-tool log.
+
+**Filesystem control channels under `<experiment_dir>/logs/`:**
+
+| File | Action | Effect |
+|---|---|---|
+| `.detach` | `touch` | Watcher exits cleanly; jobs continue. Sticky — `rm` it before re-attaching. |
+| `monitor.json` | edit | Adjust `poll_sec` / `stagger_sec` / `max_submit` live. Takes effect on next poll. |
+| `run-*.state.json` | read | Authoritative resume state; produced by the submitters. |
+
 ## Logging
 
 Execution is logged in three files (see logging.md for details).

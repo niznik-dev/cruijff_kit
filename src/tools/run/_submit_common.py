@@ -29,7 +29,7 @@ import signal
 import subprocess
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Iterable
@@ -37,6 +37,9 @@ from typing import Iterable
 DEFAULT_MAX_SUBMIT = 25  # Della gpu-test QoS cap on MaxSubmitJobsPerUser
 DEFAULT_STAGGER_SEC = 5  # avoids HF datasets cache race when jobs land at once
 DEFAULT_POLL_SEC = 60
+
+MONITOR_CONFIG_NAME = "monitor.json"
+_MONITOR_KNOBS = ("poll_sec", "stagger_sec", "max_submit")
 
 TERMINAL_STATES = {
     "COMPLETED",
@@ -280,6 +283,204 @@ def log_monitor_detached(log_path: Path, reason: str, summary: dict) -> None:
     append_log(log_path, block)
 
 
+def log_monitor_config(
+    log_path: Path,
+    current: dict,
+    changes: dict,
+) -> None:
+    """Canonical 'live monitor settings applied' block.
+
+    `current` is the post-update view of all three knobs (poll_sec,
+    stagger_sec, max_submit). `changes` maps knob -> prior value for the
+    ones that actually changed in this refresh. Unchanged knobs are still
+    shown so an operator reading the log sees the full active picture.
+
+    Block shape (no `Job ID:` line — safe from the analyze-experiment
+    SUBMIT_JOB/SUBMIT_EVAL harvest regex):
+
+        [YYYY-MM-DD HH:MM:SS] MONITOR_CONFIG: applied
+        Details: poll_sec=30 (was 60); stagger_sec=5 (unchanged); max_submit=25 (unchanged)
+        Result: settings updated from logs/monitor.json
+    """
+    parts = []
+    for knob in _MONITOR_KNOBS:
+        val = current[knob]
+        if knob in changes:
+            parts.append(f"{knob}={val} (was {changes[knob]})")
+        else:
+            parts.append(f"{knob}={val} (unchanged)")
+    block = (
+        f"[{_now()}] MONITOR_CONFIG: applied\n"
+        f"Details: {'; '.join(parts)}\n"
+        f"Result: settings updated from logs/{MONITOR_CONFIG_NAME}"
+    )
+    append_log(log_path, block)
+
+
+# ---------------------------------------------------------------------------
+# Monitor-knob configuration: user config (<repo>/.config/config.json) and
+# live overrides (<exp_dir>/logs/monitor.json)
+# ---------------------------------------------------------------------------
+#
+# Two filesystem-as-control-plane files share the same JSON schema and the
+# same validator:
+#
+#   <repo>/.config/config.json    — per-checkout user defaults. Read once
+#                                   per process. Power-user territory; ships
+#                                   with the built-in defaults visible.
+#
+#   <exp_dir>/logs/monitor.json   — live overrides for a single run. The
+#                                   watcher re-reads this on every poll
+#                                   iteration so cadence can be tuned mid-run
+#                                   without detach + re-attach. Removing the
+#                                   file reverts each knob to its startup
+#                                   baseline (the next-lower layer).
+#
+# Final precedence (high → low):
+#   monitor.json  >  CLI flag  >  <repo>/.config/config.json  >  built-in default
+
+# Repo root from this file's location: src/tools/run/_submit_common.py -> .. .. .. .
+_USER_CONFIG_PATH = Path(__file__).resolve().parents[3] / ".config" / "config.json"
+_user_config_loaded = False
+_user_config_cache: dict = {}
+
+
+def monitor_config_path(log_path: Path) -> Path:
+    """The live-settings file lives next to the per-tool log files."""
+    return log_path.parent / MONITOR_CONFIG_NAME
+
+
+def _validate_monitor_value(
+    key: str, raw: object
+) -> tuple[bool, float | int | None, str | None]:
+    """Coerce + validate a single monitor-knob entry.
+
+    Returns `(ok, coerced_value, error_msg)`. On failure, `coerced_value`
+    is None and `error_msg` describes the problem suitable for a warning.
+    Shared between `<repo>/.config/config.json` and `logs/monitor.json`.
+    """
+    if key in ("poll_sec", "stagger_sec"):
+        if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+            return False, None, f"{key} must be a number, got {type(raw).__name__}"
+        # Preserve int vs float so the log block prints cleanly (10 not 10.0).
+        if key == "poll_sec" and raw <= 0:
+            return False, None, f"poll_sec must be > 0, got {raw}"
+        if key == "stagger_sec" and raw < 0:
+            return False, None, f"stagger_sec must be >= 0, got {raw}"
+        return True, raw, None
+    if key == "max_submit":
+        if isinstance(raw, bool) or not isinstance(raw, int):
+            return (
+                False,
+                None,
+                f"max_submit must be an integer, got {type(raw).__name__}",
+            )
+        if raw < 1:
+            return False, None, f"max_submit must be >= 1, got {raw}"
+        return True, raw, None
+    return False, None, f"unknown key {key!r}"
+
+
+def _read_validated_config(path: Path) -> tuple[dict, list[str]]:
+    """Read + validate a monitor-knobs JSON file. Never raises.
+
+    Returns `(overrides, warnings)`. `overrides` contains only valid,
+    recognized keys; `warnings` lists problems suitable for stderr.
+    Missing file -> ({}, []) so callers can no-op silently.
+    """
+    if not path.exists():
+        return {}, []
+    try:
+        raw = path.read_text()
+    except OSError as e:
+        return {}, [f"could not read {path}: {e}"]
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        return {}, [f"{path} is not valid JSON ({e.msg}); keeping previous values"]
+    if not isinstance(data, dict):
+        return {}, [f"{path} must be a JSON object; keeping previous values"]
+
+    overrides: dict = {}
+    warnings: list[str] = []
+    for key, raw_val in data.items():
+        if key not in _MONITOR_KNOBS:
+            warnings.append(f"{path}: ignoring unknown key {key!r}")
+            continue
+        ok, val, err = _validate_monitor_value(key, raw_val)
+        if not ok:
+            warnings.append(f"{path}: {err}; keeping previous value")
+            continue
+        overrides[key] = val
+    return overrides, warnings
+
+
+def _load_monitor_config(log_path: Path) -> tuple[dict, list[str]]:
+    """Read + validate the per-run logs/monitor.json. Never raises."""
+    return _read_validated_config(monitor_config_path(log_path))
+
+
+def _load_user_config() -> dict:
+    """Read + validate <repo>/.config/config.json once per process.
+
+    Cached after first successful load. Warnings (malformed JSON, bad
+    values, unknown keys) print to stderr on the first call only.
+    """
+    global _user_config_loaded, _user_config_cache
+    if _user_config_loaded:
+        return _user_config_cache
+    overrides, warnings = _read_validated_config(_USER_CONFIG_PATH)
+    for w in warnings:
+        print(f"WARNING: {w}", file=sys.stderr)
+    _user_config_cache = overrides
+    _user_config_loaded = True
+    return _user_config_cache
+
+
+def _reset_user_config_cache() -> None:
+    """Test helper: drop the process-wide user-config cache."""
+    global _user_config_loaded, _user_config_cache
+    _user_config_loaded = False
+    _user_config_cache = {}
+
+
+def _refresh_monitor_config(cfg: _SubmitConfig) -> None:
+    """Re-read monitor.json and reconcile `cfg` against it in place.
+
+    - File missing → revert each knob to its startup baseline
+      (CLI / <repo>/.config/config.json / built-in default). A
+      MONITOR_CONFIG block fires for any knob that actually changes.
+    - File present → apply overrides; bad values warn to stderr and keep
+      the previously-applied value (sticky for that knob).
+    - Emits a MONITOR_CONFIG block to the run log only when at least one
+      knob actually changes value (including a revert on file removal).
+    """
+    config_path = monitor_config_path(cfg.log_path)
+    file_missing = not config_path.exists()
+
+    overrides, warnings = _load_monitor_config(cfg.log_path)
+    for w in warnings:
+        print(f"WARNING: {w}", file=sys.stderr)
+
+    if file_missing:
+        # Treat absent file as "no overrides anywhere" → revert all knobs.
+        overrides = dict(cfg._baseline)
+
+    changes: dict = {}
+    for knob in _MONITOR_KNOBS:
+        if knob not in overrides:
+            continue
+        new_val = overrides[knob]
+        old_val = getattr(cfg, knob)
+        if new_val != old_val:
+            changes[knob] = old_val
+            setattr(cfg, knob, new_val)
+
+    if changes:
+        current = {knob: getattr(cfg, knob) for knob in _MONITOR_KNOBS}
+        log_monitor_config(cfg.log_path, current, changes)
+
+
 # ---------------------------------------------------------------------------
 # SLURM interaction (mockable via subprocess.run)
 # ---------------------------------------------------------------------------
@@ -360,6 +561,12 @@ class _SubmitConfig:
     max_submit: int = DEFAULT_MAX_SUBMIT
     stagger_sec: float = DEFAULT_STAGGER_SEC
     poll_sec: float = DEFAULT_POLL_SEC
+    # Startup snapshot of the monitor knobs (CLI / config.json / default). Used
+    # as the revert target when monitor.json is removed mid-run.
+    _baseline: dict = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        self._baseline = {knob: getattr(self, knob) for knob in _MONITOR_KNOBS}
 
 
 def submit_and_monitor(
@@ -383,9 +590,13 @@ def submit_and_monitor(
     Resumable: existing entries in the state file with terminal state are skipped.
 
     Honors:
-    - `max_submit` queue-depth cap (gpu-test default = 25; override via env or arg).
+    - `max_submit` queue-depth cap (gpu-test default = 25).
     - `stagger_sec` between submissions (HF datasets cache race).
     - `poll_sec` when waiting for queue room or for in-flight jobs.
+
+    All three can be overridden mid-run via `<exp_dir>/logs/monitor.json`.
+    Static defaults read from `<repo>/.config/config.json`; see the
+    resolve_* helpers and the run-experiment SKILL for the precedence chain.
     """
     cfg = _SubmitConfig(
         log_path=log_path,
@@ -568,6 +779,10 @@ def _drip_feed_submit(
 ) -> dict:
     todo = list(pending)
     while todo:
+        # Pick up any live monitor.json edits before this iteration's
+        # back-pressure check / batch sizing.
+        _refresh_monitor_config(cfg)
+
         # Detach check before any further submission work.
         detached, _ = detach_requested(cfg.log_path)
         if detached:
@@ -614,6 +829,10 @@ def _drip_feed_submit(
             write_state_atomic(cfg.state_path, state)
 
             if todo or i < batch - 1:
+                # Refresh inside the batch too so a long batch picks up
+                # stagger / max_submit edits without waiting for the next
+                # outer iteration.
+                _refresh_monitor_config(cfg)
                 if _interruptible_sleep(cfg.stagger_sec, cfg.log_path):
                     return state
     return state
@@ -621,6 +840,7 @@ def _drip_feed_submit(
 
 def _monitor_to_terminal(state: dict, cfg: _SubmitConfig) -> dict:
     while not _all_terminal(state):
+        _refresh_monitor_config(cfg)
         if _interruptible_sleep(cfg.poll_sec, cfg.log_path):
             return state
         state = _refresh_in_flight_state(state, cfg.log_path)
@@ -655,13 +875,25 @@ def resolve_user(cli_user: str | None) -> str:
 def resolve_max_submit(cli_max: int | None) -> int:
     if cli_max is not None:
         return cli_max
-    env = os.environ.get("MAX_SUBMIT")
-    if env:
-        try:
-            return int(env)
-        except ValueError:
-            print(
-                f"WARNING: ignoring non-integer MAX_SUBMIT env var: {env!r}",
-                file=sys.stderr,
-            )
+    user_val = _load_user_config().get("max_submit")
+    if user_val is not None:
+        return user_val
     return DEFAULT_MAX_SUBMIT
+
+
+def resolve_poll_sec(cli_poll: float | None) -> float:
+    if cli_poll is not None:
+        return cli_poll
+    user_val = _load_user_config().get("poll_sec")
+    if user_val is not None:
+        return user_val
+    return DEFAULT_POLL_SEC
+
+
+def resolve_stagger_sec(cli_stagger: float | None) -> float:
+    if cli_stagger is not None:
+        return cli_stagger
+    user_val = _load_user_config().get("stagger_sec")
+    if user_val is not None:
+        return user_val
+    return DEFAULT_STAGGER_SEC
