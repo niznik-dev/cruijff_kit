@@ -38,6 +38,9 @@ DEFAULT_MAX_SUBMIT = 25  # Della gpu-test QoS cap on MaxSubmitJobsPerUser
 DEFAULT_STAGGER_SEC = 5  # avoids HF datasets cache race when jobs land at once
 DEFAULT_POLL_SEC = 60
 
+MONITOR_CONFIG_NAME = "monitor.json"
+_MONITOR_KNOBS = ("poll_sec", "stagger_sec", "max_submit")
+
 TERMINAL_STATES = {
     "COMPLETED",
     "FAILED",
@@ -278,6 +281,150 @@ def log_monitor_detached(log_path: Path, reason: str, summary: dict) -> None:
         f"Result: monitoring paused; jobs continue"
     )
     append_log(log_path, block)
+
+
+def log_monitor_config(
+    log_path: Path,
+    current: dict,
+    changes: dict,
+) -> None:
+    """Canonical 'live monitor settings applied' block.
+
+    `current` is the post-update view of all three knobs (poll_sec,
+    stagger_sec, max_submit). `changes` maps knob -> prior value for the
+    ones that actually changed in this refresh. Unchanged knobs are still
+    shown so an operator reading the log sees the full active picture.
+
+    Block shape (no `Job ID:` line — safe from the analyze-experiment
+    SUBMIT_JOB/SUBMIT_EVAL harvest regex):
+
+        [YYYY-MM-DD HH:MM:SS] MONITOR_CONFIG: applied
+        Details: poll_sec=30 (was 60); stagger_sec=5 (unchanged); max_submit=25 (unchanged)
+        Result: settings updated from logs/monitor.json
+    """
+    parts = []
+    for knob in _MONITOR_KNOBS:
+        val = current[knob]
+        if knob in changes:
+            parts.append(f"{knob}={val} (was {changes[knob]})")
+        else:
+            parts.append(f"{knob}={val} (unchanged)")
+    block = (
+        f"[{_now()}] MONITOR_CONFIG: applied\n"
+        f"Details: {'; '.join(parts)}\n"
+        f"Result: settings updated from logs/{MONITOR_CONFIG_NAME}"
+    )
+    append_log(log_path, block)
+
+
+# ---------------------------------------------------------------------------
+# Live monitor settings (logs/monitor.json)
+# ---------------------------------------------------------------------------
+#
+# The watcher re-reads this file on every poll iteration so `poll_sec`,
+# `stagger_sec`, and `max_submit` can be tuned mid-run without detach +
+# re-attach. Same filesystem-as-control-plane shape as the `.detach`
+# sentinel — anyone with FS access (human, agent, /loop, cron) can edit.
+#
+# Precedence: monitor.json > CLI flag > env var > built-in default.
+
+
+def monitor_config_path(log_path: Path) -> Path:
+    """The live-settings file lives next to the per-tool log files."""
+    return log_path.parent / MONITOR_CONFIG_NAME
+
+
+def _validate_monitor_value(
+    key: str, raw: object
+) -> tuple[bool, float | int | None, str | None]:
+    """Coerce + validate a single monitor.json entry.
+
+    Returns `(ok, coerced_value, error_msg)`. On failure, `coerced_value`
+    is None and `error_msg` describes the problem suitable for a warning.
+    """
+    if key in ("poll_sec", "stagger_sec"):
+        if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+            return False, None, f"{key} must be a number, got {type(raw).__name__}"
+        # Preserve int vs float so the log block prints cleanly (10 not 10.0).
+        if key == "poll_sec" and raw <= 0:
+            return False, None, f"poll_sec must be > 0, got {raw}"
+        if key == "stagger_sec" and raw < 0:
+            return False, None, f"stagger_sec must be >= 0, got {raw}"
+        return True, raw, None
+    if key == "max_submit":
+        if isinstance(raw, bool) or not isinstance(raw, int):
+            return (
+                False,
+                None,
+                f"max_submit must be an integer, got {type(raw).__name__}",
+            )
+        if raw < 1:
+            return False, None, f"max_submit must be >= 1, got {raw}"
+        return True, raw, None
+    return False, None, f"unknown key {key!r}"
+
+
+def _load_monitor_config(log_path: Path) -> tuple[dict, list[str]]:
+    """Read + validate logs/monitor.json. Never raises.
+
+    Returns `(overrides, warnings)`. `overrides` contains only valid,
+    recognized keys with coerced values; `warnings` lists problems
+    suitable for stderr. Missing file -> ({}, []).
+    """
+    path = monitor_config_path(log_path)
+    if not path.exists():
+        return {}, []
+    try:
+        raw = path.read_text()
+    except OSError as e:
+        return {}, [f"could not read {path}: {e}"]
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        return {}, [f"{path} is not valid JSON ({e.msg}); keeping previous values"]
+    if not isinstance(data, dict):
+        return {}, [f"{path} must be a JSON object; keeping previous values"]
+
+    overrides: dict = {}
+    warnings: list[str] = []
+    for key, raw_val in data.items():
+        if key not in _MONITOR_KNOBS:
+            warnings.append(f"{path}: ignoring unknown key {key!r}")
+            continue
+        ok, val, err = _validate_monitor_value(key, raw_val)
+        if not ok:
+            warnings.append(f"{path}: {err}; keeping previous value")
+            continue
+        overrides[key] = val
+    return overrides, warnings
+
+
+def _refresh_monitor_config(cfg: _SubmitConfig) -> None:
+    """Re-read monitor.json and apply overrides to `cfg` in place.
+
+    - Silent on missing file.
+    - Warns to stderr (not the run log) on malformed file / bad values
+      and keeps previously-applied values.
+    - Emits a MONITOR_CONFIG block to the run log only when at least one
+      knob actually changes value.
+    """
+    overrides, warnings = _load_monitor_config(cfg.log_path)
+    for w in warnings:
+        print(f"WARNING: {w}", file=sys.stderr)
+
+    changes: dict = {}
+    for knob in _MONITOR_KNOBS:
+        if knob not in overrides:
+            continue
+        new_val = overrides[knob]
+        old_val = getattr(cfg, knob)
+        if new_val != old_val:
+            changes[knob] = old_val
+            setattr(cfg, knob, new_val)
+
+    if changes:
+        current = {knob: getattr(cfg, knob) for knob in _MONITOR_KNOBS}
+        log_monitor_config(cfg.log_path, current, changes)
 
 
 # ---------------------------------------------------------------------------
@@ -568,6 +715,10 @@ def _drip_feed_submit(
 ) -> dict:
     todo = list(pending)
     while todo:
+        # Pick up any live monitor.json edits before this iteration's
+        # back-pressure check / batch sizing.
+        _refresh_monitor_config(cfg)
+
         # Detach check before any further submission work.
         detached, _ = detach_requested(cfg.log_path)
         if detached:
@@ -614,6 +765,10 @@ def _drip_feed_submit(
             write_state_atomic(cfg.state_path, state)
 
             if todo or i < batch - 1:
+                # Refresh inside the batch too so a long batch picks up
+                # stagger / max_submit edits without waiting for the next
+                # outer iteration.
+                _refresh_monitor_config(cfg)
                 if _interruptible_sleep(cfg.stagger_sec, cfg.log_path):
                     return state
     return state
@@ -621,6 +776,7 @@ def _drip_feed_submit(
 
 def _monitor_to_terminal(state: dict, cfg: _SubmitConfig) -> dict:
     while not _all_terminal(state):
+        _refresh_monitor_config(cfg)
         if _interruptible_sleep(cfg.poll_sec, cfg.log_path):
             return state
         state = _refresh_in_flight_state(state, cfg.log_path)
@@ -665,3 +821,33 @@ def resolve_max_submit(cli_max: int | None) -> int:
                 file=sys.stderr,
             )
     return DEFAULT_MAX_SUBMIT
+
+
+def resolve_poll_sec(cli_poll: float | None) -> float:
+    if cli_poll is not None:
+        return cli_poll
+    env = os.environ.get("POLL_SEC")
+    if env:
+        try:
+            return float(env)
+        except ValueError:
+            print(
+                f"WARNING: ignoring non-numeric POLL_SEC env var: {env!r}",
+                file=sys.stderr,
+            )
+    return DEFAULT_POLL_SEC
+
+
+def resolve_stagger_sec(cli_stagger: float | None) -> float:
+    if cli_stagger is not None:
+        return cli_stagger
+    env = os.environ.get("STAGGER_SEC")
+    if env:
+        try:
+            return float(env)
+        except ValueError:
+            print(
+                f"WARNING: ignoring non-numeric STAGGER_SEC env var: {env!r}",
+                file=sys.stderr,
+            )
+    return DEFAULT_STAGGER_SEC

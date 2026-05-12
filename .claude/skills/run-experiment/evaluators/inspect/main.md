@@ -11,8 +11,8 @@ python -m cruijff_kit.tools.run.submit_inspect <experiment_dir>
 The submitter (`src/tools/run/submit_inspect.py`) handles every operational step in code:
 
 1. Globs `*/eval/*.slurm` under the experiment directory.
-2. Drip-feeds `sbatch`, capping concurrency at `MAX_SUBMIT` (default 25, override via env). The 5-second stagger applies on the eval side too — the HF datasets cache race hits whenever multiple jobs hit `datasets.load_dataset` at once, not just on fine-tunes.
-3. Polls SLURM (`squeue` first, `sacct` fallback) every 60 seconds until every job reaches a terminal state.
+2. Drip-feeds `sbatch`, capping concurrency at `--max-submit` (CLI) > `MAX_SUBMIT` (env) > 25 (default). Staggers between submissions at `--stagger-sec` > `STAGGER_SEC` env > 5s default — the HF datasets cache race hits whenever multiple jobs hit `datasets.load_dataset` at once, not just on fine-tunes.
+3. Polls SLURM (`squeue` first, `sacct` fallback) until every job reaches a terminal state, at the configured cadence (`--poll-sec` > `POLL_SEC` env > 60s default).
 4. Emits canonical 4-line `SUBMIT_EVAL:` / `Job ID:` / `Result:` blocks to `logs/run-inspect.log`. The eval-job identifier is `{run_name}/{task}/epoch{N}` (or `{run_name}/{task}` when no epoch suffix exists), matching the regex in `analyze-experiment`'s compute step.
 5. Persists `logs/run-inspect.state.json` keyed by `{run_name}/eval/{slurm_filename}` so distinct runs with the same eval slurm filename don't collide on a single state-file key (the bug from issue #451 comment #2).
 
@@ -25,6 +25,10 @@ python -m cruijff_kit.tools.run.submit_inspect <experiment_dir> --resume-monitor
 ```
 
 Or for a one-shot read across both submitters: `python -m cruijff_kit.tools.run.status <experiment_dir>`.
+
+## Live monitor settings
+
+The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll iteration. Any of `poll_sec`, `stagger_sec`, `max_submit` listed there take effect on the next poll, overriding the CLI / env / default values. Changes are recorded as `MONITOR_CONFIG` blocks in the per-tool log. See [the run-experiment skill](../../SKILL.md#live-monitor-settings) for the full precedence chain.
 
 ## Prerequisites
 

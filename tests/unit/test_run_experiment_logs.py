@@ -831,3 +831,213 @@ class TestStatus:
 
         log = (logs_dir / "run-torchtune.log").read_text()
         assert log.count("ALL_COMPLETE") == 1
+
+
+# ---------------------------------------------------------------------------
+# (7) Live monitor settings (#480) — logs/monitor.json
+# ---------------------------------------------------------------------------
+
+
+def _mk_cfg(tmp_path: Path, **overrides) -> "common._SubmitConfig":
+    """Build a _SubmitConfig pointing at tmp_path's logs/ for refresh tests."""
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    return common._SubmitConfig(
+        log_path=logs_dir / "run-torchtune.log",
+        state_path=logs_dir / "run-torchtune.state.json",
+        action_type="SUBMIT_JOB",
+        user="testuser",
+        experiment_dir=tmp_path,
+        **overrides,
+    )
+
+
+class TestMonitorConfig:
+    """Live monitor settings via logs/monitor.json (#480).
+
+    Precedence: monitor.json > CLI flag > env var > default. The watcher
+    re-reads the file on every poll iteration so an operator (or agent) can
+    tune `poll_sec`, `stagger_sec`, `max_submit` mid-run without detach +
+    re-attach. Bad values are warned-and-skipped; missing file is silent.
+    """
+
+    def test_missing_file_is_silent_noop(self, tmp_path, capsys):
+        cfg = _mk_cfg(tmp_path)
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == common.DEFAULT_POLL_SEC
+        assert cfg.stagger_sec == common.DEFAULT_STAGGER_SEC
+        assert cfg.max_submit == common.DEFAULT_MAX_SUBMIT
+        # No warning, no log file written for this path.
+        assert capsys.readouterr().err == ""
+        if cfg.log_path.exists():
+            assert "MONITOR_CONFIG" not in cfg.log_path.read_text()
+
+    def test_file_present_applies_overrides_and_logs(self, tmp_path):
+        cfg = _mk_cfg(tmp_path)
+        (tmp_path / "logs" / "monitor.json").write_text(json.dumps({"poll_sec": 10}))
+
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == 10
+        assert cfg.stagger_sec == common.DEFAULT_STAGGER_SEC
+        assert cfg.max_submit == common.DEFAULT_MAX_SUBMIT
+        log = cfg.log_path.read_text()
+        assert "MONITOR_CONFIG: applied" in log
+        assert "poll_sec=10 (was 60)" in log
+        # Unchanged knobs are still shown so the active picture is complete.
+        assert "stagger_sec=5 (unchanged)" in log
+        assert "max_submit=25 (unchanged)" in log
+
+    def test_live_update_mid_run(self, tmp_path):
+        """Two successive edits each emit their own MONITOR_CONFIG block."""
+        cfg = _mk_cfg(tmp_path)
+        config_path = tmp_path / "logs" / "monitor.json"
+
+        config_path.write_text(json.dumps({"poll_sec": 20}))
+        common._refresh_monitor_config(cfg)
+        config_path.write_text(json.dumps({"poll_sec": 5}))
+        common._refresh_monitor_config(cfg)
+
+        log = cfg.log_path.read_text()
+        assert log.count("MONITOR_CONFIG: applied") == 2
+        assert "poll_sec=20 (was 60)" in log
+        assert "poll_sec=5 (was 20)" in log
+        assert cfg.poll_sec == 5
+
+    def test_unchanged_file_does_not_repeat_log(self, tmp_path):
+        """File present but values match current cfg → no repeated logging."""
+        cfg = _mk_cfg(tmp_path)
+        (tmp_path / "logs" / "monitor.json").write_text(json.dumps({"poll_sec": 30}))
+
+        common._refresh_monitor_config(cfg)
+        common._refresh_monitor_config(cfg)
+        common._refresh_monitor_config(cfg)
+
+        log = cfg.log_path.read_text()
+        assert log.count("MONITOR_CONFIG: applied") == 1
+
+    def test_malformed_json_warns_and_keeps_values(self, tmp_path, capsys):
+        cfg = _mk_cfg(tmp_path, poll_sec=42.0)
+        (tmp_path / "logs" / "monitor.json").write_text("{not valid json")
+
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == 42.0
+        captured = capsys.readouterr()
+        assert "not valid JSON" in captured.err
+        if cfg.log_path.exists():
+            assert "MONITOR_CONFIG" not in cfg.log_path.read_text()
+
+    def test_non_object_json_warns_and_keeps_values(self, tmp_path, capsys):
+        """Top-level must be an object; arrays / scalars are rejected."""
+        cfg = _mk_cfg(tmp_path)
+        (tmp_path / "logs" / "monitor.json").write_text(json.dumps([1, 2, 3]))
+
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == common.DEFAULT_POLL_SEC
+        assert "must be a JSON object" in capsys.readouterr().err
+
+    def test_unknown_keys_warned_known_keys_applied(self, tmp_path, capsys):
+        cfg = _mk_cfg(tmp_path)
+        (tmp_path / "logs" / "monitor.json").write_text(
+            json.dumps({"poll_sec": 5, "bogus_key": 99})
+        )
+
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == 5
+        assert "bogus_key" in capsys.readouterr().err
+
+    def test_invalid_values_warned_and_kept(self, tmp_path, capsys):
+        """Out-of-range / wrong-type values: warn, keep last good."""
+        cfg = _mk_cfg(tmp_path)
+        (tmp_path / "logs" / "monitor.json").write_text(
+            json.dumps({"poll_sec": -1, "max_submit": 0, "stagger_sec": "fast"})
+        )
+
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.poll_sec == common.DEFAULT_POLL_SEC
+        assert cfg.max_submit == common.DEFAULT_MAX_SUBMIT
+        assert cfg.stagger_sec == common.DEFAULT_STAGGER_SEC
+        err = capsys.readouterr().err
+        assert "poll_sec must be > 0" in err
+        assert "max_submit must be >= 1" in err
+        assert "stagger_sec must be a number" in err
+
+    def test_max_submit_rejects_float(self, tmp_path, capsys):
+        """max_submit must be an int, not a float (even 25.0)."""
+        cfg = _mk_cfg(tmp_path)
+        (tmp_path / "logs" / "monitor.json").write_text(
+            json.dumps({"max_submit": 25.0})
+        )
+
+        common._refresh_monitor_config(cfg)
+
+        assert cfg.max_submit == common.DEFAULT_MAX_SUBMIT
+        assert "max_submit must be an integer" in capsys.readouterr().err
+
+    def test_precedence_file_overrides_cli_and_env(
+        self, tmp_path, monkeypatch, fake_slurm, fast_sleep
+    ):
+        """Integration: file beats CLI flag beats env var beats default."""
+        _write_finetune_experiment(tmp_path, ["rank4"], include_control=False)
+        logs_dir = tmp_path / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+
+        # env: poll_sec=30, file: poll_sec=10, CLI: poll_sec=20.
+        monkeypatch.setenv("POLL_SEC", "30")
+        (logs_dir / "monitor.json").write_text(json.dumps({"poll_sec": 10}))
+
+        original_sbatch = fake_slurm._sbatch
+
+        def sbatch_then_finish(argv, kwargs):
+            r = original_sbatch(argv, kwargs)
+            fake_slurm.finish_all("COMPLETED")
+            return r
+
+        fake_slurm._sbatch = sbatch_then_finish
+
+        submit_torchtune.run(tmp_path, user="testuser", max_submit=10, poll_sec=20)
+
+        log = (logs_dir / "run-torchtune.log").read_text()
+        # CLI override sets cfg.poll_sec=20 at entry; file then drops it to 10.
+        assert "poll_sec=10 (was 20)" in log
+
+    def test_config_block_does_not_match_jid_harvest_regex(self, tmp_path):
+        """MONITOR_CONFIG must not false-match the analyze-experiment harvesters."""
+        log_path = tmp_path / "logs" / "run-torchtune.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        common.log_monitor_config(
+            log_path,
+            current={"poll_sec": 30, "stagger_sec": 5, "max_submit": 25},
+            changes={"poll_sec": 60},
+        )
+
+        log = log_path.read_text()
+        assert "MONITOR_CONFIG: applied" in log
+        assert SUBMIT_JOB_RE.findall(log) == []
+        assert SUBMIT_EVAL_RE.findall(log) == []
+
+    def test_resolve_poll_sec_env_precedence(self, monkeypatch):
+        """resolve_poll_sec: CLI flag > env var > default."""
+        monkeypatch.setenv("POLL_SEC", "45")
+        assert common.resolve_poll_sec(None) == 45.0
+        assert common.resolve_poll_sec(15.0) == 15.0
+        monkeypatch.delenv("POLL_SEC")
+        assert common.resolve_poll_sec(None) == common.DEFAULT_POLL_SEC
+
+    def test_resolve_stagger_sec_env_precedence(self, monkeypatch):
+        monkeypatch.setenv("STAGGER_SEC", "2.5")
+        assert common.resolve_stagger_sec(None) == 2.5
+        assert common.resolve_stagger_sec(1.0) == 1.0
+        monkeypatch.delenv("STAGGER_SEC")
+        assert common.resolve_stagger_sec(None) == common.DEFAULT_STAGGER_SEC
+
+    def test_resolve_poll_sec_bad_env_warns_and_falls_back(self, monkeypatch, capsys):
+        monkeypatch.setenv("POLL_SEC", "fast-please")
+        assert common.resolve_poll_sec(None) == common.DEFAULT_POLL_SEC
+        assert "non-numeric POLL_SEC" in capsys.readouterr().err

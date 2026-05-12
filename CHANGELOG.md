@@ -12,6 +12,7 @@ All notable changes to cruijff_kit will be documented in this file.
 - `--resume-monitor` flag on `submit_torchtune` and `submit_inspect` — skips the submit phase and re-attaches a watcher to the existing state file. Idempotent; safe to invoke repeatedly. (#479)
 - `src/tools/run/status.py` — consolidated read-only snapshot command. Reads both state files, refreshes in-flight entries from `squeue`/`sacct`, prints a table (or `--json`). Emits a per-tool `ALL_COMPLETE` block when refresh first observes all-terminal so the pipeline log closes cleanly without a follow-up `--resume-monitor`. Composes with `/loop`, cron, or interactive use. (#479)
 - `log_all_complete()` is now idempotent — at most one `ALL_COMPLETE` block per per-tool log regardless of how many submitters or `status` calls emit it. (#479)
+- Live monitor settings file at `<exp_dir>/logs/monitor.json`. The watcher re-reads it on every poll iteration so `poll_sec`, `stagger_sec`, and `max_submit` can be tuned mid-run without detach + re-attach. Same filesystem-as-control-plane shape as the `.detach` sentinel. New `--poll-sec` / `--stagger-sec` CLI flags + `POLL_SEC` / `STAGGER_SEC` env vars on both submitters. Precedence: file > CLI > env > default. Bad values warn-and-skip; missing file is a silent no-op. Each applied change emits a `MONITOR_CONFIG` block to the per-tool log. (#480)
 
 ### Changed
 

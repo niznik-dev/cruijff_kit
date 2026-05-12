@@ -34,5 +34,8 @@ inspect.slurm
 
 # Allow generated config files inside test fixtures
 !tests/fixtures/**
+# ...but still ignore pycache anywhere underneath
+tests/fixtures/**/__pycache__/
+tests/fixtures/**/*.pyc
 *G/
 *.eval

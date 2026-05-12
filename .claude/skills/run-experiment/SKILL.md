@@ -95,6 +95,26 @@ python -m cruijff_kit.tools.run.submit_inspect   <experiment_dir> --resume-monit
 
 `status` is composable with `/loop` (e.g. periodic check-ins from an agent or cron job). It never submits anything and never writes `MONITOR_DETACHED`; it refreshes state, appends `STATE_CHANGE` blocks when SLURM has moved a job since the last refresh, and emits a per-tool `ALL_COMPLETE` block the first time refresh observes all-terminal — so a finished experiment closes its log cleanly without needing a follow-up `--resume-monitor`. `ALL_COMPLETE` is idempotent: at most one block per per-tool log, no matter how many `status` or submitter calls observe completion.
 
+## Live Monitor Settings
+
+The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll iteration so cadence knobs can be tuned mid-run without detach + re-attach. Same filesystem-as-control-plane shape as `.detach` — anyone with FS access (human, agent, `/loop`, cron) can edit.
+
+Recognized keys (all optional):
+
+```json
+{"poll_sec": 30, "stagger_sec": 5, "max_submit": 25}
+```
+
+Precedence: `monitor.json` > CLI flag (`--poll-sec` / `--stagger-sec` / `--max-submit`) > env var (`POLL_SEC` / `STAGGER_SEC` / `MAX_SUBMIT`) > built-in default. Missing file is a silent no-op. Malformed JSON or out-of-range values emit a `WARNING:` to stderr and the watcher keeps the previous values. Every applied change writes a canonical `MONITOR_CONFIG` block to the per-tool log.
+
+**Filesystem control channels under `<experiment_dir>/logs/`:**
+
+| File | Action | Effect |
+|---|---|---|
+| `.detach` | `touch` | Watcher exits cleanly; jobs continue. Sticky — `rm` it before re-attaching. |
+| `monitor.json` | edit | Adjust `poll_sec` / `stagger_sec` / `max_submit` live. Takes effect on next poll. |
+| `run-*.state.json` | read | Authoritative resume state; produced by the submitters. |
+
 ## Logging
 
 Execution is logged in three files (see logging.md for details).

@@ -29,6 +29,8 @@ from cruijff_kit.tools.run._submit_common import (
     TodoItem,
     monitor_only,
     resolve_max_submit,
+    resolve_poll_sec,
+    resolve_stagger_sec,
     resolve_user,
     submit_and_monitor,
 )
@@ -75,6 +77,8 @@ def run(
     experiment_dir: Path,
     user: str | None = None,
     max_submit: int | None = None,
+    poll_sec: float | None = None,
+    stagger_sec: float | None = None,
     resume_monitor: bool = False,
 ) -> dict:
     """Programmatic entrypoint (also used by tests).
@@ -82,6 +86,9 @@ def run(
     `resume_monitor=True` skips the submission phase entirely and re-attaches
     a watcher to the existing state file. Useful after a clean detach
     (SIGINT / SIGTERM / sentinel) to pick up monitoring without resubmitting.
+
+    Precedence for max_submit / poll_sec / stagger_sec: logs/monitor.json
+    > CLI flag > env var (MAX_SUBMIT / POLL_SEC / STAGGER_SEC) > default.
     """
     experiment_dir = experiment_dir.resolve()
     log_path = experiment_dir / "logs" / LOG_NAME
@@ -95,6 +102,8 @@ def run(
             user=resolve_user(user),
             experiment_dir=experiment_dir,
             max_submit=resolve_max_submit(max_submit),
+            poll_sec=resolve_poll_sec(poll_sec),
+            stagger_sec=resolve_stagger_sec(stagger_sec),
         )
 
     todo = _build_todo(experiment_dir)
@@ -106,6 +115,8 @@ def run(
         user=resolve_user(user),
         experiment_dir=experiment_dir,
         max_submit=resolve_max_submit(max_submit),
+        poll_sec=resolve_poll_sec(poll_sec),
+        stagger_sec=resolve_stagger_sec(stagger_sec),
     )
 
 
@@ -121,7 +132,22 @@ def main(argv: list[str] | None = None) -> int:
         "--max-submit",
         type=int,
         default=None,
-        help="Cap on concurrent submissions (default: 25, override via MAX_SUBMIT env).",
+        help="Cap on concurrent submissions (default: 25, override via MAX_SUBMIT env "
+        "or logs/monitor.json).",
+    )
+    parser.add_argument(
+        "--poll-sec",
+        type=float,
+        default=None,
+        help="Poll interval in seconds (default: 60, override via POLL_SEC env "
+        "or logs/monitor.json).",
+    )
+    parser.add_argument(
+        "--stagger-sec",
+        type=float,
+        default=None,
+        help="Stagger between submissions in seconds (default: 5, override via "
+        "STAGGER_SEC env or logs/monitor.json).",
     )
     parser.add_argument(
         "--resume-monitor",
@@ -135,6 +161,8 @@ def main(argv: list[str] | None = None) -> int:
         args.experiment_dir,
         user=args.user,
         max_submit=args.max_submit,
+        poll_sec=args.poll_sec,
+        stagger_sec=args.stagger_sec,
         resume_monitor=args.resume_monitor,
     )
     print(f"Done. Terminal-state breakdown: {summary}")
