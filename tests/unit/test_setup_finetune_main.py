@@ -224,6 +224,15 @@ class TestMainSlurmGeneration:
         assert "lora_finetune_distributed" in slurm
         assert "--gres=gpu:4" in slurm
 
+    def test_cpus_per_task_cli_overrides_model_config(self, run_main):
+        _, slurm = run_main(extra_args=["--cpus_per_task", "8"])
+        assert "#SBATCH --cpus-per-task=8" in slurm
+
+    def test_no_cpus_per_task_uses_model_config_default(self, run_main):
+        # Llama-3.2-1B-Instruct has cpus: 1 in MODEL_CONFIGS
+        _, slurm = run_main()
+        assert "#SBATCH --cpus-per-task=1" in slurm
+
 
 class TestCustomRecipeGuard:
     """Tests for the auto-switch guard added in #471.

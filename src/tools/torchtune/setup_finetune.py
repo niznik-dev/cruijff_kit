@@ -583,6 +583,12 @@ def create_parser():
     parser.add_argument(
         "--mem", type=str, help="Slurm memory allocation (e.g., '40G', '16G')"
     )
+    parser.add_argument(
+        "--cpus_per_task",
+        type=int,
+        default=None,
+        help="Cores requested in the SLURM script (overrides MODEL_CONFIGS).",
+    )
     parser.add_argument("--constraint", type=str, help="Slurm constraint to use")
 
     # ------ Training Step Guard -----
@@ -957,8 +963,11 @@ def main():
             stacklevel=2,
         )
 
-    # CPUs: use model config value
-    cpus = slurm_config.get("cpus", 4)
+    cpus = (
+        args.cpus_per_task
+        if args.cpus_per_task is not None
+        else slurm_config.get("cpus", 1)
+    )
 
     # Multi-GPU setup: update SLURM and use distributed training
     if gpus > 1:

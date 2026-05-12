@@ -112,9 +112,9 @@ These are *example* parameters that the user might vary. There may be other para
      - `parameters` - Dict of parameter values (lora_rank, lr, etc.)
 
 6. **Compute estimates (optional):**
-   - For each run: `runs[].compute.time`, `runs[].compute.gpus`, `runs[].compute.mem`
-   - If present, pass as `--time`, `--gpus`, `--mem` CLI args to `setup_finetune.py`
-   - If absent, omit these flags (`setup_finetune.py` uses its defaults)
+   - For each run: `runs[].compute.time`, `runs[].compute.gpus`, `runs[].compute.mem`, `runs[].compute.cpus_per_task`
+   - If present, pass as `--time`, `--gpus`, `--mem`, `--cpus_per_task` CLI args to `setup_finetune.py`
+   - If absent, omit these flags (`setup_finetune.py` uses its defaults: MODEL_CONFIGS for cpus, etc.)
 
 ### Filtering Fine-tuned Runs
 
@@ -261,6 +261,7 @@ account: {from claude.local.md SLURM Defaults, if present}
 time: {from runs[].compute.time, if present, e.g., "0:15:00"}
 gpus: {from runs[].compute.gpus, if present}
 mem: {from runs[].compute.mem, if present, e.g., "80G"}
+cpus_per_task: {from runs[].compute.cpus_per_task, if present, e.g., 8}
 
 # System prompt (if specified)
 system_prompt: {from controls.system_prompt, often empty string ""}
@@ -321,7 +322,7 @@ For each run directory:
 
    **With compute estimates** (when `runs[].compute` block exists):
    ```bash
-   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train} --time {compute.time} --gpus {compute.gpus} --mem {compute.mem}"
+   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train} --time {compute.time} --gpus {compute.gpus} --mem {compute.mem} --cpus_per_task {compute.cpus_per_task}"
    ```
 
    **Example (without compute estimates):**
