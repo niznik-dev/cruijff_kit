@@ -19,7 +19,10 @@ Each experiment lives in a single self-contained directory. The root contains th
 │   ├── scaffold-inspect.log
 │   ├── run-experiment.log
 │   ├── run-torchtune.log
+│   ├── run-torchtune.state.json # Submitter resume state (JSON)
 │   ├── run-inspect.log
+│   ├── run-inspect.state.json   # Submitter resume state (JSON)
+│   ├── .detach                  # Optional sentinel — touch to detach the watcher
 │   ├── summarize-experiment.log
 │   └── analyze-experiment.log
 ├── {run_name}/                  # Self-contained per-run directory (one per run)

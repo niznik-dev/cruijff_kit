@@ -17,6 +17,7 @@ from cruijff_kit.tools.slurm.compute_metrics import (
     extract_jobstats_notes,
     format_compute_table,
     generate_gpu_recommendations,
+    harvest_jids_from_run_logs,
     parse_jobstats_json,
     parse_sacct_time_limit,
     parse_seff_output,
@@ -1020,3 +1021,97 @@ class TestGenerateGpuRecommendations:
         ]
         recs = generate_gpu_recommendations(jobs)
         assert recs == {}
+
+
+# =============================================================================
+# harvest_jids_from_run_logs()  — issue #451 loud-warn
+# =============================================================================
+
+
+class TestHarvestJidsFromRunLogs:
+    """Issue #451: replace silent skip with loud warnings when run-experiment
+    logs are missing or malformed."""
+
+    def _write_log(self, path, blocks):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("\n\n".join(blocks) + "\n")
+
+    def test_warns_on_missing_finetune_log(self, tmp_path, capsys):
+        # No logs at all
+        result, warnings = harvest_jids_from_run_logs(tmp_path)
+        assert result == {"finetune": [], "eval": []}
+        assert len(warnings) == 2  # both finetune AND eval missing
+        assert any("run-torchtune.log" in w for w in warnings)
+        assert any("run-inspect.log" in w for w in warnings)
+        # Loud-warn writes to stderr
+        captured = capsys.readouterr()
+        assert "WARNING" in captured.err
+        assert "run-torchtune.log" in captured.err
+
+    def test_warns_on_malformed_log(self, tmp_path, capsys):
+        log_path = tmp_path / "logs" / "run-torchtune.log"
+        log_path.parent.mkdir(parents=True)
+        log_path.write_text("blah blah no canonical entries here\n")
+        # Eval log also missing — both produce warnings
+        _, warnings = harvest_jids_from_run_logs(tmp_path)
+        assert any("no canonical SUBMIT_JOB" in w for w in warnings)
+        captured = capsys.readouterr()
+        assert "WARNING" in captured.err
+
+    def test_extracts_finetune_jids(self, tmp_path, capsys):
+        log_path = tmp_path / "logs" / "run-torchtune.log"
+        self._write_log(
+            log_path,
+            [
+                "[2026-05-08 14:32:01] SUBMIT_JOB: rank4\nDetails: sbatch finetune.slurm\nJob ID: 1234\nResult: success",
+                "[2026-05-08 14:32:06] SUBMIT_JOB: rank8\nDetails: sbatch finetune.slurm\nJob ID: 1235\nResult: success",
+            ],
+        )
+        # Eval log missing → still warns for that side
+        result, warnings = harvest_jids_from_run_logs(tmp_path)
+        assert result["finetune"] == [("rank4", "1234"), ("rank8", "1235")]
+        assert result["eval"] == []
+        assert any("run-inspect.log" in w for w in warnings)
+
+    def test_extracts_eval_jids_with_slash_names(self, tmp_path):
+        log_path = tmp_path / "logs" / "run-inspect.log"
+        # Also write a torchtune log so the finetune side doesn't warn.
+        self._write_log(
+            tmp_path / "logs" / "run-torchtune.log",
+            [
+                "[2026-05-08 14:32:01] SUBMIT_JOB: rank4\nDetails: sbatch finetune.slurm\nJob ID: 1234\nResult: success",
+            ],
+        )
+        self._write_log(
+            log_path,
+            [
+                "[2026-05-08 15:00:01] SUBMIT_EVAL: rank4/capitalization/epoch0\nDetails: sbatch capitalization_epoch0.slurm\nJob ID: 9999\nResult: success",
+                "[2026-05-08 15:00:06] SUBMIT_EVAL: rank4/capitalization/epoch1\nDetails: sbatch capitalization_epoch1.slurm\nJob ID: 10000\nResult: success",
+            ],
+        )
+        result, warnings = harvest_jids_from_run_logs(tmp_path)
+        assert result["eval"] == [
+            ("rank4/capitalization/epoch0", "9999"),
+            ("rank4/capitalization/epoch1", "10000"),
+        ]
+        assert warnings == []
+
+    def test_round_trips_with_canonical_submitter_output(self, tmp_path):
+        """End-to-end glue: _submit_common's log lines are parseable by this harvester."""
+        from cruijff_kit.tools.run import _submit_common
+
+        log_path = tmp_path / "logs" / "run-torchtune.log"
+        _submit_common.log_submit(
+            log_path, "SUBMIT_JOB", name="rank4", slurm_name="finetune.slurm", job_id=42
+        )
+        _submit_common.log_submit(
+            tmp_path / "logs" / "run-inspect.log",
+            "SUBMIT_EVAL",
+            name="rank4/capitalization/epoch0",
+            slurm_name="capitalization_epoch0.slurm",
+            job_id=99,
+        )
+        result, warnings = harvest_jids_from_run_logs(tmp_path)
+        assert result["finetune"] == [("rank4", "42")]
+        assert result["eval"] == [("rank4/capitalization/epoch0", "99")]
+        assert warnings == []

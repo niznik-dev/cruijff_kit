@@ -379,14 +379,11 @@ Uses Wilson score intervals (preferred over normal approximation):
 
 ## Compute Utilization Analysis
 
-After generating visualizations and before the report, optionally add compute metrics. This requires run logs from `run-experiment`.
+After generating visualizations and before the report, add compute metrics. This requires run logs from `run-experiment` (or from `src/tools/run/submit_*.py` directly).
 
 **Workflow:**
 
-1. Extract job IDs from `run-torchtune.log` and `run-inspect.log`. The log format places `Job ID:` on its own line after the SUBMIT action (see `run-experiment/logging.md`). Use these regexes:
-   - Fine-tuning: `r'SUBMIT_JOB: ([\w.-]+)\n.*?\nJob ID: (\d+)'` → captures (run_name, job_id)
-   - Evaluation: `r'SUBMIT_EVAL: ([\w./-]+)\n.*?\nJob ID: (\d+)'` → captures (run/task/epoch, job_id)
-   - Both require `re.DOTALL` or explicit `\n` matching since the job ID is on a separate line from the action type.
+1. Call `harvest_jids_from_run_logs(experiment_dir)` from `src/tools/slurm/compute_metrics.py`. It returns `(jids_dict, warnings)` where `jids_dict` is `{"finetune": [(name, jid), ...], "eval": [(name, jid), ...]}`. The helper already prints `WARNING:` lines to stderr for any missing or malformed log file, mirroring the canonical regexes in `run-experiment/logging.md`. **If `warnings` is non-empty, do not silently skip the section** — append a "**Compute Utilization unavailable:** ..." note to `report.md` listing each warning so the absence is visible to the operator.
 2. Check if jobstats is available with `check_jobstats_available()`
 3. For each job:
    a. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
@@ -425,7 +422,7 @@ After generating visualizations and before the report, optionally add compute me
 
 **Data sources:** nvidia-smi CSV for GPU memory/power and utilization range (min/max), jobstats for CPU metrics and GPU utilization average (Prometheus-sampled, more reliable than nvidia-smi's 30s polling), seff for job metadata + CPU fallback.
 
-**Error handling:** Missing seff → skip seff columns; missing gpu_metrics.csv → show `-` for GPU columns; jobstats unavailable or fails → fall back to seff for CPU data; missing run logs → skip compute analysis entirely; partial data → generate table with whatever is available.
+**Error handling:** Missing seff → skip seff columns; missing gpu_metrics.csv → show `-` for GPU columns; jobstats unavailable or fails → fall back to seff for CPU data; missing or malformed run logs → emit a loud `WARNING:` to stderr (handled inside `harvest_jids_from_run_logs()`) and surface a "*Compute Utilization unavailable: ...*" note in `report.md` (do not silently skip — see issue #451); partial data → generate table with whatever is available.
 
 ## Logging
 

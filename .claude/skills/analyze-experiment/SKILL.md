@@ -114,16 +114,13 @@ report = generate_report(
 
 ### 6b. Compute Utilization Report → `generation.md`
 
-If run logs exist (`logs/run-torchtune.log` and/or `logs/run-inspect.log`), generate a compute utilization section:
+Generate a compute utilization section. Always call `harvest_jids_from_run_logs(experiment_dir)` from `src/tools/slurm/compute_metrics.py` first — it returns `(jids_dict, warnings)`:
 
-1. Extract job IDs from logs (regex: `Result: Job ID (\d+)`)
-2. Run `seff` for each job and parse with `src/tools/slurm/compute_metrics.py`
-3. Read `gpu_metrics.csv` files and summarize with `summarize_gpu_metrics()`
-4. Generate compute table with `format_compute_table()`
-5. Save raw metrics to `analysis/compute_metrics.json` using `compute_summary.py` (see `generation.md`)
-6. Pass formatted table as `compute_section` to `generate_report()`
+1. Call `harvest_jids_from_run_logs(experiment_dir)`. It already prints `WARNING:` lines to stderr for any missing or malformed log files.
+2. **If `warnings` is non-empty**: append a visible "**Compute Utilization unavailable:** ..." note to the rendered report listing each warning, instead of silently skipping. Do NOT omit the section header. (Closes the silent-skip gap from issue #451.)
+3. **If JIDs are present**: for each, run `seff` and parse with helpers in `src/tools/slurm/compute_metrics.py`; read `gpu_metrics.csv` per run and summarize with `summarize_gpu_metrics()`; format with `format_compute_table()`; save raw metrics to `analysis/compute_metrics.json`; pass the formatted table as `compute_section` to `generate_report()`.
 
-**Skip silently** if no run logs exist (e.g., analyzing results without having run the experiment locally).
+**Loud-warn, do not silently skip.** When the logs are genuinely absent (e.g., analyzing a colleague's experiment without local logs), the warning text in `report.md` tells the operator how to recover (typically: re-run `run-experiment`, or re-create the canonical log via `src/tools/run/submit_*.py`).
 
 ### 7. Logging → `logging.md`
 

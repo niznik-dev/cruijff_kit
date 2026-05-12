@@ -50,6 +50,9 @@ Each of `Llama-3.2-1B-Instruct_rank4/` and `Llama-3.2-1B-Instruct_rank8/` should
 - `finetune.yaml` parameters match the run name
 - Training jobs complete successfully and produce `epoch_0/` checkpoint dirs
 - Evaluation jobs complete successfully and produce result logs
+- `logs/run-torchtune.log` exists and contains canonical `SUBMIT_JOB:` blocks (regex: `r'SUBMIT_JOB: ([\w.-]+)\n.*?\nJob ID: (\d+)'`)
+- `logs/run-inspect.log` exists and contains canonical `SUBMIT_EVAL:` blocks
+- After running `analyze-experiment`, `analysis/report.md` contains a `## Compute Utilization` header **and** `analysis/compute_metrics.json` exists with at least one entry per submitted job (closes #451 silent-skip gap)
 
 ## Estimated wall time
 
