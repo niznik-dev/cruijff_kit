@@ -15,7 +15,16 @@ from cruijff_kit.tools.torchtune.model_configs import MODEL_CONFIGS, configure_t
 script_dir = Path(__file__).parent
 
 # Skip these when writing the yaml file
-SLURM_ONLY = ["time", "gpus", "conda_env", "account", "partition", "constraint", "mem"]
+SLURM_ONLY = [
+    "time",
+    "gpus",
+    "conda_env",
+    "account",
+    "partition",
+    "constraint",
+    "mem",
+    "cpus_per_task",
+]
 # Meta-arguments that are not torchtune config parameters
 META_ARGS = ["training_samples"]
 
