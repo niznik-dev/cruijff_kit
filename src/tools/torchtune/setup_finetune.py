@@ -807,12 +807,21 @@ def main():
         elif key in ("prompt", "input_key", "output_key"):
             pass  # Handled in dataset_type
         elif key == "system_prompt":
-            # chat_completion handles system_prompt in dataset_type switch
-            # Only apply new_system_prompt for legacy instruct_dataset
-            if value and args.dataset_type != "chat_completion":
+            # chat_completion handles system_prompt via apply_chat_template.
+            # text_completion / text_completion_dataset have no system-prompt slot
+            if value and args.dataset_type in ("instruct_dataset", "chat_dataset"):
                 config["dataset"]["new_system_prompt"] = value
                 if "dataset_val" in config:
                     config["dataset_val"]["new_system_prompt"] = value
+            elif value and args.dataset_type in (
+                "text_completion",
+                "text_completion_dataset",
+            ):
+                print(
+                    f"[setup_finetune] WARNING: system_prompt is set but "
+                    f"dataset_type='{args.dataset_type}' has no system-prompt slot; "
+                    f"ignoring."
+                )
         elif key == "train_on_input":
             # Handled in dataset_type switch for chat_completion
             pass

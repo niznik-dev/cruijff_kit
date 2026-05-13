@@ -89,7 +89,8 @@ These are *example* parameters that the user might vary. There may be other para
    - `controls.epochs` - Number of training epochs
    - `controls.batch_size` - Batch size (if not varied)
    - `controls.batch_size_val` - Optional larger batch size for validation passes. Honored by `_single_device_nightly` (the default recipe); silently ignored by `_stable` / `_distributed` recipes since their custom-recipe builds don't read the field. Recipe falls back to `controls.batch_size` when absent.
-   - `controls.system_prompt` - Training system prompt
+   - `controls.system_prompt` - Training system prompt. 
+      - Omit this field from `setup_finetune.yaml` when `dataset_type` is `text_completion` or `text_completion_dataset` (i.e. base / non-instruct models). Base models have no chat template, so the system prompt has nowhere to go — `setup_finetune.py` will drop it with a warning.
    - `controls.prompt` - Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
    - `controls.validation_during_training` - Whether to run validation during training. Translates to `run_val_every_n_steps`: if `true`, set to `50` (the `finetune_template.yaml` default); if `false`, set to `0` (which causes `setup_finetune.py` to drop the validation dataset config). Do not emit `0` when the user requested validation — that silently disables it.
    - `controls.gradient_accumulation_steps` - Gradient accumulation
@@ -266,6 +267,9 @@ mem: {from runs[].compute.mem, if present, e.g., "80G"}
 cpus_per_task: {from runs[].compute.cpus_per_task, if present, e.g., 8}
 
 # System prompt (if specified)
+# If `dataset_type` is `text_completion` or `text_completion_dataset` 
+# (i.e. base / non-instruct models), omit system_prompt. Base models have no chat template, so the system prompt has no slot.
+# Only emit for chat_completion / chat_dataset / instruct_dataset.
 system_prompt: {from controls.system_prompt, often empty string ""}
 
 # Prompt template (if specified)

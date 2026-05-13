@@ -433,6 +433,21 @@ class TestMainDatasetTypes:
         assert "text_completion" in config["dataset"]["_component_"]
         assert "system_prompt" not in config["dataset"]
 
+    def test_text_completion_omits_new_system_prompt(self, run_main, setup_yaml):
+        """Test that text_completion must not emit
+        `new_system_prompt`, which `text_completion_dataset()` rejects."""
+        with open(setup_yaml) as f:
+            cfg = yaml.safe_load(f)
+        cfg["dataset_type"] = "text_completion"
+        cfg["system_prompt"] = "You are a helpful assistant."
+        with open(setup_yaml, "w") as f:
+            yaml.dump(cfg, f)
+
+        config, _ = run_main()
+        assert "new_system_prompt" not in config["dataset"]
+        if "dataset_val" in config:
+            assert "new_system_prompt" not in config["dataset_val"]
+
     def test_custom_prompt(self, run_main):
         config, _ = run_main(extra_args=["--prompt", "Answer: {input}"])
         assert config["dataset"]["prompt"] == "Answer: {input}"
