@@ -23,6 +23,12 @@ from cruijff_kit.tools.torchtune.model_configs import MODEL_CONFIGS
 # Template lives next to this script
 TEMPLATE_PATH = Path(__file__).parent / "templates" / "eval_template.slurm"
 
+# Default ceiling on samples per HF batch for inspect-ai's HF provider.
+# Effective batch size may be smaller when sample arrival is slow (the
+# provider also fires batches on a 2s timeout). 128 is a sensible default
+# for 1B-3B local HF models on 40-80GB GPUs.
+DEFAULT_MAX_CONNECTIONS = 128
+
 # Keys in eval_config.yaml that become -T (task) args in the inspect command
 TASK_ARG_KEYS = [
     "data_path",
@@ -245,6 +251,9 @@ def render_template(cli_args, config):
     script = script.replace("<MODEL_PATH>", config["model_path"])
     script = script.replace("<TASK_ARGS>", task_args)
     script = script.replace("<METADATA_ARGS>", metadata_args)
+
+    max_connections = config.get("max_connections", DEFAULT_MAX_CONNECTIONS)
+    script = script.replace("<MAX_CONNECTIONS>", str(max_connections))
 
     # CPUs from model config
     script = script.replace(

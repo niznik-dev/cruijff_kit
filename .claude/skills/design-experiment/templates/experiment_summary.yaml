@@ -190,6 +190,10 @@ runs:
 evaluation:
   system_prompt: string            # REQUIRED: Must match training system prompt
   temperature: float               # REQUIRED: Evaluation temperature (typically 0.0)
+  max_connections: int             # OPTIONAL: Ceiling on samples per HF batch (default: 128).
+                                   # For HF local models, this is the upper bound on GPU batch size,
+                                   # not the effective batch size — inspect-ai's HF provider also fires
+                                   # batches on a 2s timeout when sample arrival is slow.
   scorer:                            # REQUIRED: Inspect-ai scorer(s) - list of scorers with optional params
     - name: string                   # REQUIRED: Scorer name (e.g., "match", "includes", "risk_scorer")
       params:                        # OPTIONAL: Parameters passed to the scorer
