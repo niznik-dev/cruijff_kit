@@ -68,6 +68,27 @@ inspect eval blueprints/folktexts/inspect_task.py@acs_employment \
 | `split` | `test` | Data split: train, validation, or test |
 | `temperature` | `1e-7` | Generation temperature |
 | `max_tokens` | `5` | Max tokens to generate |
+| `use_chat_template` | `True` | Wrap prompt with the model's chat template. Set `False` for base (non-instruct) models. |
+| `assistant_prefix` | `""` | If set, prefill an assistant turn with this string. See "Evaluating base models" below. |
+| `top_logprobs` | `20` | Number of top tokens to return logprobs for. |
+
+### Evaluating base (non-instruct) models
+
+Base models often won't emit a clean `"1"` / `"0"` when handed a chat-template prompt — they continue the document instead of answering. Two knobs help:
+
+- `use_chat_template=False` skips the chat wrapper so the prompt is fed as raw text.
+- `assistant_prefix="Answer: "` (or whatever leads naturally into the label in your prompt) prefills an assistant turn, so the next token the model generates lands in the answer position. The scorer then matches `"1"` / `"0"` as usual.
+
+Example:
+
+```bash
+inspect eval inspect_task.py@acs_income --model hf/local \
+    -M model_path=meta-llama/Meta-Llama-3.1-8B \
+    -T config_path=/path/to/setup_finetune.yaml \
+    -T data_path=/path/to/acs_income_condensed_50000_80P.json \
+    -T use_chat_template=False \
+    -T assistant_prefix="Answer: "
+```
 
 ### Scoring
 
