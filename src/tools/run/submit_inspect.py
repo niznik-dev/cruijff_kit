@@ -78,6 +78,7 @@ def run(
     poll_sec: float | None = None,
     stagger_sec: float | None = None,
     resume_monitor: bool = False,
+    no_retry: bool = False,
 ) -> dict:
     """Programmatic entrypoint (also used by tests).
 
@@ -102,6 +103,7 @@ def run(
             max_submit=resolve_max_submit(max_submit),
             poll_sec=resolve_poll_sec(poll_sec),
             stagger_sec=resolve_stagger_sec(stagger_sec),
+            no_retry=no_retry,
         )
 
     todo = _build_todo(experiment_dir)
@@ -115,6 +117,7 @@ def run(
         max_submit=resolve_max_submit(max_submit),
         poll_sec=resolve_poll_sec(poll_sec),
         stagger_sec=resolve_stagger_sec(stagger_sec),
+        no_retry=no_retry,
     )
 
 
@@ -156,6 +159,14 @@ def main(argv: list[str] | None = None) -> int:
         help="Skip submission; re-attach a watcher to the existing state file. "
         "Use after a clean detach to resume monitoring without resubmitting.",
     )
+    parser.add_argument(
+        "--no-retry",
+        action="store_true",
+        help="Disable automatic retries on transient failures. Currently "
+        "the only retry strategy applies to fine-tuning OOMs (handled by "
+        "submit_torchtune); future eval-side retry strategies will share "
+        "this gate.",
+    )
     args = parser.parse_args(argv)
 
     summary = run(
@@ -165,6 +176,7 @@ def main(argv: list[str] | None = None) -> int:
         poll_sec=args.poll_sec,
         stagger_sec=args.stagger_sec,
         resume_monitor=args.resume_monitor,
+        no_retry=args.no_retry,
     )
     print(f"Done. Terminal-state breakdown: {summary}")
     return 0
