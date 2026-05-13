@@ -24,10 +24,13 @@ from cruijff_kit.tools.torchtune.model_configs import MODEL_CONFIGS
 TEMPLATE_PATH = Path(__file__).parent / "templates" / "eval_template.slurm"
 
 # Default ceiling on samples per HF batch for inspect-ai's HF provider.
-# Effective batch size may be smaller when sample arrival is slow (the
-# provider also fires batches on a 2s timeout). 128 is a sensible default
-# for 1B-3B local HF models on 40-80GB GPUs.
-DEFAULT_MAX_CONNECTIONS = 128
+# Matches inspect-ai's upstream default. Empirically (see issue #318
+# investigation comment), raising this on variable-length workloads
+# (e.g. verbose ACS prompts) can slow evals down because larger batches
+# pad to the longest sequence and the forward pass becomes memory-bound.
+# Users can override per experiment via `evaluation.max_connections` in
+# `experiment_summary.yaml`.
+DEFAULT_MAX_CONNECTIONS = 32
 
 # Keys in eval_config.yaml that become -T (task) args in the inspect command
 TASK_ARG_KEYS = [

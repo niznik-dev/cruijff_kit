@@ -69,7 +69,7 @@ Extract the following information from the YAML structure:
 6. **Evaluation configuration:**
    - `evaluation.system_prompt` - Must match training
    - `evaluation.temperature` - Evaluation temperature
-   - `evaluation.max_connections` - OPTIONAL ceiling on samples per HF batch. If absent, `setup_inspect.py` defaults to 128. Propagate to each eval_config.yaml only if explicitly set in experiment_summary.yaml.
+   - `evaluation.max_connections` - OPTIONAL ceiling on samples per HF batch. If absent, `setup_inspect.py` defaults to 32 (matching inspect-ai upstream). Propagate to each eval_config.yaml only if explicitly set in experiment_summary.yaml. Note: raising this on variable-length workloads can slow evals due to padding waste; see issue #318 investigation comment.
    - `evaluation.scorer[]` - List of scorers with optional params (see Parsing Scorer Configuration below)
    - `evaluation.tasks[]` - List of evaluation tasks
    - `evaluation.matrix[]` - Which runs evaluate on which tasks/epochs
@@ -271,8 +271,8 @@ source_model: Llama-3.2-1B-Instruct
 
 # Inspect CLI flag (passed as --max-connections)
 # Omit unless experiment_summary.yaml set evaluation.max_connections explicitly.
-# When absent, setup_inspect.py defaults to 128.
-max_connections: 128
+# When absent, setup_inspect.py defaults to 32 (matches inspect-ai upstream).
+max_connections: 32
 ```
 
 **Experiment-specific config** (not used by SLURM renderer, read by inspect task at runtime):

@@ -409,9 +409,9 @@ class TestRenderTemplate:
 
 class TestMaxConnections:
     def test_default_when_absent(self):
-        """Default 128 is used when max_connections is not in config."""
+        """Default (matches inspect-ai upstream) is used when max_connections is not in config."""
         script = render_template(make_cli_args(), make_config())
-        assert "--max-connections 128" in script
+        assert "--max-connections 32" in script
 
     def test_explicit_override(self):
         """Explicit max_connections value is rendered into the script."""
