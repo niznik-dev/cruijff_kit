@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -37,6 +38,7 @@ from typing import Iterable
 DEFAULT_MAX_SUBMIT = 25  # Della gpu-test QoS cap on MaxSubmitJobsPerUser
 DEFAULT_STAGGER_SEC = 5  # avoids HF datasets cache race when jobs land at once
 DEFAULT_POLL_SEC = 60
+DEFAULT_MAX_OOM_RETRIES = 3  # halve batch_size each retry; manual after exhaustion
 
 MONITOR_CONFIG_NAME = "monitor.json"
 _MONITOR_KNOBS = ("poll_sec", "stagger_sec", "max_submit")
@@ -317,6 +319,79 @@ def log_monitor_config(
     append_log(log_path, block)
 
 
+def log_oom_retry(
+    log_path: Path,
+    name: str,
+    delta: dict,
+    prev_values: dict,
+    attempt: int,
+    max_retries: int,
+    new_jid: str,
+) -> None:
+    """Canonical OOM_RETRY block.
+
+    `delta` is the keys we adjusted (e.g. {"batch_size": 64}); `prev_values`
+    is the same keys' values before the adjustment. Both dicts forward-compat
+    with multi-key strategies (see #254 PR B).
+
+    Block shape (no `Job ID:` line — safe from the analyze-experiment regex,
+    which would otherwise harvest the retry as a fresh SUBMIT):
+
+        [YYYY-MM-DD HH:MM:SS] OOM_RETRY: <name>
+        Details: batch_size 128 -> 64 (attempt 1/3); finetune.yaml updated
+        Result: resubmitted as job 7654321
+    """
+    changes = "; ".join(f"{k} {prev_values[k]} -> {v}" for k, v in delta.items())
+    block = (
+        f"[{_now()}] OOM_RETRY: {name}\n"
+        f"Details: {changes} (attempt {attempt}/{max_retries}); finetune.yaml updated\n"
+        f"Result: resubmitted as job {new_jid}"
+    )
+    append_log(log_path, block)
+
+
+def log_oom_exhausted(
+    log_path: Path,
+    name: str,
+    history: list[dict],
+    max_retries: int,
+) -> None:
+    """Canonical OOM_EXHAUSTED block — emitted after the last retry also OOMs.
+
+    The run stays in its last terminal state (OUT_OF_MEMORY or FAILED,
+    depending on which detection path fired — see `_detect_oom`); other runs
+    keep monitoring. No active escalation in PR A (#254). Block shape:
+
+        [YYYY-MM-DD HH:MM:SS] OOM_EXHAUSTED: <name>
+        Details: tried [{"batch_size": 64}, {"batch_size": 32}, {"batch_size": 16}] across 3 retries
+        Result: manual intervention required
+    """
+    block = (
+        f"[{_now()}] OOM_EXHAUSTED: {name}\n"
+        f"Details: tried {json.dumps(history)} across {max_retries} retries\n"
+        f"Result: manual intervention required"
+    )
+    append_log(log_path, block)
+
+
+def log_oom_resubmit_failure(
+    log_path: Path,
+    name: str,
+    attempt: int,
+    err: str,
+) -> None:
+    """Canonical block when sbatch itself fails during an OOM retry — distinct
+    from OOM_EXHAUSTED (which is exhaustion of retries) and from the initial
+    SUBMIT failure path. Run is left in its prior OOM-equivalent state
+    (OUT_OF_MEMORY or FAILED) to make root-cause obvious in the log."""
+    block = (
+        f"[{_now()}] OOM_RETRY_SUBMIT_FAILED: {name}\n"
+        f"Details: attempt {attempt}; sbatch error: {err}\n"
+        f"Result: run not resubmitted; manual intervention required"
+    )
+    append_log(log_path, block)
+
+
 # ---------------------------------------------------------------------------
 # Monitor-knob configuration: user config (<repo>/.config/config.json) and
 # live overrides (<exp_dir>/logs/monitor.json)
@@ -561,6 +636,8 @@ class _SubmitConfig:
     max_submit: int = DEFAULT_MAX_SUBMIT
     stagger_sec: float = DEFAULT_STAGGER_SEC
     poll_sec: float = DEFAULT_POLL_SEC
+    no_retry: bool = False
+    max_oom_retries: int = DEFAULT_MAX_OOM_RETRIES
     # Startup snapshot of the monitor knobs (CLI / config.json / default). Used
     # as the revert target when monitor.json is removed mid-run.
     _baseline: dict = field(init=False, repr=False)
@@ -579,6 +656,7 @@ def submit_and_monitor(
     max_submit: int = DEFAULT_MAX_SUBMIT,
     stagger_sec: float = DEFAULT_STAGGER_SEC,
     poll_sec: float = DEFAULT_POLL_SEC,
+    no_retry: bool = False,
 ) -> dict:
     """Default flow: submit drip-fed, then monitor to terminal.
 
@@ -593,8 +671,12 @@ def submit_and_monitor(
     - `max_submit` queue-depth cap (gpu-test default = 25).
     - `stagger_sec` between submissions (HF datasets cache race).
     - `poll_sec` when waiting for queue room or for in-flight jobs.
+    - Auto-retry: training runs that land in OUT_OF_MEMORY are
+      automatically resubmitted with batch_size halved, up to 3 times
+      (see #254 PR A). Pass `no_retry=True` to disable; that gate will
+      also cover future non-OOM retry strategies.
 
-    All three can be overridden mid-run via `<exp_dir>/logs/monitor.json`.
+    The first three can be overridden mid-run via `<exp_dir>/logs/monitor.json`.
     Static defaults read from `<repo>/.config/config.json`; see the
     resolve_* helpers and the run-experiment SKILL for the precedence chain.
     """
@@ -607,6 +689,7 @@ def submit_and_monitor(
         max_submit=max_submit,
         stagger_sec=stagger_sec,
         poll_sec=poll_sec,
+        no_retry=no_retry,
     )
     _reset_detach_state()
     install_detach_handlers()
@@ -620,9 +703,15 @@ def submit_and_monitor(
     if _finalize_if_detached(state, cfg) is not None:
         return _summarize(state)
 
-    state = _monitor_to_terminal(state, cfg)
-    if _finalize_if_detached(state, cfg) is not None:
-        return _summarize(state)
+    # Monitor → OOM retry → re-monitor. Each retry resubmits with halved
+    # batch_size; loop exits when no new submissions fire (either no OOMs
+    # left or all have hit max_oom_retries).
+    while True:
+        state = _monitor_to_terminal(state, cfg)
+        if _finalize_if_detached(state, cfg) is not None:
+            return _summarize(state)
+        if not _handle_oom_retries(state, cfg):
+            break
 
     summary = _summarize(state)
     log_all_complete(log_path, summary)
@@ -679,6 +768,7 @@ def monitor_only(
     max_submit: int = DEFAULT_MAX_SUBMIT,
     stagger_sec: float = DEFAULT_STAGGER_SEC,
     poll_sec: float = DEFAULT_POLL_SEC,
+    no_retry: bool = False,
 ) -> dict:
     """Re-attach to an existing state file and watch to terminal — no new submissions.
 
@@ -686,6 +776,8 @@ def monitor_only(
     loudly to stderr and returns an empty summary rather than silently no-op.
 
     Honors detach: emits MONITOR_DETACHED on signal/sentinel and returns early.
+    Auto-retry also fires here (re-attached watchers see OUT_OF_MEMORY
+    entries and resubmit them); pass `no_retry=True` to disable.
     """
     cfg = _SubmitConfig(
         log_path=log_path,
@@ -696,6 +788,7 @@ def monitor_only(
         max_submit=max_submit,
         stagger_sec=stagger_sec,
         poll_sec=poll_sec,
+        no_retry=no_retry,
     )
     _reset_detach_state()
     install_detach_handlers()
@@ -712,9 +805,12 @@ def monitor_only(
     state = _refresh_in_flight_state(state, log_path)
     write_state_atomic(state_path, state)
 
-    state = _monitor_to_terminal(state, cfg)
-    if _finalize_if_detached(state, cfg) is not None:
-        return _summarize(state)
+    while True:
+        state = _monitor_to_terminal(state, cfg)
+        if _finalize_if_detached(state, cfg) is not None:
+            return _summarize(state)
+        if not _handle_oom_retries(state, cfg):
+            break
 
     summary = _summarize(state)
     log_all_complete(log_path, summary)
@@ -853,6 +949,248 @@ def _all_terminal(state: dict) -> bool:
         entry.get("state") in TERMINAL_STATES or entry.get("state") == "SUBMIT_FAILED"
         for entry in state.values()
     )
+
+
+# ---------------------------------------------------------------------------
+# OOM auto-retry (#254 PR A)
+# ---------------------------------------------------------------------------
+#
+# When a job lands in an OOM-equivalent terminal state, we halve `batch_size`
+# in the run's finetune.yaml and resubmit. Two detection paths feed the same
+# retry mechanism:
+#
+#   - "slurm_state": SLURM reports state == OUT_OF_MEMORY. This is the
+#     cgroup-tracked host RAM kill (job exceeded its ReqMem allocation).
+#   - "cuda_log":    SLURM reports state == FAILED, AND the run's
+#                    artifacts/slurm-<jid>.out tail matches a CUDA OOM marker
+#                    (torch.OutOfMemoryError / "CUDA out of memory"). PyTorch
+#                    raises the exception, the process exits 1, SLURM sees
+#                    FAILED — so the host-RAM-only check above misses every
+#                    realistic fine-tune OOM. The state-file entry records
+#                    `oom_detected_via` so forensics can tell the paths apart.
+#
+# Each retry appends one dict to the per-entry `retry_history` list — e.g.
+# [{"batch_size": 64}, {"batch_size": 32}] — which doubles as the retry
+# counter. The dict shape is forward-compat with future multi-knob strategies
+# (e.g. {"batch_size": 32, "gradient_accumulation_steps": 2}).
+#
+# After `max_oom_retries` retries also OOM, the run is left in whatever
+# OOM-equivalent state it last landed in and OOM_EXHAUSTED is logged loudly.
+# Other runs continue monitoring.
+
+
+_BATCH_SIZE_LINE = re.compile(r"^(batch_size:\s*)(\d+)\s*$", re.MULTILINE)
+
+# torch raises "torch.OutOfMemoryError" with a "CUDA out of memory" message;
+# either substring is sufficient to identify a CUDA OOM in the slurm log.
+_CUDA_OOM_PATTERN = re.compile(
+    r"torch\.OutOfMemoryError|CUDA out of memory", re.IGNORECASE
+)
+
+# Read at most this much from the tail of a slurm log when scanning for OOM
+# markers. Training logs can grow large; the fatal traceback lands at the
+# failure point, so the tail is sufficient.
+_SLURM_LOG_TAIL_BYTES = 64 * 1024
+
+
+def _slurm_log_for_job(work_dir: Path, job_id: str | int | None) -> Path | None:
+    """Return the path to the run's slurm-<jid>.out (or .err fallback) if it exists."""
+    if not job_id:
+        return None
+    artifacts = work_dir / "artifacts"
+    out = artifacts / f"slurm-{job_id}.out"
+    if out.exists():
+        return out
+    err = artifacts / f"slurm-{job_id}.err"
+    if err.exists():
+        return err
+    return None
+
+
+def _failed_due_to_cuda_oom(work_dir: Path, job_id: str | int | None) -> bool:
+    """True iff the run's slurm log tail contains a CUDA OOM marker.
+
+    Reads only the last `_SLURM_LOG_TAIL_BYTES` of the file for speed —
+    torch's OutOfMemoryError traceback lands at the failure point, near the
+    end. Returns False on missing log / read errors so a forensic gap can
+    never falsely trigger a retry.
+    """
+    log = _slurm_log_for_job(work_dir, job_id)
+    if log is None:
+        return False
+    try:
+        size = log.stat().st_size
+        with log.open("rb") as f:
+            if size > _SLURM_LOG_TAIL_BYTES:
+                f.seek(-_SLURM_LOG_TAIL_BYTES, os.SEEK_END)
+            tail = f.read().decode("utf-8", errors="replace")
+    except OSError:
+        return False
+    return bool(_CUDA_OOM_PATTERN.search(tail))
+
+
+def _compute_retry_delta(current_yaml: dict) -> dict:
+    """Compute the {knob: new_value} adjustment for the next retry.
+
+    PR A: halve batch_size. PR B will parameterize this hook. Multi-knob
+    strategies just return larger dicts; downstream code doesn't care.
+    """
+    return {"batch_size": current_yaml["batch_size"] // 2}
+
+
+def _apply_retry_to_finetune_yaml(yaml_path: Path, delta: dict) -> dict:
+    """Edit finetune.yaml in place to apply `delta`. Returns the prior values
+    for the keys that changed (for the OOM_RETRY log block).
+
+    Uses a line-level regex rather than yaml.dump so untouched fields,
+    comments, and ordering survive the edit. PR A only handles `batch_size`;
+    other keys raise NotImplementedError to fail loudly when PR B widens
+    the strategy.
+    """
+    text = yaml_path.read_text()
+    prev: dict = {}
+    for key, new_val in delta.items():
+        if key != "batch_size":
+            raise NotImplementedError(
+                f"OOM retry can only adjust batch_size in PR A; got {key!r}"
+            )
+        match = _BATCH_SIZE_LINE.search(text)
+        if match is None:
+            raise ValueError(
+                f"Could not find top-level 'batch_size:' in {yaml_path}; "
+                "OOM retry cannot proceed."
+            )
+        prev[key] = int(match.group(2))
+        text = _BATCH_SIZE_LINE.sub(rf"\g<1>{new_val}", text, count=1)
+    yaml_path.write_text(text)
+    return prev
+
+
+def _read_batch_size(yaml_path: Path) -> int:
+    """Light-weight read of the top-level batch_size value from finetune.yaml.
+
+    Avoids pulling yaml.safe_load on a hot path; matches the regex used by
+    the edit so behavior stays consistent.
+    """
+    match = _BATCH_SIZE_LINE.search(yaml_path.read_text())
+    if match is None:
+        raise ValueError(f"Could not find top-level 'batch_size:' in {yaml_path}")
+    return int(match.group(2))
+
+
+def _detect_oom(work_dir: Path, entry: dict) -> str | None:
+    """Classify whether `entry` is OOM-equivalent.
+
+    Returns one of:
+      - "slurm_state" — SLURM reported OUT_OF_MEMORY (host RAM cgroup kill)
+      - "cuda_log"    — SLURM reported FAILED but the run's slurm log shows a
+                        CUDA OOM (torch.OutOfMemoryError); this is the common
+                        case for fine-tunes since CUDA OOMs are Python
+                        exceptions, not cgroup events
+      - None          — not OOM-equivalent; don't retry
+    """
+    state_val = entry.get("state")
+    if state_val == "OUT_OF_MEMORY":
+        return "slurm_state"
+    if state_val == "FAILED" and _failed_due_to_cuda_oom(work_dir, entry.get("job_id")):
+        return "cuda_log"
+    return None
+
+
+def _handle_oom_retries(state: dict, cfg: _SubmitConfig) -> bool:
+    """Walk `state` for OOM-equivalent entries; retry each one in place.
+
+    An entry is OOM-equivalent if SLURM reports OUT_OF_MEMORY OR the slurm log
+    for a FAILED job shows a CUDA OOM (see `_detect_oom`). For each such entry
+    below `max_oom_retries`: halve batch_size in the run's finetune.yaml,
+    resubmit via sbatch, flip the state entry to PENDING with the new job_id,
+    and append the delta to `retry_history`. The detection path is recorded
+    on the entry as `oom_detected_via` for forensics. For each entry that has
+    reached `max_oom_retries`, log OOM_EXHAUSTED once (idempotent via an
+    `oom_exhausted_logged` flag).
+
+    Returns True iff any new submissions fired — the caller loops back to
+    `_monitor_to_terminal` when so.
+
+    Silent no-op when `cfg.no_retry` is set (tests + escape hatch). That gate
+    will also disable future non-OOM retry strategies as they land.
+    """
+    if cfg.no_retry:
+        return False
+
+    any_resubmitted = False
+    for key, entry in state.items():
+        # Resolve the run dir from the state key once up front. state_key()
+        # encodes as "<rel_work_dir>/<slurm_name>"; rel_work itself can
+        # contain slashes (e.g. eval workdirs), so split on the last separator.
+        rel_work, slurm_name = key.rsplit("/", 1)
+        work_dir = cfg.experiment_dir / rel_work
+
+        detected_via = _detect_oom(work_dir, entry)
+        if detected_via is None:
+            continue
+
+        history: list = entry.get("retry_history", [])
+        name = _name_from_state_key(key)
+        if len(history) >= cfg.max_oom_retries:
+            if not entry.get("oom_exhausted_logged"):
+                log_oom_exhausted(cfg.log_path, name, history, cfg.max_oom_retries)
+                entry["oom_exhausted_logged"] = True
+                write_state_atomic(cfg.state_path, state)
+            continue
+
+        yaml_path = work_dir / "finetune.yaml"
+        if not yaml_path.exists():
+            # Eval runs don't have a finetune.yaml; only training jobs are
+            # retried by this strategy. Skip silently — these would be picked
+            # up by an eval-specific strategy in a later PR.
+            continue
+
+        try:
+            current_yaml = {"batch_size": _read_batch_size(yaml_path)}
+            delta = _compute_retry_delta(current_yaml)
+            prev_values = _apply_retry_to_finetune_yaml(yaml_path, delta)
+        except (ValueError, NotImplementedError) as e:
+            print(f"WARNING: OOM retry skipped for {name}: {e}", file=sys.stderr)
+            continue
+
+        try:
+            new_jid = sbatch_submit(work_dir, slurm_name)
+        except subprocess.CalledProcessError as e:
+            err = (e.stderr or "").strip() or f"exit {e.returncode}"
+            log_oom_resubmit_failure(cfg.log_path, name, len(history) + 1, err)
+            continue
+
+        attempt = len(history) + 1
+        log_oom_retry(
+            cfg.log_path,
+            name,
+            delta,
+            prev_values,
+            attempt,
+            cfg.max_oom_retries,
+            new_jid,
+        )
+        history.append(delta)
+        entry["retry_history"] = history
+        entry["job_id"] = new_jid
+        entry["state"] = "PENDING"
+        entry["submitted_at"] = _now()
+        entry["oom_detected_via"] = detected_via
+        # Drop any stale OOM-only metadata that no longer applies.
+        entry.pop("oom_exhausted_logged", None)
+        write_state_atomic(cfg.state_path, state)
+        any_resubmitted = True
+
+    return any_resubmitted
+
+
+def _name_from_state_key(key: str) -> str:
+    """Best-effort recovery of the run name from a state-file key. Used only
+    for log blocks; tolerates unexpected key shapes by falling back to the
+    raw key."""
+    rel_work = key.rsplit("/", 1)[0] if "/" in key else key
+    return Path(rel_work).name or key
 
 
 def _summarize(state: dict) -> dict[str, int]:

@@ -34,6 +34,9 @@ Detailed sub-logs are created during job execution. The orchestration log record
 | `ALL_COMPLETE` | Mark all fine-tuning jobs finished |
 | `MONITOR_DETACHED` | Watcher exited via SIGINT / SIGTERM / sentinel; jobs continue running |
 | `MONITOR_CONFIG` | Watcher applied a live edit from `logs/monitor.json` (poll/stagger/max_submit) |
+| `OOM_RETRY` | A fine-tune was detected as OOM (SLURM `OUT_OF_MEMORY`, or `FAILED` with `torch.OutOfMemoryError` / "CUDA out of memory" in its `slurm-<jid>.out`) and was resubmitted with `batch_size` halved in its `finetune.yaml`. Up to `max_oom_retries` (default 3) per run. State entry records `oom_detected_via` as either `"slurm_state"` or `"cuda_log"`. Disable per-invocation with `--no-retry`. |
+| `OOM_RETRY_SUBMIT_FAILED` | An OOM retry tried to resubmit but `sbatch` itself errored; the run is left in its prior failure state (`OUT_OF_MEMORY` or `FAILED`) and the original cause should be investigated before further retries. |
+| `OOM_EXHAUSTED` | A fine-tune hit `max_oom_retries` and remains in its last OOM-equivalent state. No active escalation in this release; manual intervention required. |
 
 ### Inspect-ai Actions
 
