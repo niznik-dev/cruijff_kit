@@ -35,7 +35,8 @@ cd <EVAL_DIR>
 inspect eval <TASK_SCRIPT> \
   --model <MODEL_HF_NAME> \
   -M model_path="<MODEL_PATH>" \
-<DEVICE_ARGS><TASK_ARGS><METADATA_ARGS>  --log-dir ./logs \
+<DEVICE_ARGS><TASK_ARGS><METADATA_ARGS>  --max-connections <MAX_CONNECTIONS> \
+  --log-dir ./logs \
   --log-level info
 INSPECT_EXIT_CODE=$?
 

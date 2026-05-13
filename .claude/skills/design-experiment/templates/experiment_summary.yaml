@@ -190,6 +190,12 @@ runs:
 evaluation:
   system_prompt: string            # REQUIRED: Must match training system prompt
   temperature: float               # REQUIRED: Evaluation temperature (typically 0.0)
+  max_connections: int             # OPTIONAL: Ceiling on samples per HF batch (default: 32, matching inspect-ai upstream).
+                                   # For HF local models, this is the upper bound on GPU batch size.
+                                   # Counterintuitively, raising it on variable-length workloads (e.g.
+                                   # verbose ACS prompts) can slow evals down — larger batches pad to
+                                   # the longest sequence and the forward pass goes memory-bound. See
+                                   # issue #318 investigation comment for evidence and discussion.
   scorer:                            # REQUIRED: Inspect-ai scorer(s) - list of scorers with optional params
     - name: string                   # REQUIRED: Scorer name (e.g., "match", "includes", "risk_scorer")
       params:                        # OPTIONAL: Parameters passed to the scorer

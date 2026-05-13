@@ -403,6 +403,40 @@ class TestRenderTemplate:
 
 
 # ---------------------------------------------------------------------------
+# max_connections
+# ---------------------------------------------------------------------------
+
+
+class TestMaxConnections:
+    def test_default_when_absent(self):
+        """Default (matches inspect-ai upstream) is used when max_connections is not in config."""
+        script = render_template(make_cli_args(), make_config())
+        assert "--max-connections 32" in script
+
+    def test_explicit_override(self):
+        """Explicit max_connections value is rendered into the script."""
+        config = make_config(max_connections=64)
+        script = render_template(make_cli_args(), config)
+        assert "--max-connections 64" in script
+        assert "--max-connections 128" not in script
+
+    def test_high_value(self):
+        """Large max_connections values render correctly."""
+        config = make_config(max_connections=512)
+        script = render_template(make_cli_args(), config)
+        assert "--max-connections 512" in script
+
+    def test_position_before_log_dir(self):
+        """max-connections appears after metadata args and before --log-dir."""
+        config = make_config(epoch=0, finetuned=True, max_connections=256)
+        script = render_template(make_cli_args(), config)
+        meta_pos = script.index('--metadata epoch="0"')
+        mc_pos = script.index("--max-connections 256")
+        logdir_pos = script.index("--log-dir")
+        assert meta_pos < mc_pos < logdir_pos
+
+
+# ---------------------------------------------------------------------------
 # ##SBATCH activation
 # ---------------------------------------------------------------------------
 
