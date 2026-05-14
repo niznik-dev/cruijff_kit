@@ -1,0 +1,85 @@
+# Empirical cross-model tps slowdown ratios for wall-time prediction.
+#
+# Each entry: under a controlled config, how much slower is new_model's tps
+# compared to prior_model's tps? Lookup key: (prior_model, new_model,
+# seq_len_bucket). When estimate_from_prior() sees prior_model != new_model
+# AND finds a matching entry, it can divide prior_tps_gpu by `ratio` to get
+# the predicted new_tps_gpu, and from that the new wall-time.
+#
+# Active `ratio` values are deliberately rounded UP from the geometric mean
+# of measured runs. Rationale: under-prediction → SLURM TIMEOUT (job dies);
+# over-prediction → wasted allocation (job finishes early). We strongly
+# prefer the latter failure mode.
+#
+# This file is seed data for issue #492. The lookup logic in
+# estimate_from_prior is NOT YET IMPLEMENTED — see #492 for the planned
+# integration. Until then, this file documents what we know and provides
+# starting values once the lookup lands.
+#
+# Last updated: 2026-05-14
+
+ratios:
+  # ---------------------------------------------------------------------
+  # IO-bound regime (seq_len_bucket=short, ≤256 tokens; batch_size=4)
+  # ---------------------------------------------------------------------
+  # Note: in this regime model size barely matters — the GPU spends most
+  # of its time waiting for data. Slowdown ratios are FAR smaller than the
+  # parameter-count ratio would predict (3B/1B=2.59 in params, ~1.7-1.8
+  # measured; 8B/1B=6.48 in params, ~2.0-2.3 measured).
+
+  - prior_model: Llama-3.2-1B-Instruct
+    new_model: Llama-3.2-3B-Instruct
+    seq_len_bucket: short
+    batch_size: 4
+    ratio: 2.0
+    # exact measurements (geometric mean = 1.74):
+    #   tps_calibration_longer_2026-05-14 (2000 steps): 1.83
+    #   tps_calibration_short_2026-05-14  (200 steps):  1.68
+    #   scale_demo_2026-05-06             (200 steps):  1.70
+    sample_size: 3
+    last_updated: 2026-05-14
+
+  - prior_model: Llama-3.2-1B-Instruct
+    new_model: Llama-3.1-8B-Instruct
+    seq_len_bucket: short
+    batch_size: 4
+    ratio: 2.5
+    # exact measurements (geometric mean = 2.10):
+    #   tps_calibration_longer_2026-05-14 (2000 steps): 2.29
+    #   tps_calibration_short_2026-05-14  (200 steps):  2.20
+    #   scale_demo_2026-05-06             (200 steps):  1.81
+    sample_size: 3
+    last_updated: 2026-05-14
+
+  - prior_model: Llama-3.2-3B-Instruct
+    new_model: Llama-3.1-8B-Instruct
+    seq_len_bucket: short
+    batch_size: 4
+    ratio: 1.5
+    # exact measurements (geometric mean = 1.17):
+    #   tps_calibration_longer_2026-05-14 (2000 steps): 1.25
+    #   tps_calibration_short_2026-05-14  (200 steps):  1.31
+    #   scale_demo_2026-05-06             (200 steps):  0.94  # anomaly — 8B faster than 3B at 200 steps
+    # Note: largest buffer (28%) because scale_demo's 0.94 is implausible
+    # and suggests 8B's warmup cost dominated more than 3B's at 200 steps.
+    sample_size: 3
+    last_updated: 2026-05-14
+
+  # ---------------------------------------------------------------------
+  # Compute-bound regime (seq_len_bucket=long, >1024; batch_size=16)
+  # ---------------------------------------------------------------------
+  # In this regime the parameter-count ratio is a much better predictor —
+  # most of the GPU time is matmul, which scales with model FLOPs.
+
+  - prior_model: Llama-3.2-1B-Instruct
+    new_model: Llama-3.1-8B-Instruct
+    seq_len_bucket: long
+    batch_size: 16
+    ratio: 7.0
+    # exact measurements (1 run only — noisy):
+    #   parity_4bit_*_memorization_2026-03-30/31: 6.81 (200 steps each, seq=2048)
+    # Caveat: parity runs are small memorization workloads; the 6.81 is
+    # within 5% of param-count's 6.48, suggesting compute-bound behavior.
+    # Rounded up to 7.0 pending more data — we have only one anchor here.
+    sample_size: 1
+    last_updated: 2026-05-14

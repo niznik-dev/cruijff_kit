@@ -30,9 +30,13 @@ GPU_MONITOR_PID=$!
 export HF_HUB_OFFLINE=1
 
 # Run inspect-ai evaluation
+# Wrapped in /usr/bin/time -p as a format-stable wall-time anchor (issue #473):
+# inspect-ai's own footer 'total time:' is the primary parse target, but
+# /usr/bin/time -p output ('real <seconds>') is a redundant fallback that
+# survives any upstream footer format change.
 cd <EVAL_DIR>
 
-inspect eval <TASK_SCRIPT> \
+/usr/bin/time -p inspect eval <TASK_SCRIPT> \
   --model <MODEL_HF_NAME> \
   -M model_path="<MODEL_PATH>" \
 <DEVICE_ARGS><TASK_ARGS><METADATA_ARGS>  --max-connections <MAX_CONNECTIONS> \
