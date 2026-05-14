@@ -20,7 +20,7 @@ import yaml
 from inspect_ai import Task, task
 from inspect_ai.dataset import hf_dataset, Sample
 from inspect_ai.solver import chain, generate, system_message
-from inspect_ai.model import GenerateConfig
+from inspect_ai.model import GenerateConfig, ChatMessageUser, ChatMessageAssistant
 from cruijff_kit.tools.inspect.scorers import build_scorers
 
 
@@ -33,6 +33,8 @@ def _create_acs_task(
     max_tokens: int = 5,
     vis_label: str = "",
     use_chat_template=True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
 ) -> Task:
     """
     Create an ACS binary prediction eval task.
@@ -46,6 +48,9 @@ def _create_acs_task(
         max_tokens: Max tokens to generate
         vis_label: Optional label for visualization (appended to task name)
         use_chat_template: Whether apply_chat_template should be used for tokenization (i.e., Instruction-tuned models)
+        assistant_prefix: If set, prefill an assistant turn with this string. Useful for
+            coaxing base (non-instruct) models into the expected output format.
+        top_logprobs: Number of top tokens to return logprobs for (passed to GenerateConfig).
     """
     # Construct task name with optional vis_label suffix
     full_task_name = f"{task_name}_{vis_label}" if vis_label else task_name
@@ -63,6 +68,15 @@ def _create_acs_task(
     def record_to_sample(record):
         # Wrap input with prompt template - same as chat_completion training
         formatted_input = prompt_str.format(input=record["input"])
+        if assistant_prefix:
+            # Prefill an assistant turn
+            return Sample(
+                input=[
+                    ChatMessageUser(content=formatted_input),
+                    ChatMessageAssistant(content=assistant_prefix),
+                ],
+                target=record["output"],
+            )
         return Sample(input=formatted_input, target=record["output"])
 
     dataset = hf_dataset(
@@ -89,8 +103,8 @@ def _create_acs_task(
         dataset=dataset,
         solver=solver,
         scorer=build_scorers(config),
-        # generate log probabilities of top 20 tokens from inspect (sets output_logits=True on model generate() call)
-        config=GenerateConfig(logprobs=True, top_logprobs=20),
+        # generate log probabilities of top_logprobs tokens (sets output_logits=True on model generate() call)
+        config=GenerateConfig(logprobs=True, top_logprobs=top_logprobs),
     )
 
 
@@ -104,6 +118,8 @@ def acs_binary(
     max_tokens: int = 5,
     vis_label: str = "",
     use_chat_template=True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
 ) -> Task:
     """Generic ACS binary prediction task. Works with any ACS dataset."""
     return _create_acs_task(
@@ -115,6 +131,8 @@ def acs_binary(
         max_tokens,
         vis_label,
         use_chat_template,
+        assistant_prefix,
+        top_logprobs,
     )
 
 
@@ -128,6 +146,8 @@ def acs_income(
     max_tokens: int = 5,
     vis_label: str = "",
     use_chat_template=True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
 ) -> Task:
     """ACS income prediction (>$50k)."""
     return _create_acs_task(
@@ -139,6 +159,8 @@ def acs_income(
         max_tokens,
         vis_label,
         use_chat_template,
+        assistant_prefix,
+        top_logprobs,
     )
 
 
@@ -151,6 +173,8 @@ def acs_employment(
     max_tokens: int = 5,
     vis_label: str = "",
     use_chat_template=True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
 ) -> Task:
     """ACS employment prediction (employed as civilian)."""
     return _create_acs_task(
@@ -162,6 +186,8 @@ def acs_employment(
         max_tokens,
         vis_label,
         use_chat_template,
+        assistant_prefix,
+        top_logprobs,
     )
 
 
@@ -174,6 +200,8 @@ def acs_mobility(
     max_tokens: int = 5,
     vis_label: str = "",
     use_chat_template=True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
 ) -> Task:
     """ACS mobility prediction (moved in last year)."""
     return _create_acs_task(
@@ -185,6 +213,8 @@ def acs_mobility(
         max_tokens,
         vis_label,
         use_chat_template,
+        assistant_prefix,
+        top_logprobs,
     )
 
 
@@ -197,6 +227,8 @@ def acs_publiccoverage(
     max_tokens: int = 5,
     vis_label: str = "",
     use_chat_template=True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
 ) -> Task:
     """ACS public health coverage prediction."""
     return _create_acs_task(
@@ -208,6 +240,8 @@ def acs_publiccoverage(
         max_tokens,
         vis_label,
         use_chat_template,
+        assistant_prefix,
+        top_logprobs,
     )
 
 
@@ -220,6 +254,8 @@ def acs_traveltime(
     max_tokens: int = 5,
     vis_label: str = "",
     use_chat_template=True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
 ) -> Task:
     """ACS travel time prediction (>20 min commute)."""
     return _create_acs_task(
@@ -231,4 +267,6 @@ def acs_traveltime(
         max_tokens,
         vis_label,
         use_chat_template,
+        assistant_prefix,
+        top_logprobs,
     )
