@@ -4,42 +4,52 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-05-14
+
 ### Added
 
-- **Throughput-based wall-time estimation** (#473) — `estimate_compute.scale_finetune_time` / `scale_eval_time` now predict wall time as `total_tokens / tps_gpu × safety_margin` instead of scaling linearly by `epochs × dataset_size × model_param_ratio`. The new math absorbs changes in `seq_len` and `batch_size` naturally — anything that affects total token count flows through. Tps is parsed from each prior run's slurm-out (wandb end-of-run summary line for fine-tunes, inspect-ai run footer for evals) via the new `src/tools/slurm/throughput_parsers.py` module and stored on each job dict in `compute_metrics.json` via `enrich_job_with_throughput()`. Public callers of `estimate_from_prior` must now pass `new_seq_len`; older summaries without tps fields yield `None` for finetune/eval estimates (compatible with design-experiment's "skip silently" branch). v1 supports single-GPU only — the parser hard-fails on distributed recipes. Multi-GPU support and tps-aware `recommend_batch_size` are tracked as follow-ups. (#473)
-- `inspect eval` is now wrapped in `/usr/bin/time -p` in `eval_template.slurm` to provide a format-stable wall-time anchor in slurm-out, redundant with inspect-ai's `total time:` footer. (#473)
-- `THROUGHPUT_STATUS` mid-run heartbeat in `run-experiment/shared/compute_monitoring.md` — every 5 min of a fine-tune, polls the wandb-emitted `tokens_per_second_per_gpu` and surfaces a visible warning when throughput falls below 70% of the predicted value, catching dataloader stalls and GPU contention while jobs are still cancellable. (#473)
-- `eval_dataset_size` field added to `compute_summary.build_summary()` output so eval-side scaling can compute tokens-per-sample from prior runs. (#473)
-- `evaluation.max_connections` field in `experiment_summary.yaml`, plumbed through `scaffold-inspect` → `eval_config.yaml` → `setup_inspect.py` as `--max-connections N` on the generated `inspect eval` command. Default matches inspect-ai upstream (32); a sensitivity test on the 318 branch showed that raising it on variable-length workloads (verbose ACS prompts) can actually *slow* evals down (mc=256 ran 23% slower at 0% GPU util versus mc=8 at 100% GPU util on Llama-3.2-3B-Instruct + ACS employment, due to padding waste at large batch sizes). Users can opt into higher values per experiment when they have evidence those help their workload. (#318)
-- **OOM auto-retry in `run-experiment`** (#254 PR A) — fine-tune jobs detected as OOM are now automatically resubmitted with `batch_size` halved in `finetune.yaml`, up to 3 times per run. Detection covers both SLURM `OUT_OF_MEMORY` (host RAM cgroup kill) and SLURM `FAILED` jobs whose `slurm-<jid>.out` shows `torch.OutOfMemoryError` / "CUDA out of memory" — the latter is the common case for fine-tunes since CUDA OOMs are Python exceptions, not cgroup events. Each retry appends a `{"batch_size": N}` entry to a per-run `retry_history` list in the state file (forward-compat with multi-knob strategies), and the entry records `oom_detected_via` as `"slurm_state"` or `"cuda_log"` for forensics. Logs new `OOM_RETRY` blocks per attempt and a loud `OOM_EXHAUSTED` block when the limit is hit. Default ON; pass `--no-retry` to either submitter to disable. That gate also covers future non-OOM retry strategies. Active escalation (email/terminal prompt on exhaustion) is deferred to a follow-up PR.
-- `--batch_size_val` flag on `setup_finetune.py`, wired through `scaffold-torchtune` as `controls.batch_size_val` (also overrideable per-run via `runs[].parameters.batch_size_val`). Honored by the `_single_device_nightly` recipe (the default since #475), which uses it to construct a larger-batch validation DataLoader; recipes that don't read the field silently ignore it. Absent the flag, the recipe falls back to `cfg.batch_size`. (#450)
-- `--cpus_per_task` flag on `setup_finetune.py`, wired through `scaffold-torchtune` as `runs[].compute.cpus_per_task`. Overrides `MODEL_CONFIGS[model]["slurm"]["cpus"]` for the generated `#SBATCH --cpus-per-task=`. Useful for workloads with long sequences or heavy preprocessing where tokenizer threading and OpenMP can give a small GPU-util bump even at `num_workers=0`. Does *not* parallelize data loading itself — that's recipe-level and tracked separately. (#449)
-- `src/tools/run/submit_torchtune.py` and `submit_inspect.py` — callable submitters for `run-experiment`. Drip-feed against the gpu-test QoS cap (default `MAX_SUBMIT=25`), 5-second stagger, resume-safe JSON state file, canonical `SUBMIT_JOB:` / `SUBMIT_EVAL:` log emission. Replaces the prose-only execution path the skill used to rely on. (#451)
-- `harvest_jids_from_run_logs()` in `src/tools/slurm/compute_metrics.py` — single helper that `analyze-experiment` calls to extract job IDs from `run-torchtune.log` / `run-inspect.log` and surface loud warnings when those logs are missing or malformed. (#451)
-- Detach mechanisms for `run-experiment` submitters — SIGINT, SIGTERM, and a sticky `<exp_dir>/logs/.detach` sentinel file. Any path flushes state, emits a canonical `MONITOR_DETACHED` log block, prints a re-attach hint to stderr, and exits cleanly; SLURM jobs continue running. (#479)
-- `--resume-monitor` flag on `submit_torchtune` and `submit_inspect` — skips the submit phase and re-attaches a watcher to the existing state file. Idempotent; safe to invoke repeatedly. (#479)
-- `src/tools/run/status.py` — consolidated read-only snapshot command. Reads both state files, refreshes in-flight entries from `squeue`/`sacct`, prints a table (or `--json`). Emits a per-tool `ALL_COMPLETE` block when refresh first observes all-terminal so the pipeline log closes cleanly without a follow-up `--resume-monitor`. Composes with `/loop`, cron, or interactive use. (#479)
-- `log_all_complete()` is now idempotent — at most one `ALL_COMPLETE` block per per-tool log regardless of how many submitters or `status` calls emit it. (#479)
-- Two layers of submitter-knob configuration for `poll_sec`, `stagger_sec`, `max_submit` (#480):
-  - **Per-checkout defaults** at `<repo>/.config/config.json`, a tracked file shipping with the built-in values visible. Power users edit it to change defaults across all future experiments; `git update-index --skip-worktree .config/config.json` keeps local edits out of `git status`.
-  - **Live mid-run overrides** at `<exp_dir>/logs/monitor.json`. The watcher re-reads it on every poll iteration. Same filesystem-as-control-plane shape as the `.detach` sentinel.
-  - New `--poll-sec` / `--stagger-sec` CLI flags on both submitters (alongside the existing `--max-submit`).
-  - Precedence: `monitor.json` > CLI flag > `<repo>/.config/config.json` > built-in default. Bad values warn-and-skip; missing files are silent no-ops. Each applied `monitor.json` change emits a `MONITOR_CONFIG` block to the per-tool log.
-  - Removed the previously-supported `MAX_SUBMIT` / `POLL_SEC` / `STAGGER_SEC` env vars in favor of the user-config file. None had been documented or set anywhere in the repo.
+#### Skills & Workflows
+- **Callable `run-experiment` submitter platform** — replaces the prose-only execution path the skill used to rely on:
+  - `src/tools/run/submit_torchtune.py` and `submit_inspect.py` — callable submitters with QoS-aware drip-feed, resume-safe state, and canonical `SUBMIT_JOB:` / `SUBMIT_EVAL:` logging (#451)
+  - `src/tools/run/status.py` — read-only snapshot that refreshes in-flight entries from `squeue`/`sacct` and prints a table or `--json` (#479)
+  - Detach mechanisms — SIGINT, SIGTERM, and a sticky `<exp_dir>/logs/.detach` sentinel; all paths flush state and exit cleanly while SLURM jobs continue (#479)
+  - `--resume-monitor` flag on both submitters — re-attaches a watcher to an existing state file (#479)
+  - Two-layer submitter config for `poll_sec` / `stagger_sec` / `max_submit` — per-checkout defaults at `<repo>/.config/config.json`, live mid-run overrides at `<exp_dir>/logs/monitor.json`, plus matching CLI flags (#480)
+  - OOM auto-retry — detected OOM fine-tunes resubmit with halved `batch_size`, up to 3 times per run; `--no-retry` to disable (#254)
+- `--batch_size_val` flag on `setup_finetune.py`, honored by `_single_device_nightly` for a larger validation DataLoader (#450)
+- `--cpus_per_task` flag on `setup_finetune.py`, overriding the per-model SLURM default (#449)
+
+#### Evaluation & Metrics
+- `evaluation.max_connections` plumbed through scaffold-inspect to inspect-ai; default 32 (raising it can slow variable-length workloads — opt in with evidence) (#318)
+- `assistant_prefix` field in the ACS inspect task to autofill the start of the model's response (#485, @sarahepedersen)
+- `top_logprobs` exposed in the ACS inspect task (#485, @sarahepedersen)
+
+#### Observability & Testing
+- **Throughput-based wall-time estimation** — `estimate_compute` now predicts `total_tokens / tps_gpu × margin` instead of linear scaling; tps parsed from prior runs' slurm-out via the new `throughput_parsers.py` (single-GPU only in v1) (#473)
+- `inspect eval` wrapped in `/usr/bin/time -p` for a format-stable wall-time anchor (#473)
+- `THROUGHPUT_STATUS` mid-run heartbeat that warns when fine-tune tps falls below 70% of predicted (#473)
+- `eval_dataset_size` field added to `compute_summary.build_summary()` (#473)
+- `harvest_jids_from_run_logs()` in `compute_metrics.py` — single helper for analyze-experiment to extract job IDs from run logs (#451)
+- `log_all_complete()` is idempotent — at most one `ALL_COMPLETE` block per per-tool log (#479)
 
 ### Changed
 
-- **`estimate_compute.scale_finetune_time` / `scale_eval_time` signatures swapped** to throughput-based inputs (`prior_tps_gpu`, `new_total_tokens`) — the linear `prior_wall_seconds × ratio_chain` form is gone. `estimate_from_prior` gains a required `new_seq_len` parameter. Only internal caller is the `design-experiment` skill's `param_selection.md`, which is updated. (#473)
+- `estimate_compute.scale_finetune_time` / `scale_eval_time` signatures swapped to throughput-based inputs; `estimate_from_prior` gains a required `new_seq_len` parameter (#473)
 - `scaffold-torchtune` defaults single-GPU runs to `_single_device_nightly` so `validation_during_training` is no longer silently dropped (#471)
-- `setup_finetune.py` now picks a GPU-aware default for `--custom_recipe` (single-GPU → `_single_device_nightly`, multi-GPU → `_distributed_stable`), anchoring the recipe choice in code rather than agent prose (#471)
-- `run-experiment` skill now invokes the callable submitters instead of executing prose-by-prose recipes; the skill docs collapse to schema descriptions (#451)
-- `analyze-experiment` no longer silently skips the Compute Utilization section when run logs are missing; a `WARNING:` is printed to stderr and the absence is surfaced as a visible note in `report.md` (#451)
+- `setup_finetune.py` picks a GPU-aware default for `--custom_recipe`, anchoring the choice in code rather than agent prose (#471)
+- `run-experiment` skill invokes the callable submitters; skill docs collapse to schema descriptions (#451)
+- `analyze-experiment` surfaces missing run logs as a stderr warning + `report.md` note instead of silently skipping the Compute Utilization section (#451)
 
 ### Fixed
 
-- `setup_finetune.py` now errors at scaffold time when the GPU-count auto-switch resolves to a non-existent recipe (e.g. `_distributed_nightly`), instead of failing late at SLURM runtime. Multi-GPU val support tracked in #474. (#471)
-- `setup_finetune.py` now warns when `validation_during_training` is requested for a multi-GPU run, in addition to the agent-side warning (#471)
-- Eval-side submitter no longer collapses distinct runs onto a single state-file key when each run has the same eval slurm filename (the bug that bit the `lostmiddle_kxp_3B` experiment, issue #451 comment #2). State key now includes the relative path. (#451)
+- `setup_finetune.py` errors at scaffold time when GPU-count auto-switch resolves to a missing recipe, instead of failing late at SLURM runtime (#471)
+- `setup_finetune.py` warns when `validation_during_training` is requested for a multi-GPU run (#471)
+- Eval-side submitter no longer collapses distinct runs onto a single state-file key when their eval slurm filenames match; key now includes the relative path (#451)
+- `setup_finetune.py` ignores `new_system_prompt` with a warning when `dataset_type` is `text_completion` (base models have no chat template) (#485, @sarahepedersen)
+
+### Removed
+
+- `MAX_SUBMIT` / `POLL_SEC` / `STAGGER_SEC` env vars, in favor of `<repo>/.config/config.json` (#480)
 
 ## [0.3.0] - 2026-05-07
 
