@@ -387,8 +387,18 @@ def estimate_from_prior(
     jobs = prior_summary.get("jobs", [])
 
     # Split by job type
-    finetune_jobs = [j for j in jobs if j.get("job_type") == "finetune"]
-    eval_jobs = [j for j in jobs if j.get("job_type") == "eval"]
+    all_finetune_jobs = [j for j in jobs if j.get("job_type") == "finetune"]
+    all_eval_jobs = [j for j in jobs if j.get("job_type") == "eval"]
+
+    # Model-aware filter: prefer jobs whose recorded model matches new_model.
+    # When the prior is a multi-model experiment (e.g. tps calibration) we
+    # want to use just the matching job's tps, not the mean across models.
+    # When no job matches (true cross-model prediction), fall back to all
+    # jobs and emit a warning since tps does not extrapolate reliably.
+    matching_finetune = [j for j in all_finetune_jobs if j.get("model") == new_model]
+    matching_eval = [j for j in all_eval_jobs if j.get("model") == new_model]
+    finetune_jobs = matching_finetune or all_finetune_jobs
+    eval_jobs = matching_eval or all_eval_jobs
 
     result: dict = {
         "finetune": None,
@@ -399,23 +409,28 @@ def estimate_from_prior(
     }
 
     # --- Cross-model warning ---
-    # tps cannot extrapolate reliably across model sizes: in IO-bound regimes
-    # (short seq_len, small batch) the slowdown ratio between models is far
-    # smaller than the parameter-count ratio (e.g. 8B/1B ≈ 2x at seq=128, not
-    # the 6.5x param-count would predict); in compute-bound regimes (long
-    # seq_len, large batch) the slowdown approaches the parameter-count ratio.
-    # No single correction factor handles both. See issue #490 for a planned
-    # empirical calibration table.
-    if prior_model and prior_model != new_model:
+    # Warn whenever no prior job exactly matched new_model. tps does not
+    # extrapolate reliably across model sizes: in IO-bound regimes (short
+    # seq_len, small batch) the slowdown ratio is far smaller than the
+    # parameter-count ratio (e.g. 8B/1B ≈ 2x at seq=128, not the 6.5x
+    # param-count would predict); in compute-bound regimes it approaches
+    # param-count. No single correction factor handles both — see
+    # cross_model_calibration.yaml and issue #492.
+    cross_model = bool(all_finetune_jobs) and not matching_finetune
+    if cross_model:
+        models_in_prior = sorted(
+            {j.get("model") for j in all_finetune_jobs if j.get("model")}
+        )
+        prior_desc = ", ".join(models_in_prior) if models_in_prior else "(unknown)"
         result["scaling_details"].append(
-            f"CROSS-MODEL WARNING: prior used {prior_model}, new will use "
-            f"{new_model}. tps does not extrapolate reliably across model "
-            "sizes — the slowdown ratio depends on whether the run is IO- or "
-            "compute-bound. Estimate will under-predict if the new model is "
-            "compute-bound; over-predict if IO-bound. Prefer a same-model "
-            "prior when possible. See cross_model_calibration.yaml in this "
-            "directory for measured ratios (lookup not yet wired in — "
-            "issue #492)."
+            f"CROSS-MODEL WARNING: no prior runs match {new_model}; "
+            f"falling back to mean tps across all available priors "
+            f"({prior_desc}). tps does not extrapolate reliably across "
+            "model sizes — estimate will under-predict in compute-bound "
+            "regimes and over-predict in IO-bound regimes. Prefer a "
+            "same-model prior when possible. See cross_model_calibration"
+            ".yaml in this directory for measured ratios (lookup not "
+            "yet wired in — issue #492)."
         )
 
     # --- Fine-tuning estimate ---

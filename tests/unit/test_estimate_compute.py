@@ -396,6 +396,7 @@ class TestEstimateFromPrior:
             {
                 "run_name": "Llama-3.2-1B-Instruct_rank4",
                 "job_type": "finetune",
+                "model": "Llama-3.2-1B-Instruct",
                 "wall_time": "0:05:23",
                 "gpus": 1,
                 "gpu_mem_used_mean_gb": 12.5,
@@ -407,6 +408,7 @@ class TestEstimateFromPrior:
             {
                 "run_name": "Llama-3.2-1B-Instruct_rank8",
                 "job_type": "finetune",
+                "model": "Llama-3.2-1B-Instruct",
                 "wall_time": "0:06:10",
                 "gpus": 1,
                 "gpu_mem_used_mean_gb": 13.0,
@@ -418,12 +420,49 @@ class TestEstimateFromPrior:
             {
                 "run_name": "Llama-3.2-1B-Instruct_rank4",
                 "job_type": "eval",
+                "model": "Llama-3.2-1B-Instruct",
                 "wall_time": "0:00:45",
                 "gpus": 1,
                 "cpu_mem_allocated_gb": 80.0,
                 "tps_gpu_eval_e2e": 800.0,
                 "total_tokens": 36000,
                 "total_seconds": 45,
+            },
+        ],
+    }
+
+    MULTI_MODEL_SUMMARY = {
+        "experiment_name": "tps_calibration_2026-05-14",
+        "model": "Llama-3.2-1B-Instruct",  # first in yaml; not authoritative
+        "dataset_size": 10000,
+        "eval_dataset_size": 0,
+        "epochs": 1,
+        "batch_size": 4,
+        "date": "2026-05-14",
+        "jobs": [
+            {
+                "run_name": "Llama-3.2-1B-Instruct_cal",
+                "job_type": "finetune",
+                "model": "Llama-3.2-1B-Instruct",
+                "wall_time": "0:02:36",
+                "gpus": 1,
+                "tps_gpu_train_mean": 190.0,
+            },
+            {
+                "run_name": "Llama-3.2-3B-Instruct_cal",
+                "job_type": "finetune",
+                "model": "Llama-3.2-3B-Instruct",
+                "wall_time": "0:04:25",
+                "gpus": 1,
+                "tps_gpu_train_mean": 104.0,
+            },
+            {
+                "run_name": "Llama-3.1-8B-Instruct_cal",
+                "job_type": "finetune",
+                "model": "Llama-3.1-8B-Instruct",
+                "wall_time": "0:05:52",
+                "gpus": 1,
+                "tps_gpu_train_mean": 83.0,
             },
         ],
     }
@@ -586,3 +625,63 @@ class TestEstimateFromPrior:
         )
         warning_lines = [s for s in result["scaling_details"] if "CROSS-MODEL" in s]
         assert len(warning_lines) == 0
+
+    def test_multi_model_prior_picks_matching_job(self):
+        """Multi-model prior + new_model matching one job → no warning,
+        uses only matching job's tps for prediction."""
+        result = estimate_from_prior(
+            self.MULTI_MODEL_SUMMARY,
+            new_model="Llama-3.2-3B-Instruct",  # matches one prior job (tps=104)
+            new_dataset_size=10000,
+            new_epochs=1,
+            new_seq_len=128,
+        )
+        warning_lines = [s for s in result["scaling_details"] if "CROSS-MODEL" in s]
+        assert len(warning_lines) == 0, (
+            "no warning expected — 3B is in the multi-model prior"
+        )
+        # Prediction should use tps=104 (the 3B job), not mean(190, 104, 83)
+        details = " ".join(result["scaling_details"])
+        assert "tps=104" in details, f"expected tps=104 in details, got: {details}"
+
+    def test_multi_model_prior_no_match_warns_and_uses_all(self):
+        """Multi-model prior + new_model not in priors → warn + fall back to all."""
+        result = estimate_from_prior(
+            self.MULTI_MODEL_SUMMARY,
+            new_model="Llama-3.3-70B-Instruct",  # no match in priors
+            new_dataset_size=10000,
+            new_epochs=1,
+            new_seq_len=128,
+        )
+        warning_lines = [s for s in result["scaling_details"] if "CROSS-MODEL" in s]
+        assert len(warning_lines) == 1
+        # Warning should list all available prior models
+        assert "Llama-3.2-1B-Instruct" in warning_lines[0]
+        assert "Llama-3.2-3B-Instruct" in warning_lines[0]
+        assert "Llama-3.1-8B-Instruct" in warning_lines[0]
+        # Falls back to mean across all jobs
+        # mean(190, 104, 83) = 125.67
+        details = " ".join(result["scaling_details"])
+        assert "tps=125" in details, f"expected mean tps≈125.67 in details: {details}"
+
+    def test_jobs_without_model_field_still_work(self):
+        """Backward compat: jobs that predate model-aware build_summary
+        (no 'model' field) should fall through to all-jobs behavior."""
+        legacy_summary = {
+            **self.SAMPLE_SUMMARY,
+            "jobs": [
+                {k: v for k, v in j.items() if k != "model"}
+                for j in self.SAMPLE_SUMMARY["jobs"]
+            ],
+        }
+        result = estimate_from_prior(
+            legacy_summary,
+            new_model="Llama-3.2-1B-Instruct",
+            new_dataset_size=800,
+            new_epochs=2,
+            new_seq_len=512,
+        )
+        # No model field → no jobs match → falls back to all jobs + warning
+        assert result["finetune"] is not None
+        warning_lines = [s for s in result["scaling_details"] if "CROSS-MODEL" in s]
+        assert len(warning_lines) == 1

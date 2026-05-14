@@ -67,6 +67,24 @@ def build_summary(
         gas = None
 
     splits = data["training"]["splits"]
+
+    # Map run name → model from the runs: block so each job dict carries
+    # the model that actually ran. Critical for multi-model experiments
+    # (e.g. tps calibration runs), where summary-level "model" is only
+    # the first base model in yaml and doesn't represent per-job state.
+    run_to_model = {
+        r["name"]: r["model"]
+        for r in (config.get("runs") or [])
+        if "name" in r and "model" in r
+    }
+    enriched_jobs = []
+    for job in jobs:
+        run_name = job.get("run_name")
+        if run_name in run_to_model:
+            enriched_jobs.append({**job, "model": run_to_model[run_name]})
+        else:
+            enriched_jobs.append(job)
+
     return {
         "experiment_name": experiment["name"],
         "model": model_name,
@@ -76,7 +94,7 @@ def build_summary(
         "batch_size": batch_size,
         "gradient_accumulation_steps": gas,
         "date": experiment.get("date", None),
-        "jobs": jobs,
+        "jobs": enriched_jobs,
     }
 
 
