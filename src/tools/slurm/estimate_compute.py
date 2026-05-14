@@ -413,8 +413,9 @@ def estimate_from_prior(
             "sizes — the slowdown ratio depends on whether the run is IO- or "
             "compute-bound. Estimate will under-predict if the new model is "
             "compute-bound; over-predict if IO-bound. Prefer a same-model "
-            "prior when possible. See cruijff_kit#490 for empirical "
-            "calibration plans."
+            "prior when possible. See cross_model_calibration.yaml in this "
+            "directory for measured ratios (lookup not yet wired in — "
+            "issue #492)."
         )
 
     # --- Fine-tuning estimate ---
