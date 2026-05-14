@@ -395,6 +395,7 @@ After generating visualizations and before the report, add compute metrics. This
    - **CPU**: from jobstats (`cpu_efficiency_pct`, `cpu_mem_used_gb`, `cpu_mem_allocated_gb`), or seff `cpu_efficiency` as fallback
    - **GPU utilization**: dual-source — set `gpu_util_jobstats_pct` from `parse_jobstats_json()["gpu_util_pct"]` (Prometheus average), and `gpu_util_min`/`gpu_util_max` from `summarize_gpu_metrics()` (nvidia-smi range). `format_compute_table` renders this as `avg% (min–max%)` when both are present.
    - **GPU memory / power**: from nvidia-smi CSV (`gpu_mem_used_mean_gb`, `gpu_mem_total_gb`, `power_mean_w`)
+   - **Throughput**: call `enrich_job_with_throughput(job, slurm_out_path)` from `src/tools/slurm/throughput_parsers.py`. For fine-tunes, the slurm-out lives at `{output_dir}/{run}/artifacts/slurm-{job_id}.out`; for evals, at `{output_dir}/{run}/artifacts/epoch_{N}/slurm-{job_id}.out`. The helper adds `tps_gpu_train_mean` (finetune) or `tps_gpu_eval_e2e` + `total_tokens` (eval) to the job dict. On parse failure it warns to stderr and leaves the dict unchanged — downstream `estimate_compute` will raise a clear error if it later tries to scale from a job that lacks tps fields.
 5. Format with `format_compute_table(jobs, recommendations=recs)` → markdown table with optional recommendations
 6. Build and save compute_metrics.json using `compute_summary.py`:
    ```python

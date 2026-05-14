@@ -272,6 +272,7 @@ result = estimate_from_prior(
     new_model="{new_model_name}",
     new_dataset_size={new_training_dataset_size},
     new_epochs={new_epochs},
+    new_seq_len={new_max_seq_len},  # REQUIRED: max_seq_len for new finetune (e.g. 512, 2048)
     new_eval_dataset_size={new_eval_dataset_size},  # optional, defaults to new_dataset_size
 )
 
@@ -279,13 +280,13 @@ print(json.dumps(result, indent=2))
 ```
 
 The function returns a dict with:
-- `finetune`: `{time, gpus, mem}` — estimated fine-tuning resources
-- `eval`: `{time, gpus, mem}` — estimated evaluation resources
+- `finetune`: `{time, gpus, mem}` — estimated fine-tuning resources (None if prior runs lack throughput data)
+- `eval`: `{time, gpus, mem}` — estimated evaluation resources (None if prior runs lack throughput data)
 - `batch_size`: `{batch_size, reason, mem_ratio, estimated_mem_gb}` — batch size recommendation (or None)
 - `prior_experiment`: name of the prior experiment used
 - `scaling_details`: human-readable list of scaling calculations
 
-**Do not** manually implement scaling logic — `estimate_compute.py` handles all scaling (linear by epochs/dataset size, cross-model parameter-count ratios, safety margins, rounding).
+**Do not** manually implement scaling logic — `estimate_compute.py` handles all scaling (throughput-based: `total_tokens / tps_gpu`, safety margins, rounding). Prior runs must have tps fields on their job dicts, which are populated by `enrich_job_with_throughput()` during analyze-experiment. If they don't (older summaries pre-dating issue #473), the relevant section of the result is None.
 
 #### 4. Present to user and get explicit approval
 

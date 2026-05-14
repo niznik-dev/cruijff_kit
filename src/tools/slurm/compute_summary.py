@@ -33,8 +33,8 @@ def build_summary(
 
     Returns:
         Summary dict with ``experiment_name``, ``model``,
-        ``dataset_size``, ``epochs``, ``batch_size``,
-        ``gradient_accumulation_steps``, ``date``,
+        ``dataset_size``, ``eval_dataset_size``, ``epochs``,
+        ``batch_size``, ``gradient_accumulation_steps``, ``date``,
         and ``jobs`` keys.
 
     Raises:
@@ -66,10 +66,12 @@ def build_summary(
     if "gradient_accumulation_steps" in variables:
         gas = None
 
+    splits = data["training"]["splits"]
     return {
         "experiment_name": experiment["name"],
         "model": model_name,
-        "dataset_size": data["training"]["splits"]["train"],
+        "dataset_size": splits["train"],
+        "eval_dataset_size": splits.get("test"),
         "epochs": controls["epochs"],
         "batch_size": batch_size,
         "gradient_accumulation_steps": gas,

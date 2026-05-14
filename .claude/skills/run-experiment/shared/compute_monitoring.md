@@ -51,3 +51,31 @@ GPU Utilization: {gpu_util}% | GPU Memory: {gpu_mem_used}/{gpu_mem_total} GB
 ```
 
 If `gpu_metrics.csv` doesn't exist yet (job just started), skip silently.
+
+## Throughput Status (Torchtune Fine-Tunes Only)
+
+For RUNNING **torchtune fine-tune** jobs, on the same 5-min cadence as RESOURCE_STATUS, sample the most recent throughput value emitted by the wandb metric logger. The pbar line reports iterations/sec but not tokens/sec, so this poll greps for the per-step `tokens_per_second_per_gpu` value that wandb prints during the run.
+
+```bash
+grep "tokens_per_second_per_gpu" {output_dir}/slurm-{job_id}.out | tail -1
+```
+
+**Gate this poll on warmup**: skip until the wandb log has seen at least ~20 optimizer steps. Earlier values are dominated by CUDA init / dataloader spin-up and would generate spurious "slow" warnings.
+
+When a value is available, log as:
+
+```
+[YYYY-MM-DD HH:MM:SS] THROUGHPUT_STATUS: {identifier}
+tps/gpu = {tps_now} (predicted {tps_predicted}, ratio {tps_now/tps_predicted:.2f})
+```
+
+`tps_predicted` is the value from the prior experiment's `compute_metrics.json` (the `tps_gpu_train_mean` field on the matching finetune job), pulled at the start of run-experiment. If no prior is available, omit the `(predicted …, ratio …)` parenthetical.
+
+If the ratio falls below 0.7 for two consecutive polls, surface a visible warning:
+
+```
+WARNING: Throughput {ratio:.0%} of predicted — consider scancel + investigation
+    (possible causes: gpu80 contention, dataloader stall, MIG-partitioned GPU)
+```
+
+If no `tokens_per_second_per_gpu` line is present yet (very early in the run), skip silently — this poll is best-effort.

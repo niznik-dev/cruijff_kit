@@ -84,90 +84,79 @@ def round_up_to_increment(seconds: int, increment_minutes: int = 5) -> int:
 
 
 def scale_finetune_time(
-    prior_wall_seconds: int,
-    prior_epochs: int,
-    prior_dataset_size: int,
-    new_epochs: int,
-    new_dataset_size: int,
-    prior_model: str | None = None,
-    new_model: str | None = None,
+    prior_tps_gpu: float,
+    new_total_tokens: int,
     safety_margin: float = DEFAULT_SAFETY_MARGIN,
 ) -> int:
-    """Estimate fine-tuning wall time for a new experiment.
+    """Estimate fine-tuning wall time using throughput math.
 
-    Scales linearly with epochs and dataset size, then applies a
-    model-size correction factor and safety margin.
+    Predicts wall time as ``new_total_tokens / prior_tps_gpu``, then
+    applies a safety margin and rounds up. Because tps is in
+    tokens/sec/GPU (a per-token rate), this naturally absorbs changes
+    in seq_len, batch_size, epochs, and dataset size — anything that
+    affects total token count is captured by ``new_total_tokens``.
 
-    The linear scaling is approximate — it does not account for:
-    - Per-epoch checkpoint overhead (constant, not proportional)
-    - Dataset packing efficiency changes
-    - CUDA/model startup time (fixed cost)
-
-    The safety margin (default 1.5x) is intended to absorb these
-    effects for typical workloads.
+    The safety margin (default 1.5x) absorbs fixed startup costs
+    (CUDA init, model load, checkpointer overhead) and end-of-run
+    overhead (final checkpoint write), which are not proportional to
+    token count.
 
     Args:
-        prior_wall_seconds: Actual wall time from prior run (seconds).
-        prior_epochs: Number of epochs in prior run.
-        prior_dataset_size: Training samples in prior run.
-        new_epochs: Number of epochs in new experiment.
-        new_dataset_size: Training samples in new experiment.
-        prior_model: Model name from prior run (for cross-model scaling).
-        new_model: Model name for new experiment.
+        prior_tps_gpu: Mean tokens/sec/GPU from prior run (typically
+            ``tps_gpu_train_mean`` from the wandb end-of-run summary).
+        new_total_tokens: Total training tokens for new run, usually
+            ``epochs × dataset_size × seq_len``.
         safety_margin: Multiplier for safety (default 1.5).
 
     Returns:
         Estimated wall time in seconds, rounded up to nearest
         5-minute increment, with minimum of MIN_TIME_SECONDS.
+
+    Raises:
+        ValueError: If prior_tps_gpu or new_total_tokens is non-positive.
     """
-    if prior_epochs <= 0 or prior_dataset_size <= 0:
-        raise ValueError(
-            f"Prior epochs ({prior_epochs}) and dataset size "
-            f"({prior_dataset_size}) must be positive."
-        )
+    if prior_tps_gpu <= 0:
+        raise ValueError(f"prior_tps_gpu must be positive, got {prior_tps_gpu}")
+    if new_total_tokens <= 0:
+        raise ValueError(f"new_total_tokens must be positive, got {new_total_tokens}")
 
-    # Linear scaling by epochs and dataset size
-    epoch_ratio = new_epochs / prior_epochs
-    dataset_ratio = new_dataset_size / prior_dataset_size
-    scaled = prior_wall_seconds * epoch_ratio * dataset_ratio
-
-    # Cross-model scaling: time per step scales roughly linearly with
-    # parameter count for LoRA fine-tuning (forward + backward pass).
-    model_ratio = _model_size_ratio(prior_model, new_model)
-    scaled *= model_ratio
-
-    # Apply safety margin and round up
-    estimated = int(scaled * safety_margin)
+    estimated = int((new_total_tokens / prior_tps_gpu) * safety_margin)
     estimated = round_up_to_increment(estimated)
     return max(estimated, MIN_TIME_SECONDS)
 
 
 def scale_eval_time(
-    prior_wall_seconds: int,
-    prior_dataset_size: int,
-    new_dataset_size: int,
+    prior_tps_gpu: float,
+    new_total_tokens: int,
     safety_margin: float = DEFAULT_SAFETY_MARGIN,
 ) -> int:
-    """Estimate evaluation wall time for a new experiment.
+    """Estimate evaluation wall time using throughput math.
 
-    Simpler than fine-tuning: scales only by dataset size.
-    Epoch count is irrelevant for evaluation.
+    Predicts wall time as ``new_total_tokens / prior_tps_gpu`` × safety
+    margin. For inspect-ai evals, ``prior_tps_gpu`` is end-to-end
+    (``tps_gpu_eval_e2e`` from parser): total tokens (input + output)
+    divided by total wall time.
 
     Args:
-        prior_wall_seconds: Actual eval wall time from prior run (seconds).
-        prior_dataset_size: Eval samples in prior run.
-        new_dataset_size: Eval samples in new experiment.
+        prior_tps_gpu: End-to-end tokens/sec/GPU from prior eval run.
+        new_total_tokens: Estimated total tokens for new eval, usually
+            ``prior_total_tokens × new_dataset_size / prior_dataset_size``
+            (assuming similar tokens-per-sample distribution).
         safety_margin: Multiplier for safety (default 1.5).
 
     Returns:
         Estimated wall time in seconds, rounded up to nearest
         5-minute increment, with minimum of MIN_TIME_SECONDS.
-    """
-    if prior_dataset_size <= 0:
-        raise ValueError(f"Prior dataset size ({prior_dataset_size}) must be positive.")
 
-    ratio = new_dataset_size / prior_dataset_size
-    estimated = int(prior_wall_seconds * ratio * safety_margin)
+    Raises:
+        ValueError: If prior_tps_gpu or new_total_tokens is non-positive.
+    """
+    if prior_tps_gpu <= 0:
+        raise ValueError(f"prior_tps_gpu must be positive, got {prior_tps_gpu}")
+    if new_total_tokens <= 0:
+        raise ValueError(f"new_total_tokens must be positive, got {new_total_tokens}")
+
+    estimated = int((new_total_tokens / prior_tps_gpu) * safety_margin)
     estimated = round_up_to_increment(estimated)
     return max(estimated, MIN_TIME_SECONDS)
 
@@ -340,31 +329,48 @@ def recommend_batch_size(
     }
 
 
+def _mean_tps(jobs: list[dict], field: str) -> float | None:
+    """Return mean tps across jobs that have ``field``, or None if none do."""
+    values = [j[field] for j in jobs if isinstance(j.get(field), int | float)]
+    if not values:
+        return None
+    return sum(values) / len(values)
+
+
 def estimate_from_prior(
     prior_summary: dict,
     new_model: str,
     new_dataset_size: int,
     new_epochs: int,
+    new_seq_len: int,
     new_eval_dataset_size: int | None = None,
 ) -> dict:
     """Top-level estimation from a prior compute_metrics.json summary.
 
-    Finds the best-matching finetune and eval jobs in the prior data,
-    scales their wall times, and returns structured estimates.
+    Uses throughput-based scaling: prior tokens-per-second-per-GPU
+    (parsed from slurm-out and stored on each job dict via
+    ``throughput_parsers.enrich_job_with_throughput``) divided into
+    the new run's total token count yields predicted wall time.
 
     Args:
         prior_summary: Parsed summary dict from ``load_summary``.
-        new_model: Model name for the new experiment.
+        new_model: Model name for the new experiment (used only for
+            batch-size memory scaling).
         new_dataset_size: Training samples in new experiment.
         new_epochs: Number of training epochs.
+        new_seq_len: Max sequence length for new experiment. Combined
+            with epochs × dataset_size to compute total training
+            tokens.
         new_eval_dataset_size: Eval samples (defaults to
             ``new_dataset_size`` if not provided).
 
     Returns:
         Dict with keys:
         - ``finetune``: Dict with ``time`` (str), ``gpus`` (int),
-          ``mem`` (str), ``time_seconds`` (int).
-        - ``eval``: Same structure for eval jobs.
+          ``mem`` (str), ``time_seconds`` (int). None if no prior
+          finetune job had a parseable tps value.
+        - ``eval``: Same structure for eval jobs. None if no prior
+          eval job had a parseable tps value.
         - ``batch_size``: Result from ``recommend_batch_size``
           (or None if no GPU memory data).
         - ``prior_experiment``: Name of the prior experiment used.
@@ -375,8 +381,7 @@ def estimate_from_prior(
         new_eval_dataset_size = new_dataset_size
 
     prior_model = prior_summary.get("model")
-    prior_dataset_size = prior_summary.get("dataset_size", 0)
-    prior_epochs = prior_summary.get("epochs", 1)
+    prior_eval_size = prior_summary.get("eval_dataset_size")
     prior_batch_size = prior_summary.get("batch_size")
     prior_gas = prior_summary.get("gradient_accumulation_steps", 1)
     jobs = prior_summary.get("jobs", [])
@@ -394,78 +399,73 @@ def estimate_from_prior(
     }
 
     # --- Fine-tuning estimate ---
-    if finetune_jobs and prior_dataset_size > 0:
-        # Average wall time across finetune jobs
-        wall_times = [
-            parse_wall_time(j["wall_time"]) for j in finetune_jobs if j.get("wall_time")
-        ]
-        if wall_times:
-            avg_wall = sum(wall_times) // len(wall_times)
-            estimated_seconds = scale_finetune_time(
-                prior_wall_seconds=avg_wall,
-                prior_epochs=prior_epochs,
-                prior_dataset_size=prior_dataset_size,
-                new_epochs=new_epochs,
-                new_dataset_size=new_dataset_size,
-                prior_model=prior_model,
-                new_model=new_model,
-            )
+    prior_train_tps = _mean_tps(finetune_jobs, "tps_gpu_train_mean")
+    if finetune_jobs and prior_train_tps:
+        new_total_tokens = new_dataset_size * new_seq_len * new_epochs
+        estimated_seconds = scale_finetune_time(
+            prior_tps_gpu=prior_train_tps,
+            new_total_tokens=new_total_tokens,
+        )
 
-            # GPU count and memory from prior (adjust for model size if needed)
-            prior_gpus = finetune_jobs[0].get("gpus", 1)
-            prior_mem = finetune_jobs[0].get("cpu_mem_allocated_gb")
+        prior_gpus = finetune_jobs[0].get("gpus", 1)
+        prior_mem = finetune_jobs[0].get("cpu_mem_allocated_gb")
 
-            result["finetune"] = {
-                "time": format_wall_time(estimated_seconds),
-                "time_seconds": estimated_seconds,
-                "gpus": prior_gpus,
-                "mem": f"{int(prior_mem)}G" if prior_mem else "80G",
-            }
+        result["finetune"] = {
+            "time": format_wall_time(estimated_seconds),
+            "time_seconds": estimated_seconds,
+            "gpus": prior_gpus,
+            "mem": f"{int(prior_mem)}G" if prior_mem else "80G",
+        }
 
-            result["scaling_details"].append(
-                f"Finetune: {format_wall_time(avg_wall)} (prior avg) "
-                f"× {new_epochs}/{prior_epochs} epochs "
-                f"× {new_dataset_size}/{prior_dataset_size} samples "
-                f"× {_model_size_ratio(prior_model, new_model):.2f} model ratio "
-                f"× {DEFAULT_SAFETY_MARGIN} safety "
-                f"→ {format_wall_time(estimated_seconds)}"
-            )
+        result["scaling_details"].append(
+            f"Finetune: prior tps={prior_train_tps:.1f} tok/s/gpu "
+            f"× new tokens={new_total_tokens:,} "
+            f"({new_dataset_size:,} samples × {new_seq_len} seq_len × {new_epochs} epochs) "
+            f"× {DEFAULT_SAFETY_MARGIN} safety "
+            f"→ {format_wall_time(estimated_seconds)}"
+        )
 
     # --- Eval estimate ---
-    if eval_jobs:
-        wall_times = [
-            parse_wall_time(j["wall_time"]) for j in eval_jobs if j.get("wall_time")
-        ]
-        if wall_times:
-            # Use the prior test split size for scaling base. If not in
-            # summary, fall back to average eval wall time with dataset ratio.
-            avg_wall = sum(wall_times) // len(wall_times)
-            # Eval dataset size in prior: not always in summary.
-            # Use the test split if available, otherwise assume same as new.
-            prior_eval_size = new_eval_dataset_size  # conservative fallback
-
-            estimated_seconds = scale_eval_time(
-                prior_wall_seconds=avg_wall,
-                prior_dataset_size=prior_eval_size,
-                new_dataset_size=new_eval_dataset_size,
+    prior_eval_tps = _mean_tps(eval_jobs, "tps_gpu_eval_e2e")
+    prior_eval_total_tokens = _mean_tps(eval_jobs, "total_tokens")
+    if eval_jobs and prior_eval_tps and prior_eval_total_tokens:
+        if prior_eval_size and prior_eval_size > 0:
+            tokens_per_sample = prior_eval_total_tokens / prior_eval_size
+            new_total_tokens = int(tokens_per_sample * new_eval_dataset_size)
+            scale_note = (
+                f"({new_eval_dataset_size:,} samples "
+                f"× {tokens_per_sample:.0f} tokens/sample, "
+                f"derived from {int(prior_eval_total_tokens):,} prior tokens / "
+                f"{prior_eval_size:,} prior samples)"
+            )
+        else:
+            new_total_tokens = int(prior_eval_total_tokens)
+            scale_note = (
+                f"({int(prior_eval_total_tokens):,} prior tokens, "
+                "prior eval dataset size unknown — no scaling applied)"
             )
 
-            prior_gpus = eval_jobs[0].get("gpus", 1)
-            prior_mem = eval_jobs[0].get("cpu_mem_allocated_gb")
+        estimated_seconds = scale_eval_time(
+            prior_tps_gpu=prior_eval_tps,
+            new_total_tokens=new_total_tokens,
+        )
 
-            result["eval"] = {
-                "time": format_wall_time(estimated_seconds),
-                "time_seconds": estimated_seconds,
-                "gpus": prior_gpus,
-                "mem": f"{int(prior_mem)}G" if prior_mem else "80G",
-            }
+        prior_gpus = eval_jobs[0].get("gpus", 1)
+        prior_mem = eval_jobs[0].get("cpu_mem_allocated_gb")
 
-            result["scaling_details"].append(
-                f"Eval: {format_wall_time(avg_wall)} (prior avg) "
-                f"× {new_eval_dataset_size}/{prior_eval_size} samples "
-                f"× {DEFAULT_SAFETY_MARGIN} safety "
-                f"→ {format_wall_time(estimated_seconds)}"
-            )
+        result["eval"] = {
+            "time": format_wall_time(estimated_seconds),
+            "time_seconds": estimated_seconds,
+            "gpus": prior_gpus,
+            "mem": f"{int(prior_mem)}G" if prior_mem else "80G",
+        }
+
+        result["scaling_details"].append(
+            f"Eval: prior tps={prior_eval_tps:.1f} tok/s/gpu "
+            f"× new tokens={new_total_tokens:,} {scale_note} "
+            f"× {DEFAULT_SAFETY_MARGIN} safety "
+            f"→ {format_wall_time(estimated_seconds)}"
+        )
 
     # --- Batch size recommendation ---
     if finetune_jobs and prior_batch_size:

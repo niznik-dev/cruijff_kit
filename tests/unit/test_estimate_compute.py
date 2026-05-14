@@ -92,140 +92,80 @@ class TestRoundUpToIncrement:
 
 
 class TestScaleFinetuneTime:
-    def test_same_params_applies_safety_only(self):
-        """Same epochs, dataset, model → just safety margin + rounding."""
-        result = scale_finetune_time(
-            prior_wall_seconds=600,  # 10 min
-            prior_epochs=2,
-            prior_dataset_size=800,
-            new_epochs=2,
-            new_dataset_size=800,
-        )
-        # 600 * 1.0 * 1.0 * 1.5 = 900 → round to 900 (15 min)
-        assert result == 900
+    """Throughput-based scaler tests.
 
-    def test_double_epochs(self):
-        result = scale_finetune_time(
-            prior_wall_seconds=600,
-            prior_epochs=1,
-            prior_dataset_size=800,
-            new_epochs=2,
-            new_dataset_size=800,
-        )
-        # 600 * 2.0 * 1.0 * 1.5 = 1800 → 30 min
-        assert result == 1800
+    Wall time prediction is total_tokens / tps_gpu × safety margin,
+    rounded up to MIN_TIME_SECONDS increments.
+    """
 
-    def test_double_dataset(self):
+    def test_basic_throughput_math(self):
+        # 1_000_000 tokens / 200 tps = 5000 s, × 1.5 = 7500 → round to 7500 (125 min)
         result = scale_finetune_time(
-            prior_wall_seconds=600,
-            prior_epochs=1,
-            prior_dataset_size=400,
-            new_epochs=1,
-            new_dataset_size=800,
+            prior_tps_gpu=200.0,
+            new_total_tokens=1_000_000,
         )
-        # 600 * 1.0 * 2.0 * 1.5 = 1800 → 30 min
-        assert result == 1800
+        assert result == 7500
 
-    def test_cross_model_scaling(self):
-        """1B → 3B should scale by ~2.6x parameter ratio."""
-        result_1b = scale_finetune_time(
-            prior_wall_seconds=600,
-            prior_epochs=1,
-            prior_dataset_size=800,
-            new_epochs=1,
-            new_dataset_size=800,
-            prior_model="Llama-3.2-1B-Instruct",
-            new_model="Llama-3.2-1B-Instruct",
+    def test_doubling_tokens_doubles_time(self):
+        result_1x = scale_finetune_time(
+            prior_tps_gpu=200.0,
+            new_total_tokens=500_000,
         )
-        result_3b = scale_finetune_time(
-            prior_wall_seconds=600,
-            prior_epochs=1,
-            prior_dataset_size=800,
-            new_epochs=1,
-            new_dataset_size=800,
-            prior_model="Llama-3.2-1B-Instruct",
-            new_model="Llama-3.2-3B-Instruct",
+        result_2x = scale_finetune_time(
+            prior_tps_gpu=200.0,
+            new_total_tokens=1_000_000,
         )
-        # 3B is ~2.6x the params of 1B
-        assert result_3b > result_1b * 2
+        # Within rounding (5-min increments), 2x tokens ≈ 2x time
+        assert result_2x >= result_1x
 
-    def test_unknown_model_no_scaling(self):
-        """Unknown model names → ratio of 1.0."""
-        result = scale_finetune_time(
-            prior_wall_seconds=600,
-            prior_epochs=1,
-            prior_dataset_size=800,
-            new_epochs=1,
-            new_dataset_size=800,
-            prior_model="Llama-3.2-1B-Instruct",
-            new_model="SomeUnknownModel",
+    def test_doubling_tps_halves_time(self):
+        result_slow = scale_finetune_time(
+            prior_tps_gpu=100.0,
+            new_total_tokens=1_000_000,
         )
-        # Should be same as no model scaling
-        no_model = scale_finetune_time(
-            prior_wall_seconds=600,
-            prior_epochs=1,
-            prior_dataset_size=800,
-            new_epochs=1,
-            new_dataset_size=800,
+        result_fast = scale_finetune_time(
+            prior_tps_gpu=200.0,
+            new_total_tokens=1_000_000,
         )
-        assert result == no_model
+        assert result_fast < result_slow
 
     def test_minimum_time(self):
         """Very short estimates get clamped to MIN_TIME_SECONDS."""
         result = scale_finetune_time(
-            prior_wall_seconds=10,
-            prior_epochs=1,
-            prior_dataset_size=800,
-            new_epochs=1,
-            new_dataset_size=10,
+            prior_tps_gpu=200.0,
+            new_total_tokens=1000,
         )
-        assert result >= MIN_TIME_SECONDS
+        assert result == MIN_TIME_SECONDS
 
     def test_rounding_to_five_minutes(self):
-        """Result is always a multiple of 300 seconds."""
         result = scale_finetune_time(
-            prior_wall_seconds=421,
-            prior_epochs=1,
-            prior_dataset_size=800,
-            new_epochs=1,
-            new_dataset_size=800,
+            prior_tps_gpu=200.0,
+            new_total_tokens=421_000,
         )
         assert result % 300 == 0
 
-    def test_invalid_prior_epochs(self):
-        with pytest.raises(ValueError, match="positive"):
+    def test_invalid_tps(self):
+        with pytest.raises(ValueError, match="prior_tps_gpu"):
             scale_finetune_time(
-                prior_wall_seconds=600,
-                prior_epochs=0,
-                prior_dataset_size=800,
-                new_epochs=1,
-                new_dataset_size=800,
+                prior_tps_gpu=0.0,
+                new_total_tokens=1_000_000,
             )
 
-    def test_invalid_prior_dataset(self):
-        with pytest.raises(ValueError, match="positive"):
+    def test_invalid_tokens(self):
+        with pytest.raises(ValueError, match="new_total_tokens"):
             scale_finetune_time(
-                prior_wall_seconds=600,
-                prior_epochs=1,
-                prior_dataset_size=0,
-                new_epochs=1,
-                new_dataset_size=800,
+                prior_tps_gpu=200.0,
+                new_total_tokens=0,
             )
 
     def test_custom_safety_margin(self):
         result_default = scale_finetune_time(
-            prior_wall_seconds=600,
-            prior_epochs=1,
-            prior_dataset_size=800,
-            new_epochs=1,
-            new_dataset_size=800,
+            prior_tps_gpu=200.0,
+            new_total_tokens=1_000_000,
         )
         result_tight = scale_finetune_time(
-            prior_wall_seconds=600,
-            prior_epochs=1,
-            prior_dataset_size=800,
-            new_epochs=1,
-            new_dataset_size=800,
+            prior_tps_gpu=200.0,
+            new_total_tokens=1_000_000,
             safety_margin=1.0,
         )
         assert result_tight < result_default
@@ -237,31 +177,45 @@ class TestScaleFinetuneTime:
 
 
 class TestScaleEvalTime:
-    def test_same_dataset(self):
+    def test_basic_throughput_math(self):
+        # 100_000 tokens / 500 tps = 200 s × 1.5 = 300 → min applies anyway
         result = scale_eval_time(
-            prior_wall_seconds=60,
-            prior_dataset_size=100,
-            new_dataset_size=100,
+            prior_tps_gpu=500.0,
+            new_total_tokens=100_000,
         )
-        # 60 * 1.0 * 1.5 = 90 → round to 300 (min 5 min)
         assert result == MIN_TIME_SECONDS
 
-    def test_double_dataset(self):
-        result = scale_eval_time(
-            prior_wall_seconds=300,
-            prior_dataset_size=100,
-            new_dataset_size=200,
+    def test_doubling_tokens_increases_time(self):
+        result_1x = scale_eval_time(
+            prior_tps_gpu=500.0,
+            new_total_tokens=300_000,
         )
-        # 300 * 2.0 * 1.5 = 900 → 15 min
-        assert result == 900
+        result_2x = scale_eval_time(
+            prior_tps_gpu=500.0,
+            new_total_tokens=600_000,
+        )
+        assert result_2x >= result_1x
 
     def test_minimum_applies(self):
         result = scale_eval_time(
-            prior_wall_seconds=10,
-            prior_dataset_size=100,
-            new_dataset_size=100,
+            prior_tps_gpu=500.0,
+            new_total_tokens=1000,
         )
         assert result >= MIN_TIME_SECONDS
+
+    def test_invalid_tps(self):
+        with pytest.raises(ValueError, match="prior_tps_gpu"):
+            scale_eval_time(
+                prior_tps_gpu=-1.0,
+                new_total_tokens=100_000,
+            )
+
+    def test_invalid_tokens(self):
+        with pytest.raises(ValueError, match="new_total_tokens"):
+            scale_eval_time(
+                prior_tps_gpu=500.0,
+                new_total_tokens=0,
+            )
 
 
 # =============================================================================
@@ -434,6 +388,7 @@ class TestEstimateFromPrior:
         "experiment_name": "cap_4L_2025-10-22",
         "model": "Llama-3.2-1B-Instruct",
         "dataset_size": 800,
+        "eval_dataset_size": 100,
         "epochs": 2,
         "batch_size": 4,
         "date": "2025-10-22",
@@ -446,6 +401,8 @@ class TestEstimateFromPrior:
                 "gpu_mem_used_mean_gb": 12.5,
                 "gpu_mem_total_gb": 80.0,
                 "cpu_mem_allocated_gb": 80.0,
+                "tps_gpu_train_mean": 200.0,
+                "global_step": 200,
             },
             {
                 "run_name": "Llama-3.2-1B-Instruct_rank8",
@@ -455,6 +412,8 @@ class TestEstimateFromPrior:
                 "gpu_mem_used_mean_gb": 13.0,
                 "gpu_mem_total_gb": 80.0,
                 "cpu_mem_allocated_gb": 80.0,
+                "tps_gpu_train_mean": 180.0,
+                "global_step": 200,
             },
             {
                 "run_name": "Llama-3.2-1B-Instruct_rank4",
@@ -462,64 +421,68 @@ class TestEstimateFromPrior:
                 "wall_time": "0:00:45",
                 "gpus": 1,
                 "cpu_mem_allocated_gb": 80.0,
+                "tps_gpu_eval_e2e": 800.0,
+                "total_tokens": 36000,
+                "total_seconds": 45,
             },
         ],
     }
 
     def test_same_experiment_params(self):
-        """Same model/dataset/epochs → estimates are safety-margined."""
         result = estimate_from_prior(
             self.SAMPLE_SUMMARY,
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
+            new_seq_len=512,
         )
         assert result["finetune"] is not None
         assert result["eval"] is not None
         assert result["prior_experiment"] == "cap_4L_2025-10-22"
 
-        # Finetune: avg of 323+370 = 346s, × 1.5 = 519 → round to 600
         ft_seconds = result["finetune"]["time_seconds"]
-        assert ft_seconds >= 300  # at least 5 min
+        assert ft_seconds >= MIN_TIME_SECONDS
         assert ft_seconds % 300 == 0  # multiple of 5 min
 
-    def test_larger_dataset(self):
-        """Double dataset → approximately double time."""
+    def test_larger_dataset_increases_time(self):
         result_base = estimate_from_prior(
             self.SAMPLE_SUMMARY,
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
+            new_seq_len=512,
         )
         result_2x = estimate_from_prior(
             self.SAMPLE_SUMMARY,
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=1600,
             new_epochs=2,
+            new_seq_len=512,
         )
-        # Should be roughly double (within rounding)
         assert (
             result_2x["finetune"]["time_seconds"]
             >= result_base["finetune"]["time_seconds"]
         )
 
-    def test_different_model(self):
-        """3B model → longer time than 1B."""
-        result_1b = estimate_from_prior(
+    def test_larger_seq_len_increases_time(self):
+        """Doubling seq_len doubles tokens → doubles wall time (within rounding)."""
+        result_base = estimate_from_prior(
             self.SAMPLE_SUMMARY,
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
+            new_seq_len=512,
         )
-        result_3b = estimate_from_prior(
+        result_long = estimate_from_prior(
             self.SAMPLE_SUMMARY,
-            new_model="Llama-3.2-3B-Instruct",
+            new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
+            new_seq_len=2048,
         )
         assert (
-            result_3b["finetune"]["time_seconds"]
-            > result_1b["finetune"]["time_seconds"]
+            result_long["finetune"]["time_seconds"]
+            > result_base["finetune"]["time_seconds"]
         )
 
     def test_batch_size_recommendation_present(self):
@@ -528,6 +491,7 @@ class TestEstimateFromPrior:
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
+            new_seq_len=512,
         )
         assert result["batch_size"] is not None
         assert "batch_size" in result["batch_size"]
@@ -541,6 +505,7 @@ class TestEstimateFromPrior:
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
+            new_seq_len=512,
         )
         assert len(result["scaling_details"]) >= 1
         assert "Finetune" in result["scaling_details"][0]
@@ -552,6 +517,30 @@ class TestEstimateFromPrior:
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
+            new_seq_len=512,
+        )
+        assert result["finetune"] is None
+        assert result["eval"] is None
+
+    def test_missing_tps_returns_none(self):
+        """Jobs without tps fields (e.g. older summaries) → finetune/eval None."""
+        envelope = {
+            **self.SAMPLE_SUMMARY,
+            "jobs": [
+                {
+                    "run_name": "old",
+                    "job_type": "finetune",
+                    "wall_time": "0:05:00",
+                    "gpus": 1,
+                },
+            ],
+        }
+        result = estimate_from_prior(
+            envelope,
+            new_model="Llama-3.2-1B-Instruct",
+            new_dataset_size=800,
+            new_epochs=2,
+            new_seq_len=512,
         )
         assert result["finetune"] is None
         assert result["eval"] is None
@@ -563,12 +552,11 @@ class TestEstimateFromPrior:
             new_model="Llama-3.2-1B-Instruct",
             new_dataset_size=800,
             new_epochs=2,
+            new_seq_len=512,
         )
         ft = result["finetune"]
         assert "time" in ft
         assert "gpus" in ft
         assert "mem" in ft
-        # Time should be H:MM:SS format
         assert ft["time"].count(":") == 2
-        # Mem should end with G
         assert ft["mem"].endswith("G")
