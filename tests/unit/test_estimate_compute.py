@@ -11,6 +11,7 @@ import pytest
 from cruijff_kit.tools.slurm.estimate_compute import (
     MIN_TIME_SECONDS,
     estimate_from_prior,
+    estimate_from_prior_broadcast,
     format_wall_time,
     parse_wall_time,
     recommend_batch_size,
@@ -663,6 +664,84 @@ class TestEstimateFromPrior:
         # mean(190, 104, 83) = 125.67
         details = " ".join(result["scaling_details"])
         assert "tps=125" in details, f"expected mean tps≈125.67 in details: {details}"
+
+    def test_broadcast_over_multi_model_prior(self):
+        """Broadcast helper returns one prediction per distinct model in prior."""
+        preds = estimate_from_prior_broadcast(
+            self.MULTI_MODEL_SUMMARY,
+            new_dataset_size=10000,
+            new_epochs=1,
+            new_seq_len=128,
+        )
+        # 3 distinct models in the prior → 3 entries
+        assert set(preds.keys()) == {
+            "Llama-3.2-1B-Instruct",
+            "Llama-3.2-3B-Instruct",
+            "Llama-3.1-8B-Instruct",
+        }
+        # Each prediction is a full estimate_from_prior result
+        for model, result in preds.items():
+            assert result["finetune"] is not None
+            assert "time_seconds" in result["finetune"]
+            # No cross-model warning — each model has its own prior job
+            warnings = [s for s in result["scaling_details"] if "CROSS-MODEL" in s]
+            assert len(warnings) == 0, f"unexpected warning for {model}"
+
+    def test_broadcast_predictions_use_per_model_tps(self):
+        """Each broadcasted prediction uses the matching model's tps,
+        not the cross-model mean."""
+        preds = estimate_from_prior_broadcast(
+            self.MULTI_MODEL_SUMMARY,
+            new_dataset_size=10000,
+            new_epochs=1,
+            new_seq_len=128,
+        )
+        # 1B is fastest → shortest wall time; 8B is slowest → longest
+        t_1b = preds["Llama-3.2-1B-Instruct"]["finetune"]["time_seconds"]
+        t_3b = preds["Llama-3.2-3B-Instruct"]["finetune"]["time_seconds"]
+        t_8b = preds["Llama-3.1-8B-Instruct"]["finetune"]["time_seconds"]
+        assert t_1b < t_3b < t_8b, (
+            f"expected 1B < 3B < 8B wall time, got {t_1b} / {t_3b} / {t_8b}"
+        )
+
+    def test_broadcast_single_model_prior_returns_one(self):
+        """Single-model prior → single-entry dict (equivalent to one call)."""
+        preds = estimate_from_prior_broadcast(
+            self.SAMPLE_SUMMARY,  # all jobs are 1B
+            new_dataset_size=800,
+            new_epochs=2,
+            new_seq_len=512,
+        )
+        assert set(preds.keys()) == {"Llama-3.2-1B-Instruct"}
+
+    def test_broadcast_legacy_summary_uses_summary_model(self):
+        """Pre-#491 summaries without per-job model fall back to summary.model."""
+        legacy = {
+            **self.SAMPLE_SUMMARY,
+            "jobs": [
+                {k: v for k, v in j.items() if k != "model"}
+                for j in self.SAMPLE_SUMMARY["jobs"]
+            ],
+        }
+        preds = estimate_from_prior_broadcast(
+            legacy,
+            new_dataset_size=800,
+            new_epochs=2,
+            new_seq_len=512,
+        )
+        # Falls back to summary["model"] for the single key
+        assert set(preds.keys()) == {"Llama-3.2-1B-Instruct"}
+
+    def test_broadcast_empty_returns_empty(self):
+        """No jobs and no summary.model → empty dict, no crash."""
+        empty = {"jobs": []}
+        preds = estimate_from_prior_broadcast(
+            empty,
+            new_dataset_size=800,
+            new_epochs=2,
+            new_seq_len=512,
+        )
+        assert preds == {}
 
     def test_jobs_without_model_field_still_work(self):
         """Backward compat: jobs that predate model-aware build_summary

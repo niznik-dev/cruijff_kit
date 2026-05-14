@@ -288,6 +288,26 @@ The function returns a dict with:
 
 **Do not** manually implement scaling logic — `estimate_compute.py` handles all scaling (throughput-based: `total_tokens / tps_gpu`, safety margins, rounding). Prior runs must have tps fields on their job dicts, which are populated by `enrich_job_with_throughput()` during analyze-experiment. If they don't (older summaries pre-dating issue #473), the relevant section of the result is None.
 
+**Multi-model prior?** If the prior summary contains jobs across multiple models (e.g. a calibration experiment with 1B/3B/8B fine-tunes), use `estimate_from_prior_broadcast()` instead — it returns one prediction per model in the prior, no looping needed:
+
+```python
+from estimate_compute import estimate_from_prior_broadcast
+
+predictions = estimate_from_prior_broadcast(
+    prior_summary=prior_summary,
+    new_dataset_size={new_training_dataset_size},
+    new_epochs={new_epochs},
+    new_seq_len={new_max_seq_len},
+    new_eval_dataset_size={new_eval_dataset_size},
+)
+
+# predictions is keyed by model name:
+for model, result in predictions.items():
+    print(f"{model}: {result['finetune']['time']}")
+```
+
+For single-model priors the broadcast variant returns a one-entry dict — same effective behavior as the single-call form.
+
 #### 4. Present to user and get explicit approval
 
 **CRITICAL:** Compute estimation may recommend changes to training parameters (e.g., batch size). These recommendations MUST be presented explicitly to the user for approval — do not silently adopt them.

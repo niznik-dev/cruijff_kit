@@ -522,6 +522,75 @@ def estimate_from_prior(
     return result
 
 
+def estimate_from_prior_broadcast(
+    prior_summary: dict,
+    new_dataset_size: int,
+    new_epochs: int,
+    new_seq_len: int,
+    new_eval_dataset_size: int | None = None,
+) -> dict[str, dict]:
+    """Broadcast ``estimate_from_prior`` over every model in the prior.
+
+    Useful when the prior is a multi-model experiment (e.g. a tps
+    calibration run with 1B/3B/8B jobs) and the caller wants a
+    prediction per model rather than just one. For single-model priors
+    this returns a single entry, identical to calling
+    ``estimate_from_prior`` once with that model.
+
+    Args:
+        prior_summary: Parsed summary dict from ``load_summary``.
+        new_dataset_size: Training samples in the new experiment.
+        new_epochs: Number of training epochs.
+        new_seq_len: Max sequence length for the new finetune.
+        new_eval_dataset_size: Eval samples (defaults to
+            ``new_dataset_size`` if not provided).
+
+    Returns:
+        Dict keyed by model name. Each value is the full
+        ``estimate_from_prior`` result dict for that model.
+        Empty dict if no model information can be inferred.
+
+    Example:
+        >>> # cal_prior has finetune jobs for 1B, 3B, 8B
+        >>> preds = estimate_from_prior_broadcast(cal_prior, 10000, 1, 128)
+        >>> preds["Llama-3.2-1B-Instruct"]["finetune"]["time"]
+        '2:50:00'
+        >>> preds["Llama-3.2-3B-Instruct"]["finetune"]["time"]
+        '5:10:00'
+    """
+    jobs = prior_summary.get("jobs", [])
+
+    # Distinct models that appeared as a finetune job in the prior.
+    models_in_prior = sorted(
+        {
+            j.get("model")
+            for j in jobs
+            if j.get("model") and j.get("job_type") == "finetune"
+        }
+    )
+
+    if not models_in_prior:
+        # No per-job model field (legacy summaries pre-#491). Fall back
+        # to the summary-level model so single-model legacy priors still
+        # produce one prediction.
+        summary_model = prior_summary.get("model")
+        if not summary_model:
+            return {}
+        models_in_prior = [summary_model]
+
+    return {
+        m: estimate_from_prior(
+            prior_summary=prior_summary,
+            new_model=m,
+            new_dataset_size=new_dataset_size,
+            new_epochs=new_epochs,
+            new_seq_len=new_seq_len,
+            new_eval_dataset_size=new_eval_dataset_size,
+        )
+        for m in models_in_prior
+    }
+
+
 def _model_size_ratio(
     prior_model: str | None,
     new_model: str | None,
