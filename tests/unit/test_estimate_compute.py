@@ -560,3 +560,29 @@ class TestEstimateFromPrior:
         assert "mem" in ft
         assert ft["time"].count(":") == 2
         assert ft["mem"].endswith("G")
+
+    def test_cross_model_warning_emitted(self):
+        """When prior_model != new_model, scaling_details contains a warning."""
+        result = estimate_from_prior(
+            self.SAMPLE_SUMMARY,  # prior_model = Llama-3.2-1B-Instruct
+            new_model="Llama-3.2-3B-Instruct",
+            new_dataset_size=800,
+            new_epochs=2,
+            new_seq_len=512,
+        )
+        warning_lines = [s for s in result["scaling_details"] if "CROSS-MODEL" in s]
+        assert len(warning_lines) == 1
+        assert "Llama-3.2-1B-Instruct" in warning_lines[0]
+        assert "Llama-3.2-3B-Instruct" in warning_lines[0]
+
+    def test_no_cross_model_warning_when_same_model(self):
+        """Same prior/new model → no cross-model warning."""
+        result = estimate_from_prior(
+            self.SAMPLE_SUMMARY,
+            new_model="Llama-3.2-1B-Instruct",  # same as prior
+            new_dataset_size=800,
+            new_epochs=2,
+            new_seq_len=512,
+        )
+        warning_lines = [s for s in result["scaling_details"] if "CROSS-MODEL" in s]
+        assert len(warning_lines) == 0

@@ -398,6 +398,25 @@ def estimate_from_prior(
         "scaling_details": [],
     }
 
+    # --- Cross-model warning ---
+    # tps cannot extrapolate reliably across model sizes: in IO-bound regimes
+    # (short seq_len, small batch) the slowdown ratio between models is far
+    # smaller than the parameter-count ratio (e.g. 8B/1B ≈ 2x at seq=128, not
+    # the 6.5x param-count would predict); in compute-bound regimes (long
+    # seq_len, large batch) the slowdown approaches the parameter-count ratio.
+    # No single correction factor handles both. See issue #490 for a planned
+    # empirical calibration table.
+    if prior_model and prior_model != new_model:
+        result["scaling_details"].append(
+            f"CROSS-MODEL WARNING: prior used {prior_model}, new will use "
+            f"{new_model}. tps does not extrapolate reliably across model "
+            "sizes — the slowdown ratio depends on whether the run is IO- or "
+            "compute-bound. Estimate will under-predict if the new model is "
+            "compute-bound; over-predict if IO-bound. Prefer a same-model "
+            "prior when possible. See cruijff_kit#490 for empirical "
+            "calibration plans."
+        )
+
     # --- Fine-tuning estimate ---
     prior_train_tps = _mean_tps(finetune_jobs, "tps_gpu_train_mean")
     if finetune_jobs and prior_train_tps:
