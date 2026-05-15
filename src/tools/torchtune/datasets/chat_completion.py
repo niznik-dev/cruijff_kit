@@ -18,7 +18,9 @@ class ChatCompletionConfig:
     """Configuration for chat completion dataset."""
 
     model_path: str  # Path to HuggingFace model (for loading tokenizer)
-    prompt: str = "{input}"  # Format string to wrap input before placing in user message
+    prompt: str = (
+        "{input}"  # Format string to wrap input before placing in user message
+    )
     system_prompt: str = ""  # Optional system message
     input_key: str = "input"
     output_key: str = "output"
@@ -121,6 +123,7 @@ def chat_completion_dataset(
     input_key: str = "input",
     output_key: str = "output",
     max_length: Optional[int] = None,
+    max_samples: Optional[int] = None,
     train_on_input: bool = False,
     split: str = "train",
     packed: bool = False,  # Accepted but not used - recipe reads this for collate_fn selection
@@ -140,6 +143,7 @@ def chat_completion_dataset(
           input_key: input
           output_key: output
           train_on_input: false
+          max_samples: 100  # optional: slice to first N rows after loading
 
     Note: The `tokenizer` argument is ignored. This dataset loads its own
     HuggingFace tokenizer from model_path to ensure apply_chat_template()
@@ -157,7 +161,12 @@ def chat_completion_dataset(
     elif isinstance(data, list):
         rows = data
     else:
-        raise ValueError(f"Unexpected JSON structure: expected list or dict with '{split}' key")
+        raise ValueError(
+            f"Unexpected JSON structure: expected list or dict with '{split}' key"
+        )
+
+    if max_samples is not None:
+        rows = rows[:max_samples]
 
     cfg = ChatCompletionConfig(
         model_path=model_path,
