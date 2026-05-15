@@ -31,8 +31,8 @@ def rewrite_adapter_config_base_path(
     checkpoint — saving ~base-model-size disk per epoch.
 
     The original HF Hub repo name is preserved in original_repo_id.json (which
-    torchtune already writes); the uncruijff_adapter utility uses that to restore
-    portability when exporting a checkpoint to another machine.
+    torchtune already writes); the port_cruijff_adapter utility uses that to
+    restore portability when exporting a checkpoint to another machine.
     """
     if logger is None:
         logger = log

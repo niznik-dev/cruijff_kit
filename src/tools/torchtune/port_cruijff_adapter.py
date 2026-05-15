@@ -11,9 +11,9 @@ model was HF-downloaded with that marker present). If that file is missing,
 supply the value explicitly with `--repo-id`.
 
 Usage:
-    python -m cruijff_kit.tools.torchtune.uncruijff_adapter <epoch_dir>
-    python -m cruijff_kit.tools.torchtune.uncruijff_adapter <run_dir>  # recurses over epoch_*
-    python -m cruijff_kit.tools.torchtune.uncruijff_adapter <dir> --repo-id meta-llama/Llama-3.2-1B-Instruct
+    python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <epoch_dir>
+    python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <run_dir>  # recurses over epoch_*
+    python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <dir> --repo-id meta-llama/Llama-3.2-1B-Instruct
 
 After running, `AutoModelForCausalLM.from_pretrained(<dir>)` will resolve the
 base via the HF Hub (or HF cache) as PEFT intends.
