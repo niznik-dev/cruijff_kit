@@ -16,8 +16,8 @@ import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
 
 # !--- cruijff_kit patch ---!
-# Feature: stash_adapter_files - Helper function for checkpoint cleanup
-from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import stash_adapter_files
+# Feature: adapter_config base-path rewrite (adapter-only saves) and stash_adapter_files (merged saves)
+from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import rewrite_adapter_config_base_path, stash_adapter_files
 # !--- end cruijff_kit patch ---!
 
 from torch import nn
@@ -193,7 +193,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._epochs_to_save = [self.total_epochs - 1] if self._save_last_epoch_only else cfg.get("epochs_to_save", 'all')
         if self._epochs_to_save == 'all':
             self._epochs_to_save = list(range(self.total_epochs))
-        self._stash_adapter_weights = cfg.get("stash_adapter_weights", False)
+        # Base-model checkpoint_dir (used to rewrite adapter_config.json after save)
+        self._base_model_path = cfg.checkpointer.checkpoint_dir
         # !--- end cruijff_kit patch ---!
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
@@ -857,9 +858,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         )
                     )
 
-                    # Stash adapter files if configured (to avoid confusing inspect-ai)
-                    if self._stash_adapter_weights and not self._save_adapter_weights_only:
-                        log.info("Stashing adapter files from merged model checkpoint...")
+                    # Adapter-only save: rewrite adapter_config.json's base path
+                    # so the dir is self-loading on offline compute.
+                    # Merged save: stash adapter files into a subdir so the merged
+                    # model.safetensors loads (otherwise transformers' PEFT
+                    # auto-detection picks adapter+base over the merged file).
+                    if self._save_adapter_weights_only:
+                        rewrite_adapter_config_base_path(self._output_dir, curr_epoch, self._base_model_path, log)
+                    else:
                         stash_adapter_files(self._output_dir, curr_epoch, log)
                 else:
                     log.info(f"Skipping checkpoint save for epoch {curr_epoch}...")

@@ -49,7 +49,7 @@ checkpointer:
   output_dir: ${output_dir}
   model_type: LLAMA3
 resume_from_checkpoint: False
-save_adapter_weights_only: False
+save_adapter_weights_only: True
 
 # Dataset and Sampler
 dataset:

@@ -117,7 +117,7 @@ setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
 
 **Custom features added to torchtune:**
 - Selective epoch saving (`epochs_to_save`)
-- Adapter weight management (`stash_adapter_weights`)
+- Adapter-only saves with self-loading offline (rewrite `adapter_config.json` base path after save; `port_cruijff_adapter` restores HF Hub name for export)
 - Custom metrics integration via `src/utils/finetune_custom_metrics.py`
 - Validation during training (requires nightly build)
 
@@ -291,7 +291,7 @@ After running finetune:
 
 - **save_last_epoch_only**: `'true'`/`'false'` - Only save the final epoch
 
-- **stash_adapter_weights**: `'true'`/`'false'` - Moves adapter files to subdirectory after merging to avoid confusing inspect-ai
+- **save_adapter_weights_only**: `'true'`/`'false'` (default `'true'`) - Save only the LoRA adapter (~MB), skip the merged base+LoRA checkpoint (~GB). The saved `adapter_config.json` has its `base_model_name_or_path` rewritten to the local base-model path so the dir is self-loading on offline compute. Use `python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <epoch_dir>` to restore the HF Hub name when exporting.
 
 ### Custom Recipe Usage
 
