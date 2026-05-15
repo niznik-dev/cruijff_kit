@@ -7,6 +7,7 @@ from pathlib import Path
 
 
 from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
+    check_adapter_base_path,
     rewrite_adapter_config_base_path,
 )
 from cruijff_kit.tools.torchtune import port_cruijff_adapter
@@ -145,3 +146,39 @@ def test_port_cruijff_errors_when_no_epoch_dirs(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["port_cruijff_adapter", str(tmp_path)])
     exit_code = port_cruijff_adapter.main()
     assert exit_code == 1
+
+
+# ---------- check_adapter_base_path ----------
+
+
+def test_check_returns_none_when_base_path_exists(tmp_path):
+    epoch_dir = _write_epoch(tmp_path, 0)
+    fake_base = tmp_path / "fake_base"
+    fake_base.mkdir()
+    rewrite_adapter_config_base_path(str(tmp_path), 0, str(fake_base), _silent_logger())
+
+    assert check_adapter_base_path(epoch_dir) is None
+
+
+def test_check_flags_missing_local_base_path(tmp_path):
+    epoch_dir = _write_epoch(tmp_path, 0)
+    rewrite_adapter_config_base_path(
+        str(tmp_path), 0, "/scratch/gone/base", _silent_logger()
+    )
+
+    problem = check_adapter_base_path(epoch_dir)
+    assert problem is not None
+    assert "STALE_LOCAL_BASE_PATH" in problem
+    assert "/scratch/gone/base" in problem
+
+
+def test_check_skips_hf_hub_style_names(tmp_path):
+    """HF Hub repo names resolve via cache/hub, not filesystem — don't flag."""
+    epoch_dir = _write_epoch(tmp_path, 0)
+    # adapter_config.json from _write_epoch already has a hub-style name
+    assert check_adapter_base_path(epoch_dir) is None
+
+
+def test_check_returns_none_when_no_adapter_config(tmp_path):
+    """Dirs without adapter_config.json (e.g. base/merged model) aren't our concern."""
+    assert check_adapter_base_path(tmp_path) is None

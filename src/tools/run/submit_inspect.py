@@ -25,6 +25,8 @@ import argparse
 import sys
 from pathlib import Path
 
+import yaml
+
 from cruijff_kit.tools.run._submit_common import (
     TodoItem,
     monitor_only,
@@ -33,6 +35,9 @@ from cruijff_kit.tools.run._submit_common import (
     resolve_stagger_sec,
     resolve_user,
     submit_and_monitor,
+)
+from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
+    check_adapter_base_path,
 )
 
 LOG_NAME = "run-inspect.log"
@@ -71,6 +76,27 @@ def _build_todo(experiment_dir: Path) -> list[TodoItem]:
     return todo
 
 
+def _preflight_adapter_base_paths(experiment_dir: Path) -> None:
+    """Refuse to submit if any eval points at an adapter dir whose baked-in
+    base_model_name_or_path no longer resolves on disk. Catches the case
+    where pretrained-llms/ has moved between fine-tune and eval.
+    """
+    problems: list[str] = []
+    for cfg_path in sorted(experiment_dir.glob("*/eval/eval_config.yaml")):
+        cfg = yaml.safe_load(cfg_path.read_text()) or {}
+        model_path = cfg.get("model_path")
+        if not model_path:
+            continue
+        problem = check_adapter_base_path(Path(model_path))
+        if problem:
+            problems.append(f"  - via {cfg_path}:\n      {problem}")
+    if problems:
+        raise SystemExit(
+            "Refusing to submit eval jobs — one or more adapters have stale "
+            "base-model paths:\n" + "\n".join(problems)
+        )
+
+
 def run(
     experiment_dir: Path,
     user: str | None = None,
@@ -106,6 +132,7 @@ def run(
             no_retry=no_retry,
         )
 
+    _preflight_adapter_base_paths(experiment_dir)
     todo = _build_todo(experiment_dir)
     return submit_and_monitor(
         todo=todo,

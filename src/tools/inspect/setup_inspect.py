@@ -18,6 +18,9 @@ import os
 import yaml
 from pathlib import Path
 
+from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
+    check_adapter_base_path,
+)
 from cruijff_kit.tools.torchtune.model_configs import MODEL_CONFIGS
 
 # Template lives next to this script
@@ -133,6 +136,13 @@ def load_eval_config(config_path):
         raise ValueError(
             f"eval_config.yaml missing required keys: {', '.join(missing)}"
         )
+
+    # If the model_path is an adapter dir, verify its baked-in base path still
+    # resolves on disk. Catches the case where pretrained-llms/ has moved
+    # between fine-tune and eval.
+    problem = check_adapter_base_path(Path(config["model_path"]))
+    if problem:
+        raise ValueError(problem)
 
     return config
 

@@ -12,10 +12,57 @@ Utility functions for custom recipes.
 
 import json
 import os
+from pathlib import Path
 
 from torchtune import utils
 
 log = utils.get_logger("DEBUG")
+
+
+# Sentinel returned inside check_adapter_base_path()'s message so callers can
+# pattern-match for this specific failure mode in addition to surfacing the
+# whole human-readable string.
+STALE_BASE_PATH_TAG = "STALE_LOCAL_BASE_PATH"
+
+
+def check_adapter_base_path(adapter_dir) -> str | None:
+    """Verify the adapter dir's base_model_name_or_path is loadable here.
+
+    Returns None if the adapter dir is fine, or if the dir has no
+    adapter_config.json (i.e. it's a base model or merged checkpoint — not our
+    concern). Returns a human-readable problem description if
+    base_model_name_or_path is a local absolute path that no longer exists on
+    disk.
+
+    HF Hub-style names (e.g. "meta-llama/Llama-3.2-1B-Instruct") are NOT
+    checked here — they resolve via HF cache or hub, not the local filesystem.
+    If the user is on offline compute without a populated cache, transformers
+    will error at load time; that's a separate failure mode.
+    """
+    adapter_dir = Path(adapter_dir)
+    cfg_path = adapter_dir / "adapter_config.json"
+    if not cfg_path.exists():
+        return None
+
+    cfg = json.loads(cfg_path.read_text())
+    base = cfg.get("base_model_name_or_path")
+    if not base:
+        return None
+
+    # Local absolute path → check the filesystem.
+    if base.startswith(os.sep) or (len(base) > 1 and base[1] == ":"):
+        if not Path(base).exists():
+            return (
+                f"{STALE_BASE_PATH_TAG}: adapter at {adapter_dir} expects base "
+                f"model at {base}, but that path does not exist. The base "
+                "model has likely moved. Re-point with `python -m "
+                "cruijff_kit.tools.torchtune.port_cruijff_adapter "
+                f"{adapter_dir} --repo-id <new_path_or_hf_repo_id>`, or "
+                "restore the base model to its original location."
+            )
+
+    # HF Hub name (org/name shape) — leave to transformers/HF cache to resolve.
+    return None
 
 
 def rewrite_adapter_config_base_path(
