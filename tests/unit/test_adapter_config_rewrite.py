@@ -9,6 +9,7 @@ from pathlib import Path
 from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
     check_adapter_base_path,
     rewrite_adapter_config_base_path,
+    stash_adapter_files,
 )
 from cruijff_kit.tools.torchtune import port_cruijff_adapter
 
@@ -182,3 +183,48 @@ def test_check_skips_hf_hub_style_names(tmp_path):
 def test_check_returns_none_when_no_adapter_config(tmp_path):
     """Dirs without adapter_config.json (e.g. base/merged model) aren't our concern."""
     assert check_adapter_base_path(tmp_path) is None
+
+
+# ---------- stash_adapter_files ----------
+
+
+def _write_merged_save(tmp_path: Path, epoch: int) -> Path:
+    """Simulate what torchtune writes when save_adapter_weights_only=False —
+    merged model.safetensors + adapter files side-by-side."""
+    epoch_dir = tmp_path / f"epoch_{epoch}"
+    epoch_dir.mkdir(parents=True)
+    (epoch_dir / "model.safetensors").write_text("fake-merged-weights")
+    (epoch_dir / "adapter_config.json").write_text("{}")
+    (epoch_dir / "adapter_model.safetensors").write_text("fake-adapter-weights")
+    return epoch_dir
+
+
+def test_stash_moves_adapter_files_into_subdir(tmp_path):
+    epoch_dir = _write_merged_save(tmp_path, 0)
+    stash_adapter_files(str(tmp_path), 0, _silent_logger())
+
+    assert (epoch_dir / "model.safetensors").exists()  # merged stays
+    assert not (epoch_dir / "adapter_config.json").exists()  # adapter moved
+    assert not (epoch_dir / "adapter_model.safetensors").exists()
+    assert (epoch_dir / "adapter_weights" / "adapter_config.json").exists()
+    assert (epoch_dir / "adapter_weights" / "adapter_model.safetensors").exists()
+
+
+def test_stash_skips_missing_files_gracefully(tmp_path):
+    """Only some adapter files present — stash should move what exists, skip the rest."""
+    epoch_dir = tmp_path / "epoch_0"
+    epoch_dir.mkdir()
+    (epoch_dir / "model.safetensors").write_text("merged")
+    (epoch_dir / "adapter_config.json").write_text("{}")
+    # adapter_model.safetensors deliberately absent
+
+    stash_adapter_files(str(tmp_path), 0, _silent_logger())
+
+    assert (epoch_dir / "adapter_weights" / "adapter_config.json").exists()
+    assert not (epoch_dir / "adapter_weights" / "adapter_model.safetensors").exists()
+
+
+def test_stash_warns_when_epoch_dir_missing(tmp_path, caplog):
+    with caplog.at_level(logging.WARNING):
+        stash_adapter_files(str(tmp_path), 99)
+    assert any("not found" in r.message for r in caplog.records)

@@ -16,8 +16,8 @@ import torch
 from omegaconf import DictConfig, ListConfig
 
 # !--- cruijff_kit patch ---!
-# Feature: adapter_config base-path rewrite — make adapter dirs self-loading offline
-from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import rewrite_adapter_config_base_path
+# Feature: adapter_config base-path rewrite (adapter-only saves) and stash_adapter_files (merged saves)
+from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import rewrite_adapter_config_base_path, stash_adapter_files
 # !--- end cruijff_kit patch ---!
 
 from torch import nn
@@ -969,11 +969,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 log.info(f"Starting checkpoint save for epoch {curr_epoch}...")
                 self.save_checkpoint(epoch=curr_epoch)
 
-                # Rewrite adapter_config.json's base_model_name_or_path to the
-                # local base-model path so the adapter dir is self-loading on
-                # offline compute nodes. Rank 0 only.
+                # Adapter-only save: rewrite adapter_config.json's base path.
+                # Merged save: stash adapter files so the merged checkpoint
+                # loads as merged (rather than being shadowed by PEFT auto-
+                # detection). Rank 0 only.
                 if self._is_rank_zero:
-                    rewrite_adapter_config_base_path(self._output_dir, curr_epoch, self._base_model_path, log)
+                    if self._save_adapter_weights_only:
+                        rewrite_adapter_config_base_path(self._output_dir, curr_epoch, self._base_model_path, log)
+                    else:
+                        stash_adapter_files(self._output_dir, curr_epoch, log)
             else:
                 log.info(f"Skipping checkpoint save for epoch {curr_epoch}...")
             # !--- end cruijff_kit patch ---!

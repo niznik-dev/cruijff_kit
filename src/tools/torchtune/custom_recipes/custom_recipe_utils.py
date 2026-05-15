@@ -12,6 +12,7 @@ Utility functions for custom recipes.
 
 import json
 import os
+import shutil
 from pathlib import Path
 
 from torchtune import utils
@@ -105,3 +106,46 @@ def rewrite_adapter_config_base_path(
     logger.info(
         f"Rewrote adapter_config.json base_model_name_or_path: {original} -> {abs_base}"
     )
+
+
+def stash_adapter_files(output_dir: str, epoch: int, logger=None) -> None:
+    """Move adapter files into an `adapter_weights/` subdir of the epoch dir.
+
+    Used when `save_adapter_weights_only=False` (i.e. torchtune wrote both the
+    merged base+LoRA checkpoint AND the adapter files side-by-side). With both
+    present at the top level, transformers' native PEFT auto-detection wins:
+    `AutoModelForCausalLM.from_pretrained(dir)` loads base + adapter and the
+    merged `model.safetensors` sits ignored. Moving the adapter files out of
+    the way lets the merged checkpoint load as intended.
+
+    The stashed adapter dir is left in its portable PEFT form
+    (base_model_name_or_path still the HF Hub repo name as torchtune wrote it)
+    — anyone who wants to use the adapter directly can load it from
+    `<epoch_dir>/adapter_weights/`.
+    """
+    if logger is None:
+        logger = log
+
+    checkpoint_dir = os.path.join(output_dir, f"epoch_{epoch}")
+    if not os.path.exists(checkpoint_dir):
+        logger.warning(f"Checkpoint directory not found: {checkpoint_dir}")
+        return
+
+    adapter_stash_dir = os.path.join(checkpoint_dir, "adapter_weights")
+    os.makedirs(adapter_stash_dir, exist_ok=True)
+
+    adapter_files = [
+        "adapter_config.json",
+        "adapter_model.pt",
+        "adapter_model.safetensors",
+    ]
+    stashed = 0
+    for filename in adapter_files:
+        src = os.path.join(checkpoint_dir, filename)
+        if os.path.exists(src):
+            shutil.move(src, os.path.join(adapter_stash_dir, filename))
+            logger.info(f"Stashed {filename} to adapter_weights/ subdirectory")
+            stashed += 1
+
+    if stashed == 0:
+        logger.info(f"No adapter files found to stash in {checkpoint_dir}")
