@@ -451,3 +451,33 @@ class TestMainDatasetTypes:
     def test_custom_prompt(self, run_main):
         config, _ = run_main(extra_args=["--prompt", "Answer: {input}"])
         assert config["dataset"]["prompt"] == "Answer: {input}"
+
+
+class TestTrainingSamples:
+    """Regression: --training_samples must slice train data, not val (#447)."""
+
+    def test_training_samples_writes_max_samples_to_dataset(self, run_main):
+        config, _ = run_main(extra_args=["--training_samples", "50"])
+        assert config["dataset"]["max_samples"] == 50
+
+    def test_training_samples_does_not_affect_dataset_val(self, run_main):
+        config, _ = run_main(extra_args=["--training_samples", "50"])
+        assert "max_samples" not in config.get("dataset_val", {}), (
+            "training_samples must NOT slice the validation set — "
+            "val must stay full across consistency-curve runs"
+        )
+
+    def test_training_samples_via_config_file(self, run_main, setup_yaml):
+        """Mirrors the consistency-curve workflow: knob set in setup_finetune.yaml, not CLI."""
+        with open(setup_yaml) as f:
+            config_data = yaml.safe_load(f)
+        config_data["training_samples"] = 50
+        with open(setup_yaml, "w") as f:
+            yaml.dump(config_data, f)
+        config, _ = run_main()
+        assert config["dataset"]["max_samples"] == 50
+        assert "max_samples" not in config.get("dataset_val", {})
+
+    def test_no_training_samples_means_no_max_samples(self, run_main):
+        config, _ = run_main()
+        assert "max_samples" not in config["dataset"]

@@ -26,7 +26,7 @@ SLURM_ONLY = [
     "cpus_per_task",
 ]
 # Meta-arguments that are not torchtune config parameters
-META_ARGS = ["training_samples"]
+META_ARGS = []
 
 # Maps torchtune recipe config paths to setup_finetune.py argument names
 RECIPE_PARAM_MAPPING = {
@@ -612,7 +612,9 @@ def create_parser():
         "--training_samples",
         type=int,
         default=None,
-        help="Number of training samples. When provided, computes and reports total training steps and warns if dangerously low.",
+        help="Cap the number of rows loaded for training (slices dataset[:training_samples]). "
+        "When provided, also computes total training steps and warns if dangerously low. "
+        "Validation set is unaffected.",
     )
 
     parser.add_argument(
@@ -934,6 +936,11 @@ def main():
             # Only emit when set; absent key → recipe falls back to cfg.batch_size.
             if value is not None:
                 config["batch_size_val"] = value
+        elif key == "training_samples":
+            # Slice the train dataset only. dataset_val stays full so val
+            # accuracy is comparable across consistency-curve runs.
+            if value is not None:
+                config["dataset"]["max_samples"] = value
         # The rest are straightforward
         else:
             config[key] = value
