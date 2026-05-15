@@ -248,9 +248,6 @@ epochs: {from controls.epochs}
 log_every_n_steps: {use template default, typically 1}
 run_val_every_n_steps: {50 if controls.validation_during_training else 0}
 
-# Checkpoint Options
-stash_adapter_weights: 'true'  # From template default
-
 # Output configuration
 output_dir_base: {parsed from output.base_directory}
 experiment_name: {parsed from output.base_directory}

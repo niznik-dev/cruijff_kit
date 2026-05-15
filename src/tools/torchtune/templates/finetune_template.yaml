@@ -42,7 +42,7 @@ checkpointer:
   output_dir: ${output_dir}
   model_type: LLAMA3_2
 resume_from_checkpoint: False
-save_adapter_weights_only: False
+save_adapter_weights_only: True
 save_last_epoch_only: False
 epochs_to_save: 'all'
 

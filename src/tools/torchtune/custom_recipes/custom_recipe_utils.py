@@ -10,60 +10,51 @@ Utility functions for custom recipes.
 !--- cruijff_kit patch ---!
 """
 
+import json
 import os
-import shutil
 
 from torchtune import utils
 
 log = utils.get_logger("DEBUG")
 
 
-def stash_adapter_files(output_dir: str, epoch: int, logger=None) -> None:
-    """
-    Move adapter files from the merged model checkpoint directory to a subdirectory
-    to prevent inspect-ai from being confused about whether this is a merged model.
+def rewrite_adapter_config_base_path(
+    output_dir: str, epoch: int, base_model_path: str, logger=None
+) -> None:
+    """Point adapter_config.json's base_model_name_or_path at the local base model.
 
-    This stashes:
-    - adapter_config.json
-    - adapter_model.pt
-    - adapter_model.safetensors
+    Torchtune writes the HF Hub repo name (e.g. 'meta-llama/Llama-3.2-1B-Instruct').
+    On offline compute nodes (HF_HUB_OFFLINE=1) transformers can't resolve that, so
+    we rewrite it to the absolute path of the local base model. Once rewritten,
+    transformers' native PEFT auto-detection (AutoModelForCausalLM.from_pretrained
+    on the adapter dir) loads the base + adapter without us emitting a merged
+    checkpoint — saving ~base-model-size disk per epoch.
 
-    into an 'adapter_weights' subdirectory within the checkpoint directory.
-
-    Args:
-        output_dir: Base output directory containing checkpoint subdirectories
-        epoch: Epoch number for the checkpoint directory
-        logger: Optional logger to use (defaults to module-level log)
+    The original HF Hub repo name is preserved in original_repo_id.json (which
+    torchtune already writes); the uncruijff_adapter utility uses that to restore
+    portability when exporting a checkpoint to another machine.
     """
     if logger is None:
         logger = log
 
-    # Get the checkpoint directory for this epoch
     checkpoint_dir = os.path.join(output_dir, f"epoch_{epoch}")
+    cfg_path = os.path.join(checkpoint_dir, "adapter_config.json")
 
-    if not os.path.exists(checkpoint_dir):
-        logger.warning(f"Checkpoint directory not found: {checkpoint_dir}")
+    if not os.path.exists(cfg_path):
+        logger.warning(
+            f"adapter_config.json not found at {cfg_path}; skipping base-path rewrite."
+        )
         return
 
-    # Create adapter_weights subdirectory
-    adapter_stash_dir = os.path.join(checkpoint_dir, "adapter_weights")
-    os.makedirs(adapter_stash_dir, exist_ok=True)
+    abs_base = os.path.abspath(base_model_path).rstrip("/")
+    with open(cfg_path) as f:
+        cfg_data = json.load(f)
 
-    # List of adapter files to stash
-    adapter_files = [
-        "adapter_config.json",
-        "adapter_model.pt",
-        "adapter_model.safetensors"
-    ]
+    original = cfg_data.get("base_model_name_or_path")
+    cfg_data["base_model_name_or_path"] = abs_base
+    with open(cfg_path, "w") as f:
+        json.dump(cfg_data, f, indent=2)
 
-    stashed_count = 0
-    for filename in adapter_files:
-        src_path = os.path.join(checkpoint_dir, filename)
-        if os.path.exists(src_path):
-            dst_path = os.path.join(adapter_stash_dir, filename)
-            shutil.move(src_path, dst_path)
-            logger.info(f"Stashed {filename} to adapter_weights/ subdirectory")
-            stashed_count += 1
-
-    if stashed_count == 0:
-        logger.info(f"No adapter files found to stash in {checkpoint_dir}")
+    logger.info(
+        f"Rewrote adapter_config.json base_model_name_or_path: {original} -> {abs_base}"
+    )

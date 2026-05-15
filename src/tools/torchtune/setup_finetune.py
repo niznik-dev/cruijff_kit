@@ -451,20 +451,16 @@ def create_parser():
     parser.add_argument(
         "--save_adapter_weights_only",
         type=parse_bool,
-        default=False,
-        help="Whether to save only the adapter weights (true/false)",
+        default=True,
+        help="Save only adapter weights, skipping the merged base+LoRA checkpoint (true/false). "
+        "Default True saves ~base-model-size disk per epoch; the saved adapter dir is "
+        "self-loading because we rewrite adapter_config.json to point at the local base.",
     )
     parser.add_argument(
         "--save_last_epoch_only",
         type=parse_bool,
         default=False,
         help="Whether to save only the last epoch (true/false)",
-    )
-    parser.add_argument(
-        "--stash_adapter_weights",
-        type=parse_bool,
-        default=False,
-        help="Whether to stash adapter files in subdirectory to avoid confusing inspect-ai (true/false)",
     )
     parser.add_argument(
         "--epochs_to_save",
