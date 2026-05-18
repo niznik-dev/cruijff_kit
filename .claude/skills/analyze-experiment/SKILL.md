@@ -15,7 +15,7 @@ Generate visualizations from evaluation results:
 2. Load evaluation logs from run directories
 3. Infer appropriate visualization types based on experimental variables
 4. Generate interactive HTML plots using inspect-viz
-5. Log the process in analyze-experiment.log
+5. Log the process in logs/analyze-experiment.log
 
 ## Prerequisites
 
@@ -41,7 +41,7 @@ Find experiment directory and parse experiment_summary.yaml for:
 
 ### 2. Load Evaluation Logs → `data_loading.md`
 
-Use helper functions from `tools/inspect/viz_helpers.py`:
+Use helper functions from `src/tools/inspect/viz_helpers.py`:
 - `deduplicate_eval_files()` - Remove duplicate evals (keeps most recent per model+epoch)
 - `evals_df_prep()` - Prepare eval-level dataframes
 - `parse_eval_metadata()` - Extract epoch/finetuned/source_model from JSON metadata
@@ -99,9 +99,9 @@ Create markdown report with metrics and comparisons:
 4. Include `future_directions` from step 5
 5. Write report to `analysis/report.md`
 
-Uses `tools/inspect/report_generator.py`:
+Uses `src/tools/inspect/report_generator.py`:
 ```python
-from tools.inspect.report_generator import generate_report
+from cruijff_kit.tools.inspect.report_generator import generate_report
 
 report = generate_report(
     df=logs_df,
@@ -114,23 +114,20 @@ report = generate_report(
 
 ### 6b. Compute Utilization Report → `generation.md`
 
-If run logs exist (`run-torchtune.log` and/or `run-inspect.log`), generate a compute utilization section:
+Generate a compute utilization section. Always call `harvest_jids_from_run_logs(experiment_dir)` from `src/tools/slurm/compute_metrics.py` first — it returns `(jids_dict, warnings)`:
 
-1. Extract job IDs from logs (regex: `Result: Job ID (\d+)`)
-2. Run `seff` for each job and parse with `tools/slurm/compute_metrics.py`
-3. Read `gpu_metrics.csv` files and summarize with `summarize_gpu_metrics()`
-4. Generate compute table with `format_compute_table()`
-5. Save raw metrics to `analysis/compute_metrics.json`
-6. Pass formatted table as `compute_section` to `generate_report()`
+1. Call `harvest_jids_from_run_logs(experiment_dir)`. It already prints `WARNING:` lines to stderr for any missing or malformed log files.
+2. **If `warnings` is non-empty**: append a visible "**Compute Utilization unavailable:** ..." note to the rendered report listing each warning, instead of silently skipping. Do NOT omit the section header. (Closes the silent-skip gap from issue #451.)
+3. **If JIDs are present**: for each, run `seff` and parse with helpers in `src/tools/slurm/compute_metrics.py`; read `gpu_metrics.csv` per run and summarize with `summarize_gpu_metrics()`; format with `format_compute_table()`; save raw metrics to `analysis/compute_metrics.json`; pass the formatted table as `compute_section` to `generate_report()`.
 
-**Skip silently** if no run logs exist (e.g., analyzing results without having run the experiment locally).
+**Loud-warn, do not silently skip.** When the logs are genuinely absent (e.g., analyzing a colleague's experiment without local logs), the warning text in `report.md` tells the operator how to recover (typically: re-run `run-experiment`, or re-create the canonical log via `src/tools/run/submit_*.py`).
 
 ### 7. Logging → `logging.md`
 
-Document process in `{experiment_dir}/analyze-experiment.log`
+Document process in `{experiment_dir}/logs/analyze-experiment.log`
 
 **See `logging.md` for:**
-- JSONL format specification
+- Plain text format specification
 - Action types (LOCATE, PARSE, LOAD, INFER, GENERATE)
 - Example log entries
 
@@ -213,7 +210,8 @@ After running, the experiment directory will contain:
 │   ├── calibration_curves.png  (if risk_scorer used)
 │   ├── prediction_histogram.png (if risk_scorer used)
 │   └── ...
-├── analyze-experiment.log
+├── logs/
+│   └── analyze-experiment.log
 └── experiment_summary.yaml
 ```
 
@@ -247,7 +245,7 @@ Before reporting success, verify:
 - ✓ At least one visualization was generated
 - ✓ HTML files exist in analysis/ directory
 - ✓ report.md was generated in analysis/ directory
-- ✓ Log file created (analyze-experiment.log)
+- ✓ Log file created (logs/analyze-experiment.log)
 
 ## Output Summary
 
@@ -288,7 +286,7 @@ cd {experiment_dir}/analysis && python -m http.server 8080
 
 ### Log
 
-Details recorded in `analyze-experiment.log`
+Details recorded in `logs/analyze-experiment.log`
 
 ### Report Path
 
@@ -298,7 +296,7 @@ Details recorded in `analyze-experiment.log`
 **IMPORTANT:** Always end your output summary with the **full absolute path** to `report.md` on its own line, so the user can command-click it in their terminal/IDE. Example:
 
 ```
-Full report: /scratch/gpfs/user/ck-experiments/my_experiment/analysis/report.md
+Full report: /scratch/gpfs/user/ck-projects/{project}/my_experiment/analysis/report.md
 ```
 
 ## Relationship to Other Skills
@@ -322,8 +320,7 @@ design-experiment → scaffold-experiment → run-experiment → analyze-experim
 - Output directory (`analysis/`) is created if it doesn't exist
 - HTML files are standalone (no external dependencies to view)
 - PNG files require playwright (skipped with warning if not installed)
-- Uses helper functions from `tools/inspect/viz_helpers.py`
-- Reference examples in `viz_examples/scripts/inspect_viz_examples.ipynb`
+- Uses helper functions from `src/tools/inspect/viz_helpers.py`
 
 ## Module Organization
 
@@ -332,10 +329,8 @@ design-experiment → scaffold-experiment → run-experiment → analyze-experim
 | parsing.md | Experiment location and YAML parsing |
 | data_loading.md | Helper functions for loading logs |
 | generation.md | Plot creation workflow |
-| logging.md | JSONL audit trail specification |
+| logging.md | Plain text audit trail specification |
 
 ## Implementation Reference
 
-Working examples exist in `viz_examples/scripts/inspect_viz_examples.ipynb` demonstrating all supported pre-built views.
-
-Helper functions are implemented in `tools/inspect/viz_helpers.py`.
+Helper functions are implemented in `src/tools/inspect/viz_helpers.py`. Live usage is shown inline throughout `generation.md`.

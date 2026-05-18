@@ -8,15 +8,13 @@ This document covers scaffold-experiment-specific logging practices for the orch
 
 Scaffold-experiment creates an orchestration log:
 
-- `{experiment_dir}/scaffold-experiment.log`
+- `{experiment_dir}/logs/scaffold-experiment.log`
 
 This log records the high-level orchestration process. Individual subagents create their own detailed logs:
-- `{experiment_dir}/scaffold-torchtune.log` (created by scaffold-torchtune subagent)
-- `{experiment_dir}/scaffold-inspect.log` (created by scaffold-inspect subagent)
+- `{experiment_dir}/logs/scaffold-torchtune.log` (created by scaffold-torchtune subagent)
+- `{experiment_dir}/logs/scaffold-inspect.log` (created by scaffold-inspect subagent)
 
-**Note on log formats across skills:**
-- `.jsonl` (JSON Lines) - Used by design-experiment for structured audit trails (machine-readable, reproducibility)
-- `.log` (text) - Used by all other skills for human-readable progress tracking
+**Note on log formats across skills:** All skills emit `.log` (plain text) — human-readable progress tracking with `[TIMESTAMP] ACTION` headers. See [shared/logging_spec.md](../shared/logging_spec.md) for the canonical format spec.
 
 ---
 
@@ -106,7 +104,7 @@ Result: {outcome}
 
 ```
 [2025-10-24 17:30:00] DISCOVER_EXPERIMENT: Found experiment
-Details: /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_comparison/experiment_summary.yaml
+Details: /scratch/gpfs/MSALGANIK/niznik/ck-projects/capitalization/cap_4L_lora_comparison/experiment_summary.yaml
 Result: Experiment plan ready for scaffolding (3 runs, 1 evaluation task)
 ```
 

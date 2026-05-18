@@ -1,6 +1,6 @@
 # Logging - design-experiment
 
-**See [shared/logging_spec.md](../../shared/logging_spec.md) for complete format specification and general logging guidelines.**
+**See [shared/logging_spec.md](../shared/logging_spec.md) for complete format specification and general logging guidelines.**
 
 This document covers design-experiment-specific logging practices.
 
@@ -9,7 +9,7 @@ This document covers design-experiment-specific logging practices.
 ## Log File Location
 
 ```
-{experiment_dir}/design-experiment.log
+{experiment_dir}/logs/design-experiment.log
 ```
 
 Created during the planning workflow to record all verification steps, calculations, and decisions.
@@ -35,6 +35,8 @@ Created during the planning workflow to record all verification steps, calculati
 | `USER_QUESTION` | Ask user for input during design |
 | `USER_RESPONSE` | Capture user input and decisions |
 | `DESIGN_DECISION` | Record key design choices with rationale |
+| `DATA_GEN_CONFIG` | Record data generation configuration (source, schema, target, context) |
+| `DATA_GEN_CONDITION` | Record a data generation condition (features, template, perturbations) |
 | `GENERATE_RUNS` | Generate list of runs from variables |
 | `GENERATE_EVAL_MATRIX` | Generate evaluation matrix |
 | `CREATE_YAML` | Write experiment_summary.yaml |
@@ -52,6 +54,8 @@ Created during the planning workflow to record all verification steps, calculati
 - Prior run searches and training speed extraction
 - Time and disk space calculations
 - User questions, responses, and design decisions
+- Data generation configuration (source, schema, target, context, subsampling, missing value handling)
+- Data generation conditions (features, template style, perturbations per condition)
 
 ### During Generation
 - Run list generation
@@ -73,8 +77,7 @@ Created during the planning workflow to record all verification steps, calculati
 [2025-10-22 14:30:00] START_DESIGN
 Details: Beginning experiment design
 Experiment: cap_4L_lora_rank_comparison
-Type: sanity_check
-Directory: {scratch_dir}/cap_4L_lora_rank_comparison
+Directory: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison
 Result: success
 ```
 
@@ -83,7 +86,7 @@ Result: success
 ```
 [2025-10-22 14:30:00] CONSULT_PRIOR_EXPERIMENT
 Details: Examining prior experiment for design insights
-Path: {scratch_dir}/prior_cap_experiment
+Path: {scratch_dir}/ck-projects/capitalization/prior_cap_experiment
 Files examined: experiment_summary.yaml, run_001/results.json, run_001/slurm-12345.out
 Insights: LoRA rank 4 achieved 95% accuracy; ~2 min/epoch on same hardware; no issues
 Influence: Using same dataset and model size; testing higher ranks to explore capacity limits
@@ -129,7 +132,7 @@ Result: failure
 ```
 [2025-10-22 14:30:01] VERIFY_DATASET
 Details: Verifying dataset file exists
-Path: /path/to/cruijff_kit/data/green/words_5L_80P_1000.json
+Path: {ck_data_dir}/capitalization/words_5L_80P_1000.json
 Size: 84 KB
 Result: success
 ```
@@ -152,7 +155,7 @@ Result: success
 [2025-10-22 14:30:02] VERIFY_EVAL_TASK
 Details: Verifying evaluation task script exists
 Task: capitalization
-Path: /path/to/cruijff_kit/experiments/capitalization/cap_task.py
+Path: /path/to/cruijff_kit/blueprints/capitalization/inspect_task.py
 Size: 12 KB
 Result: success
 ```
@@ -162,7 +165,7 @@ Result: success
 ```
 [2025-10-22 14:30:02] SEARCH_PRIOR_RUNS
 Details: Searching for prior runs to estimate training speed
-Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/ck-out-*'
+Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/artifacts/*'
 Found: 3 prior run logs
 Result: success
 ```
@@ -172,7 +175,7 @@ Result: success
 ```
 [2025-10-22 14:30:03] EXTRACT_TRAINING_SPEED
 Details: Extracting training speed from prior run
-Source: {scratch_dir}/prior_exp/run1/slurm-123.out
+Source: {scratch_dir}/ck-projects/capitalization/prior_exp/run1/slurm-123.out
 Speed: 2.5 it/s
 Estimated: 120 seconds/epoch
 Result: success
@@ -256,6 +259,46 @@ Result: success
 
 Common decision types: `variable_selection`, `control_run_design`, `dataset_selection`, `evaluation_strategy`, `resource_allocation`
 
+### DATA_GEN_CONFIG
+
+```
+[2025-10-22 14:30:06] DATA_GEN_CONFIG
+Details: Recording data generation configuration
+Source: /scratch/gpfs/MSALGANIK/sarahep/folktexts-2018-data/folktables/2018/1-Year/psam_p39.csv
+Schema: /scratch/gpfs/MSALGANIK/sarahep/ck-data/schemas/acs_pums_oh_2018.yaml
+Target: PINCP > 50000 (binary threshold)
+Context placement: system_prompt
+Question: Is this person's income above $50,000?
+Subsampling: 0.1 (10% of source)
+Missing value handling: skip
+Seed: 42
+Split ratio: 0.8
+Result: success
+```
+
+### DATA_GEN_CONDITION
+
+```
+[2025-10-22 14:30:06] DATA_GEN_CONDITION
+Details: Recording data generation condition
+Condition: dict_full
+Features: [AGEP, COW, SCHL, MAR, OCCP, SEX, RAC1P, ST]
+Template: dictionary
+Perturbations: none
+Result: success
+```
+
+```
+[2025-10-22 14:30:06] DATA_GEN_CONDITION
+Details: Recording data generation condition
+Condition: narr_full
+Features: [AGEP, COW, SCHL, MAR, OCCP, SEX, RAC1P, ST]
+Template: narrative (custom Jinja2)
+Perturbations: none
+Style guidance: "Natural, readable prose suitable for evaluation. 2-3 sentences..."
+Result: success
+```
+
 ### GENERATE_RUNS
 
 ```
@@ -283,7 +326,7 @@ Result: success
 ```
 [2025-10-22 14:30:08] CREATE_YAML
 Details: Writing experiment configuration
-Path: {scratch_dir}/cap_4L_lora_rank_comparison/experiment_summary.yaml
+Path: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison/experiment_summary.yaml
 Size: 1456 bytes
 Result: success
 ```
@@ -293,7 +336,7 @@ Result: success
 ```
 [2025-10-22 14:30:08] CREATE_LOG
 Details: Writing design log
-Path: {scratch_dir}/cap_4L_lora_rank_comparison/design-experiment.log
+Path: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison/logs/design-experiment.log
 Entries: 14
 Result: success
 ```
@@ -304,7 +347,7 @@ Result: success
 [2025-10-22 14:30:08] COMPLETE_DESIGN
 Details: Experiment design finished
 Experiment: cap_4L_lora_rank_comparison
-Files created: experiment_summary.yaml, design-experiment.log
+Files created: experiment_summary.yaml, logs/design-experiment.log
 Duration: 8.89 seconds
 Result: success
 ```
@@ -361,8 +404,7 @@ Separate entries with a blank line for readability.
 [2025-10-22 14:30:00] START_DESIGN
 Details: Beginning experiment design
 Experiment: cap_4L_lora_rank_comparison
-Type: sanity_check
-Directory: {scratch_dir}/cap_4L_lora_rank_comparison
+Directory: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison
 Result: success
 
 [2025-10-22 14:30:01] VERIFY_MODEL
@@ -374,7 +416,7 @@ Result: success
 
 [2025-10-22 14:30:01] VERIFY_DATASET
 Details: Verifying dataset file exists
-Path: /path/to/cruijff_kit/data/green/words_5L_80P_1000.json
+Path: {ck_data_dir}/capitalization/words_5L_80P_1000.json
 Size: 84 KB
 Result: success
 
@@ -389,19 +431,19 @@ Result: success
 [2025-10-22 14:30:02] VERIFY_EVAL_TASK
 Details: Verifying evaluation task script exists
 Task: capitalization
-Path: /path/to/cruijff_kit/experiments/capitalization/cap_task.py
+Path: /path/to/cruijff_kit/blueprints/capitalization/inspect_task.py
 Size: 12 KB
 Result: success
 
 [2025-10-22 14:30:02] SEARCH_PRIOR_RUNS
 Details: Searching for prior runs to estimate training speed
-Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/ck-out-*'
+Pattern: find {scratch_dir} -name 'slurm-*.out' -path '*/artifacts/*'
 Found: 3 prior run logs
 Result: success
 
 [2025-10-22 14:30:03] EXTRACT_TRAINING_SPEED
 Details: Extracting training speed from prior run
-Source: {scratch_dir}/prior_exp/run1/slurm-123.out
+Source: {scratch_dir}/ck-projects/capitalization/prior_exp/run1/slurm-123.out
 Speed: 2.5 it/s
 Estimated: 120 seconds/epoch
 Result: success
@@ -448,20 +490,20 @@ Result: success
 
 [2025-10-22 14:30:08] CREATE_YAML
 Details: Writing experiment configuration
-Path: {scratch_dir}/cap_4L_lora_rank_comparison/experiment_summary.yaml
+Path: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison/experiment_summary.yaml
 Size: 1456 bytes
 Result: success
 
 [2025-10-22 14:30:08] CREATE_LOG
 Details: Writing design log
-Path: {scratch_dir}/cap_4L_lora_rank_comparison/design-experiment.log
+Path: {scratch_dir}/ck-projects/capitalization/cap_4L_lora_rank_comparison/logs/design-experiment.log
 Entries: 14
 Result: success
 
 [2025-10-22 14:30:08] COMPLETE_DESIGN
 Details: Experiment design finished
 Experiment: cap_4L_lora_rank_comparison
-Files created: experiment_summary.yaml, design-experiment.log
+Files created: experiment_summary.yaml, logs/design-experiment.log
 Duration: 8.89 seconds
 Result: success
 ```

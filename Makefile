@@ -1,9 +1,12 @@
-.PHONY: install install-dev help
+.PHONY: install install-dev lint format clean help
 
 help:
 	@echo "Available targets:"
 	@echo "  make install      - Install cruijff_kit with all dependencies (torchtune nightly)"
-	@echo "  make install-dev  - Install with dev dependencies (pytest, pytest-cov, gh if using conda)"
+	@echo "  make install-dev  - Install with dev dependencies (pytest, pytest-cov, ruff, gh if using conda)"
+	@echo "  make lint         - Check code with ruff (linting + formatting)"
+	@echo "  make format       - Auto-fix code with ruff (linting + formatting)"
+	@echo "  make clean        - Remove Python caches, tool caches, and egg-info"
 
 install:
 	@if [ -z "$$VIRTUAL_ENV" ] && [ -z "$$CONDA_DEFAULT_ENV" ]; then \
@@ -59,3 +62,18 @@ install-dev:
 	fi
 	@echo ""
 	@echo "Installation complete!"
+
+lint:
+	ruff check .
+	ruff format --check .
+
+format:
+	ruff check --fix .
+	ruff format .
+
+clean:
+	@echo "Removing Python caches, tool caches, and egg-info..."
+	find . -type d -name __pycache__ -prune -exec rm -rf {} +
+	rm -rf .cache .ruff_cache .pytest_cache
+	rm -rf *.egg-info
+	@echo "Clean complete!"

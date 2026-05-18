@@ -1,0 +1,248 @@
+{
+  "train": [
+    {
+      "input": "sines",
+      "output": "Sines"
+    },
+    {
+      "input": "treat",
+      "output": "Treat"
+    },
+    {
+      "input": "senci",
+      "output": "Senci"
+    },
+    {
+      "input": "forth",
+      "output": "Forth"
+    },
+    {
+      "input": "haram",
+      "output": "Haram"
+    },
+    {
+      "input": "hypes",
+      "output": "Hypes"
+    },
+    {
+      "input": "uraei",
+      "output": "Uraei"
+    },
+    {
+      "input": "rhumb",
+      "output": "Rhumb"
+    },
+    {
+      "input": "tomia",
+      "output": "Tomia"
+    },
+    {
+      "input": "abyes",
+      "output": "Abyes"
+    },
+    {
+      "input": "zapas",
+      "output": "Zapas"
+    },
+    {
+      "input": "tanto",
+      "output": "Tanto"
+    },
+    {
+      "input": "rabot",
+      "output": "Rabot"
+    },
+    {
+      "input": "padda",
+      "output": "Padda"
+    },
+    {
+      "input": "taper",
+      "output": "Taper"
+    },
+    {
+      "input": "gavot",
+      "output": "Gavot"
+    },
+    {
+      "input": "fluor",
+      "output": "Fluor"
+    },
+    {
+      "input": "abaci",
+      "output": "Abaci"
+    },
+    {
+      "input": "caque",
+      "output": "Caque"
+    },
+    {
+      "input": "fails",
+      "output": "Fails"
+    },
+    {
+      "input": "folky",
+      "output": "Folky"
+    },
+    {
+      "input": "chank",
+      "output": "Chank"
+    },
+    {
+      "input": "saban",
+      "output": "Saban"
+    },
+    {
+      "input": "ochna",
+      "output": "Ochna"
+    },
+    {
+      "input": "strix",
+      "output": "Strix"
+    },
+    {
+      "input": "dregs",
+      "output": "Dregs"
+    },
+    {
+      "input": "crump",
+      "output": "Crump"
+    },
+    {
+      "input": "jails",
+      "output": "Jails"
+    },
+    {
+      "input": "baaed",
+      "output": "Baaed"
+    },
+    {
+      "input": "tzars",
+      "output": "Tzars"
+    },
+    {
+      "input": "marci",
+      "output": "Marci"
+    },
+    {
+      "input": "kokam",
+      "output": "Kokam"
+    },
+    {
+      "input": "mynah",
+      "output": "Mynah"
+    },
+    {
+      "input": "mouse",
+      "output": "Mouse"
+    },
+    {
+      "input": "spong",
+      "output": "Spong"
+    },
+    {
+      "input": "holer",
+      "output": "Holer"
+    },
+    {
+      "input": "newts",
+      "output": "Newts"
+    },
+    {
+      "input": "tania",
+      "output": "Tania"
+    },
+    {
+      "input": "swung",
+      "output": "Swung"
+    },
+    {
+      "input": "seege",
+      "output": "Seege"
+    }
+  ],
+  "validation": [
+    {
+      "input": "hondo",
+      "output": "Hondo"
+    },
+    {
+      "input": "suety",
+      "output": "Suety"
+    },
+    {
+      "input": "krivu",
+      "output": "Krivu"
+    },
+    {
+      "input": "laden",
+      "output": "Laden"
+    },
+    {
+      "input": "fluty",
+      "output": "Fluty"
+    },
+    {
+      "input": "lully",
+      "output": "Lully"
+    },
+    {
+      "input": "blirt",
+      "output": "Blirt"
+    },
+    {
+      "input": "montu",
+      "output": "Montu"
+    },
+    {
+      "input": "aloft",
+      "output": "Aloft"
+    },
+    {
+      "input": "unrip",
+      "output": "Unrip"
+    }
+  ],
+  "test": [
+    {
+      "input": "enent",
+      "output": "Enent"
+    },
+    {
+      "input": "becry",
+      "output": "Becry"
+    },
+    {
+      "input": "journ",
+      "output": "Journ"
+    },
+    {
+      "input": "herem",
+      "output": "Herem"
+    },
+    {
+      "input": "frust",
+      "output": "Frust"
+    },
+    {
+      "input": "rusts",
+      "output": "Rusts"
+    },
+    {
+      "input": "shuff",
+      "output": "Shuff"
+    },
+    {
+      "input": "shaul",
+      "output": "Shaul"
+    },
+    {
+      "input": "genus",
+      "output": "Genus"
+    },
+    {
+      "input": "regna",
+      "output": "Regna"
+    }
+  ]
+}

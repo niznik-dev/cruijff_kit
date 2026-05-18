@@ -33,7 +33,7 @@ Your tasks:
    a. Create eval/ subdirectory (with logs/ inside) in the run directory
    b. Generate eval_config.yaml with experiment-specific values (see Step 4 below)
    c. Call setup_inspect.py to render the SLURM script from the template (see Step 5 below)
-5. Create a detailed log at {experiment_dir}/scaffold-inspect.log
+5. Create a detailed log at {experiment_dir}/logs/scaffold-inspect.log
 
 Report back:
 - Summary of all created evaluation scripts (paths)
@@ -57,15 +57,18 @@ The subagent performs these operations autonomously:
 
 ### Step 4: Generate eval_config.yaml
 
-For each evaluation, create `eval_config.yaml` in the eval directory with all experiment-specific configuration. See `agents/scaffold-inspect.md` for the full schema (required keys, optional task args, metadata, scorer config).
+For each evaluation, create `eval_config.yaml` in the eval directory with all experiment-specific configuration. See `.claude/agents/scaffold-inspect.md` for the full schema (required keys, optional task args, metadata, scorer config).
 
 ### Step 5: Render SLURM scripts via setup_inspect.py
 
-After writing `eval_config.yaml`, call `setup_inspect.py` to render the SLURM script from the template. See `agents/scaffold-inspect.md` for full CLI reference and details on what the renderer handles.
+After writing `eval_config.yaml`, call `setup_inspect.py` to render the SLURM script from the template. See `.claude/agents/scaffold-inspect.md` for full CLI reference and details on what the renderer handles.
 
-### Eval time limit (ask user)
+### Eval time limit
 
-Eval time depends on multiple factors (model size, holdout set size, evaluation task complexity, hardware), so it is **not** a model property. Ask the user during scaffolding:
+**First check** if `experiment_summary.yaml` has `evaluation.compute`:
+1. If `evaluation.compute.time` is present: use that value for `--time` (don't ask the user). Log that the time estimate came from the experiment design step.
+2. If `evaluation.compute.mem` is present: pass as `--mem` to `setup_inspect.py`.
+3. If `evaluation.compute` is absent: **ask the user** during scaffolding:
 
 > What time limit should eval jobs use? (HH:MM:SS)
 >
@@ -110,8 +113,8 @@ After scaffold-inspect completes, the experiment directory will contain:
 │       ├── eval_config.yaml
 │       ├── {task_name}_epoch0.slurm
 │       └── logs/
-├── scaffold-torchtune.log
-└── scaffold-inspect.log
+├── logs/scaffold-torchtune.log
+└── logs/scaffold-inspect.log
 ```
 
 ---

@@ -42,7 +42,8 @@ evaluators/
     ├── main.md                      # Tool overview and entry point
     ├── parsing.md                   # Stage 1: Parse experiment and scan for eval jobs
     ├── dependency_checking.md       # Stage 2a: Verify prerequisites met
-    ├── evaluation_selection.md      # Stage 2b: Select which evals to submit
+    ├── cache_prebuilding.md         # Stage 2b: Pre-build HF datasets cache
+    ├── evaluation_selection.md      # Stage 2c: Select which evals to submit
     ├── job_submission.md            # Stage 3a: Submit SLURM jobs
     ├── monitoring.md                # Stage 3b: Monitor job progress
     └── validation.md                # Stage 4: Verify completion
@@ -56,10 +57,11 @@ Execute evaluation jobs using inspect-ai framework.
 **Workflow:**
 1. `parsing.md` - Parse experiment_summary.yaml, find eval/*.slurm scripts
 2. `dependency_checking.md` - **CRITICAL:** Verify fine-tuning complete, checkpoints exist
-3. `evaluation_selection.md` - Decide which evaluations to submit (skip completed, skip runs with missing checkpoints)
-4. `job_submission.md` - Submit jobs with sbatch, capture IDs
-5. `monitoring.md` - Poll squeue every minute, update status
-6. `validation.md` - Verify all jobs completed, evaluation logs exist
+3. `cache_prebuilding.md` - Pre-build HuggingFace datasets cache to prevent race conditions
+4. `evaluation_selection.md` - Decide which evaluations to submit (skip completed, skip runs with missing checkpoints)
+5. `job_submission.md` - Submit jobs with sbatch, capture IDs
+6. `monitoring.md` - Poll squeue every minute, update status
+7. `validation.md` - Verify all jobs completed, evaluation logs exist
 
 ## Design Principles
 

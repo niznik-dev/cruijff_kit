@@ -56,9 +56,8 @@ Log each submission:
 
 ```
 [YYYY-MM-DD HH:MM:SS] SUBMIT_JOB: {run_name}
-Command: cd {run_dir} && sbatch finetune.slurm
+Details: cd {run_dir} && sbatch finetune.slurm
 Result: Job ID {job_id} submitted at {timestamp}
-Note: 5 second stagger delay to prevent cache collision
 ```
 
 ## Output

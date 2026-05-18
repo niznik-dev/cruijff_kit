@@ -1,8 +1,6 @@
 """Unit tests for per-sample risk data extraction and plot generation."""
 
 import numpy as np
-import pytest
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -20,6 +18,7 @@ from cruijff_kit.tools.inspect.viz_helpers import (
 # =============================================================================
 # Helpers — build fake eval log structures
 # =============================================================================
+
 
 def _make_sample(risk_score, target, option_probs):
     """Create a minimal fake sample with risk_scorer metadata."""
@@ -53,7 +52,9 @@ def _make_binary_samples(n=100, seed=42):
     samples = []
     for i in range(n):
         target = "0" if i < n // 2 else "1"
-        risk = float(rng.uniform(0.2 if target == "0" else 0.6, 0.5 if target == "0" else 0.95))
+        risk = float(
+            rng.uniform(0.2 if target == "0" else 0.6, 0.5 if target == "0" else 0.95)
+        )
         samples.append(_make_sample(risk, target, {"0": risk, "1": 1 - risk}))
     return samples
 
@@ -62,8 +63,8 @@ def _make_binary_samples(n=100, seed=42):
 # PerSampleRiskData
 # =============================================================================
 
-class TestPerSampleRiskData:
 
+class TestPerSampleRiskData:
     def test_construction(self):
         d = PerSampleRiskData("m", [1.0, 0.0], [0.9, 0.1], 10, 2)
         assert d.model_name == "m"
@@ -75,8 +76,8 @@ class TestPerSampleRiskData:
 # _extract_risk_from_log
 # =============================================================================
 
-class TestExtractRiskFromLog:
 
+class TestExtractRiskFromLog:
     def test_basic_extraction(self):
         samples = _make_binary_samples(20)
         log = _make_log(samples)
@@ -147,8 +148,8 @@ class TestExtractRiskFromLog:
 # extract_per_sample_risk_data (integration-level, mocks read_eval_log)
 # =============================================================================
 
-class TestExtractPerSampleRiskData:
 
+class TestExtractPerSampleRiskData:
     @patch("cruijff_kit.tools.inspect.viz_helpers.read_eval_log")
     def test_reads_multiple_files(self, mock_read):
         log1 = _make_log(_make_binary_samples(20, seed=1), model="model_a")
@@ -184,17 +185,22 @@ class TestExtractPerSampleRiskData:
 # has_risk_scorer property
 # =============================================================================
 
-class TestHasRiskScorer:
 
+class TestHasRiskScorer:
     def test_true_when_auc_present(self):
         dm = DetectedMetrics(
             accuracy=["match"],
-            supplementary=["risk_scorer_cruijff_kit/auc_score", "risk_scorer_cruijff_kit/ece"],
+            supplementary=[
+                "risk_scorer_cruijff_kit/auc_score",
+                "risk_scorer_cruijff_kit/ece",
+            ],
         )
         assert dm.has_risk_scorer is True
 
     def test_false_when_no_auc(self):
-        dm = DetectedMetrics(accuracy=["match"], supplementary=["risk_scorer_cruijff_kit/ece"])
+        dm = DetectedMetrics(
+            accuracy=["match"], supplementary=["risk_scorer_cruijff_kit/ece"]
+        )
         assert dm.has_risk_scorer is False
 
     def test_false_when_empty(self):
@@ -206,19 +212,24 @@ class TestHasRiskScorer:
 # generate_roc_overlay
 # =============================================================================
 
-class TestGenerateRocOverlay:
 
+class TestGenerateRocOverlay:
     def test_produces_png(self, tmp_path):
-        rd = PerSampleRiskData("model_a", [1.0]*50 + [0.0]*50,
-                               [0.9]*50 + [0.1]*50, 100, 100)
+        rd = PerSampleRiskData(
+            "model_a", [1.0] * 50 + [0.0] * 50, [0.9] * 50 + [0.1] * 50, 100, 100
+        )
         out = generate_roc_overlay([rd], tmp_path / "roc.png")
         assert out is not None
         assert out.exists()
         assert out.stat().st_size > 0
 
     def test_multiple_models(self, tmp_path):
-        rd1 = PerSampleRiskData("a", [1.0]*50 + [0.0]*50, [0.9]*50 + [0.1]*50, 100, 100)
-        rd2 = PerSampleRiskData("b", [1.0]*50 + [0.0]*50, [0.7]*50 + [0.3]*50, 100, 100)
+        rd1 = PerSampleRiskData(
+            "a", [1.0] * 50 + [0.0] * 50, [0.9] * 50 + [0.1] * 50, 100, 100
+        )
+        rd2 = PerSampleRiskData(
+            "b", [1.0] * 50 + [0.0] * 50, [0.7] * 50 + [0.3] * 50, 100, 100
+        )
         out = generate_roc_overlay([rd1, rd2], tmp_path / "roc.png")
         assert out is not None
         assert out.exists()
@@ -231,19 +242,24 @@ class TestGenerateRocOverlay:
 # generate_calibration_overlay
 # =============================================================================
 
-class TestGenerateCalibrationOverlay:
 
+class TestGenerateCalibrationOverlay:
     def test_produces_png(self, tmp_path):
-        rd = PerSampleRiskData("model_a", [1.0]*50 + [0.0]*50,
-                               [0.9]*50 + [0.1]*50, 100, 100)
+        rd = PerSampleRiskData(
+            "model_a", [1.0] * 50 + [0.0] * 50, [0.9] * 50 + [0.1] * 50, 100, 100
+        )
         out = generate_calibration_overlay([rd], tmp_path / "cal.png")
         assert out is not None
         assert out.exists()
         assert out.stat().st_size > 0
 
     def test_multiple_models(self, tmp_path):
-        rd1 = PerSampleRiskData("a", [1.0]*50 + [0.0]*50, [0.9]*50 + [0.1]*50, 100, 100)
-        rd2 = PerSampleRiskData("b", [1.0]*50 + [0.0]*50, [0.7]*50 + [0.3]*50, 100, 100)
+        rd1 = PerSampleRiskData(
+            "a", [1.0] * 50 + [0.0] * 50, [0.9] * 50 + [0.1] * 50, 100, 100
+        )
+        rd2 = PerSampleRiskData(
+            "b", [1.0] * 50 + [0.0] * 50, [0.7] * 50 + [0.3] * 50, 100, 100
+        )
         out = generate_calibration_overlay([rd1, rd2], tmp_path / "cal.png")
         assert out is not None
         assert out.exists()
@@ -256,19 +272,24 @@ class TestGenerateCalibrationOverlay:
 # generate_prediction_histogram
 # =============================================================================
 
-class TestGeneratePredictionHistogram:
 
+class TestGeneratePredictionHistogram:
     def test_produces_png(self, tmp_path):
-        rd = PerSampleRiskData("model_a", [1.0]*50 + [0.0]*50,
-                               [0.9]*50 + [0.1]*50, 100, 100)
+        rd = PerSampleRiskData(
+            "model_a", [1.0] * 50 + [0.0] * 50, [0.9] * 50 + [0.1] * 50, 100, 100
+        )
         out = generate_prediction_histogram([rd], tmp_path / "hist.png")
         assert out is not None
         assert out.exists()
         assert out.stat().st_size > 0
 
     def test_multiple_models(self, tmp_path):
-        rd1 = PerSampleRiskData("a", [1.0]*50 + [0.0]*50, [0.9]*50 + [0.1]*50, 100, 100)
-        rd2 = PerSampleRiskData("b", [1.0]*50 + [0.0]*50, [0.7]*50 + [0.3]*50, 100, 100)
+        rd1 = PerSampleRiskData(
+            "a", [1.0] * 50 + [0.0] * 50, [0.9] * 50 + [0.1] * 50, 100, 100
+        )
+        rd2 = PerSampleRiskData(
+            "b", [1.0] * 50 + [0.0] * 50, [0.7] * 50 + [0.3] * 50, 100, 100
+        )
         out = generate_prediction_histogram([rd1, rd2], tmp_path / "hist.png")
         assert out is not None
         assert out.exists()

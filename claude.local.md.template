@@ -92,19 +92,16 @@ gh project item-add 3 --owner niznik-dev --url https://github.com/niznik-dev/cru
   - (add others as you download them)
 
 ### Working Directories
-- **Experiments**: `/scratch/gpfs/<group>/<username>/ck-experiments/` — experiment designs and configs
-- **Sanity checks**: `/scratch/gpfs/<group>/<username>/ck-sanity-checks/` — workflow validation runs
-- **Outputs**: `/scratch/gpfs/<group>/<username>/ck-outputs/` — checkpoints, logs, eval results
+- **Projects**: `/scratch/gpfs/<group>/<username>/ck-projects/` — unified scratch root; each experiment lives at `ck-projects/<project>/<experiment_name>/` with its run subdirs, configs, checkpoints, logs, and eval outputs all nested inside
 
 ### Data
-- **Input data**: `/scratch/gpfs/<group>/<username>/data/`
-- **Task-specific data**: `<path_to_task_data>`
+- **`{ck_data_dir}`**: `/scratch/gpfs/<group>/<username>/ck-data/` — input datasets organized as `{ck_data_dir}/{project}/`. Skill docs and configs reference paths relative to this root. Datasets are user-provisioned and not version-controlled in the repo.
 
 ## Quick Commands
 
 ### Fine-tuning (manual)
 ```bash
-# From your run directory (e.g., ck-experiments/<experiment_name>/<run_name>/)
+# From your run directory (e.g., ck-projects/<project>/<experiment_name>/<run_name>/)
 # Using a setup config (preferred):
 python <path_to_cruijff_kit>/tools/torchtune/setup_finetune.py \
   --config_file setup_finetune.yaml

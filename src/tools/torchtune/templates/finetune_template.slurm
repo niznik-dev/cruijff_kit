@@ -1,0 +1,38 @@
+#!/bin/bash
+#SBATCH --job-name=<JOBNAME> # Job name
+#SBATCH --nodes=1 # Number of nodes
+#SBATCH --ntasks=1 # Number of tasks
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=<MEM> # Memory allocation (RAM=VRAM rule)
+#SBATCH --time=00:15:00 # Time limit (HH:MM:SS)
+#SBATCH --mail-type=begin # Email when job starts
+#SBATCH --mail-type=end # Email when job ends
+#SBATCH --mail-user=<NETID>@princeton.edu
+#SBATCH --gres=gpu:1 # Request 1 GPU
+#SBATCH --output=<OUTPUT_DIR>slurm-%j.out
+##SBATCH --array=0-<ARRAY_MAX> # Uncomment if using job arrays
+##SBATCH --account=<ACT>
+##SBATCH --partition=<PART>
+##SBATCH --constraint=<CONST>
+
+module purge
+module load anaconda3/2025.6
+conda activate <CONDA_ENV>
+
+mkdir -p <OUTPUT_DIR>logs/wandb  # wandb is picky about existing dirs
+
+# Start GPU monitoring in background
+# With --gres=gpu:1, SLURM cgroup isolation scopes nvidia-smi to the allocated GPU
+nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu \
+    --format=csv -l 30 > <OUTPUT_DIR>/gpu_metrics.csv 2>/dev/null &
+GPU_MONITOR_PID=$!
+
+tune run lora_finetune_single_device \
+    --config finetune.yaml
+TUNE_EXIT_CODE=$?
+
+# Stop GPU monitoring
+kill $GPU_MONITOR_PID 2>/dev/null
+wait $GPU_MONITOR_PID 2>/dev/null
+
+exit $TUNE_EXIT_CODE

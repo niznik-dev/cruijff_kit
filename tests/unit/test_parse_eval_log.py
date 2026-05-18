@@ -1,9 +1,8 @@
 """Tests for cruijff_kit.tools.inspect.parse_eval_log."""
 
 from types import SimpleNamespace
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-import pytest
 
 from cruijff_kit.tools.inspect.parse_eval_log import parse_eval_log
 
@@ -57,9 +56,7 @@ class TestParseEvalLog:
     def test_accuracy_promoted_to_top_level(self, mock_read, tmp_path):
         log_file = tmp_path / "test.eval"
         log_file.touch()
-        mock_read.return_value = _make_log(
-            metrics={"accuracy": _make_metric(0.92)}
-        )
+        mock_read.return_value = _make_log(metrics={"accuracy": _make_metric(0.92)})
 
         result = parse_eval_log(str(log_file))
 
@@ -102,9 +99,7 @@ class TestParseEvalLog:
         """If no accuracy metric, top-level accuracy key shouldn't exist."""
         log_file = tmp_path / "test.eval"
         log_file.touch()
-        mock_read.return_value = _make_log(
-            metrics={"f1": _make_metric(0.80)}
-        )
+        mock_read.return_value = _make_log(metrics={"f1": _make_metric(0.80)})
 
         result = parse_eval_log(str(log_file))
 
@@ -154,7 +149,10 @@ class TestParseEvalLog:
         result = parse_eval_log("/nonexistent/path/fake.eval")
 
         assert result["status"] == "error"
-        assert "not found" in result["message"].lower() or "File not found" in result["message"]
+        assert (
+            "not found" in result["message"].lower()
+            or "File not found" in result["message"]
+        )
 
     @patch(PATCH_TARGET)
     def test_read_eval_log_exception(self, mock_read, tmp_path):

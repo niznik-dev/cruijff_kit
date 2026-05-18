@@ -13,44 +13,15 @@ Guide the user through designing their experiment by asking questions, verifying
 
 ## Prerequisites Check
 
-**Before starting the workflow**, verify the user's environment is configured:
-
-### 1. Check for claude.local.md
+Quick existence check — `claude.local.md` must be present before designing an experiment, because every output path and SLURM default is read from it:
 
 ```bash
 ls -la claude.local.md
 ```
 
-**If missing**, stop and inform the user:
+**If missing**, stop and tell the user to run `/ck-setup` first — that skill walks them through `claude.local.md.template` interactively. Do not try to write a `claude.local.md` from this skill.
 
-```
-⚠️ Missing claude.local.md
-
-Before designing experiments, you need to configure your local environment:
-
-1. Copy the template:
-   cp claude.local.md.template claude.local.md
-
-2. Edit claude.local.md with your settings:
-   - HPC username and group
-   - Scratch directory paths
-   - SLURM account
-   - Conda environment name
-
-3. Run /design-experiment again
-
-See claude.local.md.template for a complete example.
-```
-
-### 2. Validate key fields
-
-If `claude.local.md` exists, check for placeholder values that haven't been replaced:
-
-```bash
-grep -n '<[^>]*>' claude.local.md
-```
-
-Review any matches. Lines in example commands (Quick Commands, etc.) will legitimately contain angle brackets — ignore those. But any angle-bracketed values in the **settings sections** (HPC Environment, SLURM Defaults, Common Paths) indicate unresolved placeholders. If found, warn the user that some fields may need updating before proceeding.
+If `claude.local.md` is present but you suspect drift (placeholders not filled in, fields that look stale), suggest the user run `/ck-setup` in validate mode to get a structured health check rather than trying to validate inline here.
 
 ## Workflow
 
@@ -59,8 +30,8 @@ Follow the three-stage process:
 ### 1. Parameter Selection → `param_selection.md`
 
 Guide the user through 9 interactive steps to gather all experiment parameters:
-1. Determine experiment purpose and location (sanity check vs research experiment)
-2. Understand the experiment (scientific question, variables)
+1. Determine experiment location
+2. Understand the experiment (scientific question, variables, and whether tabular-to-text data generation is needed)
 3. Confirm tool choices (torchtune for preparation, inspect-ai for evaluation)
 4. Design training runs (models, datasets, hyperparameters)
 5. Design evaluation runs (tasks, epochs, evaluation matrix)
@@ -94,7 +65,7 @@ Before presenting plan to user (step 8), validate completeness:
 
 After user approves, create output files:
 1. `experiment_summary.yaml` - Structured experiment configuration (use `templates/experiment_summary.yaml`)
-2. `design-experiment.log` - Human-readable audit trail (see `logging.md`)
+2. `logs/design-experiment.log` - Human-readable audit trail (see `logging.md`)
 
 Then ask about next steps (scaffold-experiment?).
 
@@ -110,7 +81,7 @@ Then ask about next steps (scaffold-experiment?).
 
 ### Logging → `logging.md`
 
-**IMPORTANT:** Throughout param_selection and generation, create detailed log at `{experiment_dir}/design-experiment.log`.
+**IMPORTANT:** Throughout param_selection and generation, create detailed log at `{experiment_dir}/logs/design-experiment.log`.
 
 **What to log:**
 - ✓ Resource verification (ls, du, df commands and results)
@@ -154,13 +125,13 @@ Reference materials for output generation:
 
 This skill uses the **param_selection → validation → generation** pattern:
 
-| Module | Purpose | Lines |
-|--------|---------|-------|
-| param_selection.md | 9-step interactive workflow | ~340 |
-| validation.md | Completeness checklist | ~140 |
-| experiment_generation.md | Create YAML and log files | ~125 |
-| logging.md | Plain text audit trail specification | ~340 |
-| templates/experiment_summary.yaml | YAML schema and structure | ~150 |
+| Module | Purpose |
+|--------|---------|
+| param_selection.md | 9-step interactive workflow |
+| validation.md | Completeness checklist |
+| experiment_generation.md | Create YAML and log files |
+| logging.md | Plain text audit trail specification |
+| templates/experiment_summary.yaml | YAML schema and structure |
 
 **Pattern:** Three action verbs (selection, validation, generation) matching scaffold/run skills, plus cross-cutting logging and templates.
 

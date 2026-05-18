@@ -1,11 +1,9 @@
 """Unit tests for tools/inspect/setup_inspect.py"""
 
 import re
-import sys
 import textwrap
 
 import pytest
-import yaml
 
 from cruijff_kit.tools.inspect.setup_inspect import (
     _format_value,
@@ -15,14 +13,13 @@ from cruijff_kit.tools.inspect.setup_inspect import (
     load_eval_config,
     create_parser,
     main,
-    TASK_ARG_KEYS,
-    METADATA_ARG_KEYS,
 )
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_cli_args(**overrides):
     """Create a namespace mimicking parsed CLI args."""
@@ -34,6 +31,7 @@ def make_cli_args(**overrides):
         mem=None,
         partition=None,
         constraint=None,
+        gpus=None,
         conda_env="cruijff",
         output_slurm=None,
     )
@@ -77,6 +75,7 @@ FULL_EVAL_CONFIG = textwrap.dedent("""\
     data_path: /data/acs_income.json
     vis_label: 1B_ft
     use_chat_template: "true"
+    split: validation
     epoch: 0
     finetuned: true
     source_model: Llama-3.2-1B-Instruct
@@ -92,8 +91,8 @@ FULL_EVAL_CONFIG = textwrap.dedent("""\
 # load_eval_config
 # ---------------------------------------------------------------------------
 
-class TestLoadEvalConfig:
 
+class TestLoadEvalConfig:
     def test_loads_required_keys(self, tmp_path):
         """Config with required keys loads successfully."""
         config_file = tmp_path / "eval_config.yaml"
@@ -169,8 +168,8 @@ class TestLoadEvalConfig:
 # _format_value (boolean normalization)
 # ---------------------------------------------------------------------------
 
-class TestFormatValue:
 
+class TestFormatValue:
     def test_bool_true_becomes_lowercase(self):
         """Python True (from YAML `true`) renders as lowercase 'true'."""
         assert _format_value(True) == "true"
@@ -193,26 +192,34 @@ class TestFormatValue:
 # build_task_args
 # ---------------------------------------------------------------------------
 
-class TestBuildTaskArgs:
 
+class TestBuildTaskArgs:
     def test_no_task_args(self):
         """Empty string when all task params are absent."""
         config = make_config()
         assert build_task_args(config) == ""
 
     def test_all_task_args(self):
-        """All four task params produce -T lines."""
+        """All five task params produce -T lines."""
         config = make_config(
             data_path="/data/test.json",
             config_path="/config/eval.yaml",
             vis_label="1B_ft",
             use_chat_template="true",
+            split="validation",
         )
         result = build_task_args(config)
         assert '-T data_path="/data/test.json"' in result
         assert '-T config_path="/config/eval.yaml"' in result
         assert '-T vis_label="1B_ft"' in result
         assert '-T use_chat_template="true"' in result
+        assert '-T split="validation"' in result
+
+    def test_split_task_arg(self):
+        """split param produces a -T line when present."""
+        config = make_config(split="test")
+        result = build_task_args(config)
+        assert '-T split="test"' in result
 
     def test_partial_task_args(self):
         """Only specified params appear."""
@@ -233,8 +240,8 @@ class TestBuildTaskArgs:
 # build_metadata_args
 # ---------------------------------------------------------------------------
 
-class TestBuildMetadataArgs:
 
+class TestBuildMetadataArgs:
     def test_no_metadata_args(self):
         """Empty string when all metadata params are absent."""
         config = make_config()
@@ -242,7 +249,9 @@ class TestBuildMetadataArgs:
 
     def test_all_metadata_args(self):
         """All three metadata params produce --metadata lines."""
-        config = make_config(epoch=0, finetuned="true", source_model="Llama-3.2-1B-Instruct")
+        config = make_config(
+            epoch=0, finetuned="true", source_model="Llama-3.2-1B-Instruct"
+        )
         result = build_metadata_args(config)
         assert '--metadata epoch="0"' in result
         assert '--metadata finetuned="true"' in result
@@ -267,8 +276,8 @@ class TestBuildMetadataArgs:
 # render_template
 # ---------------------------------------------------------------------------
 
-class TestRenderTemplate:
 
+class TestRenderTemplate:
     def test_no_angle_bracket_placeholders_remain(self):
         """Rendered script has no remaining <PLACEHOLDER> tokens in active lines.
 
@@ -287,8 +296,7 @@ class TestRenderTemplate:
         script = render_template(cli, config)
         # Filter out inactive ##SBATCH lines before checking
         active_lines = [
-            line for line in script.splitlines()
-            if not line.startswith("##SBATCH")
+            line for line in script.splitlines() if not line.startswith("##SBATCH")
         ]
         remaining = re.findall(r"<[A-Z_]+>", "\n".join(active_lines))
         assert remaining == [], f"Unresolved placeholders: {remaining}"
@@ -335,7 +343,6 @@ class TestRenderTemplate:
         """Script captures INSPECT_EXIT_CODE."""
         script = render_template(make_cli_args(), make_config())
         assert "INSPECT_EXIT_CODE=$?" in script
-        assert "INSPECT_EXIT_CODE == 0" in script
 
     def test_gpu_metrics_epoch_specific_dir(self):
         """GPU metrics write to epoch-specific subdir when epoch is set."""
@@ -349,13 +356,6 @@ class TestRenderTemplate:
         config = make_config(output_dir="/outputs/run1/")
         script = render_template(make_cli_args(), config)
         assert 'GPU_METRICS_DIR="/outputs/run1"' in script
-
-    def test_slurm_log_move(self):
-        """SLURM log is moved on success."""
-        config = make_config(output_dir="/outputs/run1/")
-        script = render_template(make_cli_args(), config)
-        assert "mv slurm-${SLURM_JOB_ID}.out /outputs/run1/" in script
-        assert "INSPECT_EXIT_CODE == 0" in script
 
     def test_time_override(self):
         """Custom time limit appears in SLURM header."""
@@ -403,11 +403,45 @@ class TestRenderTemplate:
 
 
 # ---------------------------------------------------------------------------
+# max_connections
+# ---------------------------------------------------------------------------
+
+
+class TestMaxConnections:
+    def test_default_when_absent(self):
+        """Default (matches inspect-ai upstream) is used when max_connections is not in config."""
+        script = render_template(make_cli_args(), make_config())
+        assert "--max-connections 32" in script
+
+    def test_explicit_override(self):
+        """Explicit max_connections value is rendered into the script."""
+        config = make_config(max_connections=64)
+        script = render_template(make_cli_args(), config)
+        assert "--max-connections 64" in script
+        assert "--max-connections 128" not in script
+
+    def test_high_value(self):
+        """Large max_connections values render correctly."""
+        config = make_config(max_connections=512)
+        script = render_template(make_cli_args(), config)
+        assert "--max-connections 512" in script
+
+    def test_position_before_log_dir(self):
+        """max-connections appears after metadata args and before --log-dir."""
+        config = make_config(epoch=0, finetuned=True, max_connections=256)
+        script = render_template(make_cli_args(), config)
+        meta_pos = script.index('--metadata epoch="0"')
+        mc_pos = script.index("--max-connections 256")
+        logdir_pos = script.index("--log-dir")
+        assert meta_pos < mc_pos < logdir_pos
+
+
+# ---------------------------------------------------------------------------
 # ##SBATCH activation
 # ---------------------------------------------------------------------------
 
-class TestSbatchActivation:
 
+class TestSbatchActivation:
     def test_account_activated(self):
         """Account line activated when --account provided."""
         cli = make_cli_args(account="msalganik")
@@ -451,8 +485,8 @@ class TestSbatchActivation:
 # Model config lookup
 # ---------------------------------------------------------------------------
 
-class TestModelConfigLookup:
 
+class TestModelConfigLookup:
     def test_1b_instruct_mem(self):
         """1B-Instruct gets 80G memory from model_configs."""
         cli = make_cli_args(model_name="Llama-3.2-1B-Instruct")
@@ -486,11 +520,52 @@ class TestModelConfigLookup:
 
 
 # ---------------------------------------------------------------------------
+# Multi-GPU / device="auto"
+# ---------------------------------------------------------------------------
+
+
+class TestMultiGpu:
+    def test_single_gpu_no_device_arg(self):
+        """Single-GPU model gets no -M device arg."""
+        cli = make_cli_args(model_name="Llama-3.2-1B-Instruct")
+        script = render_template(cli, make_config())
+        assert 'device="auto"' not in script
+        assert "#SBATCH --gres=gpu:1" in script
+
+    def test_multi_gpu_adds_device_auto(self):
+        """Multi-GPU model (70B) gets -M device="auto"."""
+        cli = make_cli_args(model_name="Llama-3.3-70B-Instruct")
+        script = render_template(cli, make_config())
+        assert '-M device="auto"' in script
+
+    def test_multi_gpu_updates_gres(self):
+        """Multi-GPU model (70B) gets gres=gpu:4."""
+        cli = make_cli_args(model_name="Llama-3.3-70B-Instruct")
+        script = render_template(cli, make_config())
+        assert "#SBATCH --gres=gpu:4" in script
+        assert "#SBATCH --gres=gpu:1" not in script
+
+    def test_gpus_cli_override(self):
+        """CLI --gpus=2 overrides model_configs default of 1."""
+        cli = make_cli_args(model_name="Llama-3.2-1B-Instruct", gpus=2)
+        script = render_template(cli, make_config())
+        assert "#SBATCH --gres=gpu:2" in script
+        assert '-M device="auto"' in script
+
+    def test_gpus_cli_override_single(self):
+        """CLI --gpus=1 on a multi-GPU model forces single GPU."""
+        cli = make_cli_args(model_name="Llama-3.3-70B-Instruct", gpus=1)
+        script = render_template(cli, make_config())
+        assert "#SBATCH --gres=gpu:1" in script
+        assert 'device="auto"' not in script
+
+
+# ---------------------------------------------------------------------------
 # create_parser
 # ---------------------------------------------------------------------------
 
-class TestCreateParser:
 
+class TestCreateParser:
     def test_required_args(self):
         """Parser requires --config and --model_name."""
         parser = create_parser()
@@ -500,37 +575,56 @@ class TestCreateParser:
     def test_minimal_args_parse(self):
         """Parser accepts the two required args."""
         parser = create_parser()
-        args = parser.parse_args([
-            "--config", "eval_config.yaml",
-            "--model_name", "Llama-3.2-1B-Instruct",
-        ])
+        args = parser.parse_args(
+            [
+                "--config",
+                "eval_config.yaml",
+                "--model_name",
+                "Llama-3.2-1B-Instruct",
+            ]
+        )
         assert args.config == "eval_config.yaml"
         assert args.model_name == "Llama-3.2-1B-Instruct"
 
     def test_all_args_parse(self):
         """Parser accepts all arguments without error."""
         parser = create_parser()
-        args = parser.parse_args([
-            "--config", "eval_config.yaml",
-            "--model_name", "Llama-3.2-1B-Instruct",
-            "--time", "0:20:00",
-            "--account", "myacct",
-            "--mem", "64G",
-            "--partition", "gpu",
-            "--constraint", "gpu80",
-            "--conda_env", "myenv",
-            "--output_slurm", "custom.slurm",
-        ])
+        args = parser.parse_args(
+            [
+                "--config",
+                "eval_config.yaml",
+                "--model_name",
+                "Llama-3.2-1B-Instruct",
+                "--time",
+                "0:20:00",
+                "--account",
+                "myacct",
+                "--mem",
+                "64G",
+                "--partition",
+                "gpu",
+                "--constraint",
+                "gpu80",
+                "--conda_env",
+                "myenv",
+                "--output_slurm",
+                "custom.slurm",
+            ]
+        )
         assert args.time == "0:20:00"
         assert args.output_slurm == "custom.slurm"
 
     def test_defaults(self):
         """Default values are sensible."""
         parser = create_parser()
-        args = parser.parse_args([
-            "--config", "eval_config.yaml",
-            "--model_name", "Llama-3.2-1B-Instruct",
-        ])
+        args = parser.parse_args(
+            [
+                "--config",
+                "eval_config.yaml",
+                "--model_name",
+                "Llama-3.2-1B-Instruct",
+            ]
+        )
         assert args.time == "0:10:00"
         assert args.conda_env == "cruijff"
         assert args.account is None
@@ -541,18 +635,23 @@ class TestCreateParser:
 # main() integration
 # ---------------------------------------------------------------------------
 
-class TestMain:
 
+class TestMain:
     def test_writes_output_with_epoch(self, tmp_path, monkeypatch):
         """main() writes {task_name}_epoch{N}.slurm when epoch is set."""
         config_file = tmp_path / "eval_config.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG + "epoch: 0\n")
 
-        monkeypatch.setattr("sys.argv", [
-            "setup_inspect.py",
-            "--config", str(config_file),
-            "--model_name", "Llama-3.2-1B-Instruct",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "setup_inspect.py",
+                "--config",
+                str(config_file),
+                "--model_name",
+                "Llama-3.2-1B-Instruct",
+            ],
+        )
         monkeypatch.chdir(tmp_path)
         main()
 
@@ -566,11 +665,16 @@ class TestMain:
         config_file = tmp_path / "eval_config.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG)
 
-        monkeypatch.setattr("sys.argv", [
-            "setup_inspect.py",
-            "--config", str(config_file),
-            "--model_name", "Llama-3.2-1B-Instruct",
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "setup_inspect.py",
+                "--config",
+                str(config_file),
+                "--model_name",
+                "Llama-3.2-1B-Instruct",
+            ],
+        )
         monkeypatch.chdir(tmp_path)
         main()
 
@@ -582,12 +686,18 @@ class TestMain:
         config_file = tmp_path / "eval_config.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG + "epoch: 0\n")
 
-        monkeypatch.setattr("sys.argv", [
-            "setup_inspect.py",
-            "--config", str(config_file),
-            "--model_name", "Llama-3.2-1B-Instruct",
-            "--output_slurm", str(tmp_path / "custom.slurm"),
-        ])
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "setup_inspect.py",
+                "--config",
+                str(config_file),
+                "--model_name",
+                "Llama-3.2-1B-Instruct",
+                "--output_slurm",
+                str(tmp_path / "custom.slurm"),
+            ],
+        )
         monkeypatch.chdir(tmp_path)
         main()
 

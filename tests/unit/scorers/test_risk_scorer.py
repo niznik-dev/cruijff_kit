@@ -13,7 +13,13 @@ import asyncio
 import pytest
 from unittest.mock import MagicMock
 
-from inspect_ai.model._model_output import TopLogprob, Logprob, Logprobs, ChatCompletionChoice, ModelOutput
+from inspect_ai.model._model_output import (
+    TopLogprob,
+    Logprob,
+    Logprobs,
+    ChatCompletionChoice,
+    ModelOutput,
+)
 from inspect_ai.model._chat_message import ChatMessageAssistant
 from inspect_ai.scorer import Score, CORRECT, INCORRECT, Target
 
@@ -23,7 +29,12 @@ from cruijff_kit.tools.inspect.scorers.risk_scorer import risk_scorer, mean_risk
 # Helpers
 # =============================================================================
 
-def _make_state(completion: str, token_logprobs: dict[str, float], generated_token: str | None = None):
+
+def _make_state(
+    completion: str,
+    token_logprobs: dict[str, float],
+    generated_token: str | None = None,
+):
     """Build a mock TaskState with logprobs for the first generated token.
 
     Args:
@@ -72,14 +83,15 @@ def _run(coro):
 # Binary classification tests
 # =============================================================================
 
+
 class TestBinaryRiskScore:
     """Tests for binary (2-class) risk scoring."""
 
     def test_confident_correct_prediction(self):
         """Model is 90% confident in class 0, and 0 is correct."""
         # P(0)=0.9, P(1)=0.1 in full vocab; logprobs reflect this
-        lp_0 = math.log(0.9)   # -0.1054
-        lp_1 = math.log(0.1)   # -2.3026
+        lp_0 = math.log(0.9)  # -0.1054
+        lp_1 = math.log(0.1)  # -2.3026
         state = _make_state("0", {"0": lp_0, "1": lp_1})
         target = _make_target("0")
 
@@ -186,12 +198,18 @@ class TestBinaryRiskScore:
 # Multiclass tests
 # =============================================================================
 
+
 class TestMulticlassRiskScore:
     """Tests for multiclass (>2 classes) scoring."""
 
     def test_multiclass_risk_score_is_none(self):
         """Multiclass tasks should return risk_score=None."""
-        tokens = {"A": math.log(0.5), "B": math.log(0.3), "C": math.log(0.15), "D": math.log(0.05)}
+        tokens = {
+            "A": math.log(0.5),
+            "B": math.log(0.3),
+            "C": math.log(0.15),
+            "D": math.log(0.05),
+        }
         state = _make_state("A", tokens)
         target = _make_target("A")
 
@@ -216,7 +234,12 @@ class TestMulticlassRiskScore:
 
     def test_multiclass_probs_sum_to_one(self):
         """Multiclass option_probs should sum to 1."""
-        tokens = {"A": math.log(0.4), "B": math.log(0.3), "C": math.log(0.2), "D": math.log(0.1)}
+        tokens = {
+            "A": math.log(0.4),
+            "B": math.log(0.3),
+            "C": math.log(0.2),
+            "D": math.log(0.1),
+        }
         state = _make_state("B", tokens)
         target = _make_target("A")
 
@@ -237,7 +260,9 @@ class TestMulticlassRiskScore:
         result: Score = _run(score_fn(state, target))
 
         for token in ["A", "B", "C", "D"]:
-            assert result.metadata["option_probs"][token] == pytest.approx(0.25, abs=1e-6)
+            assert result.metadata["option_probs"][token] == pytest.approx(
+                0.25, abs=1e-6
+            )
 
     def test_multiclass_renormalization(self):
         """Multiclass renormalization when option tokens are a subset of vocab.
@@ -245,7 +270,12 @@ class TestMulticlassRiskScore:
         Full vocab: P(A)=0.2, P(B)=0.1, P(C)=0.1, P(other)=0.6
         Renormalized: P(A)=0.5, P(B)=0.25, P(C)=0.25
         """
-        tokens = {"A": math.log(0.2), "B": math.log(0.1), "C": math.log(0.1), "other": math.log(0.6)}
+        tokens = {
+            "A": math.log(0.2),
+            "B": math.log(0.1),
+            "C": math.log(0.1),
+            "other": math.log(0.6),
+        }
         state = _make_state("A", tokens)
         target = _make_target("A")
 
@@ -260,6 +290,7 @@ class TestMulticlassRiskScore:
 # =============================================================================
 # Edge cases
 # =============================================================================
+
 
 class TestEdgeCases:
     """Tests for error handling and edge cases."""
@@ -281,7 +312,9 @@ class TestEdgeCases:
 
     def test_no_logprobs(self):
         """When no logprobs data is available, return INCORRECT."""
-        choice = ChatCompletionChoice(message=ChatMessageAssistant(content="0"), logprobs=None)
+        choice = ChatCompletionChoice(
+            message=ChatMessageAssistant(content="0"), logprobs=None
+        )
         output = ModelOutput(choices=[choice], completion="0")
 
         state = MagicMock()
@@ -299,7 +332,9 @@ class TestEdgeCases:
     def test_empty_logprobs_content(self):
         """When logprobs.content is empty, return INCORRECT."""
         logprobs = Logprobs(content=[])
-        choice = ChatCompletionChoice(message=ChatMessageAssistant(content="0"), logprobs=logprobs)
+        choice = ChatCompletionChoice(
+            message=ChatMessageAssistant(content="0"), logprobs=logprobs
+        )
         output = ModelOutput(choices=[choice], completion="0")
 
         state = MagicMock()
@@ -333,9 +368,13 @@ class TestEdgeCases:
             TopLogprob(token=" 0", logprob=math.log(0.7)),
             TopLogprob(token=" 1", logprob=math.log(0.3)),
         ]
-        first_token = Logprob(token=" 0", logprob=math.log(0.7), top_logprobs=top_logprobs)
+        first_token = Logprob(
+            token=" 0", logprob=math.log(0.7), top_logprobs=top_logprobs
+        )
         logprobs = Logprobs(content=[first_token])
-        choice = ChatCompletionChoice(message=ChatMessageAssistant(content="0"), logprobs=logprobs)
+        choice = ChatCompletionChoice(
+            message=ChatMessageAssistant(content="0"), logprobs=logprobs
+        )
         output = ModelOutput(choices=[choice], completion="0")
 
         state = MagicMock()
@@ -364,6 +403,7 @@ class TestEdgeCases:
 # =============================================================================
 # Correctness logic
 # =============================================================================
+
 
 class TestCorrectnessScoring:
     """Tests that CORRECT/INCORRECT is based on completion matching target."""
@@ -406,6 +446,7 @@ class TestCorrectnessScoring:
 # =============================================================================
 # mean_risk_score metric
 # =============================================================================
+
 
 class TestMeanRiskScoreMetric:
     """Tests for the mean_risk_score aggregation metric."""

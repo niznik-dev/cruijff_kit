@@ -20,6 +20,7 @@ from cruijff_kit.tools.inspect.scorers.calibration_metrics import (
 # Helpers
 # =============================================================================
 
+
 def _score(value, risk_score, option_probs, target):
     """Build a Score with risk_scorer-style metadata."""
     return Score(
@@ -36,8 +37,8 @@ def _score(value, risk_score, option_probs, target):
 # Expected Calibration Error
 # =============================================================================
 
-class TestExpectedCalibrationError:
 
+class TestExpectedCalibrationError:
     def test_perfect_calibration(self):
         """When confidence == accuracy in every bin, ECE = 0."""
         # 10 samples, all with confidence 0.8 and 80% correct
@@ -82,7 +83,10 @@ class TestExpectedCalibrationError:
         """Samples with None option_probs are skipped."""
         scores = [
             _score(CORRECT, 0.8, {"0": 0.8, "1": 0.2}, "0"),
-            Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": "0"}),
+            Score(
+                value=INCORRECT,
+                metadata={"risk_score": None, "option_probs": None, "target": "0"},
+            ),
         ]
         metric_fn = expected_calibration_error(n_bins=10)
         # Only 1 sample: conf=0.8, acc=1.0 -> in bin (0.7, 0.8], ECE = |0.8 - 1.0| = 0.2
@@ -124,15 +128,17 @@ class TestExpectedCalibrationError:
             float_scores.append(_score(correct_flt, 0.8, {"0": 0.8, "1": 0.2}, "0"))
 
         metric_fn = expected_calibration_error(n_bins=10)
-        assert metric_fn(string_scores) == pytest.approx(metric_fn(float_scores), abs=1e-6)
+        assert metric_fn(string_scores) == pytest.approx(
+            metric_fn(float_scores), abs=1e-6
+        )
 
 
 # =============================================================================
 # Risk Calibration Error
 # =============================================================================
 
-class TestRiskCalibrationError:
 
+class TestRiskCalibrationError:
     def test_perfect_risk_calibration(self):
         """When risk_score matches actual base rate in every bin, risk ECE = 0."""
         # 10 samples with risk=0.8, 8 of which are truly positive (target="1")
@@ -200,8 +206,12 @@ class TestRiskCalibrationError:
         scores_float = [_score(0.0, **base_args) for _ in range(10)]  # bogus float
 
         metric_fn = risk_calibration_error(n_bins=10)
-        assert metric_fn(scores_correct) == pytest.approx(metric_fn(scores_wrong), abs=1e-6)
-        assert metric_fn(scores_correct) == pytest.approx(metric_fn(scores_float), abs=1e-6)
+        assert metric_fn(scores_correct) == pytest.approx(
+            metric_fn(scores_wrong), abs=1e-6
+        )
+        assert metric_fn(scores_correct) == pytest.approx(
+            metric_fn(scores_float), abs=1e-6
+        )
 
     def test_empty_scores_returns_nan(self):
         metric_fn = risk_calibration_error(n_bins=10)
@@ -212,7 +222,10 @@ class TestRiskCalibrationError:
         # positive_token = "1", target="1" -> y_true=1.0
         scores = [
             _score(CORRECT, 0.8, {"0": 0.2, "1": 0.8}, "1"),
-            Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": "0"}),
+            Score(
+                value=INCORRECT,
+                metadata={"risk_score": None, "option_probs": None, "target": "0"},
+            ),
         ]
         metric_fn = risk_calibration_error(n_bins=10)
         # 1 sample: risk=0.8, actual=1.0 -> |0.8-1.0|=0.2
@@ -224,8 +237,8 @@ class TestRiskCalibrationError:
 # Brier Score
 # =============================================================================
 
-class TestBrierScore:
 
+class TestBrierScore:
     def test_perfect_predictions(self):
         """Risk score perfectly matches outcome -> Brier = 0."""
         # positive_token = "1"; risk_score = P("1")
@@ -253,9 +266,9 @@ class TestBrierScore:
         # y=[1, 0, 1], p=[0.8, 0.3, 0.6]
         # Brier = mean((1-0.8)^2, (0-0.3)^2, (1-0.6)^2) = mean(0.04, 0.09, 0.16) = 0.29/3
         scores = [
-            _score(CORRECT, 0.8, {"0": 0.2, "1": 0.8}, "1"),   # y=1
+            _score(CORRECT, 0.8, {"0": 0.2, "1": 0.8}, "1"),  # y=1
             _score(INCORRECT, 0.3, {"0": 0.7, "1": 0.3}, "0"),  # y=0
-            _score(CORRECT, 0.6, {"0": 0.4, "1": 0.6}, "1"),    # y=1
+            _score(CORRECT, 0.6, {"0": 0.4, "1": 0.6}, "1"),  # y=1
         ]
         metric_fn = brier_score()
         result = metric_fn(scores)
@@ -266,7 +279,10 @@ class TestBrierScore:
         """Samples with None risk_score are skipped."""
         scores = [
             _score(CORRECT, 1.0, {"0": 0.0, "1": 1.0}, "1"),
-            Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": "0"}),
+            Score(
+                value=INCORRECT,
+                metadata={"risk_score": None, "option_probs": None, "target": "0"},
+            ),
             _score(CORRECT, 0.0, {"0": 1.0, "1": 0.0}, "0"),
         ]
         metric_fn = brier_score()
@@ -288,17 +304,17 @@ class TestBrierScore:
 # AUC Score
 # =============================================================================
 
-class TestAUCScore:
 
+class TestAUCScore:
     def test_perfect_separation(self):
         """When risk_score perfectly separates classes -> AUC = 1.0."""
         # positive_token = "1"; risk_score = P("1")
         # High risk for positive class, low risk for negative class
         scores = [
-            _score(CORRECT, 0.9, {"0": 0.1, "1": 0.9}, "1"),   # y=1, high score
-            _score(CORRECT, 0.8, {"0": 0.2, "1": 0.8}, "1"),   # y=1, high score
-            _score(CORRECT, 0.1, {"0": 0.9, "1": 0.1}, "0"),   # y=0, low score
-            _score(CORRECT, 0.2, {"0": 0.8, "1": 0.2}, "0"),   # y=0, low score
+            _score(CORRECT, 0.9, {"0": 0.1, "1": 0.9}, "1"),  # y=1, high score
+            _score(CORRECT, 0.8, {"0": 0.2, "1": 0.8}, "1"),  # y=1, high score
+            _score(CORRECT, 0.1, {"0": 0.9, "1": 0.1}, "0"),  # y=0, low score
+            _score(CORRECT, 0.2, {"0": 0.8, "1": 0.2}, "0"),  # y=0, low score
         ]
         metric_fn = auc_score()
         result = metric_fn(scores)
@@ -320,8 +336,8 @@ class TestAUCScore:
         scores = [
             _score(INCORRECT, 0.1, {"0": 0.9, "1": 0.1}, "1"),  # y=1, low score
             _score(INCORRECT, 0.2, {"0": 0.8, "1": 0.2}, "1"),  # y=1, low score
-            _score(CORRECT, 0.9, {"0": 0.1, "1": 0.9}, "0"),    # y=0, high score
-            _score(CORRECT, 0.8, {"0": 0.2, "1": 0.8}, "0"),    # y=0, high score
+            _score(CORRECT, 0.9, {"0": 0.1, "1": 0.9}, "0"),  # y=0, high score
+            _score(CORRECT, 0.8, {"0": 0.2, "1": 0.8}, "0"),  # y=0, high score
         ]
         metric_fn = auc_score()
         result = metric_fn(scores)
@@ -332,7 +348,10 @@ class TestAUCScore:
         # positive_token = "1"; high risk for positive, low risk for negative -> AUC=1.0
         scores = [
             _score(CORRECT, 0.9, {"0": 0.1, "1": 0.9}, "1"),
-            Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": "0"}),
+            Score(
+                value=INCORRECT,
+                metadata={"risk_score": None, "option_probs": None, "target": "0"},
+            ),
             _score(CORRECT, 0.1, {"0": 0.9, "1": 0.1}, "0"),
         ]
         metric_fn = auc_score()
@@ -353,13 +372,19 @@ class TestAUCScore:
 # Edge cases across all metrics
 # =============================================================================
 
-class TestEdgeCases:
 
+class TestEdgeCases:
     def test_all_none_metadata(self):
         """When all samples have None metadata, all metrics return NaN."""
         scores = [
-            Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": None}),
-            Score(value=INCORRECT, metadata={"risk_score": None, "option_probs": None, "target": None}),
+            Score(
+                value=INCORRECT,
+                metadata={"risk_score": None, "option_probs": None, "target": None},
+            ),
+            Score(
+                value=INCORRECT,
+                metadata={"risk_score": None, "option_probs": None, "target": None},
+            ),
         ]
         assert math.isnan(expected_calibration_error()(scores))
         assert math.isnan(risk_calibration_error()(scores))

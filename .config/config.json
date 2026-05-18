@@ -1,0 +1,5 @@
+{
+  "poll_sec": 60,
+  "stagger_sec": 5,
+  "max_submit": 25
+}

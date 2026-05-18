@@ -27,6 +27,9 @@ Details: {what_happened}
 Result: {outcome}
 ```
 
+**Mandatory fields for job submissions** (SUBMIT_JOB, SUBMIT_EVAL actions):
+- `Job ID: {slurm_job_id}` - SLURM job ID.
+
 **Optional fields** (use when relevant):
 - `Command: {shell_command}` - For actions that ran shell commands
 - `Calculation: {formula}` - For computational actions
@@ -116,16 +119,19 @@ See:
 
 ## Log File Locations
 
-Logs are always created within the experiment directory:
+Logs are always created within the experiment directory's `logs/` subdirectory:
 
 ```
 {experiment_dir}/
-├── design-experiment.log            # Planning decisions
-├── scaffold-torchtune.log          # Fine-tuning config generation
-├── scaffold-inspect.log            # Evaluation config generation
-├── run-torchtune.log               # Fine-tuning execution
-├── run-inspect.log                 # Evaluation execution
-└── analyze-experiment.log          # Visualization generation
+└── logs/
+    ├── design-experiment.log            # Planning decisions
+    ├── scaffold-experiment.log          # Scaffolding orchestration
+    ├── scaffold-torchtune.log           # Fine-tuning config generation
+    ├── scaffold-inspect.log             # Evaluation config generation
+    ├── run-torchtune.log                # Fine-tuning execution
+    ├── run-inspect.log                  # Evaluation execution
+    ├── analyze-experiment.log           # Visualization generation
+    └── summarize-experiment.log         # Results summary
 ```
 
 

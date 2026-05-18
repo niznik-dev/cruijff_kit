@@ -1,6 +1,6 @@
 # Logging - run-experiment
 
-**See [shared/logging_spec.md](../../shared/logging_spec.md) for complete format specification and general logging guidelines.**
+**See [shared/logging_spec.md](../shared/logging_spec.md) for complete format specification and general logging guidelines.**
 
 This document covers run-experiment-specific logging practices.
 
@@ -8,12 +8,13 @@ This document covers run-experiment-specific logging practices.
 
 ## Log File Locations
 
-Run-experiment creates tool-specific logs:
+Run-experiment creates three logs:
 
-- **Torchtune execution:** `{experiment_dir}/run-torchtune.log`
-- **Inspect-ai execution:** `{experiment_dir}/run-inspect.log`
+- **Orchestration:** `{experiment_dir}/logs/run-experiment.log` — high-level flow (which stages ran, when), kept short
+- **Torchtune execution:** `{experiment_dir}/logs/run-torchtune.log` — detailed per-job records (submissions, status changes, completion)
+- **Inspect-ai execution:** `{experiment_dir}/logs/run-inspect.log` — detailed per-job records (submissions, status changes, completion)
 
-Both created during job execution to record job submissions, status changes, and completion.
+Detailed sub-logs are created during job execution. The orchestration log records skill-level transitions.
 
 ---
 
@@ -31,6 +32,11 @@ Both created during job execution to record job submissions, status changes, and
 | `COMPUTE_METRICS` | Record seff compute metrics when job reaches terminal state |
 | `RESOURCE_STATUS` | Report GPU utilization from gpu_metrics.csv during monitoring |
 | `ALL_COMPLETE` | Mark all fine-tuning jobs finished |
+| `MONITOR_DETACHED` | Watcher exited via SIGINT / SIGTERM / sentinel; jobs continue running |
+| `MONITOR_CONFIG` | Watcher applied a live edit from `logs/monitor.json` (poll/stagger/max_submit) |
+| `OOM_RETRY` | A fine-tune was detected as OOM (SLURM `OUT_OF_MEMORY`, or `FAILED` with `torch.OutOfMemoryError` / "CUDA out of memory" in its `slurm-<jid>.out`) and was resubmitted with `batch_size` halved in its `finetune.yaml`. Up to `max_oom_retries` (default 3) per run. State entry records `oom_detected_via` as either `"slurm_state"` or `"cuda_log"`. Disable per-invocation with `--no-retry`. |
+| `OOM_RETRY_SUBMIT_FAILED` | An OOM retry tried to resubmit but `sbatch` itself errored; the run is left in its prior failure state (`OUT_OF_MEMORY` or `FAILED`) and the original cause should be investigated before further retries. |
+| `OOM_EXHAUSTED` | A fine-tune hit `max_oom_retries` and remains in its last OOM-equivalent state. No active escalation in this release; manual intervention required. |
 
 ### Inspect-ai Actions
 
@@ -39,13 +45,20 @@ Both created during job execution to record job submissions, status changes, and
 | `DISCOVER_EXPERIMENT` | Find and validate experiment directory |
 | `VERIFY_FINETUNING` | Check that fine-tuning completed |
 | `VERIFY_CHECKPOINTS` | Check that model checkpoints exist |
+| `CHECKPOINT_MISSING` | Model checkpoint not found for a run |
+| `CACHE_PREBUILD` | Start pre-building HF datasets cache |
+| `CACHE_BUILT` | Single dataset cache built successfully |
+| `CACHE_PREBUILD_COMPLETE` | All dataset caches ready |
 | `IDENTIFY_EVALS` | List evaluations to execute |
 | `SUBMIT_EVAL` | Submit individual evaluation job to SLURM |
+| `ALL_SUBMITTED` | All evaluation jobs submitted |
 | `STATUS_CHECK` | Poll SLURM for job statuses |
 | `STATE_CHANGE` | Record job state transition |
 | `COMPUTE_METRICS` | Record seff compute metrics when eval job reaches terminal state |
 | `RESOURCE_STATUS` | Report GPU utilization from gpu_metrics.csv during monitoring |
 | `ALL_COMPLETE` | Mark all evaluations finished |
+| `MONITOR_DETACHED` | Watcher exited via SIGINT / SIGTERM / sentinel; jobs continue running |
+| `MONITOR_CONFIG` | Watcher applied a live edit from `logs/monitor.json` (poll/stagger/max_submit) |
 
 ---
 
@@ -58,6 +71,11 @@ Both created during job execution to record job submissions, status changes, and
 ### During Selection
 - Which runs/evaluations will be submitted
 - Any runs/evaluations being skipped (and why)
+
+### During Cache Pre-building (inspect-ai only)
+- Which datasets need cache pre-building
+- Each dataset cache built
+- Any cache build failures
 
 ### During Job Submission
 - Each job submitted (with job ID and timestamp)
@@ -82,7 +100,7 @@ Both created during job execution to record job submissions, status changes, and
 
 **State changes:** Log all state transitions with timestamps to track execution time
 
-**Staggering:** Note 5-second delays between submissions to explain timeline
+**Staggering:** Torchtune uses 5-second stagger between submissions to prevent cache collision; inspect submits all at once (cache is pre-built)
 
 **Errors:** Log SLURM error messages when jobs fail
 
@@ -99,11 +117,13 @@ Result: 4 runs configured
 
 [2025-11-11 11:00:05] SUBMIT_JOB: r8_lr1e-5
 Details: sbatch finetune.slurm
-Result: Job ID 1234567
+Job ID: 1234567
+Result: success
 
 [2025-11-11 11:00:10] SUBMIT_JOB: r8_lr5e-5
 Details: sbatch finetune.slurm (5-second stagger)
-Result: Job ID 1234568
+Job ID: 1234568
+Result: success
 
 [2025-11-11 11:02:00] STATE_CHANGE: r8_lr1e-5
 Details: PENDING → RUNNING
@@ -113,6 +133,21 @@ Result: Training started
 Details: All 4 jobs reached terminal states
 Result: 4 COMPLETED, 0 FAILED
 Duration: 45 minutes
+```
+
+### Live Monitor Settings (MONITOR_CONFIG)
+
+The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll
+iteration. When at least one knob changes, a `MONITOR_CONFIG` block lands
+in the per-tool log. Unchanged knobs are still shown so the active
+picture is complete. The block contains no `Job ID:` line, so the
+`SUBMIT_JOB:` / `SUBMIT_EVAL:` harvest regex used by `analyze-experiment`
+does not match it.
+
+```
+[2025-11-11 11:30:00] MONITOR_CONFIG: applied
+Details: poll_sec=30 (was 60); stagger_sec=5 (unchanged); max_submit=25 (unchanged)
+Result: settings updated from logs/monitor.json
 ```
 
 ### Inspect-ai Execution
@@ -128,7 +163,8 @@ Result: All 8 checkpoints exist
 
 [2025-11-11 12:00:05] SUBMIT_EVAL: r8_lr1e-5/capitalization/epoch0
 Details: sbatch capitalization_epoch0.slurm
-Result: Job ID 2345678
+Job ID: 2345678
+Result: success
 
 [2025-11-11 12:05:00] STATE_CHANGE: r8_lr1e-5/capitalization/epoch0
 Details: RUNNING → COMPLETED

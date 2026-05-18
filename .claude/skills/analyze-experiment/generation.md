@@ -16,7 +16,7 @@ The generation workflow:
 import os
 from inspect_viz import Data
 from inspect_viz.plot import write_html
-from inspect_viz.view.beta import (
+from inspect_viz.view import (
     scores_by_task,
     scores_heatmap,
     scores_radar_by_task,
@@ -24,7 +24,7 @@ from inspect_viz.view.beta import (
     scores_by_model,
     scores_by_factor,
 )
-from tools.inspect.viz_helpers import sanitize_columns_for_viz
+from cruijff_kit.tools.inspect.viz_helpers import sanitize_columns_for_viz
 
 # Create output directory
 output_dir = os.path.join(experiment_dir, "analysis")
@@ -43,7 +43,7 @@ data = Data.from_dataframe(viz_df)
 **Before using these functions**, run `help()` to verify the API hasn't changed:
 
 ```python
-from inspect_viz.view.beta import scores_by_task
+from inspect_viz.view import scores_by_task
 help(scores_by_task)
 ```
 
@@ -88,6 +88,37 @@ if models_per_task.max() > 1:
     )
 else:
     print("Skipping heatmap: each model maps to a single task (diagonal matrix)")
+```
+
+**Compound vis_labels (cross-evaluation experiments):**
+
+When vis_labels encode both model and condition (e.g., `"original (acs_income_shuf_s1)"`),
+`task_name` will be unique per row and the heatmap check above will see a diagonal.
+To produce a useful heatmap, split the compound label into separate columns:
+
+```python
+# Split "original (acs_income_shuf_s1)" into training="original", eval_condition="acs_income_shuf_s1"
+hm_df = df.copy()
+hm_df['training'] = hm_df['task_name'].apply(lambda x: x.split(' (')[0] if ' (' in x else x)
+hm_df['eval_condition'] = hm_df['task_name'].apply(
+    lambda x: x.split('(')[1].rstrip(')') if '(' in x else x
+)
+
+# Now check for heatmap eligibility using the split columns
+models_per_condition = hm_df.groupby('eval_condition')['training'].nunique()
+if models_per_condition.max() > 1:
+    viz_hm = sanitize_columns_for_viz(hm_df)
+    data_hm = Data.from_dataframe(viz_hm)
+    plot = scores_heatmap(
+        data_hm,
+        task_name='eval_condition',
+        model_name='training',
+        model_label='Training',
+        score_value='score_match_accuracy',
+        tip=True,
+        title='',
+        orientation='vertical'
+    )
 ```
 
 ### scores_radar_by_task
@@ -147,7 +178,7 @@ plot = scores_by_model(
 Use descriptive names that indicate the view type and content:
 
 ```python
-# Pattern: {view_type}_{experiment_type}_{metric}.html
+# Pattern: {view_type}_{metric}.html
 
 # Examples:
 "scores_by_task_sample_size_match.html"
@@ -163,7 +194,7 @@ Use descriptive names that indicate the view type and content:
 Instead of hardcoding metrics, detect them from the dataframe:
 
 ```python
-from tools.inspect.viz_helpers import detect_metrics, display_name
+from cruijff_kit.tools.inspect.viz_helpers import detect_metrics, display_name
 
 # Automatically detect available metrics
 detected = detect_metrics(logs_df)
@@ -229,7 +260,7 @@ except ImportError:
 When the experiment used `risk_scorer`, generate overlay plots from per-sample data. These are **matplotlib PNGs** (not inspect-viz HTML), gated on `detected.has_risk_scorer`:
 
 ```python
-from tools.inspect.viz_helpers import (
+from cruijff_kit.tools.inspect.viz_helpers import (
     extract_per_sample_risk_data, generate_roc_overlay,
     generate_calibration_overlay, generate_prediction_histogram,
 )
@@ -297,7 +328,7 @@ After generating visualizations and writing the analysis, create a markdown repo
 
 ```python
 from pathlib import Path
-from tools.inspect.report_generator import generate_report
+from cruijff_kit.tools.inspect.report_generator import generate_report
 
 # Track PNGs generated during this run
 generated_pngs = []
@@ -348,24 +379,35 @@ Uses Wilson score intervals (preferred over normal approximation):
 
 ## Compute Utilization Analysis
 
-After generating visualizations and before the report, optionally add compute metrics. This requires run logs from `run-experiment`.
+After generating visualizations and before the report, add compute metrics. This requires run logs from `run-experiment` (or from `src/tools/run/submit_*.py` directly).
 
 **Workflow:**
 
-1. Extract job IDs from `run-torchtune.log` and `run-inspect.log` (regex: `SUBMIT_JOB|SUBMIT_EVAL` → Job ID)
+1. Call `harvest_jids_from_run_logs(experiment_dir)` from `src/tools/slurm/compute_metrics.py`. It returns `(jids_dict, warnings)` where `jids_dict` is `{"finetune": [(name, jid), ...], "eval": [(name, jid), ...]}`. The helper already prints `WARNING:` lines to stderr for any missing or malformed log file, mirroring the canonical regexes in `run-experiment/logging.md`. **If `warnings` is non-empty, do not silently skip the section** — append a "**Compute Utilization unavailable:** ..." note to `report.md` listing each warning so the absence is visible to the operator.
 2. Check if jobstats is available with `check_jobstats_available()`
 3. For each job:
    a. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
    b. Read `gpu_metrics.csv` with `summarize_gpu_metrics()`. **Paths differ by job type:**
-      - Fine-tuning: `{output_dir}/ck-out-{run}/gpu_metrics.csv`
-      - Evaluation: `{output_dir}/ck-out-{run}/epoch_{N}/gpu_metrics.csv`
+      - Fine-tuning: `{output_dir}/{run}/artifacts/gpu_metrics.csv`
+      - Evaluation: `{output_dir}/{run}/artifacts/epoch_{N}/gpu_metrics.csv`
    c. If jobstats available: run `run_jobstats(job_id)` for CPU metrics (JSON) and `run_jobstats(job_id, json_mode=False)` for notes. Parse with `parse_jobstats_json()` and `extract_jobstats_notes()`.
 4. Build job dicts combining all sources:
    - **CPU**: from jobstats (`cpu_efficiency_pct`, `cpu_mem_used_gb`, `cpu_mem_allocated_gb`), or seff `cpu_efficiency` as fallback
    - **GPU utilization**: dual-source — set `gpu_util_jobstats_pct` from `parse_jobstats_json()["gpu_util_pct"]` (Prometheus average), and `gpu_util_min`/`gpu_util_max` from `summarize_gpu_metrics()` (nvidia-smi range). `format_compute_table` renders this as `avg% (min–max%)` when both are present.
    - **GPU memory / power**: from nvidia-smi CSV (`gpu_mem_used_mean_gb`, `gpu_mem_total_gb`, `power_mean_w`)
+   - **Throughput**: call `enrich_job_with_throughput(job, slurm_out_path)` from `src/tools/slurm/throughput_parsers.py`. For fine-tunes, the slurm-out lives at `{output_dir}/{run}/artifacts/slurm-{job_id}.out`; for evals, at `{output_dir}/{run}/artifacts/epoch_{N}/slurm-{job_id}.out`. The helper adds `tps_gpu_train_mean` (finetune) or `tps_gpu_eval_e2e` + `total_tokens` (eval) to the job dict. On parse failure it warns to stderr and leaves the dict unchanged — downstream `estimate_compute` will raise a clear error if it later tries to scale from a job that lacks tps fields.
 5. Format with `format_compute_table(jobs, recommendations=recs)` → markdown table with optional recommendations
-6. Save raw metrics to `{output_dir}/compute_metrics.json`
+6. Build and save compute_metrics.json using `compute_summary.py`:
+   ```python
+   from cruijff_kit.tools.slurm.compute_summary import build_summary, save_summary
+
+   summary = build_summary(
+       jobs=jobs,  # list of job metric dicts from steps 3-4
+       experiment_summary_path=os.path.join(experiment_dir, "experiment_summary.yaml"),
+   )
+   save_summary(summary, os.path.join(experiment_dir, "analysis", "compute_metrics.json"))
+   ```
+   `build_summary()` reads `experiment_summary.yaml` to extract metadata (model, dataset_size, epochs, batch_size, date) and wraps the job list in the summary format. `save_summary()` writes the JSON file.
 7. Pass `compute_section=` to `generate_report()` (inserted after Analysis & Interpretation)
 
 **Key functions** from `tools.slurm.compute_metrics`:
@@ -381,7 +423,7 @@ After generating visualizations and before the report, optionally add compute me
 
 **Data sources:** nvidia-smi CSV for GPU memory/power and utilization range (min/max), jobstats for CPU metrics and GPU utilization average (Prometheus-sampled, more reliable than nvidia-smi's 30s polling), seff for job metadata + CPU fallback.
 
-**Error handling:** Missing seff → skip seff columns; missing gpu_metrics.csv → show `-` for GPU columns; jobstats unavailable or fails → fall back to seff for CPU data; missing run logs → skip compute analysis entirely; partial data → generate table with whatever is available.
+**Error handling:** Missing seff → skip seff columns; missing gpu_metrics.csv → show `-` for GPU columns; jobstats unavailable or fails → fall back to seff for CPU data; missing or malformed run logs → emit a loud `WARNING:` to stderr (handled inside `harvest_jids_from_run_logs()`) and surface a "*Compute Utilization unavailable: ...*" note in `report.md` (do not silently skip — see issue #451); partial data → generate table with whatever is available.
 
 ## Logging
 

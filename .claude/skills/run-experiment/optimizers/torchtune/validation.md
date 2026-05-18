@@ -28,7 +28,7 @@ All should be:
 For each COMPLETED job, verify checkpoint created:
 
 ```bash
-ls {output_dir_base}/ck-out-{run_name}/epoch_{N}/
+ls {output_dir_base}/{run_name}/artifacts/epoch_{N}/
 ```
 
 Expected files:
@@ -55,7 +55,7 @@ Verify `run-torchtune.log` exists with:
 - ✓ All jobs submitted successfully
 - ✓ All jobs reached terminal states
 - ✓ Model checkpoints exist for COMPLETED jobs
-- ✓ experiment_summary.yaml fully updated
+- ✓ Run state tracking fully updated
 - ✓ Log file complete
 
 ## Failure Scenarios

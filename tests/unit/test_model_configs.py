@@ -21,6 +21,7 @@ from cruijff_kit.tools.torchtune.model_configs import (
 # Tests for configure_tokenizer()
 # =============================================================================
 
+
 class TestConfigureTokenizerByFamily:
     """Test tokenizer configuration for each supported model family."""
 
@@ -34,10 +35,18 @@ class TestConfigureTokenizerByFamily:
             }
         }
 
-        result = configure_tokenizer(config, model_config, "Llama-3.2-1B-Instruct", "Llama-3.2-1B-Instruct")
+        result = configure_tokenizer(
+            config, model_config, "Llama-3.2-1B-Instruct", "Llama-3.2-1B-Instruct"
+        )
 
-        assert result["tokenizer"]["_component_"] == "torchtune.models.llama3.llama3_tokenizer"
-        assert result["tokenizer"]["path"] == "${models_dir}/Llama-3.2-1B-Instruct/original/tokenizer.model"
+        assert (
+            result["tokenizer"]["_component_"]
+            == "torchtune.models.llama3.llama3_tokenizer"
+        )
+        assert (
+            result["tokenizer"]["path"]
+            == "${models_dir}/Llama-3.2-1B-Instruct/original/tokenizer.model"
+        )
         assert "merges_file" not in result["tokenizer"]
 
     def test_mistral_tokenizer(self):
@@ -50,10 +59,18 @@ class TestConfigureTokenizerByFamily:
             }
         }
 
-        result = configure_tokenizer(config, model_config, "Mistral-7B-v0.1", "Mistral-7B-v0.1")
+        result = configure_tokenizer(
+            config, model_config, "Mistral-7B-v0.1", "Mistral-7B-v0.1"
+        )
 
-        assert result["tokenizer"]["_component_"] == "torchtune.models.mistral.mistral_tokenizer"
-        assert result["tokenizer"]["path"] == "${models_dir}/Mistral-7B-v0.1/tokenizer.model"
+        assert (
+            result["tokenizer"]["_component_"]
+            == "torchtune.models.mistral.mistral_tokenizer"
+        )
+        assert (
+            result["tokenizer"]["path"]
+            == "${models_dir}/Mistral-7B-v0.1/tokenizer.model"
+        )
         assert "merges_file" not in result["tokenizer"]
 
     def test_qwen_tokenizer(self):
@@ -66,11 +83,22 @@ class TestConfigureTokenizerByFamily:
             }
         }
 
-        result = configure_tokenizer(config, model_config, "Qwen2.5-3B-Instruct", "Qwen2.5-3B-Instruct")
+        result = configure_tokenizer(
+            config, model_config, "Qwen2.5-3B-Instruct", "Qwen2.5-3B-Instruct"
+        )
 
-        assert result["tokenizer"]["_component_"] == "torchtune.models.qwen2_5.qwen2_5_tokenizer"
-        assert result["tokenizer"]["path"] == "${models_dir}/Qwen2.5-3B-Instruct/vocab.json"
-        assert result["tokenizer"]["merges_file"] == "${models_dir}/Qwen2.5-3B-Instruct/merges.txt"
+        assert (
+            result["tokenizer"]["_component_"]
+            == "torchtune.models.qwen2_5.qwen2_5_tokenizer"
+        )
+        assert (
+            result["tokenizer"]["path"]
+            == "${models_dir}/Qwen2.5-3B-Instruct/vocab.json"
+        )
+        assert (
+            result["tokenizer"]["merges_file"]
+            == "${models_dir}/Qwen2.5-3B-Instruct/merges.txt"
+        )
 
 
 class TestConfigureTokenizerErrors:
@@ -133,19 +161,28 @@ class TestConfigureTokenizerBehavior:
             }
         }
 
-        result = configure_tokenizer(config, model_config, "Llama-3.2-1B", "Llama-3.2-1B")
+        result = configure_tokenizer(
+            config, model_config, "Llama-3.2-1B", "Llama-3.2-1B"
+        )
 
         # Original values should still be present
         assert result["tokenizer"]["max_seq_len"] == 4096
         assert result["tokenizer"]["existing_key"] == "value"
         # New values should be added
-        assert result["tokenizer"]["_component_"] == "torchtune.models.llama3.llama3_tokenizer"
-        assert result["tokenizer"]["path"] == "${models_dir}/Llama-3.2-1B/original/tokenizer.model"
+        assert (
+            result["tokenizer"]["_component_"]
+            == "torchtune.models.llama3.llama3_tokenizer"
+        )
+        assert (
+            result["tokenizer"]["path"]
+            == "${models_dir}/Llama-3.2-1B/original/tokenizer.model"
+        )
 
 
 # =============================================================================
 # Tests for MODEL_CONFIGS validation
 # =============================================================================
+
 
 class TestModelConfigsStructure:
     """Validate that all MODEL_CONFIGS entries have required fields."""
@@ -153,9 +190,15 @@ class TestModelConfigsStructure:
     def test_all_models_have_tokenizer_config(self):
         """Test that all MODEL_CONFIGS entries have tokenizer configuration."""
         for model_name, config in MODEL_CONFIGS.items():
-            assert "tokenizer" in config, f"Model '{model_name}' missing tokenizer config"
-            assert "component" in config["tokenizer"], f"Model '{model_name}' missing tokenizer component"
-            assert "model_family" in config["tokenizer"], f"Model '{model_name}' missing tokenizer model_family"
+            assert "tokenizer" in config, (
+                f"Model '{model_name}' missing tokenizer config"
+            )
+            assert "component" in config["tokenizer"], (
+                f"Model '{model_name}' missing tokenizer component"
+            )
+            assert "model_family" in config["tokenizer"], (
+                f"Model '{model_name}' missing tokenizer model_family"
+            )
 
     def test_all_models_have_valid_model_family(self):
         """Test that all MODEL_CONFIGS have a valid tokenizer model_family."""
@@ -168,11 +211,20 @@ class TestModelConfigsStructure:
 
     def test_all_models_have_required_fields(self):
         """Test that all MODEL_CONFIGS entries have all required fields."""
-        required_fields = {"component", "checkpoint_files", "model_type", "dataset_type", "tokenizer", "slurm"}
+        required_fields = {
+            "component",
+            "checkpoint_files",
+            "model_type",
+            "dataset_type",
+            "tokenizer",
+            "slurm",
+        }
 
         for model_name, config in MODEL_CONFIGS.items():
             missing = required_fields - set(config.keys())
-            assert not missing, f"Model '{model_name}' missing required fields: {missing}"
+            assert not missing, (
+                f"Model '{model_name}' missing required fields: {missing}"
+            )
 
     def test_all_models_have_slurm_config(self):
         """Test that all MODEL_CONFIGS entries have SLURM configuration."""
@@ -197,13 +249,16 @@ class TestModelConfigsIntegration:
         result = configure_tokenizer(config, model_config, model_name, model_name)
 
         # Should have set component and path
-        assert "_component_" in result["tokenizer"], f"Model '{model_name}' missing _component_"
+        assert "_component_" in result["tokenizer"], (
+            f"Model '{model_name}' missing _component_"
+        )
         assert "path" in result["tokenizer"], f"Model '{model_name}' missing path"
 
 
 # =============================================================================
 # Tests for SUPPORTED_MODEL_FAMILIES
 # =============================================================================
+
 
 class TestValidTokenizerPathTypes:
     """Test the SUPPORTED_MODEL_FAMILIES constant."""
@@ -220,7 +275,7 @@ class TestValidTokenizerPathTypes:
             config = {"tokenizer": {}}
             model_config = {
                 "tokenizer": {
-                    "component": f"torchtune.models.test.test_tokenizer",
+                    "component": "torchtune.models.test.test_tokenizer",
                     "model_family": model_family,
                 }
             }
