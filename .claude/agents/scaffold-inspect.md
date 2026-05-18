@@ -308,7 +308,7 @@ Extract values from setup_finetune.yaml (fine-tuned runs) or experiment_summary.
   Log the resolved path into `logs/scaffold-inspect.log` so the audit trail captures exactly which file backed this evaluation.
 - `system_prompt`: From the run's configuration (may vary per run!)
 - `scorer`: From `evaluation.scorer` in experiment_summary.yaml
-- `temperature`: From `evaluation.temperature` in experiment_summary.yaml (REQUIRED in the schema). Always propagate. Must be > 0; `setup_inspect.py` will hard-error on `<= 0` because HF generators can fail at exactly 0.
+- `temperature`: From `evaluation.temperature` in experiment_summary.yaml (REQUIRED in the schema). Always propagate. Must be strictly > 0; `setup_inspect.py` hard-errors on `<= 0` because inspect-ai's HF provider runs with `do_sample=True`, which makes HuggingFace's `TemperatureLogitsWarper` do `scores / temperature` and raise `ValueError` at zero (division by zero → inf/NaN logits).
 - `max_tokens`: From `evaluation.max_tokens` in experiment_summary.yaml (OPTIONAL). Propagate only if explicitly set; otherwise omit and the @task function's per-task default applies.
 
 #### setup_inspect.py Usage

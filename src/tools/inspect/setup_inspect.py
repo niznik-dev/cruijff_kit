@@ -176,15 +176,19 @@ def load_eval_config(config_path):
             stacklevel=2,
         )
 
-    # HF generators in inspect-ai's pipeline can fail or misbehave at exactly 0;
-    # @task defaults use 1e-7 for this reason. Fail fast at scaffold time rather
-    # than letting a SLURM job crash hours later.
+    # inspect-ai's HF provider sets do_sample=True by default, which makes HF
+    # transformers build a TemperatureLogitsWarper that does `scores / temperature`.
+    # TemperatureLogitsWarper.__init__ raises ValueError for temperature <= 0
+    # (division by zero produces inf/NaN logits). Fail fast at scaffold time
+    # rather than letting a SLURM job crash hours later.
     temperature = config.get("temperature")
     if temperature is not None and temperature <= 0:
         raise ValueError(
-            f"eval_config.yaml has temperature={temperature}. "
-            f"Must be strictly positive (use 1e-7 for near-greedy decoding; "
-            f"exactly 0 can fail in HF generators)."
+            f"eval_config.yaml has temperature={temperature}, which HuggingFace's "
+            f"TemperatureLogitsWarper rejects (it would divide logits by zero). "
+            f"Options: (a) use a small positive value like 1e-7 for near-greedy "
+            f"decoding, or (b) pass `-M do_sample=false` to inspect to disable "
+            f"sampling entirely (true greedy, temperature ignored)."
         )
 
     return config
