@@ -190,11 +190,9 @@ runs:
 evaluation:
   system_prompt: string            # REQUIRED: Must match training system prompt
   temperature: float               # REQUIRED: Evaluation temperature. Must be strictly > 0.
-                                   # inspect-ai's HF provider runs with do_sample=True, so HF's
-                                   # TemperatureLogitsWarper does `scores / temperature` and
-                                   # raises ValueError on temperature <= 0 (division by zero).
-                                   # Use 1e-7 for near-greedy decoding, or pass `-M do_sample=false`
-                                   # at eval time for true greedy (temperature ignored).
+                                   # HF's TemperatureLogitsWarper does `scores / temperature`
+                                   # and raises ValueError at <= 0 (division by zero).
+                                   # Use 1e-7 for near-greedy decoding.
                                    # setup_inspect.py rejects 0 at scaffold time.
   max_tokens: int                  # OPTIONAL: Cap on tokens generated per response.
                                    # If omitted, the @task function's per-task default applies

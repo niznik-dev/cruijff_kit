@@ -176,7 +176,7 @@ def load_eval_config(config_path):
             stacklevel=2,
         )
 
-    # inspect-ai's HF provider sets do_sample=True by default, which makes HF
+    # inspect-ai's HF provider runs with sampling enabled, which makes HF
     # transformers build a TemperatureLogitsWarper that does `scores / temperature`.
     # TemperatureLogitsWarper.__init__ raises ValueError for temperature <= 0
     # (division by zero produces inf/NaN logits). Fail fast at scaffold time
@@ -186,9 +186,7 @@ def load_eval_config(config_path):
         raise ValueError(
             f"eval_config.yaml has temperature={temperature}, which HuggingFace's "
             f"TemperatureLogitsWarper rejects (it would divide logits by zero). "
-            f"Options: (a) use a small positive value like 1e-7 for near-greedy "
-            f"decoding, or (b) pass `-M do_sample=false` to inspect to disable "
-            f"sampling entirely (true greedy, temperature ignored)."
+            f"Use a small positive value (e.g. 1e-7) for near-greedy decoding."
         )
 
     return config
