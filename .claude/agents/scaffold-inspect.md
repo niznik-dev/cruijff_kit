@@ -263,6 +263,8 @@ output_dir: /outputs/run1/artifacts/
 data_path: /data/acs_income.json
 vis_label: 1B_ft
 use_chat_template: "true"
+temperature: 1.0e-7    # propagated from evaluation.temperature (must be > 0)
+max_tokens: 5          # propagated from evaluation.max_tokens (if set)
 
 # Metadata (--metadata key=value)
 epoch: 0
@@ -306,6 +308,8 @@ Extract values from setup_finetune.yaml (fine-tuned runs) or experiment_summary.
   Log the resolved path into `logs/scaffold-inspect.log` so the audit trail captures exactly which file backed this evaluation.
 - `system_prompt`: From the run's configuration (may vary per run!)
 - `scorer`: From `evaluation.scorer` in experiment_summary.yaml
+- `temperature`: From `evaluation.temperature` in experiment_summary.yaml (REQUIRED in the schema). Always propagate. Must be > 0; `setup_inspect.py` will hard-error on `<= 0` because HF generators can fail at exactly 0.
+- `max_tokens`: From `evaluation.max_tokens` in experiment_summary.yaml (OPTIONAL). Propagate only if explicitly set; otherwise omit and the @task function's per-task default applies.
 
 #### setup_inspect.py Usage
 

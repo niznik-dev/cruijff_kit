@@ -14,6 +14,7 @@ Usage:
 
 import argparse
 import os
+import warnings
 
 import yaml
 from pathlib import Path
@@ -44,10 +45,29 @@ TASK_ARG_KEYS = [
     "split",
     "logprobs",
     "top_logprobs",
+    "temperature",
+    "max_tokens",
 ]
 
 # Keys in eval_config.yaml that become --metadata args in the inspect command
 METADATA_ARG_KEYS = ["epoch", "finetuned", "source_model"]
+
+# Structural keys consumed by the SLURM renderer and the inspect task at runtime
+# (auto-derived or read directly, not arg-mapped). Anything outside the union of
+# TASK_ARG_KEYS + METADATA_ARG_KEYS + KNOWN_STRUCTURAL_KEYS is unknown and warned.
+KNOWN_STRUCTURAL_KEYS = {
+    "task_script",
+    "task_name",
+    "model_path",
+    "model_hf_name",
+    "output_dir",
+    "eval_dir",  # auto-derived in load_eval_config
+    "max_connections",  # inspect CLI flag, not a -T arg
+    # Read by the @task function at runtime, not by setup_inspect.py:
+    "scorer",
+    "system_prompt",
+    "prompt",
+}
 
 
 def create_parser():
@@ -143,6 +163,29 @@ def load_eval_config(config_path):
     problem = check_adapter_base_path(Path(config["model_path"]))
     if problem:
         raise ValueError(problem)
+
+    # Warn on keys we don't know what to do with — catches drift between
+    # scaffold-inspect's eval_config writer and this script's consumers.
+    known = set(TASK_ARG_KEYS) | set(METADATA_ARG_KEYS) | KNOWN_STRUCTURAL_KEYS
+    unknown = sorted(k for k in config.keys() if k not in known)
+    if unknown:
+        warnings.warn(
+            f"eval_config.yaml has keys not consumed by setup_inspect.py or the task: "
+            f"{unknown}. They will not reach the eval. If these should propagate, "
+            f"add them to TASK_ARG_KEYS / METADATA_ARG_KEYS.",
+            stacklevel=2,
+        )
+
+    # HF generators in inspect-ai's pipeline can fail or misbehave at exactly 0;
+    # @task defaults use 1e-7 for this reason. Fail fast at scaffold time rather
+    # than letting a SLURM job crash hours later.
+    temperature = config.get("temperature")
+    if temperature is not None and temperature <= 0:
+        raise ValueError(
+            f"eval_config.yaml has temperature={temperature}. "
+            f"Must be strictly positive (use 1e-7 for near-greedy decoding; "
+            f"exactly 0 can fail in HF generators)."
+        )
 
     return config
 

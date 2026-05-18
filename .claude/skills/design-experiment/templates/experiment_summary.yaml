@@ -189,7 +189,14 @@ runs:
 
 evaluation:
   system_prompt: string            # REQUIRED: Must match training system prompt
-  temperature: float               # REQUIRED: Evaluation temperature (typically 0.0)
+  temperature: float               # REQUIRED: Evaluation temperature. Use a small positive
+                                   # value (e.g. 1e-7) for near-greedy decoding. NOT exactly 0
+                                   # — HF generators in inspect-ai's pipeline can fail or
+                                   # misbehave at temperature=0; setup_inspect.py rejects it.
+  max_tokens: int                  # OPTIONAL: Cap on tokens generated per response.
+                                   # If omitted, the @task function's per-task default applies
+                                   # (5 for ACS / model_organism, 20 for capitalization).
+                                   # Set explicitly when the default is too tight for your scorer.
   max_connections: int             # OPTIONAL: Ceiling on samples per HF batch (default: 32, matching inspect-ai upstream).
                                    # For HF local models, this is the upper bound on GPU batch size.
                                    # Counterintuitively, raising it on variable-length workloads (e.g.
