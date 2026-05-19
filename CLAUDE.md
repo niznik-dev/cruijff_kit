@@ -8,8 +8,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - All paths, environment names, and cluster-specific details in this file are examples only. Users should configure their actual environment in `claude.local.md`. See `claude.local.md.template` for an example configuration.
 
-- **Dep version warnings**: cruijff_kit emits a `UserWarning: cruijff_kit dep version mismatch — env may be stale:` the first time it's imported in a stale env (e.g., when a pinned dep like `inspect-viz` has drifted from the version in `pyproject.toml`). If you see this warning in any tool output, stop the current workflow and surface it to the user along with the `Fix: pip install ...` line — silent behavior differences across versions can invalidate experiments. Users can run `python -m cruijff_kit.health` for an explicit table, or set `CK_SKIP_VERSION_CHECK=1` to suppress.
-
 ## Project Overview
 
 cruijff_kit is a toolkit for research with social data and LLMs.

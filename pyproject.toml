@@ -49,7 +49,6 @@ cruijff_kit = "src"
 
 [tool.setuptools]
 packages = [
-  "cruijff_kit",
   "cruijff_kit.utils",
   "cruijff_kit.tools",
   "cruijff_kit.tools.torchtune",
