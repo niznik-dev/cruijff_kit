@@ -3,6 +3,10 @@
 Extends the folktexts experiments to predict continuous values (age, income,
 hours worked, commute time, etc.) instead of binary classification (0/1).
 
+> **Note:** This document is intentionally kept separate from `README.md` while
+> continuous-target support is still new. Once the feature has seen broader
+> use and testing, this content will be folded into the main `README.md`.
+
 ## Data preparation
 
 Continuous-target datasets are produced by the project's tabular-to-text
