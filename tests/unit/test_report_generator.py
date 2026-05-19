@@ -311,6 +311,92 @@ class TestFormatModelTableCombined:
 
 
 # =============================================================================
+# Calibration-only report path (#504)
+# =============================================================================
+
+
+class TestCalibrationOnlyReport:
+    """When accuracy columns are absent but risk_scorer supplementary columns
+    are present, generate_report should fall through to the calibration table
+    rather than emit an empty 'Models evaluated: 0' report.
+    """
+
+    def _make_risk_only_df(self):
+        """DataFrame with only risk_scorer supplementary columns, no *_accuracy."""
+        return pd.DataFrame(
+            {
+                "model": ["model_a", "model_b"],
+                "results_total_samples": [500, 500],
+                "score_risk_scorer_cruijff_kit/auc_score": [0.85, 0.72],
+                "score_risk_scorer_cruijff_kit/brier_score": [0.15, 0.22],
+                "score_risk_scorer_cruijff_kit/ece": [0.05, 0.09],
+            }
+        )
+
+    def test_model_count_nonzero(self, tmp_path):
+        """Header reports the calibration model count, not 0."""
+        df = self._make_risk_only_df()
+        assert not any(c.endswith("_accuracy") for c in df.columns)
+
+        report = generate_report(
+            df=df,
+            experiment_name="risk_only",
+            output_path=tmp_path / "report.md",
+        )
+        assert "**Models evaluated:** 2" in report
+        assert "**Models evaluated:** 0" not in report
+
+    def test_renders_risk_metrics_section(self, tmp_path):
+        """The calibration table is rendered instead of an empty Model Comparison."""
+        report = generate_report(
+            df=self._make_risk_only_df(),
+            experiment_name="risk_only",
+            output_path=tmp_path / "report.md",
+        )
+        assert "## Risk Metrics" in report
+        # Both models present in the body of the table
+        assert "model_a" in report
+        assert "model_b" in report
+        # AUC + Brier values from the dataframe show up
+        assert "0.850" in report
+        assert "0.150" in report
+
+    def test_narrative_picks_auc_best(self, tmp_path):
+        """Executive summary names the AUC winner when no accuracy is available."""
+        report = generate_report(
+            df=self._make_risk_only_df(),
+            experiment_name="risk_only",
+            output_path=tmp_path / "report.md",
+        )
+        # model_a has the higher AUC (0.85 vs 0.72)
+        assert "**model_a** achieved the best AUC" in report
+        assert "No model metrics available for analysis." not in report
+
+    def test_task_name_preserved_in_groupby(self, tmp_path):
+        """Cells differing in task_name don't collapse: per-task rows render
+        separately so cue vs no_cue (etc.) variation is visible.
+        """
+        df = pd.DataFrame(
+            {
+                "model": ["model_a", "model_a"],
+                "task_name": ["with_cue", "no_cue"],
+                "results_total_samples": [500, 500],
+                "score_risk_scorer_cruijff_kit/auc_score": [0.85, 0.72],
+            }
+        )
+        report = generate_report(
+            df=df,
+            experiment_name="risk_only_per_task",
+            output_path=tmp_path / "report.md",
+        )
+        assert "with_cue" in report
+        assert "no_cue" in report
+        # Both AUC values should appear (no collapse onto one row)
+        assert "0.850" in report
+        assert "0.720" in report
+
+
+# =============================================================================
 # Provenance metadata
 # =============================================================================
 
