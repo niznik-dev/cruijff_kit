@@ -225,6 +225,27 @@ class TestFormatCalibrationTable:
         epoch_idx = next(i for i, h in enumerate(header_cells) if "Epoch" in h)
         assert data_cells[epoch_idx] == "-"
 
+    def test_epoch_nan_renders_as_dash(self):
+        """pd.NA / nan epoch (from groupby on a column with missing values) renders as '-', not 'nan'."""
+        import numpy as np
+
+        results = [
+            CalibrationResult(
+                model_name="m",
+                metrics={"risk_scorer_cruijff_kit/ece": 0.2},
+                sample_size=100,
+                epoch=np.nan,
+            ),
+        ]
+        table = _format_calibration_table(results)
+        assert "nan" not in table
+        lines = table.strip().split("\n")
+        data_row = lines[-1]
+        header_cells = [c.strip() for c in lines[0].split("|") if c.strip()]
+        data_cells = [c.strip() for c in data_row.split("|") if c.strip()]
+        epoch_idx = next(i for i, h in enumerate(header_cells) if "Epoch" in h)
+        assert data_cells[epoch_idx] == "-"
+
 
 # =============================================================================
 # _format_model_table() with calibration

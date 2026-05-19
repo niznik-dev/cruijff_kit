@@ -156,18 +156,24 @@ def _format_calibration_table(results: list[CalibrationResult]) -> str:
 
     lines = [header_line, separator]
 
+    def _epoch_sort_key(r: CalibrationResult) -> float:
+        if r.epoch is None or pd.isna(r.epoch):
+            return -1.0
+        return float(r.epoch)
+
     # Sort by (model, task_name, epoch) so related rows cluster predictably
     sorted_results = sorted(
         results,
-        key=lambda r: (
-            r.model_name,
-            r.task_name or "",
-            r.epoch if r.epoch is not None else -1,
-        ),
+        key=lambda r: (r.model_name, r.task_name or "", _epoch_sort_key(r)),
     )
 
     for r in sorted_results:
-        epoch_str = str(r.epoch) if r.epoch is not None else "-"
+        if r.epoch is None or pd.isna(r.epoch):
+            epoch_str = "-"
+        elif float(r.epoch).is_integer():
+            epoch_str = str(int(r.epoch))
+        else:
+            epoch_str = str(r.epoch)
 
         cells = [r.model_name]
         if show_task:
