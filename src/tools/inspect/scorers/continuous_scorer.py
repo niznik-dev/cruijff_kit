@@ -10,9 +10,10 @@ Metrics:
     - r_squared: Coefficient of determination (R²=0 means predicting the mean)
     - parse_rate: Fraction of outputs successfully parsed as numbers
 """
+
 import math
 import re
-from inspect_ai.scorer import scorer, Score, metric, Metric, CORRECT, INCORRECT
+from inspect_ai.scorer import scorer, Score, metric, Metric, INCORRECT
 from inspect_ai.solver import TaskState
 from inspect_ai.scorer import Target
 
@@ -35,6 +36,7 @@ def _parse_number(text: str) -> float | None:
 @metric
 def mae() -> Metric:
     """Mean Absolute Error across all scored samples."""
+
     def compute(scores: list[Score]) -> float:
         errors = [
             abs(s.metadata["error"])
@@ -49,6 +51,7 @@ def mae() -> Metric:
 @metric
 def rmse() -> Metric:
     """Root Mean Squared Error across all scored samples."""
+
     def compute(scores: list[Score]) -> float:
         errors = [
             s.metadata["error"]
@@ -57,7 +60,7 @@ def rmse() -> Metric:
         ]
         if not errors:
             return float("nan")
-        return math.sqrt(sum(e ** 2 for e in errors) / len(errors))
+        return math.sqrt(sum(e**2 for e in errors) / len(errors))
 
     return compute
 
@@ -69,6 +72,7 @@ def r_squared() -> Metric:
     R²=0 means the model is no better than predicting the training set mean.
     R²=1 means perfect prediction. R²<0 means worse than the mean baseline.
     """
+
     def compute(scores: list[Score]) -> float:
         pairs = [
             (s.metadata["target_value"], s.metadata["prediction"])
@@ -79,7 +83,6 @@ def r_squared() -> Metric:
             return float("nan")
 
         targets = [t for t, _ in pairs]
-        predictions = [p for _, p in pairs]
         target_mean = sum(targets) / len(targets)
 
         ss_res = sum((t - p) ** 2 for t, p in pairs)
@@ -95,12 +98,12 @@ def r_squared() -> Metric:
 @metric
 def parse_rate() -> Metric:
     """Fraction of outputs that could be parsed as a number."""
+
     def compute(scores: list[Score]) -> float:
         if not scores:
             return float("nan")
         parsed = sum(
-            1 for s in scores
-            if (s.metadata or {}).get("prediction") is not None
+            1 for s in scores if (s.metadata or {}).get("prediction") is not None
         )
         return parsed / len(scores)
 
@@ -116,6 +119,7 @@ def continuous_scorer():
     Individual errors stored in metadata; aggregate metrics (MAE, RMSE, R²)
     computed across all samples.
     """
+
     async def score(state: TaskState, target: Target) -> Score:
         completion = state.output.completion
         prediction = _parse_number(completion)
@@ -130,7 +134,7 @@ def continuous_scorer():
                     "prediction": None,
                     "target_value": target_value,
                     "error": None,
-                }
+                },
             )
 
         error = prediction - target_value
@@ -142,7 +146,7 @@ def continuous_scorer():
                 "prediction": prediction,
                 "target_value": target_value,
                 "error": error,
-            }
+            },
         )
 
     return score

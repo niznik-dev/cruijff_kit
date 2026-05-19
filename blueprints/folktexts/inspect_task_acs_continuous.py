@@ -22,8 +22,9 @@ import yaml
 from inspect_ai import Task, task
 from inspect_ai.dataset import hf_dataset, Sample
 from inspect_ai.solver import chain, generate, system_message
-from inspect_ai.model import GenerateConfig
+from inspect_ai.model import GenerateConfig, ChatMessageUser, ChatMessageAssistant
 from cruijff_kit.tools.inspect.scorers import build_scorers
+from cruijff_kit.tools.inspect import hf_prefill_patch  # noqa: F401 - applies HF prefill monkey-patch on import
 
 
 def _create_acs_continuous_task(
@@ -34,7 +35,9 @@ def _create_acs_continuous_task(
     temperature: float = 1e-7,
     max_tokens: int = 10,
     vis_label: str = "",
-    use_chat_template = True
+    use_chat_template: bool = True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
 ) -> Task:
     """
     Create an ACS continuous prediction eval task.
@@ -48,6 +51,9 @@ def _create_acs_continuous_task(
         max_tokens: Max tokens to generate (10 for multi-digit numbers)
         vis_label: Optional label for visualization (appended to task name)
         use_chat_template: Whether apply_chat_template should be used for tokenization (i.e., Instruction-tuned models)
+        assistant_prefix: If set, prefill an assistant turn with this string. Useful for
+            coaxing base (non-instruct) models into the expected numeric output format.
+        top_logprobs: Number of top tokens to return logprobs for (passed to GenerateConfig).
     """
     # Construct task name with optional vis_label suffix
     full_task_name = f"{task_name}_{vis_label}" if vis_label else task_name
@@ -57,18 +63,23 @@ def _create_acs_continuous_task(
     config = {}
 
     if config_path:
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             config = yaml.safe_load(f) or {}
-        prompt_str = config.get('prompt', '{input}')
-        system_prompt = config.get('system_prompt', '')
+        prompt_str = config.get("prompt", "{input}")
+        system_prompt = config.get("system_prompt", "")
 
     def record_to_sample(record):
         # Wrap input with prompt template - same as chat_completion training
         formatted_input = prompt_str.format(input=record["input"])
-        return Sample(
-            input=formatted_input,
-            target=record["output"]
-        )
+        if assistant_prefix:
+            return Sample(
+                input=[
+                    ChatMessageUser(content=formatted_input),
+                    ChatMessageAssistant(content=assistant_prefix),
+                ],
+                target=record["output"],
+            )
+        return Sample(input=formatted_input, target=record["output"])
 
     dataset = hf_dataset(
         path="json",
@@ -94,7 +105,7 @@ def _create_acs_continuous_task(
         dataset=dataset,
         solver=solver,
         scorer=build_scorers(config),
-        config=GenerateConfig(logprobs=True, top_logprobs=20),
+        config=GenerateConfig(logprobs=True, top_logprobs=top_logprobs),
     )
 
 
@@ -107,36 +118,129 @@ def acs_continuous(
     temperature: float = 1e-7,
     max_tokens: int = 10,
     vis_label: str = "",
-    use_chat_template = True
+    use_chat_template: bool = True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
 ) -> Task:
     """Generic ACS continuous prediction task. Works with any continuous ACS dataset."""
-    return _create_acs_continuous_task("acs_continuous", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
+    return _create_acs_continuous_task(
+        "acs_continuous",
+        data_path,
+        config_path,
+        split,
+        temperature,
+        max_tokens,
+        vis_label,
+        use_chat_template,
+        assistant_prefix,
+        top_logprobs,
+    )
 
 
 # Task-specific aliases for clarity in eval logs
 @task
-def acs_age(data_path: str, config_path: str = "", split: str = "test",
-            temperature: float = 1e-7, max_tokens: int = 10, vis_label: str = "", use_chat_template = True) -> Task:
+def acs_age(
+    data_path: str,
+    config_path: str = "",
+    split: str = "test",
+    temperature: float = 1e-7,
+    max_tokens: int = 10,
+    vis_label: str = "",
+    use_chat_template: bool = True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
+) -> Task:
     """ACS age prediction (continuous, years)."""
-    return _create_acs_continuous_task("acs_age", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
+    return _create_acs_continuous_task(
+        "acs_age",
+        data_path,
+        config_path,
+        split,
+        temperature,
+        max_tokens,
+        vis_label,
+        use_chat_template,
+        assistant_prefix,
+        top_logprobs,
+    )
 
 
 @task
-def acs_income_continuous(data_path: str, config_path: str = "", split: str = "test",
-                          temperature: float = 1e-7, max_tokens: int = 10, vis_label: str = "", use_chat_template = True) -> Task:
+def acs_income_continuous(
+    data_path: str,
+    config_path: str = "",
+    split: str = "test",
+    temperature: float = 1e-7,
+    max_tokens: int = 10,
+    vis_label: str = "",
+    use_chat_template: bool = True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
+) -> Task:
     """ACS income prediction (continuous, dollars)."""
-    return _create_acs_continuous_task("acs_income_continuous", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
+    return _create_acs_continuous_task(
+        "acs_income_continuous",
+        data_path,
+        config_path,
+        split,
+        temperature,
+        max_tokens,
+        vis_label,
+        use_chat_template,
+        assistant_prefix,
+        top_logprobs,
+    )
 
 
 @task
-def acs_hours(data_path: str, config_path: str = "", split: str = "test",
-              temperature: float = 1e-7, max_tokens: int = 10, vis_label: str = "", use_chat_template = True) -> Task:
+def acs_hours(
+    data_path: str,
+    config_path: str = "",
+    split: str = "test",
+    temperature: float = 1e-7,
+    max_tokens: int = 10,
+    vis_label: str = "",
+    use_chat_template: bool = True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
+) -> Task:
     """ACS hours worked prediction (continuous, hours/week)."""
-    return _create_acs_continuous_task("acs_hours", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
+    return _create_acs_continuous_task(
+        "acs_hours",
+        data_path,
+        config_path,
+        split,
+        temperature,
+        max_tokens,
+        vis_label,
+        use_chat_template,
+        assistant_prefix,
+        top_logprobs,
+    )
 
 
 @task
-def acs_commute(data_path: str, config_path: str = "", split: str = "test",
-                temperature: float = 1e-7, max_tokens: int = 10, vis_label: str = "", use_chat_template = True) -> Task:
+def acs_commute(
+    data_path: str,
+    config_path: str = "",
+    split: str = "test",
+    temperature: float = 1e-7,
+    max_tokens: int = 10,
+    vis_label: str = "",
+    use_chat_template: bool = True,
+    assistant_prefix: str = "",
+    top_logprobs: int = 20,
+) -> Task:
     """ACS commute time prediction (continuous, minutes)."""
-    return _create_acs_continuous_task("acs_commute", data_path, config_path, split, temperature, max_tokens, vis_label, use_chat_template)
+    return _create_acs_continuous_task(
+        "acs_commute",
+        data_path,
+        config_path,
+        split,
+        temperature,
+        max_tokens,
+        vis_label,
+        use_chat_template,
+        assistant_prefix,
+        top_logprobs,
+    )
