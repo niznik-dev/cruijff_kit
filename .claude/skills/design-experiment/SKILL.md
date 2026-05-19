@@ -23,6 +23,17 @@ ls -la claude.local.md
 
 If `claude.local.md` is present but you suspect drift (placeholders not filled in, fields that look stale), suggest the user run `/ck-setup` in validate mode to get a structured health check rather than trying to validate inline here.
 
+### Dependency version check
+
+Verify the installed deps match the exact pins in `pyproject.toml` before any design work begins. This catches the case where a user pulled a new cruijff_kit version that bumped a pinned dep but hasn't re-run `pip install -e .`. The import-time hook in `cruijff_kit/__init__.py` doesn't fire reliably until the env is resynced, so a standalone check is the only catcher in that window.
+
+```bash
+python scripts/check_env.py
+```
+
+- **Exit 0** (`OK: N pinned deps match installed versions.`): proceed.
+- **Exit 1** (prints a `STALE ENV` table): stop, show the mismatch table to the user, and ask whether to run `pip install -e .` first or proceed anyway. Do not silently continue — pinned-but-mismatched deps are the failure mode behind issue #503.
+
 ## Workflow
 
 Follow the three-stage process:
