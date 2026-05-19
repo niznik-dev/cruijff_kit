@@ -24,6 +24,17 @@ This ensures the entire experiment is ready to execute from training through eva
 
 **Future tool support:** This orchestrator is designed to route to different worker subagents based on tool choices documented in experiment_summary.yaml. Future iterations may support additional frameworks.
 
+## Dependency version check
+
+Run before proceeding to catch stale envs (user pulled new pins but didn't re-run `pip install -e .`):
+
+```bash
+python scripts/check_env.py
+```
+
+- **Exit 0**: proceed.
+- **Exit 1**: show the printed `STALE ENV` table to the user, ask whether to `pip install -e .` first or continue anyway.
+
 ## Workflow
 
 1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)

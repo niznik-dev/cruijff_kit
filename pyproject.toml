@@ -25,7 +25,7 @@ dependencies = [
     "wandb",
     "h5py",
     "inspect-ai==0.3.209",  # pinned: registry prefix changed at 0.3.200; revisit before relaxing
-    "inspect-viz",
+    "inspect-viz==0.3.5",  # pinned: 0.3.4 has scores_* at view.beta (broken imports); 0.4.0 untested end-to-end. See #503.
     "datasets",
     "peft",
     "transformers>=4.57.1,<5",

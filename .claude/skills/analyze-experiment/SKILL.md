@@ -25,6 +25,17 @@ Generate visualizations from evaluation results:
 - Conda environment activated (from claude.local.md)
 - **Optional:** playwright for PNG export (`pip install playwright && playwright install chromium`)
 
+## Dependency version check
+
+Run before proceeding to catch stale envs (user pulled new pins but didn't re-run `pip install -e .`):
+
+```bash
+python scripts/check_env.py
+```
+
+- **Exit 0**: proceed.
+- **Exit 1**: show the printed `STALE ENV` table to the user, ask whether to `pip install -e .` first or continue anyway.
+
 ## Workflow
 
 ### 1. Locate Experiment → `parsing.md`

@@ -23,6 +23,17 @@ ls -la claude.local.md
 
 If `claude.local.md` is present but you suspect drift (placeholders not filled in, fields that look stale), suggest the user run `/ck-setup` in validate mode to get a structured health check rather than trying to validate inline here.
 
+### Dependency version check
+
+Run before proceeding to catch stale envs (user pulled new pins but didn't re-run `pip install -e .`):
+
+```bash
+python scripts/check_env.py
+```
+
+- **Exit 0**: proceed.
+- **Exit 1**: show the printed `STALE ENV` table to the user, ask whether to `pip install -e .` first or continue anyway.
+
 ## Workflow
 
 Follow the three-stage process:
