@@ -24,7 +24,6 @@ from inspect_ai.dataset import hf_dataset, Sample
 from inspect_ai.solver import chain, generate, system_message
 from inspect_ai.model import GenerateConfig, ChatMessageUser, ChatMessageAssistant
 from cruijff_kit.tools.inspect.scorers import build_scorers
-from cruijff_kit.tools.inspect import hf_prefill_patch  # noqa: F401 - applies HF prefill monkey-patch on import
 
 
 def _create_acs_continuous_task(
