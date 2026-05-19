@@ -655,6 +655,17 @@ def main():
         with open(args.config_file, "r") as f:
             config_data = yaml.safe_load(f) or {}
 
+        # Warn on keys we don't know what to do with — the merge loop below
+        # silently drops anything that isn't an argparse dest, which hides typos.
+        unknown = sorted(k for k in config_data.keys() if not hasattr(args, k))
+        if unknown:
+            warnings.warn(
+                f"setup_finetune.yaml has keys not consumed by setup_finetune.py: "
+                f"{unknown}. They will not affect the fine-tune. If these should "
+                f"propagate, add a matching argparse argument.",
+                stacklevel=2,
+            )
+
     # Load torchtune recipe hyperparameter defaults if base_recipe is specified
     recipe_defaults = {}
     recipe_config = None
