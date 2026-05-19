@@ -4,6 +4,10 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `continuous_scorer` and ACS continuous-target tasks (`acs_age`, `acs_income_continuous`, `acs_hours`, `acs_commute`) for regression evals; reports `mae` / `rmse` / `r_squared` / `parse_rate` (#508, @EmnetSy, @sarahepedersen)
+
 ## [0.3.1] - 2026-05-14
 
 ### Added
