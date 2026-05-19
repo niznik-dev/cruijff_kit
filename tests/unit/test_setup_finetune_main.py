@@ -189,6 +189,28 @@ class TestMainYamlGeneration:
         assert config["run_val_every_n_steps"] == 50
         assert "dataset_val" in config
 
+    def test_unknown_key_warns(self, run_main, setup_yaml):
+        """A setup_finetune.yaml key with no matching argparse arg should warn."""
+        with open(setup_yaml) as f:
+            cfg = yaml.safe_load(f)
+        cfg["lora_ranl"] = 42  # typo of lora_rank
+        cfg["evaluation_temperature"] = 0.5  # wrong namespace
+        with open(setup_yaml, "w") as f:
+            yaml.dump(cfg, f)
+
+        with pytest.warns(UserWarning, match="setup_finetune.yaml has keys"):
+            run_main()
+
+    def test_known_keys_do_not_warn(self, run_main, setup_yaml):
+        """Default fixture has only argparse-known keys; no unknown-key warning."""
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            run_main()
+        unknown_warnings = [
+            w for w in caught if "setup_finetune.yaml has keys" in str(w.message)
+        ]
+        assert not unknown_warnings, [str(w.message) for w in unknown_warnings]
+
 
 class TestMainSlurmGeneration:
     """Tests for SLURM script generation."""
