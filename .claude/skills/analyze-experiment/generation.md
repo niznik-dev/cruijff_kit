@@ -16,27 +16,15 @@ The generation workflow:
 import os
 from inspect_viz import Data
 from inspect_viz.plot import write_html
-from cruijff_kit.health import import_inspect_views
-from cruijff_kit.tools.inspect.viz_helpers import sanitize_columns_for_viz
-
-# Wrapped instead of `from inspect_viz.view import ...` so a layout mismatch
-# (e.g., older inspect-viz where these live under .view.beta) yields a
-# message pointing at the pin in pyproject.toml. See #503.
-(
+from inspect_viz.view import (
     scores_by_task,
     scores_heatmap,
     scores_radar_by_task,
     scores_radar_by_task_df,
     scores_by_model,
     scores_by_factor,
-) = import_inspect_views(
-    "scores_by_task",
-    "scores_heatmap",
-    "scores_radar_by_task",
-    "scores_radar_by_task_df",
-    "scores_by_model",
-    "scores_by_factor",
 )
+from cruijff_kit.tools.inspect.viz_helpers import sanitize_columns_for_viz
 
 # Create output directory
 output_dir = os.path.join(experiment_dir, "analysis")
@@ -55,8 +43,7 @@ data = Data.from_dataframe(viz_df)
 **Before using these functions**, run `help()` to verify the API hasn't changed:
 
 ```python
-from cruijff_kit.health import import_inspect_views
-(scores_by_task,) = import_inspect_views("scores_by_task")
+from inspect_viz.view import scores_by_task
 help(scores_by_task)
 ```
 

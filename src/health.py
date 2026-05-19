@@ -96,36 +96,6 @@ def warn_on_mismatch():
         warnings.warn(_format_warning_message(mismatches), stacklevel=2)
 
 
-def import_inspect_views(*names):
-    """Import names from inspect_viz.view, with a friendly error on failure.
-
-    Skill docs use this instead of bare `from inspect_viz.view import ...` so
-    that a layout mismatch (e.g., on inspect-viz 0.3.4 the names live under
-    inspect_viz.view.beta) yields a message pointing at the pin, not a raw
-    ImportError that buries the cause.
-
-    Returns a tuple of the requested names, in argument order, for tuple
-    unpacking at the call site.
-    """
-    try:
-        import inspect_viz.view as iv_view  # noqa: F401
-
-        return tuple(getattr(iv_view, n) for n in names)
-    except (ImportError, AttributeError) as e:
-        try:
-            import inspect_viz
-
-            installed = inspect_viz.__version__
-        except Exception:
-            installed = "(unknown)"
-        raise ImportError(
-            f"Could not import {list(names)} from inspect_viz.view "
-            f"(installed inspect_viz {installed}). cruijff_kit pins "
-            f"inspect-viz==0.3.5; older versions keep these names under "
-            f"inspect_viz.view.beta. Run: pip install 'inspect-viz==0.3.5'"
-        ) from e
-
-
 def main():
     """CLI: print the pinned-vs-installed table, exit nonzero on mismatch."""
     try:

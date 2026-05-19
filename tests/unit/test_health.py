@@ -134,24 +134,3 @@ class TestWarnOnMismatch:
                 health.warn_on_mismatch()
         version_warnings = [w for w in caught if "version mismatch" in str(w.message)]
         assert not version_warnings
-
-
-class TestImportInspectViews:
-    def test_returns_tuple_in_argument_order(self):
-        result = health.import_inspect_views("scores_by_task", "scores_heatmap")
-        assert isinstance(result, tuple)
-        assert len(result) == 2
-        # We can't assert callable identity without depending on inspect_viz internals,
-        # but they should be the same names
-        import inspect_viz.view
-
-        assert result[0] is inspect_viz.view.scores_by_task
-        assert result[1] is inspect_viz.view.scores_heatmap
-
-    def test_helpful_error_on_missing_name(self):
-        with pytest.raises(ImportError, match="inspect-viz==0.3.5"):
-            health.import_inspect_views("this_function_does_not_exist")
-
-    def test_single_name_returns_one_tuple(self):
-        result = health.import_inspect_views("scores_by_task")
-        assert len(result) == 1
