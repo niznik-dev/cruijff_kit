@@ -25,7 +25,7 @@ If `claude.local.md` is present but you suspect drift (placeholders not filled i
 
 ### Dependency version check
 
-Verify the installed deps match the exact pins in `pyproject.toml` before any design work begins. This catches the case where a user pulled a new cruijff_kit version that bumped a pinned dep but hasn't re-run `pip install -e .`. The import-time hook in `cruijff_kit/__init__.py` doesn't fire reliably until the env is resynced, so a standalone check is the only catcher in that window.
+Verify installed deps match the exact pins in `pyproject.toml` before any design work begins. `pip` won't re-resolve unless asked, so a user who pulled a new cruijff_kit version that bumped a pinned dep — but didn't re-run `pip install -e .` — has an env that silently drifts from the source tree.
 
 ```bash
 python scripts/check_env.py

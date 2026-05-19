@@ -24,6 +24,17 @@ This ensures the entire experiment is ready to execute from training through eva
 
 **Future tool support:** This orchestrator is designed to route to different worker subagents based on tool choices documented in experiment_summary.yaml. Future iterations may support additional frameworks.
 
+## Dependency version check
+
+Verify installed deps match the exact pins in `pyproject.toml` before scaffolding begins. `pip` won't re-resolve unless asked, so a user who pulled a new cruijff_kit version that bumped a pinned dep — but didn't re-run `pip install -e .` — has an env that silently drifts from the source tree.
+
+```bash
+python scripts/check_env.py
+```
+
+- **Exit 0** (`OK: N pinned deps match installed versions.`): proceed.
+- **Exit 1** (prints a `STALE ENV` table): stop, show the mismatch table to the user, and ask whether to run `pip install -e .` first or proceed anyway. Do not silently continue — pinned-but-mismatched deps are the failure mode behind issue #503.
+
 ## Workflow
 
 1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
