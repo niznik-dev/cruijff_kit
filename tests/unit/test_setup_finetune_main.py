@@ -108,6 +108,20 @@ class TestMainYamlGeneration:
         config, _ = run_main()
         assert config["batch_size_val"] == 64
 
+    def test_num_workers_and_persistent_workers_absent_by_default(self, run_main):
+        # No flags → neither key emitted. Recipes fall back to 0 / False.
+        config, _ = run_main()
+        assert "num_workers" not in config
+        assert "persistent_workers" not in config
+
+    def test_num_workers_via_cli(self, run_main):
+        config, _ = run_main(extra_args=["--num_workers", "4"])
+        assert config["num_workers"] == 4
+
+    def test_persistent_workers_via_cli(self, run_main):
+        config, _ = run_main(extra_args=["--persistent_workers", "true"])
+        assert config["persistent_workers"] is True
+
     def test_seed_default(self, run_main):
         """When seed is not specified, the default (14 — Cruijff's number) is used."""
         config, _ = run_main()
