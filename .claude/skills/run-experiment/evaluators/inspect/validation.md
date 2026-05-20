@@ -31,10 +31,12 @@ All should be:
 
 ### 4. Evaluation Logs Exist
 
-For each COMPLETED evaluation, verify inspect-ai log created:
+For each COMPLETED evaluation, verify inspect-ai log created in the cell directory (per-cell layout, issue #498):
 
 ```bash
-ls {run_dir}/eval/logs/*.eval
+ls {run_dir}/eval/{cell_name}/logs/*.eval
+# Or, to check across all cells in a run:
+ls {run_dir}/eval/*/logs/*.eval
 ```
 
 **Expected files:**
@@ -69,8 +71,8 @@ Verify `run-inspect.log` exists with:
 
 **If any evaluation FAILED:**
 - Note in validation output
-- Recommend checking SLURM log: `{run_dir}/eval/slurm-{job_id}.out`
-- Recommend checking inspect-ai logs if they exist
+- Recommend checking SLURM log: `{run_dir}/artifacts/epoch_N/slurm-{job_id}.out` (fine-tuned cell) or `{run_dir}/artifacts/slurm-{job_id}.out` (base cell). SLURM stdout follows the GPU-metrics destination, not the cell dir.
+- Recommend checking inspect-ai logs if they exist at `{run_dir}/eval/{cell_name}/logs/*.eval`
 - Partial success is acceptable (some evaluations succeeded)
 
 **If evaluation logs missing:**
@@ -100,8 +102,8 @@ Verify `run-inspect.log` exists with:
 
 **Warnings:**
 - r16_lr5e-5/capitalization/epoch0: Job FAILED (Job ID 12345693)
-  - Check: r16_lr5e-5/eval/slurm-12345693.out
-  - Check: r16_lr5e-5/eval/logs/ for error details
+  - Check: r16_lr5e-5/artifacts/epoch_0/slurm-12345693.out
+  - Check: r16_lr5e-5/eval/capitalization_epoch0/logs/ for error details
 ```
 
 ## Result Viewing Recommendations
@@ -113,13 +115,13 @@ inspect view --port=$(get_free_port)
 
 **Export results:**
 ```bash
-inspect log export {run_dir}/eval/logs/*.eval --format csv > results.csv
+inspect log export {run_dir}/eval/*/logs/*.eval --format csv > results.csv
 ```
 
 **Command-line summary:**
 ```bash
-for dir in */eval/logs; do
-  echo "=== $(dirname $(dirname $dir)) ==="
+for dir in */eval/*/logs; do
+  echo "=== $(dirname $(dirname $(dirname $dir)))/$(basename $(dirname $dir)) ==="
   inspect log ls $dir/*.eval
 done
 ```

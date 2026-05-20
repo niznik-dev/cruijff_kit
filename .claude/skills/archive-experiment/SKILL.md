@@ -163,9 +163,10 @@ the project name:
 │   ├── finetune.slurm
 │   ├── setup_finetune.yaml
 │   └── eval/
-│       ├── eval_config.yaml
-│       ├── {task}_epoch{N}.slurm
-│       └── logs/*.eval
+│       └── {task}_epoch{N}/       # One cell per (task, epoch) — issue #498
+│           ├── eval_config.yaml
+│           ├── cell.slurm
+│           └── logs/*.eval
 ├── analysis/
 │   ├── report.md
 │   └── *.html

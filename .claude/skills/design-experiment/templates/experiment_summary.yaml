@@ -210,7 +210,8 @@ evaluation:
         key: value                   # e.g., option_tokens: ["0", "1"] for risk_scorer
 
   tasks:
-    # REQUIRED: List of evaluation tasks
+    # REQUIRED: List of evaluation tasks. Each task expands into one cell per
+    # (run, epoch) at scaffold time — see issue #498 for the per-cell layout.
     - name: string                 # REQUIRED: Task identifier (e.g., "capitalization")
       script: string               # REQUIRED: Full path to inspect-ai task script
       description: string          # REQUIRED: Human-readable task description
@@ -220,6 +221,11 @@ evaluation:
                                    # scaffold-inspect resolves this to
                                    # {condition}_test_{hash8}.json via
                                    # cruijff_kit.tabular_to_text_gen.lib.config_hash.resolve_dataset_path
+      # OPTIONAL per-task overrides. When set, override the experiment-wide
+      # values for cells produced from this task. This lets two cells in the
+      # same run carry different prompts (e.g. cue vs. no-cue ablations).
+      # system_prompt: string      # Overrides evaluation.system_prompt for this task
+      # assistant_prefix: string   # Overrides evaluation.assistant_prefix for this task
 
   # OPTIONAL: Compute estimates for evaluation jobs (from prior runs)
   # Only present when design-experiment finds and uses prior compute data.

@@ -30,12 +30,18 @@ Each experiment lives in a single self-contained directory. The root contains th
 │   ├── setup_finetune.yaml      # Fine-tuning configuration input
 │   ├── finetune.yaml            # Generated torchtune config
 │   ├── finetune.slurm           # Generated SLURM script
-│   ├── eval/                    # Evaluation configs and results
-│   │   ├── eval_config.yaml     # Evaluation configuration
-│   │   ├── {task}_epoch{N}.slurm
-│   │   ├── slurm-*.out          # Eval SLURM stdout (when present)
-│   │   └── logs/                # inspect-ai evaluation logs
-│   │       └── *.eval
+│   ├── eval/                    # Evaluation configs and results, organized
+│   │   │                        # as one directory per cell — a (task, epoch)
+│   │   │                        # pair. Per-cell layout lets two cells in the
+│   │   │                        # same run carry different overrides
+│   │   │                        # (e.g. system_prompt) without colliding. See
+│   │   │                        # issue #498.
+│   │   └── {task}_epoch{N}/     # One cell per (task, epoch) — name omits
+│   │       │                    # `_epoch{N}` for base evals
+│   │       ├── eval_config.yaml # Per-cell evaluation configuration
+│   │       ├── cell.slurm       # Per-cell SLURM script (always named cell.slurm)
+│   │       └── logs/            # inspect-ai evaluation logs
+│   │           └── *.eval
 │   └── artifacts/               # Training artifacts (checkpoints + W&B + GPU metrics)
 │       ├── slurm-*.out          # Training SLURM stdout
 │       ├── gpu_metrics.csv      # GPU utilization from nvidia-smi
@@ -112,10 +118,11 @@ After archiving with `archive-experiment`, the experiment is mirrored under its 
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   └── eval/
-│       ├── eval_config.yaml
-│       ├── {task}_epoch{N}.slurm
-│       └── logs/
-│           └── *.eval
+│       └── {task}_epoch{N}/     # One cell per (task, epoch)
+│           ├── eval_config.yaml
+│           ├── cell.slurm
+│           └── logs/
+│               └── *.eval
 ├── analysis/                    # Reports and visualizations
 │   ├── report.md
 │   └── *.html
@@ -131,6 +138,7 @@ Symlinks are not archived. Per-run `artifacts/` directories are not archived (th
 | Job Type | `.out` Location |
 |----------|-----------------|
 | Fine-tuning (training) | `{experiment_dir}/{run_name}/artifacts/slurm-*.out`, plus a per-epoch copy at `{run_name}/artifacts/epoch_N/slurm-*.out` |
-| Evaluation | `{run_dir}/eval/slurm-*.out` |
+| Evaluation (fine-tuned cell) | `{run_dir}/artifacts/epoch_N/slurm-*.out` (eval GPU metrics land alongside the checkpoint) |
+| Evaluation (base/control cell) | `{run_dir}/artifacts/slurm-*.out` |
 
-Training jobs write `.out` files into the run's `artifacts/` directory, not the run dir root. Eval `.out` files live in `eval/` directly.
+Training jobs write `.out` files into the run's `artifacts/` directory. Eval `.out` files follow the GPU-metrics destination — for fine-tuned cells that's the per-epoch checkpoint directory, so the eval's `gpu_metrics.csv` lands next to the checkpoint it was measured against. The cell directory itself (`{run}/eval/{task}_epoch{N}/`) holds the configs, the slurm script, and the inspect-ai `.eval` logs, but not the SLURM stdout.

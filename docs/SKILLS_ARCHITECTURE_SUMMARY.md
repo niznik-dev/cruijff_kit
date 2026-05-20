@@ -130,10 +130,11 @@ ck-projects/{project}/{experiment_name}/
 │   ├── finetune.slurm
 │   ├── slurm-{jobid}.out          # From run-experiment (torchtune phase)
 │   └── eval/
-│       ├── {task}_epoch{N}.slurm  # From scaffold-inspect
-│       ├── slurm-{jobid}.out      # From run-experiment (inspect phase)
-│       └── logs/
-│           └── *.eval             # inspect-ai outputs
+│       └── {task}_epoch{N}/         # One cell per (task, epoch) — issue #498
+│           ├── eval_config.yaml     # From scaffold-inspect
+│           ├── cell.slurm           # From scaffold-inspect
+│           └── logs/
+│               └── *.eval           # inspect-ai outputs
 └── analysis/                      # From analyze-experiment
     ├── report.md
     └── *.html

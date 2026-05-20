@@ -133,7 +133,9 @@ def create_parser():
         "--output_slurm",
         type=str,
         default=None,
-        help="Output filename (default: {task_name}_epoch{epoch}.slurm)",
+        help="Output filename (default: cell.slurm — written into the current "
+        "directory, which scaffold-inspect places at "
+        "{run}/eval/{task}_epoch{N}/ so each cell is self-contained).",
     )
 
     return parser
@@ -370,16 +372,11 @@ def main():
     config = load_eval_config(cli_args.config)
     script = render_template(cli_args, config)
 
-    task_name = config["task_name"]
-    epoch = config.get("epoch")
-
-    # Determine output filename
-    if cli_args.output_slurm:
-        output_path = cli_args.output_slurm
-    elif epoch is not None:
-        output_path = f"{task_name}_epoch{epoch}.slurm"
-    else:
-        output_path = f"{task_name}.slurm"
+    # Default to cell.slurm so each cell directory is self-contained.
+    # scaffold-inspect places one cell per (run, task, epoch) at
+    # {run}/eval/{task}_epoch{N}/, and the cell-dir name encodes the
+    # task+epoch — the slurm name itself does not need to.
+    output_path = cli_args.output_slurm or "cell.slurm"
 
     with open(output_path, "w") as f:
         f.write(script)

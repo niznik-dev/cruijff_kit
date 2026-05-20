@@ -55,7 +55,7 @@ evaluators/
 Execute evaluation jobs using inspect-ai framework.
 
 **Workflow:**
-1. `parsing.md` - Parse experiment_summary.yaml, find eval/*.slurm scripts
+1. `parsing.md` - Parse experiment_summary.yaml, find eval/*/cell.slurm scripts (per-cell layout, issue #498)
 2. `dependency_checking.md` - **CRITICAL:** Verify fine-tuning complete, checkpoints exist
 3. `cache_prebuilding.md` - Pre-build HuggingFace datasets cache to prevent race conditions
 4. `evaluation_selection.md` - Decide which evaluations to submit (skip completed, skip runs with missing checkpoints)

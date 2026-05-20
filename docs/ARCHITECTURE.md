@@ -127,15 +127,15 @@ setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
 
 **Entry point:** `src/tools/inspect/setup_inspect.py` (reads `eval_config.yaml`, renders `eval_template.slurm`)
 
-**Process:**
+**Process** (per-cell layout, issue #498 — one cell directory per (task, epoch)):
 ```
-eval_config.yaml → setup_inspect.py → {task}_epoch{N}.slurm
-                                              ↓
-                                        sbatch {task}_epoch{N}.slurm
-                                              ↓
-                                        task-specific inspect task
-                                              ↓
-                                        inspect-ai evaluation
+eval/{cell_name}/eval_config.yaml → setup_inspect.py → eval/{cell_name}/cell.slurm
+                                                              ↓
+                                                        sbatch cell.slurm
+                                                              ↓
+                                                        task-specific inspect task
+                                                              ↓
+                                                        inspect-ai evaluation
 ```
 
 **Key files:**

@@ -34,7 +34,10 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   ├── artifacts/epoch_{N}/             # model checkpoints
-│   └── eval/                             # eval scripts and logs
+│   └── eval/{task}_epoch{N}/             # one cell per (task, epoch) — issue #498
+│       ├── eval_config.yaml
+│       ├── cell.slurm
+│       └── logs/*.eval                   # populated at eval time
 └── {run_name_2}/
     └── ...
 ```

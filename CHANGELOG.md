@@ -4,10 +4,16 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **Per-cell evaluation layout** — every `(run, task, epoch)` eval now lives in its own cell directory at `{run}/eval/{cell_name}/`, replacing the previous flat-eval layout where multiple cells shared a single `eval_config.yaml`. Each cell contains its own `eval_config.yaml`, `cell.slurm`, and `logs/`. This unblocks heterogeneous runs — two cells in the same run can carry different per-task overrides (e.g. `system_prompt`, `assistant_prefix`) without colliding. `submit_inspect` globs `*/eval/*/cell.slurm`; `setup_inspect.py` defaults its output to `cell.slurm`. **Breaking** for tooling that hard-coded the old `{run}/eval/{task}_epoch{N}.slurm` shape; in-repo callers (archive-experiment, scaffold-inspect agent, run-experiment evaluators) have been updated. (#498)
+- **Per-task `system_prompt` / `assistant_prefix` overrides** in `experiment_summary.yaml` under `evaluation.tasks[]` — when set, override the experiment-wide values for cells produced from that task. Enables cue-presence ablations and other prompt-variation experiments. (#498)
+
 ### Fixed
 
 - `report_generator` no longer emits an empty "Models evaluated: 0" report for `risk_scorer`-only experiments. When `*_accuracy` columns are absent but supplementary risk metrics exist, the report now renders a "Risk Metrics" section, derives `model_count` from the calibration results, and picks a best performer by AUC (or Brier) in the executive summary. `extract_calibration_metrics` also groups by `task_name` so per-task variation (e.g. cue vs no-cue) renders as separate rows. (#504)
 - `scaffold-inspect` now recognizes `assistant_prefix` in `eval_config.yaml` and renders it as a `-T assistant_prefix=...` flag in the generated SLURM script. Previously, the key was warned as unknown and dropped — base / Instruct models that needed a prefill to emit option tokens (`"0"` / `"1"`) for `risk_scorer` would silently produce all-NaN risk metrics. Values are emitted with strict YAML-double-quoted inside shell-single-quoted form so common cases like `"Answer: "` survive inspect-ai's per-value YAML parse. (#511)
+- `scaffold-inspect` no longer silently improvises when an experiment has per-cell overrides that don't fit the shared `eval_config.yaml` model. The COLING-cue trigger case (9 runs × 2 prompt cues per run = 18 cells) previously got a nested layout `submit_inspect` couldn't see, producing `ALL_COMPLETE: {}` on zero work. The scaffolder is now deterministic — each cell is materialized into a canonical `eval/{cell_name}/` directory. (#498)
 
 ## [0.3.1] - 2026-05-14
 

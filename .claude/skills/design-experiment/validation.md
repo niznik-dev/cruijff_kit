@@ -56,8 +56,8 @@ Run through this checklist before presenting the plan:
 - ✓ Wandb project name specified
 
 ### Evaluation Validation
-- ✓ System prompt matches training system prompt (controls.system_prompt)
-- ✓ **CRITICAL:** System prompt consistency is essential for inspect-ai
+- ✓ System prompt matches training system prompt (controls.system_prompt) **by default** — per-task overrides exist for experiments that intentionally probe prompt variations (e.g. cue-presence ablations); flag a mismatch only when no task-level override is set
+- ✓ **CRITICAL:** System prompt consistency is essential for inspect-ai *unless* a per-task override is in play
 - ✓ Temperature specified (typically 0.0)
 - ✓ Scorer specified and appropriate for task
 - ✓ All evaluation tasks listed with name, script, description
@@ -67,6 +67,7 @@ Run through this checklist before presenting the plan:
 - ✓ Control runs use `epochs: null`
 - ✓ Epochs are 0-indexed in matrix
 - ✓ Task names in matrix match tasks defined in evaluation.tasks
+- ✓ Optional per-task overrides (`system_prompt`, `assistant_prefix`) are strings if present
 
 ### Resources Validation
 - ✓ All verifications logged in design-experiment.log
