@@ -47,7 +47,13 @@ TASK_ARG_KEYS = [
     "top_logprobs",
     "temperature",
     "max_tokens",
+    "assistant_prefix",
 ]
+
+# Subset of TASK_ARG_KEYS whose values may contain YAML-significant characters
+# (e.g. ': ', leading '[' / '{', etc.) and so must be rendered with extra
+# quoting to survive inspect-ai's per-value YAML parse.
+YAML_PROTECTED_TASK_ARG_KEYS = {"assistant_prefix"}
 
 # Keys in eval_config.yaml that become --metadata args in the inspect command
 METADATA_ARG_KEYS = ["epoch", "finetuned", "source_model"]
@@ -211,7 +217,14 @@ def build_task_args(config):
     for key in TASK_ARG_KEYS:
         value = config.get(key)
         if value is not None:
-            lines.append(f'  -T {key}="{_format_value(value)}" \\')
+            if key in YAML_PROTECTED_TASK_ARG_KEYS:
+                # inspect-ai YAML-parses the value after -T key=, so a literal
+                # like "Answer: " would parse as {'Answer': None}. Wrap as
+                # YAML-double-quoted inside shell-single-quoted to preserve it.
+                escaped = str(value).replace('"', '\\"')
+                lines.append(f"  -T {key}='\"{escaped}\"' \\")
+            else:
+                lines.append(f'  -T {key}="{_format_value(value)}" \\')
     return "\n".join(lines) + "\n" if lines else ""
 
 
