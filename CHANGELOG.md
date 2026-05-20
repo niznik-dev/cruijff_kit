@@ -4,6 +4,10 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- `report_generator` no longer emits an empty "Models evaluated: 0" report for `risk_scorer`-only experiments. When `*_accuracy` columns are absent but supplementary risk metrics exist, the report now renders a "Risk Metrics" section, derives `model_count` from the calibration results, and picks a best performer by AUC (or Brier) in the executive summary. `extract_calibration_metrics` also groups by `task_name` so per-task variation (e.g. cue vs no-cue) renders as separate rows. (#504)
+
 ## [0.3.1] - 2026-05-14
 
 ### Added
