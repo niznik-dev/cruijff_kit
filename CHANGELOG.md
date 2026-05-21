@@ -13,6 +13,13 @@ All notable changes to cruijff_kit will be documented in this file.
 
 - **Per-cell evaluation layout** — every `(run, task, epoch)` eval now lives in its own cell directory at `{run}/eval/{cell_name}/`, replacing the previous flat-eval layout where multiple cells shared a single `eval_config.yaml`. Each cell contains its own `eval_config.yaml`, `cell.slurm`, and `logs/`. This unblocks heterogeneous runs — two cells in the same run can carry different per-task overrides (e.g. `system_prompt`, `assistant_prefix`) without colliding. `submit_inspect` globs `*/eval/*/cell.slurm`; `setup_inspect.py` defaults its output to `cell.slurm`. **Breaking** for tooling that hard-coded the old `{run}/eval/{task}_epoch{N}.slurm` shape; in-repo callers (archive-experiment, scaffold-inspect agent, run-experiment evaluators) have been updated. (#498)
 - **Per-task `system_prompt` / `assistant_prefix` overrides** in `experiment_summary.yaml` under `evaluation.tasks[]` — when set, override the experiment-wide values for cells produced from that task. Enables cue-presence ablations and other prompt-variation experiments. (#498)
+- **Recipe patching policy** documented in `CLAUDE.md` and `.claude/PR_CHECKLIST.md` — location-based rule for cruijff_kit divergences from torchtune: outside-`train()` patches are fine where they are; inside-`train()` patches require defensive guards (init validation + unit test). (#465)
+- `calculate_custom_metrics` is now wrapped in `try/except` with auto-disable in all 3 recipes; a buggy metric function logs a warning and disables custom metrics for the rest of the run instead of crashing training. (#465)
+- `epochs_to_save` is now validated at recipe init via the new `validate_epochs_to_save()` helper — misformatted values (out-of-range indices, empty lists, wrong types) raise `ValueError` with a clear message instead of silently producing zero-checkpoint runs. (#465)
+
+### Removed
+
+- **Embeddings extraction from the nightly recipe** (`get_embeddings`, `_get_embeddings`, `embeddings_output_path`) — the feature was broken (`.item()` on multi-element tensors, train mode never restored, double forward pass, never wrote to disk) and unused in any current config. #517 tracks a corrected reimplementation; original feature came from #54 / #77. (#465)
 
 ### Fixed
 

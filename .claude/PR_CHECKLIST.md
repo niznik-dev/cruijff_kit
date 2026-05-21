@@ -32,6 +32,7 @@ Consider whether these files need updates based on your changes:
 - [ ] **Clean up TODOs** - Either implement them or create issues for them
 - [ ] **Check imports** - Remove unused imports, verify relative imports are correct
 - [ ] **Verify paths** - Ensure no hardcoded paths (use claude.local.md patterns)
+- [ ] **Recipe patches (#465)** - If touching files in `src/tools/torchtune/custom_recipes/`, confirm the change satisfies the recipe-patching policy in CLAUDE.md. Patches inside `train()` or training-loop hooks need defensive guards (init validation + unit test).
 
 ## Testing
 
