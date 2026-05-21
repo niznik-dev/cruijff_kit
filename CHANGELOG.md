@@ -6,7 +6,13 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ### Added
 
+#### Evaluation & Metrics
 - `continuous_scorer` and ACS continuous-target tasks (`acs_age`, `acs_income_continuous`, `acs_hours`, `acs_commute`) for regression evals; reports `mae` / `rmse` / `r_squared` / `parse_rate` (#508, @EmnetSy, @sarahepedersen)
+
+### Fixed
+
+- `report_generator` no longer emits an empty "Models evaluated: 0" report for `risk_scorer`-only experiments. When `*_accuracy` columns are absent but supplementary risk metrics exist, the report now renders a "Risk Metrics" section, derives `model_count` from the calibration results, and picks a best performer by AUC (or Brier) in the executive summary. `extract_calibration_metrics` also groups by `task_name` so per-task variation (e.g. cue vs no-cue) renders as separate rows. (#504)
+- `scaffold-inspect` now recognizes `assistant_prefix` in `eval_config.yaml` and renders it as a `-T assistant_prefix=...` flag in the generated SLURM script. Previously, the key was warned as unknown and dropped — base / Instruct models that needed a prefill to emit option tokens (`"0"` / `"1"`) for `risk_scorer` would silently produce all-NaN risk metrics. Values are emitted with strict YAML-double-quoted inside shell-single-quoted form so common cases like `"Answer: "` survive inspect-ai's per-value YAML parse. (#511)
 
 ## [0.3.1] - 2026-05-14
 

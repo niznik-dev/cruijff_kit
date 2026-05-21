@@ -14,6 +14,7 @@ Usage:
 
 import argparse
 import os
+import warnings
 
 import yaml
 from pathlib import Path
@@ -44,10 +45,35 @@ TASK_ARG_KEYS = [
     "split",
     "logprobs",
     "top_logprobs",
+    "temperature",
+    "max_tokens",
+    "assistant_prefix",
 ]
+
+# Subset of TASK_ARG_KEYS whose values may contain YAML-significant characters
+# (e.g. ': ', leading '[' / '{', etc.) and so must be rendered with extra
+# quoting to survive inspect-ai's per-value YAML parse.
+YAML_PROTECTED_TASK_ARG_KEYS = {"assistant_prefix"}
 
 # Keys in eval_config.yaml that become --metadata args in the inspect command
 METADATA_ARG_KEYS = ["epoch", "finetuned", "source_model"]
+
+# Structural keys consumed by the SLURM renderer and the inspect task at runtime
+# (auto-derived or read directly, not arg-mapped). Anything outside the union of
+# TASK_ARG_KEYS + METADATA_ARG_KEYS + KNOWN_STRUCTURAL_KEYS is unknown and warned.
+KNOWN_STRUCTURAL_KEYS = {
+    "task_script",
+    "task_name",
+    "model_path",
+    "model_hf_name",
+    "output_dir",
+    "eval_dir",  # auto-derived in load_eval_config
+    "max_connections",  # inspect CLI flag, not a -T arg
+    # Read by the @task function at runtime, not by setup_inspect.py:
+    "scorer",
+    "system_prompt",
+    "prompt",
+}
 
 
 def create_parser():
@@ -144,6 +170,31 @@ def load_eval_config(config_path):
     if problem:
         raise ValueError(problem)
 
+    # Warn on keys we don't know what to do with — catches drift between
+    # scaffold-inspect's eval_config writer and this script's consumers.
+    known = set(TASK_ARG_KEYS) | set(METADATA_ARG_KEYS) | KNOWN_STRUCTURAL_KEYS
+    unknown = sorted(k for k in config.keys() if k not in known)
+    if unknown:
+        warnings.warn(
+            f"eval_config.yaml has keys not consumed by setup_inspect.py or the task: "
+            f"{unknown}. They will not reach the eval. If these should propagate, "
+            f"add them to TASK_ARG_KEYS / METADATA_ARG_KEYS.",
+            stacklevel=2,
+        )
+
+    # inspect-ai's HF provider runs with sampling enabled, which makes HF
+    # transformers build a TemperatureLogitsWarper that does `scores / temperature`.
+    # TemperatureLogitsWarper.__init__ raises ValueError for temperature <= 0
+    # (division by zero produces inf/NaN logits). Fail fast at scaffold time
+    # rather than letting a SLURM job crash hours later.
+    temperature = config.get("temperature")
+    if temperature is not None and temperature <= 0:
+        raise ValueError(
+            f"eval_config.yaml has temperature={temperature}, which HuggingFace's "
+            f"TemperatureLogitsWarper rejects (it would divide logits by zero). "
+            f"Use a small positive value (e.g. 1e-7) for near-greedy decoding."
+        )
+
     return config
 
 
@@ -166,7 +217,14 @@ def build_task_args(config):
     for key in TASK_ARG_KEYS:
         value = config.get(key)
         if value is not None:
-            lines.append(f'  -T {key}="{_format_value(value)}" \\')
+            if key in YAML_PROTECTED_TASK_ARG_KEYS:
+                # inspect-ai YAML-parses the value after -T key=, so a literal
+                # like "Answer: " would parse as {'Answer': None}. Wrap as
+                # YAML-double-quoted inside shell-single-quoted to preserve it.
+                escaped = str(value).replace('"', '\\"')
+                lines.append(f"  -T {key}='\"{escaped}\"' \\")
+            else:
+                lines.append(f'  -T {key}="{_format_value(value)}" \\')
     return "\n".join(lines) + "\n" if lines else ""
 
 

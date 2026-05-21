@@ -20,6 +20,17 @@ This ensures the entire experiment runs from training through evaluation with pr
 - Scaffolding complete (from scaffold-experiment skill)
 - SLURM cluster access
 
+## Dependency version check
+
+Run before proceeding to catch stale envs (user pulled new pins but didn't re-run `pip install -e .`):
+
+```bash
+python scripts/check_env.py
+```
+
+- **Exit 0**: proceed.
+- **Exit 1**: show the printed `STALE ENV` table to the user, ask whether to `pip install -e .` first or continue anyway.
+
 ## Workflow
 
 ### High-Level Steps

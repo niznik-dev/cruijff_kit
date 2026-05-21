@@ -50,6 +50,7 @@ class CalibrationResult:
     metrics: dict[str, Optional[float]]  # metric_name -> value (None if NA)
     sample_size: int
     epoch: Optional[int] = None
+    task_name: Optional[str] = None
 
 
 def extract_calibration_metrics(
@@ -76,8 +77,10 @@ def extract_calibration_metrics(
             sample_col = col
             break
 
-    # Group by model (and epoch if present)
+    # Group by model (and task_name / epoch if present)
     group_cols = ["model"]
+    if "task_name" in df.columns:
+        group_cols.append("task_name")
     if "epoch" in df.columns:
         group_cols.append("epoch")
 
@@ -86,8 +89,10 @@ def extract_calibration_metrics(
         # groupby with a list always returns tuple keys
         if not isinstance(group_key, tuple):
             group_key = (group_key,)
-        model_name = group_key[0]
-        epoch = group_key[1] if len(group_key) > 1 else None
+        group_dict = dict(zip(group_cols, group_key))
+        model_name = group_dict["model"]
+        task_name = group_dict.get("task_name")
+        epoch = group_dict.get("epoch")
 
         n = int(group_df[sample_col].iloc[0]) if sample_col else 0
 
@@ -110,6 +115,7 @@ def extract_calibration_metrics(
                 metrics=metric_values,
                 sample_size=n,
                 epoch=epoch,
+                task_name=task_name,
             )
         )
 
@@ -135,8 +141,13 @@ def _format_calibration_table(results: list[CalibrationResult]) -> str:
             if name not in all_metric_names:
                 all_metric_names.append(name)
 
+    show_task = any(r.task_name is not None for r in results)
+
     # Build header
-    headers = ["Model", "Epoch"]
+    headers = ["Model"]
+    if show_task:
+        headers.append("Task")
+    headers.append("Epoch")
     headers.extend(display_name(m) for m in all_metric_names)
     headers.append("Sample Size")
 
@@ -145,13 +156,29 @@ def _format_calibration_table(results: list[CalibrationResult]) -> str:
 
     lines = [header_line, separator]
 
-    # Sort by model name
-    sorted_results = sorted(results, key=lambda r: r.model_name)
+    def _epoch_sort_key(r: CalibrationResult) -> float:
+        if r.epoch is None or pd.isna(r.epoch):
+            return -1.0
+        return float(r.epoch)
+
+    # Sort by (model, task_name, epoch) so related rows cluster predictably
+    sorted_results = sorted(
+        results,
+        key=lambda r: (r.model_name, r.task_name or "", _epoch_sort_key(r)),
+    )
 
     for r in sorted_results:
-        epoch_str = str(r.epoch) if r.epoch is not None else "-"
+        if r.epoch is None or pd.isna(r.epoch):
+            epoch_str = "-"
+        elif float(r.epoch).is_integer():
+            epoch_str = str(int(r.epoch))
+        else:
+            epoch_str = str(r.epoch)
 
-        cells = [r.model_name, epoch_str]
+        cells = [r.model_name]
+        if show_task:
+            cells.append(r.task_name if r.task_name is not None else "-")
+        cells.append(epoch_str)
         for metric_name in all_metric_names:
             val = r.metrics.get(metric_name)
             cells.append(f"{val:.3f}" if val is not None else "-")
@@ -298,33 +325,65 @@ def extract_metrics(
     return metrics
 
 
-def generate_narrative(metrics: list[ModelMetrics]) -> str:
+def generate_narrative(
+    metrics: list[ModelMetrics],
+    calibration: Optional[list[CalibrationResult]] = None,
+) -> str:
     """
     Generate executive summary narrative.
 
+    When accuracy metrics are unavailable but calibration metrics are present
+    (e.g. ``risk_scorer``-only experiments), the narrative picks a best
+    performer using AUC (higher is better) or Brier score (lower is better),
+    in that order of preference.
+
     Args:
-        metrics: List of model metrics
+        metrics: List of model metrics (accuracy-based)
+        calibration: Optional calibration results for the same models;
+            used as a fallback when ``metrics`` is empty.
 
     Returns:
         Markdown-formatted narrative string
     """
-    if not metrics:
-        return "No model metrics available for analysis."
+    if metrics:
+        best = max(metrics, key=lambda m: m.accuracy)
 
-    best = max(metrics, key=lambda m: m.accuracy)
+        lines = [
+            f"**{best.name}** achieved the highest accuracy at "
+            f"**{best.accuracy:.1%}** (95% CI: {best.ci_lower:.1%}-{best.ci_upper:.1%}).",
+            f"\n{len(metrics)} model configurations were evaluated.",
+        ]
+        return "\n".join(lines)
 
-    lines = []
+    if calibration:
+        # Find a usable supplementary metric. Prefer AUC (higher better),
+        # then Brier (lower better). Match by suffix so the registry prefix
+        # ("risk_scorer_cruijff_kit/...") doesn't matter.
+        def _value_for(r: CalibrationResult, suffix: str) -> Optional[float]:
+            for name, val in r.metrics.items():
+                if name.endswith(suffix) and val is not None:
+                    return val
+            return None
 
-    # Best performer statement
-    lines.append(
-        f"**{best.name}** achieved the highest accuracy at "
-        f"**{best.accuracy:.1%}** (95% CI: {best.ci_lower:.1%}-{best.ci_upper:.1%})."
-    )
+        for metric_suffix, label, picker in (
+            ("auc_score", "AUC", max),
+            ("brier_score", "Brier score", min),
+        ):
+            scored = [(r, _value_for(r, metric_suffix)) for r in calibration]
+            scored = [(r, v) for r, v in scored if v is not None]
+            if scored:
+                best, best_val = picker(scored, key=lambda pair: pair[1])
+                lines = [
+                    f"**{best.model_name}** achieved the best {label} at "
+                    f"**{best_val:.3f}**.",
+                    f"\n{len(calibration)} model configurations were evaluated.",
+                ]
+                return "\n".join(lines)
 
-    # Model count
-    lines.append(f"\n{len(metrics)} model configurations were evaluated.")
+        # Calibration entries exist but no comparable metric across them.
+        return f"{len(calibration)} model configurations were evaluated."
 
-    return "\n".join(lines)
+    return "No model metrics available for analysis."
 
 
 def _format_model_table(
@@ -347,14 +406,14 @@ def _format_model_table(
     """
     # Collect supplementary column names (preserving order across results)
     supp_names: list[str] = []
-    cal_lookup: dict[tuple[str, Optional[int]], CalibrationResult] = {}
+    cal_lookup: dict[tuple[str, Optional[str], Optional[int]], CalibrationResult] = {}
     if calibration:
         for r in calibration:
-            # Build lookup by (model, epoch) — epoch may be int or float
+            # Build lookup by (model, task_name, epoch) — epoch may be int or float
             epoch_key = (
                 int(r.epoch) if r.epoch is not None and not pd.isna(r.epoch) else None
             )
-            cal_lookup[(r.model_name, epoch_key)] = r
+            cal_lookup[(r.model_name, r.task_name, epoch_key)] = r
             for name in r.metrics:
                 if name not in supp_names:
                     supp_names.append(name)
@@ -392,7 +451,11 @@ def _format_model_table(
             epoch_key = (
                 int(m.epoch) if m.epoch is not None and not pd.isna(m.epoch) else None
             )
-            cal = cal_lookup.get((m.name, epoch_key))
+            cal = cal_lookup.get((m.name, m.task_name, epoch_key))
+            # Fall back to task-agnostic lookup so calibration data without
+            # task_name still attaches to accuracy rows (e.g. older callers).
+            if cal is None:
+                cal = cal_lookup.get((m.name, None, epoch_key))
             for s in supp_names:
                 val = cal.metrics.get(s) if cal else None
                 cells.append(f"{val:.3f}" if val is not None else "-")
@@ -636,12 +699,26 @@ def generate_report(
     # Extract metrics
     metrics = extract_metrics(df)
 
-    # Generate narrative
-    narrative = generate_narrative(metrics)
+    # Detect supplementary metrics and extract calibration results up front so
+    # the narrative / model_count / table-selection logic can all see them.
+    detected = detect_metrics(df)
+    calibration_results = None
+    if detected.supplementary:
+        calibration_results = (
+            extract_calibration_metrics(df, detected.supplementary) or None
+        )
+
+    # Generate narrative (falls back to calibration when accuracy is absent)
+    narrative = generate_narrative(metrics, calibration_results)
 
     # Build report
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-    model_count = len(set(m.name for m in metrics))
+    if metrics:
+        model_count = len(set(m.name for m in metrics))
+    elif calibration_results:
+        model_count = len(set(r.model_name for r in calibration_results))
+    else:
+        model_count = 0
 
     header_parts = [
         f"**Experiment:** {experiment_name}",
@@ -687,28 +764,39 @@ def generate_report(
     if research_question:
         report_lines.append(research_question)
 
-    # Detect supplementary metrics and extract calibration results
-    detected = detect_metrics(df)
-    calibration_results = None
-    if detected.supplementary:
-        calibration_results = (
-            extract_calibration_metrics(df, detected.supplementary) or None
-        )
-
     # Evals run on the test split by convention
     eval_split_name = "test" if splits.get("test") else None
 
-    model_table, footnotes = _format_model_table(
-        metrics,
-        calibration_results,
-        eval_split_name=eval_split_name,
-    )
+    # When accuracy is absent but calibration is present (e.g. risk_scorer-only
+    # experiments), render a calibration-only table instead of an empty
+    # accuracy table.
+    calibration_only = not metrics and bool(calibration_results)
+
+    if calibration_only:
+        section_heading = "## Risk Metrics\n"
+        model_table = _format_calibration_table(calibration_results)
+        footnotes = []
+        sizes = {r.sample_size for r in calibration_results}
+        if len(sizes) == 1:
+            uniform_n = sizes.pop()
+            split_note = f" ({eval_split_name} split)" if eval_split_name else ""
+            footnotes.append(f"*Sample size: {uniform_n:,} per model{split_note}*")
+        footnotes.append(
+            '*C-ECE (Confidence ECE): "when I\'m X% confident, am I right X% of the time?" R-ECE (Risk ECE): "when I say P(Y=1)=X, is Y=1 X% of the time?" Both ECE and Brier: lower is better. AUC: higher is better.*'
+        )
+    else:
+        section_heading = "## Model Comparison\n"
+        model_table, footnotes = _format_model_table(
+            metrics,
+            calibration_results,
+            eval_split_name=eval_split_name,
+        )
 
     report_lines.extend(
         [
             "## Executive Summary\n",
             narrative + "\n",
-            "## Model Comparison\n",
+            section_heading,
             model_table + "\n",
         ]
     )

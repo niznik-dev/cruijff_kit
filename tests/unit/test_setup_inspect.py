@@ -163,6 +163,21 @@ class TestLoadEvalConfig:
         with pytest.raises(ValueError, match="missing required keys"):
             load_eval_config(str(config_file))
 
+    def test_assistant_prefix_not_warned_as_unknown(self, tmp_path, recwarn):
+        """assistant_prefix is in TASK_ARG_KEYS and must not trigger the
+        unknown-key warning (regression guard for #511)."""
+        config_file = tmp_path / "eval_config.yaml"
+        config_file.write_text(MINIMAL_EVAL_CONFIG + 'assistant_prefix: "Answer: "\n')
+        load_eval_config(str(config_file))
+        unknown_warnings = [
+            w
+            for w in recwarn.list
+            if "assistant_prefix" in str(w.message) and "not consumed" in str(w.message)
+        ]
+        assert unknown_warnings == [], (
+            f"assistant_prefix should not be warned as unknown; got: {unknown_warnings}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # _format_value (boolean normalization)
@@ -234,6 +249,39 @@ class TestBuildTaskArgs:
         config = make_config(use_chat_template=True)
         result = build_task_args(config)
         assert '-T use_chat_template="true"' in result
+
+    def test_assistant_prefix_renders(self):
+        """assistant_prefix appears as a -T line when present in config."""
+        config = make_config(assistant_prefix="Answer: ")
+        result = build_task_args(config)
+        assert "-T assistant_prefix=" in result
+
+    def test_assistant_prefix_yaml_protected_quoting(self):
+        """assistant_prefix uses single-quoted-double-quoted form so YAML-special
+        characters (e.g. ': ') survive inspect-ai's per-value YAML parse.
+
+        Regression guard for #511: the naive `-T key="value"` render parses
+        "Answer: " as `{'Answer': None}` because the colon-space tokenizes.
+        """
+        config = make_config(assistant_prefix="Answer: ")
+        result = build_task_args(config)
+        assert "-T assistant_prefix='\"Answer: \"' \\" in result
+
+    def test_assistant_prefix_escapes_embedded_double_quotes(self):
+        """A value containing literal double quotes is backslash-escaped."""
+        config = make_config(assistant_prefix='Say "yes": ')
+        result = build_task_args(config)
+        assert '-T assistant_prefix=\'"Say \\"yes\\": "\' \\' in result
+
+    def test_non_protected_string_keeps_legacy_quoting(self):
+        """vis_label (and other string keys not in YAML_PROTECTED_TASK_ARG_KEYS)
+        keep the current `-T key="value"` form so existing behavior is preserved.
+        """
+        config = make_config(vis_label="1B_ft")
+        result = build_task_args(config)
+        assert '-T vis_label="1B_ft"' in result
+        # And NOT the protected form
+        assert "-T vis_label='\"1B_ft\"'" not in result
 
 
 # ---------------------------------------------------------------------------
@@ -400,6 +448,16 @@ class TestRenderTemplate:
         meta_pos = script.index("--metadata epoch=")
         logdir_pos = script.index("--log-dir")
         assert task_pos < meta_pos < logdir_pos
+
+    def test_assistant_prefix_renders_in_slurm(self):
+        """End-to-end: assistant_prefix in config produces a correctly-quoted
+        -T line in the rendered SLURM script (regression guard for #511)."""
+        config = make_config(
+            data_path="/data/test.json",
+            assistant_prefix="Answer: ",
+        )
+        script = render_template(make_cli_args(), config)
+        assert "-T assistant_prefix='\"Answer: \"' \\" in script
 
 
 # ---------------------------------------------------------------------------
