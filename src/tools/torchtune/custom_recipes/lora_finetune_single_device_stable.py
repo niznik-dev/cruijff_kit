@@ -17,7 +17,11 @@ from omegaconf import DictConfig, ListConfig
 
 # !--- cruijff_kit patch ---!
 # Feature: adapter_config base-path rewrite (adapter-only saves) and stash_adapter_files (merged saves)
-from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import rewrite_adapter_config_base_path, stash_adapter_files
+from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
+    rewrite_adapter_config_base_path,
+    stash_adapter_files,
+    validate_epochs_to_save,
+)
 # !--- end cruijff_kit patch ---!
 
 from torch import nn
@@ -54,6 +58,7 @@ logger = setup_logger(__name__)
 # Conditional import of custom metrics
 try:
     from utils.finetune_custom_metrics import calculate_custom_metrics
+
     CUSTOM_METRICS_AVAILABLE = True
 except ImportError:
     CUSTOM_METRICS_AVAILABLE = False
@@ -190,9 +195,15 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Both save_last_epoch_only and epochs_to_save are in use. The value for save_last_epoch_only takes precedence but will be removed in a future release.",
             )
         self._save_last_epoch_only = cfg.get("save_last_epoch_only", False)
-        self._epochs_to_save = [self.total_epochs - 1] if self._save_last_epoch_only else cfg.get("epochs_to_save", 'all')
-        if self._epochs_to_save == 'all':
-            self._epochs_to_save = list(range(self.total_epochs))
+        raw_epochs_to_save = (
+            [self.total_epochs - 1]
+            if self._save_last_epoch_only
+            else cfg.get("epochs_to_save", "all")
+        )
+        # Guarded (#465): fail loud on misformatted epochs_to_save so users don't end up with a zero-checkpoint run.
+        self._epochs_to_save = validate_epochs_to_save(
+            raw_epochs_to_save, self.total_epochs
+        )
         # Base-model checkpoint_dir (used to rewrite adapter_config.json after save)
         self._base_model_path = cfg.checkpointer.checkpoint_dir
         # !--- end cruijff_kit patch ---!
@@ -453,7 +464,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             assert (
                 cfg_profiler.get("_component_")
                 == "torchtune.training.setup_torch_profiler"
-            ), "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
+            ), (
+                "Only torch profiler supported currently: component must be `torchtune.training.setup_torch_profiler`"
+            )
 
         profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
@@ -692,15 +705,26 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             logits = self._model(**batch)
 
         # !--- cruijff_kit patch ---!
-        # Feature: custom_metrics - Calculate custom metrics before computing loss
-        # We do this here because the logits are needed for custom metrics
+        # Feature: custom_metrics - Calculate custom metrics before computing loss.
+        # Guarded (#465): if the metrics function raises, log once and auto-disable
+        # so a buggy metric doesn't kill an entire training run.
         if self._calculate_custom_metrics:
-            metrics = calculate_custom_metrics(logits, labels, self._tokenizer, self._loss_fn.ignore_index)
-            for metric_name, metric_value in metrics.items():
-                if isinstance(metric_value, torch.Tensor):
-                    self._custom_metrics[metric_name] = metric_value.detach().item()
-                else:
-                    self._custom_metrics[metric_name] = metric_value
+            try:
+                metrics = calculate_custom_metrics(
+                    logits, labels, self._tokenizer, self._loss_fn.ignore_index
+                )
+                for metric_name, metric_value in metrics.items():
+                    if isinstance(metric_value, torch.Tensor):
+                        self._custom_metrics[metric_name] = metric_value.detach().item()
+                    else:
+                        self._custom_metrics[metric_name] = metric_value
+            except Exception as e:
+                log.warning(
+                    f"calculate_custom_metrics raised {type(e).__name__}: {e}. "
+                    "Disabling custom metrics for the rest of this run."
+                )
+                self._calculate_custom_metrics = False
+                self._custom_metrics = {}
         # !--- end cruijff_kit patch ---!
 
         # Shift labels to compute loss
@@ -784,7 +808,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         loss_to_log = running_loss.item() / num_tokens
                         pbar.set_description(
                             f"{curr_epoch + 1}|{self.global_step}|Loss: {loss_to_log}",
-                            refresh=False
+                            refresh=False,
                         )
                         pbar.update(1)
 
@@ -864,7 +888,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # model.safetensors loads (otherwise transformers' PEFT
                     # auto-detection picks adapter+base over the merged file).
                     if self._save_adapter_weights_only:
-                        rewrite_adapter_config_base_path(self._output_dir, curr_epoch, self._base_model_path, log)
+                        rewrite_adapter_config_base_path(
+                            self._output_dir, curr_epoch, self._base_model_path, log
+                        )
                     else:
                         stash_adapter_files(self._output_dir, curr_epoch, log)
                 else:
