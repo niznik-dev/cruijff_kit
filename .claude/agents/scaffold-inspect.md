@@ -137,7 +137,7 @@ scorer:
 ```
 
 Extract for each scorer:
-- `name` - Scorer identifier (e.g., "match", "includes", "risk_scorer")
+- `name` - Scorer identifier (e.g., "match", "includes", "risk_scorer" for binary/classification tasks; "continuous_scorer" for continuous/regression tasks)
 - `params` - Optional dict of parameters to pass to the scorer (e.g., `{option_tokens: ["0", "1"]}`)
 
 **Backward compatibility:** If `evaluation.scorer` is a plain string (e.g., `"match"`), treat it as a single scorer with no params: `[{name: "match"}]`.
@@ -196,8 +196,10 @@ For each evaluation task in the experiment:
    - Continue with other tasks (don't fail completely)
 
 4. **Verify task is compatible with experiment:**
-   - Task should accept `data_path`, `prompt`, and `system_prompt` parameters
-   - These are the standard parameters for chat_completion-trained models
+   - Task should accept `data_path` and `config_path` parameters
+   - `prompt` and `system_prompt` are *not* passed directly — they live in the
+     `eval_config.yaml` that `config_path` points to, and the task reads them at
+     runtime (see "Handling Different Evaluation Scenarios" below)
    - Check docstring/parameters if accessible
 
 ## Handling Control Model Evaluation
