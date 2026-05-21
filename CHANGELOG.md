@@ -4,6 +4,11 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+#### Evaluation & Metrics
+- `continuous_scorer` and ACS continuous-target tasks (`acs_age`, `acs_income_continuous`, `acs_hours`, `acs_commute`) for regression evals; reports `mae` / `rmse` / `r_squared` / `parse_rate` (#508, @EmnetSy, @sarahepedersen)
+
 ### Fixed
 
 - `report_generator` no longer emits an empty "Models evaluated: 0" report for `risk_scorer`-only experiments. When `*_accuracy` columns are absent but supplementary risk metrics exist, the report now renders a "Risk Metrics" section, derives `model_count` from the calibration results, and picks a best performer by AUC (or Brier) in the executive summary. `extract_calibration_metrics` also groups by `task_name` so per-task variation (e.g. cue vs no-cue) renders as separate rows. (#504)
