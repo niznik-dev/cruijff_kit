@@ -30,18 +30,18 @@ For experiments with multiple runs (e.g., parameter sweeps):
      sleep 5
    done
    ```
-5. Once fine-tuning completes, set up evaluation. Each run gets an `eval/` subdirectory with an `eval_config.yaml` (see `.claude/skills/scaffold-experiment/evaluators/inspect_agent.md` for the full schema). Render the eval SLURM scripts:
+5. Once fine-tuning completes, set up evaluation. Each run gets an `eval/` subdirectory holding one **cell directory per (task, epoch)** pair (per-cell layout, issue #498). Each cell directory contains its own `eval_config.yaml`. Render the per-cell SLURM script (`cell.slurm`) from inside each cell dir:
    ```bash
-   for dir in run_*/eval/; do
+   for dir in run_*/eval/*/; do
      (cd "$dir" && python -m cruijff_kit.tools.inspect.setup_inspect \
        --config eval_config.yaml \
        --model_name Llama-3.2-1B-Instruct)
    done
    ```
-   This produces one `{task}_epoch{N}.slurm` per checkpoint. Submit them:
+   This produces one `cell.slurm` per cell. Submit them:
    ```bash
-   for slurm in run_*/eval/*_epoch*.slurm; do
-     (cd "$(dirname "$slurm")" && sbatch "$(basename "$slurm")")
+   for slurm in run_*/eval/*/cell.slurm; do
+     (cd "$(dirname "$slurm")" && sbatch cell.slurm)
    done
    ```
    View results with `inspect view` (on della, append `--port=$(get_free_port)`).

@@ -39,9 +39,10 @@ Each of `Llama-3.2-1B-Instruct_rank4/` and `Llama-3.2-1B-Instruct_rank8/` should
 - `setup_finetune.yaml`
 - `finetune.yaml`
 - `finetune.slurm`
-- `eval/capitalization_epoch0.slurm`
-- `slurm-*.out` (training log)
-- `eval/logs/*.eval` (evaluation log)
+- `eval/capitalization_epoch0/eval_config.yaml`
+- `eval/capitalization_epoch0/cell.slurm`
+- `slurm-*.out` (training log; eval slurm-*.out lands under `artifacts/epoch_0/`)
+- `eval/capitalization_epoch0/logs/*.eval` (evaluation log)
 
 ## Validation checks
 

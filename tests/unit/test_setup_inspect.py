@@ -695,8 +695,9 @@ class TestCreateParser:
 
 
 class TestMain:
-    def test_writes_output_with_epoch(self, tmp_path, monkeypatch):
-        """main() writes {task_name}_epoch{N}.slurm when epoch is set."""
+    def test_writes_cell_slurm_with_epoch(self, tmp_path, monkeypatch):
+        """main() writes cell.slurm when epoch is set. The cell directory
+        name (containing the slurm) encodes task+epoch — issue #498."""
         config_file = tmp_path / "eval_config.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG + "epoch: 0\n")
 
@@ -713,13 +714,15 @@ class TestMain:
         monkeypatch.chdir(tmp_path)
         main()
 
-        output = tmp_path / "my_task_epoch0.slurm"
+        output = tmp_path / "cell.slurm"
         assert output.exists()
         content = output.read_text()
         assert "inspect eval" in content
+        # Old filenames should never be produced by the default path
+        assert not (tmp_path / "my_task_epoch0.slurm").exists()
 
-    def test_writes_output_without_epoch(self, tmp_path, monkeypatch):
-        """main() writes {task_name}.slurm when epoch is not set."""
+    def test_writes_cell_slurm_without_epoch(self, tmp_path, monkeypatch):
+        """main() writes cell.slurm when epoch is not set (base eval)."""
         config_file = tmp_path / "eval_config.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG)
 
@@ -736,11 +739,11 @@ class TestMain:
         monkeypatch.chdir(tmp_path)
         main()
 
-        output = tmp_path / "my_task.slurm"
-        assert output.exists()
+        assert (tmp_path / "cell.slurm").exists()
+        assert not (tmp_path / "my_task.slurm").exists()
 
     def test_output_slurm_override(self, tmp_path, monkeypatch):
-        """--output_slurm overrides the default filename."""
+        """--output_slurm overrides the default cell.slurm filename."""
         config_file = tmp_path / "eval_config.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG + "epoch: 0\n")
 
@@ -760,4 +763,4 @@ class TestMain:
         main()
 
         assert (tmp_path / "custom.slurm").exists()
-        assert not (tmp_path / "my_task_epoch0.slurm").exists()
+        assert not (tmp_path / "cell.slurm").exists()

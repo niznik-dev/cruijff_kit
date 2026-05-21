@@ -1,8 +1,8 @@
 """Submit-and-monitor entrypoint for inspect-ai evaluation runs.
 
-Drip-feeds every `<run>/eval/*.slurm` file under an experiment directory,
-emits canonical SUBMIT_EVAL log blocks, and persists resume state. See
-`_submit_common.py` for shared logic.
+Drip-feeds every `<run>/eval/<cell>/cell.slurm` file under an experiment
+directory, emits canonical SUBMIT_EVAL log blocks, and persists resume
+state. See `_submit_common.py` for shared logic.
 
 Drip-feed (5-second stagger, 25-job queue cap) applies on this side too —
 the HF datasets cache race that hits fine-tunes also hits evals when many
@@ -12,7 +12,8 @@ Usage:
     python -m cruijff_kit.tools.run.submit_inspect <experiment_dir>
 
 Reads:
-    {experiment_dir}/<run>/eval/*.slurm
+    {experiment_dir}/<run>/eval/<cell>/cell.slurm
+    {experiment_dir}/<run>/eval/<cell>/eval_config.yaml
 
 Writes:
     {experiment_dir}/logs/run-inspect.log
@@ -44,33 +45,32 @@ LOG_NAME = "run-inspect.log"
 STATE_NAME = "run-inspect.state.json"
 
 
-def _eval_name(run_dir_name: str, slurm_name: str) -> str:
+def _eval_name(run_dir_name: str, cell_dir_name: str) -> str:
     """Build a SUBMIT_EVAL identifier matching the analyze-experiment regex `[\\w./-]+`.
 
+    The cell-dir name encodes task (+ epoch for fine-tuned runs):
+
     Examples:
-      ("Llama-3.2-1B-Instruct_base",  "capitalization.slurm")        -> "Llama-3.2-1B-Instruct_base/capitalization"
-      ("Llama-3.2-1B-Instruct_rank4", "capitalization_epoch0.slurm") -> "Llama-3.2-1B-Instruct_rank4/capitalization/epoch0"
+      ("Llama-3.2-1B-Instruct_base",  "capitalization")          -> "Llama-3.2-1B-Instruct_base/capitalization"
+      ("Llama-3.2-1B-Instruct_rank4", "capitalization_epoch0")   -> "Llama-3.2-1B-Instruct_rank4/capitalization/epoch0"
     """
-    base = slurm_name
-    if base.endswith(".slurm"):
-        base = base[: -len(".slurm")]
-    if "_epoch" in base:
-        task, epoch = base.split("_epoch", 1)
+    if "_epoch" in cell_dir_name:
+        task, epoch = cell_dir_name.split("_epoch", 1)
         return f"{run_dir_name}/{task}/epoch{epoch}"
-    return f"{run_dir_name}/{base}"
+    return f"{run_dir_name}/{cell_dir_name}"
 
 
 def _build_todo(experiment_dir: Path) -> list[TodoItem]:
-    """Return a TodoItem for each *.slurm under any */eval/ subdirectory."""
+    """Return a TodoItem for each cell.slurm under any */eval/<cell>/ subdir."""
     todo: list[TodoItem] = []
-    for slurm_path in sorted(experiment_dir.glob("*/eval/*.slurm")):
-        eval_dir = slurm_path.parent
-        run_dir = eval_dir.parent
+    for slurm_path in sorted(experiment_dir.glob("*/eval/*/cell.slurm")):
+        cell_dir = slurm_path.parent
+        run_dir = cell_dir.parent.parent
         todo.append(
             TodoItem(
-                work_dir=eval_dir,
+                work_dir=cell_dir,
                 slurm_name=slurm_path.name,
-                name=_eval_name(run_dir.name, slurm_path.name),
+                name=_eval_name(run_dir.name, cell_dir.name),
             )
         )
     return todo
@@ -82,7 +82,7 @@ def _preflight_adapter_base_paths(experiment_dir: Path) -> None:
     where pretrained-llms/ has moved between fine-tune and eval.
     """
     problems: list[str] = []
-    for cfg_path in sorted(experiment_dir.glob("*/eval/eval_config.yaml")):
+    for cfg_path in sorted(experiment_dir.glob("*/eval/*/eval_config.yaml")):
         cfg = yaml.safe_load(cfg_path.read_text()) or {}
         model_path = cfg.get("model_path")
         if not model_path:

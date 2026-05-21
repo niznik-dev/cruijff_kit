@@ -92,7 +92,7 @@ Current: COMPLETED
 Completed: 2025-11-11 14:50:12
 Elapsed: 4m 52s
 Action: Updated run state
-Result log: r8_lr1e-5/eval/logs/
+Result log: r8_lr1e-5/eval/capitalization_epoch0/logs/
 ```
 
 ## Post-Completion Metrics & GPU Status

@@ -156,12 +156,15 @@ def _write_eval_experiment(
     tmp_path: Path,
     runs_with_evals: dict[str, list[str]],
 ) -> Path:
-    """`runs_with_evals` maps run_dir name -> list of eval slurm filenames."""
-    for run_name, eval_files in runs_with_evals.items():
-        eval_dir = tmp_path / run_name / "eval"
-        eval_dir.mkdir(parents=True, exist_ok=True)
-        for ef in eval_files:
-            (eval_dir / ef).write_text("#!/bin/bash\n")
+    """`runs_with_evals` maps run_dir name -> list of cell names (e.g.
+    'capitalization', 'capitalization_epoch0'). Per-cell layout (#498):
+    each cell gets its own directory containing cell.slurm.
+    """
+    for run_name, cell_names in runs_with_evals.items():
+        for cell in cell_names:
+            cell_dir = tmp_path / run_name / "eval" / cell
+            cell_dir.mkdir(parents=True, exist_ok=True)
+            (cell_dir / "cell.slurm").write_text("#!/bin/bash\n")
     return tmp_path
 
 
@@ -203,8 +206,8 @@ class TestCanonicalLogShape:
         _write_eval_experiment(
             tmp_path,
             {
-                "Llama_base": ["capitalization.slurm"],
-                "Llama_rank4": ["capitalization_epoch0.slurm"],
+                "Llama_base": ["capitalization"],
+                "Llama_rank4": ["capitalization_epoch0"],
             },
         )
 
@@ -394,12 +397,17 @@ class TestEvalCollisionRegression:
         """Pre-#451 regression: when two runs each had `eval/capitalization.slurm`,
         keying by `work_dir.name == 'eval'` collapsed both entries onto one
         state-file key. Resume after interruption then re-submitted everything
-        as duplicates."""
+        as duplicates.
+
+        Under the per-cell layout (issue #498), each run now has its own cell
+        directory (`{run}/eval/capitalization/cell.slurm`), so state-key
+        distinctness is doubly enforced by the {run}/eval/{cell}/cell.slurm path.
+        """
         _write_eval_experiment(
             tmp_path,
             {
-                "run_a": ["capitalization.slurm"],
-                "run_b": ["capitalization.slurm"],
+                "run_a": ["capitalization"],
+                "run_b": ["capitalization"],
             },
         )
 
@@ -415,8 +423,8 @@ class TestEvalCollisionRegression:
         submit_inspect.run(tmp_path, user="testuser", max_submit=10)
 
         state = json.loads((tmp_path / "logs" / "run-inspect.state.json").read_text())
-        assert "run_a/eval/capitalization.slurm" in state
-        assert "run_b/eval/capitalization.slurm" in state
+        assert "run_a/eval/capitalization/cell.slurm" in state
+        assert "run_b/eval/capitalization/cell.slurm" in state
         assert len(state) == 2
 
 
@@ -657,7 +665,7 @@ class TestStatus:
         (logs_dir / "run-inspect.state.json").write_text(
             json.dumps(
                 {
-                    "rank4/eval/cap.slurm": {
+                    "rank4/eval/cap/cell.slurm": {
                         "job_id": "1001",
                         "submitted_at": "2026-05-11 14:30:00",
                         "state": "RUNNING",
@@ -671,7 +679,7 @@ class TestStatus:
 
         assert set(snapshots.keys()) == {"torchtune", "inspect"}
         assert snapshots["torchtune"]["rank4/finetune.slurm"]["state"] == "COMPLETED"
-        assert snapshots["inspect"]["rank4/eval/cap.slurm"]["state"] == "RUNNING"
+        assert snapshots["inspect"]["rank4/eval/cap/cell.slurm"]["state"] == "RUNNING"
 
     def test_snapshot_skips_missing_state_files(self, tmp_path, fake_slurm):
         (tmp_path / "logs").mkdir()
@@ -715,7 +723,7 @@ class TestStatus:
                 }
             },
             "inspect": {
-                "rank4/eval/cap.slurm": {
+                "rank4/eval/cap/cell.slurm": {
                     "job_id": "1001",
                     "submitted_at": "2026-05-11 14:30:00",
                     "state": "RUNNING",

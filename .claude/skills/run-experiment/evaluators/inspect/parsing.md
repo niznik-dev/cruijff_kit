@@ -66,7 +66,7 @@ For each entry in evaluation matrix:
 - Run name from YAML (`evaluation.matrix[].run`)
 - Task list from YAML (`evaluation.matrix[].tasks`)
 - Epoch list from YAML (`evaluation.matrix[].epochs`)
-- Path to SLURM script (`{run_name}/eval/{task}_epoch{N}.slurm` or `{run_name}/eval/{task}_base.slurm`)
+- Path to SLURM script (`{run_name}/eval/{task}_epoch{N}/cell.slurm` for fine-tuned; `{run_name}/eval/{task}/cell.slurm` for base — per-cell layout from issue #498)
 - Expected model checkpoint path (if fine-tuned run)
 - Verify directories exist
 

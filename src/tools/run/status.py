@@ -103,7 +103,7 @@ def format_table(snapshots: dict[str, dict]) -> str:
         return "No state files found under logs/. Has run-experiment been invoked yet?"
 
     # Width the key column to the widest entry across both tools so eval
-    # paths like `<run>/eval/<task>_epoch<N>.slurm` don't get truncated.
+    # paths like `<run>/eval/<task>_epoch<N>/cell.slurm` don't get truncated.
     keys = [k for state in snapshots.values() for k in state]
     maxw = max((len(k) for k in keys), default=20)
 
