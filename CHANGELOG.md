@@ -4,6 +4,11 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+#### Evaluation & Metrics
+- `continuous_scorer` and ACS continuous-target tasks (`acs_age`, `acs_income_continuous`, `acs_hours`, `acs_commute`) for regression evals; reports `mae` / `rmse` / `r_squared` / `parse_rate` (#508, @EmnetSy, @sarahepedersen)
+
 ### Changed
 
 - **Per-cell evaluation layout** — every `(run, task, epoch)` eval now lives in its own cell directory at `{run}/eval/{cell_name}/`, replacing the previous flat-eval layout where multiple cells shared a single `eval_config.yaml`. Each cell contains its own `eval_config.yaml`, `cell.slurm`, and `logs/`. This unblocks heterogeneous runs — two cells in the same run can carry different per-task overrides (e.g. `system_prompt`, `assistant_prefix`) without colliding. `submit_inspect` globs `*/eval/*/cell.slurm`; `setup_inspect.py` defaults its output to `cell.slurm`. **Breaking** for tooling that hard-coded the old `{run}/eval/{task}_epoch{N}.slurm` shape; in-repo callers (archive-experiment, scaffold-inspect agent, run-experiment evaluators) have been updated. (#498)

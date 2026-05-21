@@ -24,9 +24,9 @@ All tasks use the same 10 demographic features but predict different outcomes:
 - **Source**: American Community Survey (ACS) PUMS 2018 via [folktexts](https://huggingface.co/datasets/acruz/folktexts)
 - **Pinned revision**: `ad89c177` (2024-11-28) — see `FOLKTEXTS_REVISION` in `generate_data.py`
 
-## Evaluation Task
+## Binary Evaluation Task
 
-All ACS tasks use a single unified inspect-ai script with task-specific aliases:
+All five binary ACS tasks use a single unified inspect-ai script with task-specific aliases. Continuous-target prediction uses a separate script — see [Continuous Variable Prediction](#continuous-variable-prediction).
 
 **Script:** `blueprints/folktexts/inspect_task.py`
 
@@ -93,6 +93,57 @@ inspect eval inspect_task.py@acs_income --model hf/local \
 ### Scoring
 
 Exact match on binary output: `"1"` (positive class) or `"0"` (negative class).
+
+## Continuous Variable Prediction
+
+The tasks above predict **binary** outcomes. The same ACS data also supports **continuous** (regression) targets — predicting a raw numeric value (age, income, hours worked, commute time) instead of a class.
+
+### Data preparation
+
+Continuous datasets come from the tabular-to-text pipeline (`src/tabular_to_text_gen/convert.py`, or the `convert-tabular-to-text` skill), which renders each ACS PUMS row as description text. To produce a continuous target, **omit `--target-threshold`** (or set `target.threshold: null` in the YAML) so the raw numeric value flows through to the `output` field.
+
+Available continuous targets in the ACS schema (`src/tabular_to_text_gen/schemas/acs_example.yaml`):
+
+| Target | Column | Range (US PUMS 2018) |
+|--------|--------|----------------------|
+| Age | `AGEP` | 0–95 years |
+| Income (personal yearly) | `PINCP` | ≈ −$15k – $1.5M (negative values = losses) |
+| Hours worked / week | `WKHP` | 1–99 hours |
+| Commute time | `JWMNP` | 1–200 min |
+
+### Evaluation task
+
+Continuous prediction uses a separate inspect-ai script, `blueprints/folktexts/inspect_task_acs_continuous.py`, with regression scoring.
+
+**Aliases:** `@acs_age`, `@acs_income_continuous`, `@acs_hours`, `@acs_commute`, plus `@acs_continuous` (generic, for custom task names).
+
+```bash
+inspect eval blueprints/folktexts/inspect_task_acs_continuous.py@acs_income_continuous \
+    --model hf/local \
+    -M model_path=/path/to/checkpoint/epoch_0 \
+    -T data_path=/path/to/pincp_continuous_test.json \
+    -T config_path=/path/to/eval_config.yaml
+```
+
+Task parameters mirror `inspect_task.py` (see the table above), except `max_tokens` defaults to `10` rather than `5` — continuous answers can be multi-digit.
+
+### Scoring (continuous)
+
+Regression metrics via `continuous_scorer` (registered in `src/tools/inspect/scorers/`):
+
+| Metric | Description |
+|--------|-------------|
+| `mae` | Mean Absolute Error |
+| `rmse` | Root Mean Squared Error |
+| `r_squared` | Coefficient of determination (R²=0 means predicting the target mean) |
+| `parse_rate` | Fraction of model outputs successfully parsed as numbers |
+
+Enable it in the eval config YAML:
+
+```yaml
+scorer:
+  - name: continuous_scorer
+```
 
 ## Research Questions
 

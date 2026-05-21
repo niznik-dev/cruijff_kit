@@ -8,6 +8,7 @@
 from inspect_ai.scorer import match, includes
 from .risk_scorer import risk_scorer
 from .numeric_risk_scorer import numeric_risk_scorer
+from .continuous_scorer import continuous_scorer
 from .calibration_metrics import (
     expected_calibration_error as expected_calibration_error,
     brier_score as brier_score,
@@ -21,6 +22,7 @@ SCORER_FACTORIES = {
     "includes": includes,
     "risk_scorer": risk_scorer,
     "numeric_risk_scorer": numeric_risk_scorer,
+    "continuous_scorer": continuous_scorer,
 }
 
 # Registry of available scorers and their constructors.
@@ -35,6 +37,9 @@ SCORER_REGISTRY = {
     "risk_scorer": lambda params: risk_scorer(**params) if params else risk_scorer(),
     "numeric_risk_scorer": lambda params: (
         numeric_risk_scorer(**params) if params else numeric_risk_scorer()
+    ),
+    "continuous_scorer": lambda params: (
+        continuous_scorer(**params) if params else continuous_scorer()
     ),
 }
 

@@ -1,5 +1,11 @@
 # acs_example.yaml — Schema for ACS 2018 1-Year PUMS
 #
+# Supports the follow Inspect tasks:
+# ACSIncome, ACSEmployment, ACSMobility, ACSPublicCoverage, and ACSTravelTime.
+#
+# PUMA and POBP are present in folktexts but omitted here: their Census code lists run to
+# hundreds/thousands of values, inflating the sample schema.
+#
 # Codebook: https://api.census.gov/data/2018/acs/acs1/pums/variables/
 
 dataset:
@@ -845,3 +851,367 @@ columns:
     restatements:
       - "This person lives in {value}"
       - "They reside in {value}"
+
+  WKHP:
+    display_name: "usual hours worked per week"
+    type: numeric
+    unit: "hours per week"
+    synonyms:
+      - "usual hours worked per week"
+      - "weekly hours worked"
+      - "work hours per week"
+    shorthand_map: {}
+    restatements:
+      - "This person usually works {value} hours per week"
+      - "They work {value} hours in a typical week"
+
+  JWMNP:
+    display_name: "travel time to work"
+    type: numeric
+    unit: "minutes"
+    synonyms:
+      - "travel time to work"
+      - "commute time"
+      - "commute duration"
+    shorthand_map: {}
+    restatements:
+      - "This person's commute to work takes {value} minutes"
+      - "They travel {value} minutes to get to work"
+
+  POVPIP:
+    display_name: "income-to-poverty ratio"
+    type: numeric
+    unit: "percent of the poverty threshold"
+    synonyms:
+      - "income-to-poverty ratio"
+      - "poverty ratio"
+      - "income relative to the poverty line"
+    shorthand_map: {}
+    restatements:
+      - "This person's income is {value} percent of the poverty threshold"
+      - "Their income-to-poverty ratio is {value}"
+
+  RELP:
+    display_name: "relationship to reference person"
+    type: categorical
+    unit: null
+    value_map:
+      0: "Reference person"
+      1: "Husband/wife"
+      2: "Biological son or daughter"
+      3: "Adopted son or daughter"
+      4: "Stepson or stepdaughter"
+      5: "Brother or sister"
+      6: "Father or mother"
+      7: "Grandchild"
+      8: "Parent-in-law"
+      9: "Son-in-law or daughter-in-law"
+      10: "Other relative"
+      11: "Roomer or boarder"
+      12: "Housemate or roommate"
+      13: "Unmarried partner"
+      14: "Foster child"
+      15: "Other nonrelative"
+      16: "Institutionalized group quarters population"
+      17: "Noninstitutionalized group quarters population"
+    synonyms:
+      - "relationship to reference person"
+      - "household relationship"
+      - "relationship to householder"
+    shorthand_map:
+      "Biological son or daughter": "Biological child"
+      "Adopted son or daughter": "Adopted child"
+      "Stepson or stepdaughter": "Stepchild"
+      "Son-in-law or daughter-in-law": "Child-in-law"
+      "Institutionalized group quarters population": "Institutionalized GQ"
+      "Noninstitutionalized group quarters population": "Noninstitutionalized GQ"
+    restatements:
+      - "This person's relationship to the household reference person is {value}"
+      - "Within the household, they are recorded as {value}"
+
+  ESR:
+    display_name: "employment status"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Civilian employed, at work"
+      2: "Civilian employed, with a job but not at work"
+      3: "Unemployed"
+      4: "Armed forces, at work"
+      5: "Armed forces, with a job but not at work"
+      6: "Not in labor force"
+    synonyms:
+      - "employment status"
+      - "labor force status"
+      - "work status"
+    shorthand_map:
+      "Civilian employed, at work": "Employed (at work)"
+      "Civilian employed, with a job but not at work": "Employed (not at work)"
+      "Armed forces, at work": "Armed forces (at work)"
+      "Armed forces, with a job but not at work": "Armed forces (not at work)"
+      "Not in labor force": "Not in labor force"
+    restatements:
+      - "This person's employment status is {value}"
+      - "Their labor force status is {value}"
+
+  ESP:
+    display_name: "employment status of parents"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Living with two parents: both parents in labor force"
+      2: "Living with two parents: father only in labor force"
+      3: "Living with two parents: mother only in labor force"
+      4: "Living with two parents: neither parent in labor force"
+      5: "Living with father: father in the labor force"
+      6: "Living with father: father not in labor force"
+      7: "Living with mother: mother in the labor force"
+      8: "Living with mother: mother not in labor force"
+    synonyms:
+      - "employment status of parents"
+      - "parents' employment status"
+    shorthand_map: {}
+    restatements:
+      - "This person's parental employment situation is {value}"
+      - "Regarding their parents' employment: {value}"
+
+  CIT:
+    display_name: "citizenship status"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Born in the United States"
+      2: "Born in Puerto Rico, Guam, the U.S. Virgin Islands, or the Northern Marianas"
+      3: "Born abroad of U.S. citizen parent or parents"
+      4: "U.S. citizen by naturalization"
+      5: "Not a U.S. citizen"
+    synonyms:
+      - "citizenship status"
+      - "citizenship"
+    shorthand_map:
+      "Born in the United States": "Born in the U.S."
+      "Born in Puerto Rico, Guam, the U.S. Virgin Islands, or the Northern Marianas": "Born in a U.S. territory"
+      "Born abroad of U.S. citizen parent or parents": "Born abroad to U.S. citizens"
+      "U.S. citizen by naturalization": "Naturalized citizen"
+      "Not a U.S. citizen": "Not a citizen"
+    restatements:
+      - "This person's citizenship status is {value}"
+      - "With respect to citizenship, they are: {value}"
+
+  NATIVITY:
+    display_name: "nativity"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Native"
+      2: "Foreign born"
+    synonyms:
+      - "nativity"
+      - "native or foreign born"
+    shorthand_map: {}
+    restatements:
+      - "This person is {value}"
+      - "Their nativity is recorded as {value}"
+
+  MIG:
+    display_name: "mobility status"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Yes, same house (nonmover)"
+      2: "No, moved from outside the U.S. and Puerto Rico"
+      3: "No, moved from a different house in the U.S. or Puerto Rico"
+    synonyms:
+      - "mobility status"
+      - "residence one year ago"
+      - "moved in the last year"
+    shorthand_map:
+      "Yes, same house (nonmover)": "Same house (nonmover)"
+      "No, moved from outside the U.S. and Puerto Rico": "Moved from abroad"
+      "No, moved from a different house in the U.S. or Puerto Rico": "Moved within the U.S."
+    restatements:
+      - "Compared with one year ago, this person's mobility status is {value}"
+      - "Regarding whether they lived here a year ago: {value}"
+
+  MIL:
+    display_name: "military service"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Now on active duty"
+      2: "On active duty in the past, but not now"
+      3: "Only on active duty for training in the Reserves or National Guard"
+      4: "Never served in the military"
+    synonyms:
+      - "military service"
+      - "military service status"
+      - "veteran status"
+    shorthand_map:
+      "Now on active duty": "Active duty"
+      "On active duty in the past, but not now": "Former active duty"
+      "Only on active duty for training in the Reserves or National Guard": "Reserves/Guard training only"
+      "Never served in the military": "Never served"
+    restatements:
+      - "This person's military service status is {value}"
+      - "With respect to military service: {value}"
+
+  ANC:
+    display_name: "ancestry"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Single ancestry"
+      2: "Multiple ancestry"
+      3: "Unclassified"
+      4: "Not reported"
+      8: "Suppressed for data year 2018 for select PUMAs"
+    synonyms:
+      - "ancestry"
+      - "ancestry classification"
+    shorthand_map:
+      "Suppressed for data year 2018 for select PUMAs": "Suppressed"
+    restatements:
+      - "This person's ancestry is classified as {value}"
+      - "Their ancestry classification is {value}"
+
+  DIS:
+    display_name: "disability status"
+    type: categorical
+    unit: null
+    value_map:
+      1: "With a disability"
+      2: "Without a disability"
+    synonyms:
+      - "disability status"
+      - "disability"
+    shorthand_map: {}
+    restatements:
+      - "This person is recorded as {value}"
+      - "Their disability status is {value}"
+
+  DEAR:
+    display_name: "hearing difficulty"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Has hearing difficulty"
+      2: "No hearing difficulty"
+    synonyms:
+      - "hearing difficulty"
+      - "deafness or serious hearing difficulty"
+    shorthand_map: {}
+    restatements:
+      - "Regarding hearing, this person {value}"
+      - "Their hearing status is: {value}"
+
+  DEYE:
+    display_name: "vision difficulty"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Has vision difficulty"
+      2: "No vision difficulty"
+    synonyms:
+      - "vision difficulty"
+      - "blindness or serious vision difficulty"
+    shorthand_map: {}
+    restatements:
+      - "Regarding vision, this person {value}"
+      - "Their vision status is: {value}"
+
+  DREM:
+    display_name: "cognitive difficulty"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Has cognitive difficulty"
+      2: "No cognitive difficulty"
+    synonyms:
+      - "cognitive difficulty"
+      - "self-care or cognitive difficulty"
+    shorthand_map: {}
+    restatements:
+      - "Regarding cognition, this person {value}"
+      - "Their cognitive status is: {value}"
+
+  GCL:
+    display_name: "grandparent living with grandchildren"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Lives with own grandchildren under 18"
+      2: "Does not live with own grandchildren under 18"
+    synonyms:
+      - "grandparent living with grandchildren"
+      - "grandparents living with grandchildren"
+    shorthand_map:
+      "Lives with own grandchildren under 18": "Lives with grandchildren"
+      "Does not live with own grandchildren under 18": "No grandchildren in household"
+    restatements:
+      - "This person {value}"
+      - "With respect to grandchildren in the household: {value}"
+
+  FER:
+    display_name: "gave birth within the past year"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Gave birth within the past 12 months"
+      2: "Did not give birth within the past 12 months"
+    synonyms:
+      - "gave birth within the past year"
+      - "recent childbirth"
+    shorthand_map:
+      "Gave birth within the past 12 months": "Gave birth (past year)"
+      "Did not give birth within the past 12 months": "No birth (past year)"
+    restatements:
+      - "This person {value}"
+      - "Regarding childbirth in the past year: {value}"
+
+  PUBCOV:
+    display_name: "public health coverage"
+    type: categorical
+    unit: null
+    value_map:
+      1: "With public health coverage"
+      2: "Without public health coverage"
+    synonyms:
+      - "public health coverage"
+      - "public health insurance coverage"
+    shorthand_map:
+      "With public health coverage": "Has public coverage"
+      "Without public health coverage": "No public coverage"
+    restatements:
+      - "This person is recorded as {value}"
+      - "Their public health coverage status is {value}"
+
+  # NOTE: In 2019, JWTR was renamed JWTRNS.
+  # If using more recent data, this column will need updating.
+  JWTR:
+    display_name: "means of transportation to work"
+    type: categorical
+    unit: null
+    value_map:
+      1: "Car, truck, or van"
+      2: "Bus or trolley bus"
+      3: "Streetcar or trolley car"
+      4: "Subway or elevated rail"
+      5: "Railroad"
+      6: "Ferryboat"
+      7: "Taxicab"
+      8: "Motorcycle"
+      9: "Bicycle"
+      10: "Walked"
+      11: "Worked at home"
+      12: "Other method"
+    synonyms:
+      - "means of transportation to work"
+      - "commute mode"
+      - "how this person travels to work"
+    shorthand_map:
+      "Car, truck, or van": "Car/truck/van"
+      "Subway or elevated rail": "Subway/elevated"
+      "Worked at home": "Worked from home"
+    restatements:
+      - "This person travels to work by {value}"
+      - "Their means of transportation to work is {value}"

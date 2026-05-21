@@ -89,6 +89,8 @@ These are *example* parameters that the user might vary. There may be other para
    - `controls.epochs` - Number of training epochs
    - `controls.batch_size` - Batch size (if not varied)
    - `controls.batch_size_val` - Optional larger batch size for validation passes. Honored by `_single_device_nightly` (the default recipe); silently ignored by `_stable` / `_distributed` recipes since their custom-recipe builds don't read the field. Recipe falls back to `controls.batch_size` when absent.
+   - `controls.num_workers` - DataLoader `num_workers`. Top-level YAML key (NOT nested under `dataset:` — the nested placement was tried and crashed at the dataset constructor; see #449 / #514). Reaches both train and val dataloaders on `_single_device_nightly`; train-only on the two `_stable` recipes (no val loop). Recipe falls back to `0` when absent.
+   - `controls.persistent_workers` - DataLoader `persistent_workers` (true/false). Top-level YAML key, same propagation as `num_workers`. Recipe falls back to `false` when absent.
    - `controls.system_prompt` - Training system prompt. 
       - Omit this field from `setup_finetune.yaml` when `dataset_type` is `text_completion` or `text_completion_dataset` (i.e. base / non-instruct models). Base models have no chat template, so the system prompt has nowhere to go — `setup_finetune.py` will drop it with a warning.
    - `controls.prompt` - Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
@@ -242,6 +244,8 @@ gradient_accumulation_steps: {from controls.gradient_accumulation_steps, if pres
 weight_decay: {from controls.weight_decay, if present}
 lora_dropout: {from controls.lora_dropout, if present}
 batch_size_val: {from controls.batch_size_val or run.parameters.batch_size_val, if present}
+num_workers: {from controls.num_workers or run.parameters.num_workers, if present}
+persistent_workers: {from controls.persistent_workers or run.parameters.persistent_workers, if present}
 
 # Training configuration (common across runs)
 epochs: {from controls.epochs}
