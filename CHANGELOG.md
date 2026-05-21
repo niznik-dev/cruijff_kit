@@ -4,28 +4,43 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-05-21
+
 ### Added
 
+#### Skills & Workflows
+- `--training_samples` actually slices the training dataset; the existing step-count guard fired but the slice never happened (#494)
+- `--num_workers` / `--persistent_workers` flags on `setup_finetune.py`, propagated through `finetune.yaml` to the DataLoader in all 3 custom recipes (#515)
+- `port_cruijff_adapter` utility — restores adapter portability across machines after the local-base-path rewrite (#495)
+
 #### Evaluation & Metrics
-- `continuous_scorer` and ACS continuous-target tasks (`acs_age`, `acs_income_continuous`, `acs_hours`, `acs_commute`) for regression evals; reports `mae` / `rmse` / `r_squared` / `parse_rate` (#508, @EmnetSy, @sarahepedersen)
+- `continuous_scorer` and ACS continuous-target tasks (`acs_age`, `acs_income_continuous`, `acs_hours`, `acs_commute`) for regression evals (#508, @EmnetSy, @sarahepedersen)
+- `evaluation.temperature` and `evaluation.max_tokens` now thread from `experiment_summary.yaml` through `scaffold-inspect` to the inspect-ai task; a hard-coded `1e-7` was previously winning silently (#496)
+
+#### Observability & Testing
+- `scripts/check_env.py` preflight that compares installed versions against `==` pins in `pyproject.toml` (#507)
+- `setup_finetune.py` warns on unknown keys in `setup_finetune.yaml` so typos no longer fall through to defaults (#505)
+- `evaluation.temperature: 0` is explicitly rejected with a pointer to the underlying `do_sample` / `top_logprobs` mechanism (#496)
 
 ### Changed
 
-- **Per-cell evaluation layout** — every `(run, task, epoch)` eval now lives in its own cell directory at `{run}/eval/{cell_name}/`, replacing the previous flat-eval layout where multiple cells shared a single `eval_config.yaml`. Each cell contains its own `eval_config.yaml`, `cell.slurm`, and `logs/`. This unblocks heterogeneous runs — two cells in the same run can carry different per-task overrides (e.g. `system_prompt`, `assistant_prefix`) without colliding. `submit_inspect` globs `*/eval/*/cell.slurm`; `setup_inspect.py` defaults its output to `cell.slurm`. **Breaking** for tooling that hard-coded the old `{run}/eval/{task}_epoch{N}.slurm` shape; in-repo callers (archive-experiment, scaffold-inspect agent, run-experiment evaluators) have been updated. (#498)
-- **Per-task `system_prompt` / `assistant_prefix` overrides** in `experiment_summary.yaml` under `evaluation.tasks[]` — when set, override the experiment-wide values for cells produced from that task. Enables cue-presence ablations and other prompt-variation experiments. (#498)
-- **Recipe patching policy** documented in `CLAUDE.md` and `.claude/PR_CHECKLIST.md` — location-based rule for cruijff_kit divergences from torchtune: outside-`train()` patches are fine where they are; inside-`train()` patches require defensive guards (init validation + unit test). (#465)
-- `calculate_custom_metrics` is now wrapped in `try/except` with auto-disable in all 3 recipes; a buggy metric function logs a warning and disables custom metrics for the rest of the run instead of crashing training. (#465)
-- `epochs_to_save` is now validated at recipe init via the new `validate_epochs_to_save()` helper — misformatted values (out-of-range indices, empty lists, wrong types) raise `ValueError` with a clear message instead of silently producing zero-checkpoint runs. (#465)
+- **Per-cell evaluation layout** — each `(run, task, epoch)` cell lives in `{run}/eval/{cell_name}/` with its own `eval_config.yaml`, `cell.slurm`, and `logs/`. **Breaking** for tooling hard-coded to the old `{task}_epoch{N}.slurm` shape; in-repo callers updated. (#498)
+- Per-task `system_prompt` / `assistant_prefix` overrides in `experiment_summary.yaml` under `evaluation.tasks[]` (#498)
+- **Adapter-only LoRA saves are now the default** (`save_adapter_weights_only=True`); `adapter_config.json`'s base path is rewritten to the local absolute path so adapters self-load via transformers' native PEFT auto-detection on offline compute (#495, #99)
+- **Recipe patching policy** documented in `CLAUDE.md` and `.claude/PR_CHECKLIST.md` — outside-`train()` patches are fine; inside-`train()` patches require defensive guards (#465)
+- `calculate_custom_metrics` wrapped in `try/except` with auto-disable; a buggy metric no longer crashes the run (#465)
+- `epochs_to_save` validated at recipe init via new `validate_epochs_to_save()` helper; misformatted values raise `ValueError` instead of silently producing zero-checkpoint runs (#465)
+- Adopt stricter `==` pinning for `inspect-viz` at `0.3.5` to match the `scores_*` import path used by `analyze-experiment` (#507, #503)
 
 ### Removed
 
-- **Embeddings extraction from the nightly recipe** (`get_embeddings`, `_get_embeddings`, `embeddings_output_path`) — the feature was broken (`.item()` on multi-element tensors, train mode never restored, double forward pass, never wrote to disk) and unused in any current config. #517 tracks a corrected reimplementation; original feature came from #54 / #77. (#465)
+- Embeddings extraction from the nightly recipe — broken and unused; #517 tracks a corrected reimplementation. Original feature came from #54 / #77. (#465)
 
 ### Fixed
 
-- `report_generator` no longer emits an empty "Models evaluated: 0" report for `risk_scorer`-only experiments. When `*_accuracy` columns are absent but supplementary risk metrics exist, the report now renders a "Risk Metrics" section, derives `model_count` from the calibration results, and picks a best performer by AUC (or Brier) in the executive summary. `extract_calibration_metrics` also groups by `task_name` so per-task variation (e.g. cue vs no-cue) renders as separate rows. (#504)
-- `scaffold-inspect` now recognizes `assistant_prefix` in `eval_config.yaml` and renders it as a `-T assistant_prefix=...` flag in the generated SLURM script. Previously, the key was warned as unknown and dropped — base / Instruct models that needed a prefill to emit option tokens (`"0"` / `"1"`) for `risk_scorer` would silently produce all-NaN risk metrics. Values are emitted with strict YAML-double-quoted inside shell-single-quoted form so common cases like `"Answer: "` survive inspect-ai's per-value YAML parse. (#511)
-- `scaffold-inspect` no longer silently improvises when an experiment has per-cell overrides that don't fit the shared `eval_config.yaml` model. The COLING-cue trigger case (9 runs × 2 prompt cues per run = 18 cells) previously got a nested layout `submit_inspect` couldn't see, producing `ALL_COMPLETE: {}` on zero work. The scaffolder is now deterministic — each cell is materialized into a canonical `eval/{cell_name}/` directory. (#498)
+- `report_generator` no longer emits an empty "Models evaluated: 0" report for `risk_scorer`-only experiments; renders a "Risk Metrics" section keyed by task instead (#504)
+- `scaffold-inspect` recognizes `assistant_prefix` in `eval_config.yaml` and renders it as `-T assistant_prefix=...` instead of warning-and-dropping (#511)
+- `scaffold-inspect` no longer silently improvises when per-cell overrides don't fit the shared layout — each cell now materializes deterministically to `eval/{cell_name}/` (#498)
 
 ## [0.3.1] - 2026-05-14
 
