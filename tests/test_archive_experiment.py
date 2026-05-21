@@ -67,8 +67,13 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
         (run_dir / "setup_finetune.yaml").write_text("setup: test")
 
         if include_eval:
-            eval_logs = run_dir / "eval" / "logs"
+            # Per-cell layout (issue #498): each (task, epoch) pair gets its
+            # own cell directory at {run}/eval/{task}_epoch{N}/.
+            cell_dir = run_dir / "eval" / "test_task_epoch0"
+            eval_logs = cell_dir / "logs"
             eval_logs.mkdir(parents=True)
+            (cell_dir / "eval_config.yaml").write_text("task_name: test_task\n")
+            (cell_dir / "cell.slurm").write_text("#!/bin/bash")
             (eval_logs / "test_task_epoch0.eval").write_text('{"results": {}}')
 
         # Output directory with fake checkpoint (nested inside the run dir)
@@ -112,7 +117,9 @@ def test_inventory_complete_experiment(tmp_path):
     assert "summary.md" in archive_paths
     assert "logs/design-experiment.log" in archive_paths
     # Entire experiment dir is kept, so eval logs use their original paths
-    assert "run_rank4/eval/logs/test_task_epoch0.eval" in archive_paths
+    # (cell-per-(task,epoch) layout from issue #498)
+    assert "run_rank4/eval/test_task_epoch0/logs/test_task_epoch0.eval" in archive_paths
+    assert "run_rank4/eval/test_task_epoch0/eval_config.yaml" in archive_paths
     # Configs and SLURM scripts are also kept
     assert "run_rank4/finetune.yaml" in archive_paths
     assert "run_rank4/finetune.slurm" in archive_paths
@@ -244,13 +251,14 @@ def test_create_archive(tmp_path):
     assert (
         tmp_path / "ck-archive" / "test_experiment" / "experiment_summary.yaml"
     ).exists()
-    # Eval logs preserved at original paths
+    # Eval logs preserved at per-cell paths (issue #498)
     assert (
         tmp_path
         / "ck-archive"
         / "test_experiment"
         / "run_rank4"
         / "eval"
+        / "test_task_epoch0"
         / "logs"
         / "test_task_epoch0.eval"
     ).exists()

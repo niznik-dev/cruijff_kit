@@ -264,15 +264,16 @@ Successfully scaffolded experiment:
 
 ### Evaluation Configurations (scaffold-inspect)
 
-✓ 2 evaluation scripts configured successfully
+✓ 2 evaluation cells configured successfully
 
-**Created evaluations:**
-- Llama-3.2-1B-Instruct_rank4/eval/capitalization_epoch0.slurm
-- Llama-3.2-1B-Instruct_rank8/eval/capitalization_epoch0.slurm
+**Created cells:** (per-cell layout, issue #498 — one directory per (task, epoch))
+- Llama-3.2-1B-Instruct_rank4/eval/capitalization_epoch0/
+- Llama-3.2-1B-Instruct_rank8/eval/capitalization_epoch0/
 
-**Each evaluation directory contains:**
-- {task}_epoch{N}.slurm (SLURM script)
-- logs/ (for inspect-ai output)
+**Each cell directory contains:**
+- eval_config.yaml (per-cell evaluation configuration)
+- cell.slurm (SLURM script)
+- logs/ (for inspect-ai `.eval` output)
 
 ### Logs Created
 

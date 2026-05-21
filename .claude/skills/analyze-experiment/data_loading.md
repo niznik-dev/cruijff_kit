@@ -7,10 +7,13 @@ This module describes how to load evaluation logs and prepare data for visualiza
 When multiple evaluations exist for the same model+epoch+vis_label (e.g., from re-runs), use `deduplicate_eval_files()` to keep only the most recent:
 
 ```python
+from pathlib import Path
 from cruijff_kit.tools.inspect.viz_helpers import deduplicate_eval_files
 
-# Collect all .eval files
-eval_files = [os.path.join(log_dir, f) for f in os.listdir(log_dir) if f.endswith('.eval')]
+# Collect all .eval files across cell dirs (per-cell layout from issue #498):
+# logs live at {run}/eval/{cell}/logs/*.eval — glob across cells.
+exp_dir = Path(experiment_path)
+eval_files = [str(p) for p in exp_dir.glob(f"{subdir}/eval/*/logs/*.eval")]
 
 # Deduplicate (keeps most recent per model+epoch)
 kept, skipped = deduplicate_eval_files(eval_files)
@@ -140,11 +143,17 @@ inspect view --port=8000
 
 ## Error Handling
 
-**If eval/logs directory doesn't exist:**
+**If a run has no completed eval cells:**
 ```python
+from pathlib import Path
+
 for subdir in subdirs:
-    log_path = os.path.join(experiment_path, subdir, "eval", "logs")
-    if not os.path.exists(log_path):
+    # Per-cell layout (issue #498): each (task, epoch) lives in its own
+    # cell dir under eval/. A run is "missing evaluations" when no cell
+    # has logs/*.eval yet.
+    eval_root = Path(experiment_path) / subdir / "eval"
+    cells_with_logs = list(eval_root.glob("*/logs/*.eval")) if eval_root.exists() else []
+    if not cells_with_logs:
         print(f"Warning: No eval logs found in {subdir}")
 ```
 

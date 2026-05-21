@@ -375,6 +375,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if self._resume_from_checkpoint
                 else None
             ),
+            # !--- cruijff_kit patch ---!
+            num_workers=cfg.get("num_workers", 0),
+            persistent_workers=cfg.get("persistent_workers", False),
+            # !--- end cruijff_kit patch ---!
         )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -586,6 +590,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         batch_size: int,
         collate_fn: str,
         dataloader_state_dict: Optional[Dict[str, Any]] = None,
+        # !--- cruijff_kit patch ---!
+        num_workers: int = 0,
+        persistent_workers: bool = False,
+        # !--- end cruijff_kit patch ---!
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -630,6 +638,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
+            # !--- cruijff_kit patch ---!
+            num_workers=num_workers,
+            persistent_workers=persistent_workers,
+            # !--- end cruijff_kit patch ---!
         )
 
         return dataloader

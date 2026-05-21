@@ -10,11 +10,11 @@ python -m cruijff_kit.tools.run.submit_inspect <experiment_dir>
 
 The submitter (`src/tools/run/submit_inspect.py`) handles every operational step in code:
 
-1. Globs `*/eval/*.slurm` under the experiment directory.
+1. Globs `*/eval/*/cell.slurm` under the experiment directory. Each cell directory holds one `(task, epoch)` pair's eval (per-cell layout from issue #498).
 2. Drip-feeds `sbatch`, capping concurrency at `max_submit`. Staggers `stagger_sec` between submissions — the HF datasets cache race hits whenever multiple jobs hit `datasets.load_dataset` at once, not just on fine-tunes.
 3. Polls SLURM (`squeue` first, `sacct` fallback) until every job reaches a terminal state, at `poll_sec` cadence.
-4. Emits canonical 4-line `SUBMIT_EVAL:` / `Job ID:` / `Result:` blocks to `logs/run-inspect.log`. The eval-job identifier is `{run_name}/{task}/epoch{N}` (or `{run_name}/{task}` when no epoch suffix exists), matching the regex in `analyze-experiment`'s compute step.
-5. Persists `logs/run-inspect.state.json` keyed by `{run_name}/eval/{slurm_filename}` so distinct runs with the same eval slurm filename don't collide on a single state-file key (the bug from issue #451 comment #2).
+4. Emits canonical 4-line `SUBMIT_EVAL:` / `Job ID:` / `Result:` blocks to `logs/run-inspect.log`. The eval-job identifier is `{run_name}/{task}/epoch{N}` (or `{run_name}/{task}` when no epoch suffix exists), derived from the cell directory name; matches the regex in `analyze-experiment`'s compute step.
+5. Persists `logs/run-inspect.state.json` keyed by `{run_name}/eval/{cell_name}/cell.slurm` so distinct cells don't collide on a single state-file key (the bug from issue #451 comment #2, doubly enforced by per-cell directories under #498).
 
 The three knobs (`max_submit`, `stagger_sec`, `poll_sec`) resolve in this order: `--max-submit` / `--stagger-sec` / `--poll-sec` (CLI) > `<repo>/.config/config.json` > built-in defaults (25 / 5 / 60).
 
@@ -35,7 +35,7 @@ The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll iteratio
 ## Prerequisites
 
 - `experiment_summary.yaml` exists.
-- Evaluation scaffolding complete (`*/eval/*.slurm` files exist).
+- Evaluation scaffolding complete (`*/eval/*/cell.slurm` files exist — one per cell).
 - Fine-tuning complete (model checkpoints exist).
 - SLURM cluster access.
 
@@ -43,7 +43,7 @@ The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll iteratio
 
 - `logs/run-inspect.log` — canonical submission + state-change records.
 - `logs/run-inspect.state.json` — resume state file.
-- Evaluation logs in `{run_dir}/eval/logs/*.eval`.
+- Evaluation logs in `{run_dir}/eval/{cell_name}/logs/*.eval` — one logs/ per cell.
 
 ## Schemas
 

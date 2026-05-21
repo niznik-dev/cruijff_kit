@@ -140,11 +140,13 @@ def inventory_experiment(experiment_dir, output_dir_base):
             )
 
     # --- Check completeness ---
+    # Each run's eval/ holds one cell directory per (task, epoch) pair (issue
+    # #498). A run counts as complete when at least one cell has eval logs.
     incomplete_runs = []
     for entry in eval_matrix:
         run_name = entry.get("run")
-        eval_logs_dir = exp_dir / run_name / "eval" / "logs"
-        if not eval_logs_dir.exists() or not list(eval_logs_dir.glob("*.eval")):
+        eval_dir = exp_dir / run_name / "eval"
+        if not eval_dir.exists() or not list(eval_dir.glob("*/logs/*.eval")):
             incomplete_runs.append(run_name)
 
     keep_total = sum(kf["size_bytes"] for kf in keep_files)

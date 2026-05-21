@@ -446,6 +446,21 @@ def create_parser():
         "Honored by the _single_device_nightly recipe; ignored by stable recipes.",
     )
     parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=None,
+        help="DataLoader num_workers for train (and val on _single_device_nightly). "
+        "Default 0 (single-process). Higher values can improve throughput on CPU-bound "
+        "pipelines but add multiprocessing overhead.",
+    )
+    parser.add_argument(
+        "--persistent_workers",
+        type=parse_bool,
+        default=None,
+        help="Keep DataLoader workers alive between epochs (true/false). "
+        "Default false. Setting true saves worker-startup cost on multi-epoch runs.",
+    )
+    parser.add_argument(
         "--epochs", type=int, default=1, help="Number of epochs to train for"
     )
     parser.add_argument(
@@ -943,6 +958,14 @@ def main():
             # Only emit when set; absent key → recipe falls back to cfg.batch_size.
             if value is not None:
                 config["batch_size_val"] = value
+        elif key == "num_workers":
+            # Only emit when set; absent key → recipe falls back to 0.
+            if value is not None:
+                config["num_workers"] = value
+        elif key == "persistent_workers":
+            # Only emit when set; absent key → recipe falls back to False.
+            if value is not None:
+                config["persistent_workers"] = value
         elif key == "training_samples":
             # Slice the train dataset only. dataset_val stays full so val
             # accuracy is comparable across consistency-curve runs.

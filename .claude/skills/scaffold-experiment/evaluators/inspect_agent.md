@@ -29,14 +29,14 @@ Your tasks:
 1. Read experiment_summary.yaml to extract evaluation configurations
 2. Read claude.local.md for environment-specific settings
 3. Verify that inspect-ai task scripts exist at the specified paths
-4. For each run and evaluation combination:
-   a. Create eval/ subdirectory (with logs/ inside) in the run directory
-   b. Generate eval_config.yaml with experiment-specific values (see Step 4 below)
-   c. Call setup_inspect.py to render the SLURM script from the template (see Step 5 below)
+4. For each (run, task, epoch) combination (each "cell"):
+   a. Create the cell directory {run}/eval/{cell_name}/ (with logs/ inside)
+   b. Generate eval_config.yaml in the cell directory (see Step 4 below)
+   c. Call setup_inspect.py from inside the cell directory to render cell.slurm (see Step 5 below)
 5. Create a detailed log at {experiment_dir}/logs/scaffold-inspect.log
 
 Report back:
-- Summary of all created evaluation scripts (paths)
+- Summary of all created cell directories (paths)
 - Any errors or warnings encountered
 - Verification results for task script existence
 - Path to the log file for detailed information
@@ -50,18 +50,18 @@ The subagent performs these operations autonomously:
 
 1. **Parses evaluation plan** from experiment_summary.yaml (which runs, which tasks, which epochs)
 2. **Verifies task scripts exist** at paths specified in experiment_summary.yaml
-3. **Creates `eval/` subdirectories** (with `logs/` inside) in each run directory
-4. **Generates `eval_config.yaml`** in each eval directory with all experiment-specific config
-5. **Calls `setup_inspect.py`** to render SLURM scripts from the template (see below)
+3. **Creates one cell directory per (run, task, epoch)** at `{run}/eval/{cell_name}/`, each with its own `logs/` subdir. Cell name = `{task}_epoch{N}` for fine-tuned cells, `{task}` for base cells (issue #498).
+4. **Generates `eval_config.yaml`** inside each cell directory with all experiment-specific config (including per-task `system_prompt`/`assistant_prefix` overrides if set)
+5. **Calls `setup_inspect.py` from inside each cell directory** to render `cell.slurm` from the template (see below)
 6. **Creates detailed log** at `scaffold-inspect.log` with complete process information
 
 ### Step 4: Generate eval_config.yaml
 
-For each evaluation, create `eval_config.yaml` in the eval directory with all experiment-specific configuration. See `.claude/agents/scaffold-inspect.md` for the full schema (required keys, optional task args, metadata, scorer config).
+For each cell, create `eval_config.yaml` inside the cell directory (`{run}/eval/{cell_name}/eval_config.yaml`) with all experiment-specific configuration. See `.claude/agents/scaffold-inspect.md` for the full schema (required keys, optional task args, metadata, scorer config) and per-task override resolution.
 
 ### Step 5: Render SLURM scripts via setup_inspect.py
 
-After writing `eval_config.yaml`, call `setup_inspect.py` to render the SLURM script from the template. See `.claude/agents/scaffold-inspect.md` for full CLI reference and details on what the renderer handles.
+After writing `eval_config.yaml`, `cd` into the cell directory and call `setup_inspect.py` to render `cell.slurm`. The renderer writes `cell.slurm` into the current directory by default, so each cell ends up self-contained. See `.claude/agents/scaffold-inspect.md` for full CLI reference and details on what the renderer handles.
 
 ### Eval time limit
 
@@ -92,27 +92,30 @@ After scaffold-inspect completes, the experiment directory will contain:
 
 ```
 {experiment_dir}/
-├── Llama-3.2-1B-Instruct_base/    # Control run
+├── Llama-3.2-1B-Instruct_base/             # Control run
 │   └── eval/
-│       ├── eval_config.yaml
-│       ├── {task_name}_base.slurm
-│       └── logs/
-├── Llama-3.2-1B-Instruct_rank4/   # Fine-tuned run
+│       └── {task_name}/                    # Cell dir (no epoch suffix for base)
+│           ├── eval_config.yaml
+│           ├── cell.slurm
+│           └── logs/
+├── Llama-3.2-1B-Instruct_rank4/            # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   └── eval/
-│       ├── eval_config.yaml
-│       ├── {task_name}_epoch0.slurm
-│       └── logs/
-├── Llama-3.2-1B-Instruct_rank8/   # Fine-tuned run
+│       └── {task_name}_epoch0/             # Cell dir (one per task,epoch pair)
+│           ├── eval_config.yaml
+│           ├── cell.slurm
+│           └── logs/
+├── Llama-3.2-1B-Instruct_rank8/            # Fine-tuned run
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
 │   ├── finetune.slurm
 │   └── eval/
-│       ├── eval_config.yaml
-│       ├── {task_name}_epoch0.slurm
-│       └── logs/
+│       └── {task_name}_epoch0/
+│           ├── eval_config.yaml
+│           ├── cell.slurm
+│           └── logs/
 ├── logs/scaffold-torchtune.log
 └── logs/scaffold-inspect.log
 ```

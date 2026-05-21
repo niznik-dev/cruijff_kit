@@ -39,8 +39,8 @@ Does fine-tuning improve capitalization accuracy over the base model? Again, the
 **Both runs** (`Llama-3.2-1B-Instruct_base/`, `Llama-3.2-1B-Instruct_rank4/`):
 
 - `setup_finetune.yaml` (the base run carries it but doesn't act on it)
-- `eval/capitalization_epoch0.slurm`
-- `eval/logs/*.eval`
+- For the fine-tuned run: `eval/capitalization_epoch0/cell.slurm` and `eval/capitalization_epoch0/logs/*.eval`
+- For the base run: `eval/capitalization/cell.slurm` and `eval/capitalization/logs/*.eval` (no `_epoch0` suffix on the cell — base evals have no epoch)
 
 **Fine-tuned run only:**
 
