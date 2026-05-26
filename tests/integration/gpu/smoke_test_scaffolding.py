@@ -93,8 +93,8 @@ def test_setup_inspect(work_dir: Path):
         print(f"STDERR: {result.stderr}")
         raise RuntimeError(f"setup_inspect.py exited with code {result.returncode}")
 
-    slurm = work_dir / "capitalization_epoch0.slurm"
-    assert slurm.exists(), "capitalization_epoch0.slurm not generated"
+    slurm = work_dir / "cell.slurm"
+    assert slurm.exists(), "cell.slurm not generated"
     print("PASS: setup_inspect.py scaffolding")
 
 
