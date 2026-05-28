@@ -108,20 +108,6 @@ class TestMainYamlGeneration:
         config, _ = run_main()
         assert config["batch_size_val"] == 64
 
-    def test_num_workers_and_persistent_workers_absent_by_default(self, run_main):
-        # No flags → neither key emitted. Recipes fall back to 0 / False.
-        config, _ = run_main()
-        assert "num_workers" not in config
-        assert "persistent_workers" not in config
-
-    def test_num_workers_via_cli(self, run_main):
-        config, _ = run_main(extra_args=["--num_workers", "4"])
-        assert config["num_workers"] == 4
-
-    def test_persistent_workers_via_cli(self, run_main):
-        config, _ = run_main(extra_args=["--persistent_workers", "true"])
-        assert config["persistent_workers"] is True
-
     def test_seed_default(self, run_main):
         """When seed is not specified, the default (14 — Cruijff's number) is used."""
         config, _ = run_main()
@@ -428,19 +414,6 @@ class TestMainConfigPrecedence:
     def test_custom_run_name(self, run_main):
         config, _ = run_main(extra_args=["--my_wandb_run_name", "my_run"])
         assert config["my_wandb_run_name"] == "my_run"
-
-    def test_epochs_to_save_string_from_config_parsed_to_list(
-        self, run_main, setup_yaml
-    ):
-        """A comma-separated string in the config file must go through
-        parse_epochs and come out as a list of ints (regression for #431)."""
-        with open(setup_yaml) as f:
-            data = yaml.safe_load(f)
-        data["epochs_to_save"] = "3,5"
-        with open(setup_yaml, "w") as f:
-            yaml.dump(data, f)
-        config, _ = run_main()
-        assert config["epochs_to_save"] == [3, 5]
 
     def test_quoted_bool_string_from_config_parsed_to_bool(self, run_main, setup_yaml):
         """A quoted string like "true" in the config file must go through

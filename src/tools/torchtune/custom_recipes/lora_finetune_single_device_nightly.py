@@ -15,15 +15,6 @@ import torch
 import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
 
-# !--- cruijff_kit patch ---!
-# Feature: adapter_config base-path rewrite (adapter-only saves) and stash_adapter_files (merged saves)
-from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
-    rewrite_adapter_config_base_path,
-    stash_adapter_files,
-    validate_epochs_to_save,
-)
-# !--- end cruijff_kit patch ---!
-
 from torch import nn
 from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
@@ -44,25 +35,6 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.training import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
-
-# !--- cruijff_kit patch ---!
-# Feature: custom_logger - Experimental custom logging setup
-from cruijff_kit.utils.logger import setup_logger
-
-# Set up logging
-logger = setup_logger(__name__)
-# !--- end cruijff_kit patch ---!
-
-# !--- cruijff_kit patch ---!
-# Feature: custom_metrics - Experimental metrics calculation during training
-# Conditional import of custom metrics
-try:
-    from utils.finetune_custom_metrics import calculate_custom_metrics
-
-    CUSTOM_METRICS_AVAILABLE = True
-except ImportError:
-    CUSTOM_METRICS_AVAILABLE = False
-# !--- end cruijff_kit patch ---!
 
 log = utils.get_logger("DEBUG")
 
@@ -164,9 +136,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
-        # !--- cruijff_kit patch ---!
-        self._tqdm_miniters = cfg.get("tqdm_miniters", 100)
-        # !--- end cruijff_kit patch ---!
 
         if self._log_peak_memory_stats and self._device.type == "cpu":
             log.info(
@@ -185,28 +154,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.global_step = 0
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
-        # !--- cruijff_kit patch ---!
-        # Feature: epochs_to_save - Selective checkpoint saving
-        # Allows saving only specific epochs (e.g., [0, 4, 9]) instead of all epochs.
-        # Includes backward compatibility for save_last_epoch_only flag.
-        if cfg.save_last_epoch_only and cfg.epochs_to_save:
-            utils.log_rank_zero(
-                log,
-                "Both save_last_epoch_only and epochs_to_save are in use. The value for save_last_epoch_only takes precedence but will be removed in a future release.",
-            )
-        self._save_last_epoch_only = cfg.get("save_last_epoch_only", False)
-        raw_epochs_to_save = (
-            [self.total_epochs - 1]
-            if self._save_last_epoch_only
-            else cfg.get("epochs_to_save", "all")
-        )
-        # Guarded (#465): fail loud on misformatted epochs_to_save so users don't end up with a zero-checkpoint run.
-        self._epochs_to_save = validate_epochs_to_save(
-            raw_epochs_to_save, self.total_epochs
-        )
-        # Base-model checkpoint_dir (used to rewrite adapter_config.json after save)
-        self._base_model_path = cfg.checkpointer.checkpoint_dir
-        # !--- end cruijff_kit patch ---!
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
@@ -215,12 +162,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             assert cfg.get("dataset_val") is not None, (
                 "run_val_every_n_steps is set but dataset_val is not provided"
             )
-
-        # !--- cruijff_kit patch ---!
-        # Feature: custom_metrics - enable metrics calculation if the optional module imports.
-        self._calculate_custom_metrics = CUSTOM_METRICS_AVAILABLE
-        self._custom_metrics = {}
-        # !--- end cruijff_kit patch ---!
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
@@ -381,10 +322,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 if self._resume_from_checkpoint
                 else None
             ),
-            # !--- cruijff_kit patch ---!
-            num_workers=cfg.get("num_workers", 0),
-            persistent_workers=cfg.get("persistent_workers", False),
-            # !--- end cruijff_kit patch ---!
         )
 
         # Setup validation dataloader if validation dataset is provided
@@ -396,10 +333,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 batch_size=batch_size_val,
                 collate_fn=collate_name,
                 shuffle=False,
-                # !--- cruijff_kit patch ---!
-                num_workers=cfg.get("num_workers", 0),
-                persistent_workers=cfg.get("persistent_workers", False),
-                # !--- end cruijff_kit patch ---!
             )
 
         # Finally update the recipe state which can only be correctly set after all of the
@@ -618,10 +551,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         batch_size: int,
         collate_fn: str,
         dataloader_state_dict: Optional[Dict[str, Any]] = None,
-        # !--- cruijff_kit patch ---!
-        num_workers: int = 0,
-        persistent_workers: bool = False,
-        # !--- end cruijff_kit patch ---!
     ) -> StatefulDataLoader:
         """
         All data related setup happens here. This recipe currently supports only
@@ -666,10 +595,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
             # dropping last avoids shape issues with compile + flex attention
             drop_last=True,
-            # !--- cruijff_kit patch ---!
-            num_workers=num_workers,
-            persistent_workers=persistent_workers,
-            # !--- end cruijff_kit patch ---!
         )
 
         return dataloader
@@ -745,29 +670,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # run model
         with self.activations_handling_ctx:
             logits = self._model(**batch)
-
-        # !--- cruijff_kit patch ---!
-        # Feature: custom_metrics - Calculate custom metrics before computing loss.
-        # Guarded (#465): if the metrics function raises, log once and auto-disable
-        # so a buggy metric doesn't kill an entire training run.
-        if self._calculate_custom_metrics:
-            try:
-                metrics = calculate_custom_metrics(
-                    logits, labels, self._tokenizer, self._loss_fn.ignore_index
-                )
-                for metric_name, metric_value in metrics.items():
-                    if isinstance(metric_value, torch.Tensor):
-                        self._custom_metrics[metric_name] = metric_value.detach().item()
-                    else:
-                        self._custom_metrics[metric_name] = metric_value
-            except Exception as e:
-                log.warning(
-                    f"calculate_custom_metrics raised {type(e).__name__}: {e}. "
-                    "Disabling custom metrics for the rest of this run."
-                )
-                self._calculate_custom_metrics = False
-                self._custom_metrics = {}
-        # !--- end cruijff_kit patch ---!
 
         # Shift labels to compute loss
         # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
@@ -845,9 +747,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
             for curr_epoch in range(self.epochs_run, self.total_epochs):
-                # !--- cruijff_kit patch ---!
-                pbar = tqdm(total=self._steps_per_epoch, miniters=self._tqdm_miniters)
-                # !--- end cruijff_kit patch ---!
+                pbar = tqdm(total=self._steps_per_epoch)
                 self._dataloader.sampler.set_epoch(curr_epoch)
                 for idx, batch in enumerate(self._dataloader):
                     # Start tracking CUDA memory for active steps for just the first epoch
@@ -913,11 +813,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                             if self._clip_grad_norm is not None:
                                 log_dict.update({"grad_norm": grad_norm})
 
-                            # Add custom metrics to log_dict and then reset for the next step
-                            if self._custom_metrics:
-                                log_dict.update(self._custom_metrics)
-                                self._custom_metrics = {}
-
                             self._metric_logger.log_dict(
                                 log_dict,
                                 step=self.global_step,
@@ -959,32 +854,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         break
 
                 self.epochs_run += 1
-                # !--- cruijff_kit patch ---!
-                # Feature: epochs_to_save - Only save checkpoints for specified epochs
-                if curr_epoch in self._epochs_to_save:
-                    start_save_checkpoint = time.perf_counter()
-                    log.info(f"Starting checkpoint save for epoch {curr_epoch}...")
-                    self.save_checkpoint(epoch=curr_epoch)
-                    log.info(
-                        "Checkpoint saved in {:.2f} seconds.".format(
-                            time.perf_counter() - start_save_checkpoint
-                        )
+                start_save_checkpoint = time.perf_counter()
+                log.info("Starting checkpoint save...")
+                self.save_checkpoint(epoch=curr_epoch)
+                log.info(
+                    "Checkpoint saved in {:.2f} seconds.".format(
+                        time.perf_counter() - start_save_checkpoint
                     )
-
-                    # Adapter-only save: rewrite adapter_config.json's base path
-                    # so the dir is self-loading on offline compute.
-                    # Merged save: stash adapter files into a subdir so the merged
-                    # model.safetensors loads (otherwise transformers' PEFT
-                    # auto-detection picks adapter+base over the merged file).
-                    if self._save_adapter_weights_only:
-                        rewrite_adapter_config_base_path(
-                            self._output_dir, curr_epoch, self._base_model_path, log
-                        )
-                    else:
-                        stash_adapter_files(self._output_dir, curr_epoch, log)
-                else:
-                    log.info(f"Skipping checkpoint save for epoch {curr_epoch}...")
-                # !--- end cruijff_kit patch ---!
+                )
 
     def cleanup(self) -> None:
         self._metric_logger.close()

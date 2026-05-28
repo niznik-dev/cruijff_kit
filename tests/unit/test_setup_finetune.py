@@ -4,7 +4,6 @@ import argparse
 import warnings
 import pytest
 from cruijff_kit.tools.torchtune.setup_finetune import (
-    parse_epochs,
     parse_bool,
     calculate_lora_alpha,
     validate_lr_scheduler,
@@ -14,67 +13,8 @@ from cruijff_kit.tools.torchtune.setup_finetune import (
     extract_flat_params,
     compute_training_steps,
     warn_on_low_steps,
-    warn_on_excessive_checkpoints,
-    _estimate_checkpoint_size_gb,
-    _suggest_checkpoint_subset,
     RECIPE_PARAM_MAPPING,
 )
-
-
-def test_parse_epochs_all():
-    """Test that 'all' is parsed correctly."""
-    result = parse_epochs("all")
-    assert result == "all"
-
-
-def test_parse_epochs_none():
-    """Test that 'none' is parsed as empty list."""
-    result = parse_epochs("none")
-    assert result == []
-
-
-def test_parse_epochs_comma_delimited():
-    """Test comma-delimited epochs."""
-    result = parse_epochs("0,1,2")
-    assert result == [0, 1, 2]
-
-
-def test_parse_epochs_single_value():
-    """Test single epoch value."""
-    result = parse_epochs("5")
-    assert result == [5]
-
-
-def test_parse_epochs_with_whitespace():
-    """Test that whitespace is handled correctly in comma-delimited list."""
-    result = parse_epochs("0, 1, 2")
-    assert result == [0, 1, 2]
-
-
-def test_parse_epochs_case_insensitive_all():
-    """Test that 'ALL' is case-insensitive."""
-    result = parse_epochs("ALL")
-    assert result == "all"
-
-
-def test_parse_epochs_case_insensitive_none():
-    """Test that 'NONE' is case-insensitive."""
-    result = parse_epochs("NONE")
-    assert result == []
-
-
-def test_parse_epochs_invalid_format():
-    """Test that invalid epoch format raises ArgumentTypeError."""
-    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
-        parse_epochs("1,2,abc")
-    assert "Invalid epochs format" in str(exc_info.value)
-
-
-def test_parse_epochs_invalid_text():
-    """Test that random text raises ArgumentTypeError."""
-    with pytest.raises(argparse.ArgumentTypeError) as exc_info:
-        parse_epochs("invalid")
-    assert "Invalid epochs format" in str(exc_info.value)
 
 
 # Tests for parse_bool()
@@ -691,108 +631,3 @@ def test_warn_on_low_steps_below_50_but_above_3x_warmup():
         warnings.simplefilter("always")
         warn_on_low_steps(step_info, num_warmup_steps=5)
         assert len(w) == 0
-
-
-# Tests for _estimate_checkpoint_size_gb()
-
-
-def test_estimate_checkpoint_size_gb_llama_1b():
-    """1B model should yield ~2.5 GB."""
-    assert _estimate_checkpoint_size_gb("Llama-3.2-1B-Instruct") == 2.5
-
-
-def test_estimate_checkpoint_size_gb_llama_8b():
-    """8B model should yield ~20 GB."""
-    assert _estimate_checkpoint_size_gb("Llama-3.1-8B-Instruct") == 20.0
-
-
-def test_estimate_checkpoint_size_gb_unknown_returns_none():
-    """Model name with no NB pattern should return None."""
-    assert _estimate_checkpoint_size_gb("some-unrecognized-model") is None
-
-
-def test_estimate_checkpoint_size_gb_none_input():
-    """None model name should return None."""
-    assert _estimate_checkpoint_size_gb(None) is None
-
-
-# Tests for _suggest_checkpoint_subset()
-
-
-def test_suggest_checkpoint_subset_100_epochs():
-    """100 epochs with default target_count=10 -> every 10th epoch."""
-    assert _suggest_checkpoint_subset(100) == "9,19,29,39,49,59,69,79,89,99"
-
-
-def test_suggest_checkpoint_subset_ends_on_last_epoch():
-    """Suggestion must always include the final epoch."""
-    result = _suggest_checkpoint_subset(53)
-    assert result.split(",")[-1] == "52"
-
-
-# Tests for warn_on_excessive_checkpoints()
-
-
-def test_warn_on_excessive_checkpoints_below_threshold():
-    """No warning when checkpoint count is at or below threshold."""
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        warn_on_excessive_checkpoints(
-            "all", epochs=10, model_name="Llama-3.2-1B-Instruct"
-        )
-        assert len(w) == 0
-
-
-def test_warn_on_excessive_checkpoints_all_over_threshold():
-    """'all' with epochs > threshold should warn."""
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        warn_on_excessive_checkpoints(
-            "all", epochs=100, model_name="Llama-3.2-1B-Instruct"
-        )
-        assert len(w) == 1
-        msg = str(w[0].message)
-        assert "100 checkpoints" in msg
-        assert "250 GB total" in msg  # 100 * 2.5
-
-
-def test_warn_on_excessive_checkpoints_explicit_list_over_threshold():
-    """An explicit list of >10 epochs should warn."""
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        warn_on_excessive_checkpoints(list(range(15)), epochs=50)
-        assert len(w) == 1
-        assert "15 checkpoints" in str(w[0].message)
-
-
-def test_warn_on_excessive_checkpoints_empty_list_no_warning():
-    """An empty list ('none') should not warn."""
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        warn_on_excessive_checkpoints([], epochs=100)
-        assert len(w) == 0
-
-
-def test_warn_on_excessive_checkpoints_unknown_model_omits_size():
-    """Warning should still fire but without a size estimate when model is unknown."""
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        warn_on_excessive_checkpoints("all", epochs=50, model_name=None)
-        assert len(w) == 1
-        msg = str(w[0].message)
-        assert "50 checkpoints" in msg
-        assert "GB total" not in msg
-        assert "checkpoint size unknown" in msg
-
-
-def test_warn_on_excessive_checkpoints_unparseable_model_name():
-    """Model name that doesn't match NB pattern (e.g. 'gemma4') should still warn
-    and name the model so the user can see why size couldn't be estimated."""
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        warn_on_excessive_checkpoints("all", epochs=50, model_name="gemma4")
-        assert len(w) == 1
-        msg = str(w[0].message)
-        assert "50 checkpoints" in msg
-        assert "GB total" not in msg
-        assert "checkpoint size unknown for 'gemma4'" in msg

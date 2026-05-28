@@ -35,4 +35,10 @@ TUNE_EXIT_CODE=$?
 kill $GPU_MONITOR_PID 2>/dev/null
 wait $GPU_MONITOR_PID 2>/dev/null
 
+# Post-finetune adapter housekeeping (#465 wrapper-principle).
+# Runs only if training succeeded; failures here don't override TUNE_EXIT_CODE.
+if [ $TUNE_EXIT_CODE -eq 0 ]; then
+    python -m cruijff_kit.tools.torchtune.post_finetune --config finetune.yaml
+fi
+
 exit $TUNE_EXIT_CODE

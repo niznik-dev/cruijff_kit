@@ -59,12 +59,14 @@ For detailed architecture documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE
 
 ## Recipe Patching Policy (#465)
 
-All cruijff_kit divergences from torchtune in `src/tools/torchtune/custom_recipes/` live in marked `# !--- cruijff_kit patch ---!` blocks — those blocks are the audit trail. Risk is governed by **location**, not patch count:
+cruijff_kit's promise to users centers on **P2 + P3**: a safer, more scriptable torchtune with reproducible experiments. To keep training math identical to upstream, the custom recipes in `src/tools/torchtune/custom_recipes/` carry **no in-`train()` patches** — any extension that needs to read or write training-loop state lives in a wrapper layer, not the recipe.
 
-- **Outside `train()`** (imports, config reads, `_setup_data`, post-`save_checkpoint` file ops): fine where they are. Failure modes are detectable — missing config keys raise at init, file-ops fail loudly.
-- **Inside `train()` or hooks that read/write training-loop state** (e.g., `_loss_step`, the checkpoint-schedule logic): require **defensive guards** — init-time validation that fails loud on bad config, runtime assertions on invariants, and a dedicated unit test covering the patched path.
+Concrete rule for new patches:
 
-Why location, not count: an audit of existing patches showed silent-corruption modes (e.g., zero-checkpoint runs from misformatted `epochs_to_save`, mid-run crashes from buggy custom metrics) only appear inside `train()`. Outside-`train()` patches fail loud naturally. Mass-extracting outside-`train()` patches into a wrapper shuffles code without reducing risk.
+- **Outside `train()` and outside hooks that touch training-loop state** (imports, config reads, post-`save_checkpoint` file ops): may live in the recipe as a `# !--- cruijff_kit patch ---!` block. Failure modes are detectable — missing config keys raise at init, file-ops fail loudly.
+- **Inside `train()` or any hook that reads/writes training-loop state** (`_loss_step`, checkpoint scheduling, dataloader wiring, progress-bar args): does not go in the recipe. The wrapper layer (e.g., `src/tools/torchtune/post_finetune.py`) is the home for these behaviors.
+
+Why this shape: an audit (see #465) found that silent-corruption modes — zero-checkpoint runs from misformatted `epochs_to_save`, mid-run crashes from buggy custom metrics — only appeared inside `train()`. Outside-`train()` patches fail loud naturally. Removing the in-`train()` patches eliminates the high-risk class entirely.
 
 ## Skills
 

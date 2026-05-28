@@ -4,6 +4,18 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **Recipe Patching Policy (#465) tightened to wrapper-only.** All in-`train()` patches removed from the three custom recipes (`lora_finetune_single_device_stable`, `lora_finetune_single_device_nightly`, `lora_finetune_distributed_stable`); training math is now identical to upstream torchtune within the recipe boundary. Post-save adapter housekeeping (the `adapter_config.json` rewrite for offline-compute self-loading; the `adapter_weights/` stash for merged saves) moves to a new wrapper-layer step at `src/tools/torchtune/post_finetune.py`, invoked from `finetune.slurm` after `tune run` succeeds.
+
+### Removed
+
+- **`epochs_to_save` / `save_last_epoch_only`** config keys and the `validate_epochs_to_save` helper. Torchtune's upstream "save every epoch" behavior is restored; combine with `save_adapter_weights_only: True` (the default) to keep disk usage modest. (#465)
+- **`num_workers` / `persistent_workers`** DataLoader knobs (CLI flags, yaml keys, recipe-side wiring). Measured throughput gains were minimal. (#465, #514, #515)
+- **`tqdm_miniters`** progress-bar tuning. Defaults are sufficient. (#465, #269)
+- **Custom metrics framework** — `src/utils/finetune_custom_metrics.py` and the recipe-side `calculate_custom_metrics` integration. (#465)
+- **Dead `setup_logger` import + module-level logger binding** in all three recipes. (#465)
+
 ## [0.3.2] - 2026-05-21
 
 ### Added
