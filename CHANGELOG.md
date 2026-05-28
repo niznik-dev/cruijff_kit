@@ -4,6 +4,10 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Removed
+
+- `epochs_to_save` / `save_last_epoch_only` config keys and the `validate_epochs_to_save` helper from custom recipes and `setup_finetune.py`. Upstream torchtune's save-every-epoch behavior is restored; combine with `save_adapter_weights_only: True` (the default since 0.3.2) to keep disk usage modest. Part of the milestone-wide return to wrapper-only recipes. (#465, #525)
+
 ## [0.3.2] - 2026-05-21
 
 ### Added

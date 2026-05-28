@@ -116,7 +116,6 @@ setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
   - `custom_recipe_utils.py` - Shared utilities for recipes
 
 **Custom features added to torchtune:**
-- Selective epoch saving (`epochs_to_save`)
 - Adapter-only saves with self-loading offline (rewrite `adapter_config.json` base path after save; `port_cruijff_adapter` restores HF Hub name for export)
 - Custom metrics integration via `src/utils/finetune_custom_metrics.py`
 - Validation during training (requires nightly build)
@@ -283,13 +282,6 @@ After running finetune:
   - Training for 2 epochs produces `epoch_0/` and `epoch_1/`
   - When referencing epochs in evaluation scripts, use the 0-indexed value
   - Example: After 1 epoch of training, evaluate using `epoch_0`
-
-- **epochs_to_save**: Controls which epochs to save
-  - `'all'` - Save every epoch (default)
-  - `'none'` - Don't save any checkpoints
-  - `"0,2,4"` - Comma-delimited list of specific epochs (0-indexed)
-
-- **save_last_epoch_only**: `'true'`/`'false'` - Only save the final epoch
 
 - **save_adapter_weights_only**: `'true'`/`'false'` (default `'true'`) - Save only the LoRA adapter (~MB), skip the merged base+LoRA checkpoint (~GB). The saved `adapter_config.json` has its `base_model_name_or_path` rewritten to the local base-model path so the dir is self-loading on offline compute. Use `python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <epoch_dir>` to restore the HF Hub name when exporting.
 

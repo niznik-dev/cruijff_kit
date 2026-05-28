@@ -15,13 +15,6 @@ import torch
 import torchtune.modules.common_utils as common_utils
 from omegaconf import DictConfig, ListConfig
 
-# !--- cruijff_kit patch ---!
-# Feature: epochs_to_save - selective checkpoint saving
-from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
-    validate_epochs_to_save,
-)
-# !--- end cruijff_kit patch ---!
-
 from torch import nn
 from torch.optim import Optimizer
 from torchdata.stateful_dataloader import StatefulDataLoader
@@ -183,26 +176,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.global_step = 0
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
-        # !--- cruijff_kit patch ---!
-        # Feature: epochs_to_save - Selective checkpoint saving
-        # Allows saving only specific epochs (e.g., [0, 4, 9]) instead of all epochs.
-        # Includes backward compatibility for save_last_epoch_only flag.
-        if cfg.save_last_epoch_only and cfg.epochs_to_save:
-            utils.log_rank_zero(
-                log,
-                "Both save_last_epoch_only and epochs_to_save are in use. The value for save_last_epoch_only takes precedence but will be removed in a future release.",
-            )
-        self._save_last_epoch_only = cfg.get("save_last_epoch_only", False)
-        raw_epochs_to_save = (
-            [self.total_epochs - 1]
-            if self._save_last_epoch_only
-            else cfg.get("epochs_to_save", "all")
-        )
-        # Guarded (#465): fail loud on misformatted epochs_to_save so users don't end up with a zero-checkpoint run.
-        self._epochs_to_save = validate_epochs_to_save(
-            raw_epochs_to_save, self.total_epochs
-        )
-        # !--- end cruijff_kit patch ---!
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._clip_grad_norm = cfg.get("clip_grad_norm", None)
 
@@ -955,20 +928,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         break
 
                 self.epochs_run += 1
-                # !--- cruijff_kit patch ---!
-                # Feature: epochs_to_save - Only save checkpoints for specified epochs
-                if curr_epoch in self._epochs_to_save:
-                    start_save_checkpoint = time.perf_counter()
-                    log.info(f"Starting checkpoint save for epoch {curr_epoch}...")
-                    self.save_checkpoint(epoch=curr_epoch)
-                    log.info(
-                        "Checkpoint saved in {:.2f} seconds.".format(
-                            time.perf_counter() - start_save_checkpoint
-                        )
+                start_save_checkpoint = time.perf_counter()
+                log.info("Starting checkpoint save...")
+                self.save_checkpoint(epoch=curr_epoch)
+                log.info(
+                    "Checkpoint saved in {:.2f} seconds.".format(
+                        time.perf_counter() - start_save_checkpoint
                     )
-                else:
-                    log.info(f"Skipping checkpoint save for epoch {curr_epoch}...")
-                # !--- end cruijff_kit patch ---!
+                )
 
     def cleanup(self) -> None:
         self._metric_logger.close()
