@@ -4,6 +4,10 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- `report_generator` no longer emits the misleading `## Risk Metrics` heading + C-ECE/R-ECE footnote on `continuous_scorer`-only experiments. The section now renders as `## Regression Metrics` with an mae / rmse / r_squared / parse_rate footnote. Mixed risk + regression experiments emit two sub-sections, one per category. (#519)
+
 ## [0.3.2] - 2026-05-21
 
 ### Added

@@ -418,6 +418,121 @@ class TestCalibrationOnlyReport:
 
 
 # =============================================================================
+# Continuous-scorer-only and mixed report paths (#519)
+# =============================================================================
+
+
+class TestContinuousOnlyReport:
+    """When the only supplementary metrics are continuous_scorer outputs
+    (mae / rmse / r_squared / parse_rate), the report should emit a
+    ``## Regression Metrics`` heading and a regression-shaped footnote rather
+    than the risk_scorer C-ECE / R-ECE explanation.
+    """
+
+    def _make_continuous_only_df(self):
+        return pd.DataFrame(
+            {
+                "model": ["model_a", "model_b"],
+                "results_total_samples": [500, 500],
+                "score_continuous_scorer/mae": [4200.0, 5100.0],
+                "score_continuous_scorer/rmse": [6300.0, 7700.0],
+                "score_continuous_scorer/r_squared": [0.42, 0.18],
+                "score_continuous_scorer/parse_rate": [0.97, 0.83],
+            }
+        )
+
+    def test_regression_heading_not_risk_metrics(self, tmp_path):
+        """Continuous-only experiments emit Regression Metrics, not Risk Metrics."""
+        report = generate_report(
+            df=self._make_continuous_only_df(),
+            experiment_name="continuous_only",
+            output_path=tmp_path / "report.md",
+        )
+        assert "## Regression Metrics" in report
+        assert "## Risk Metrics" not in report
+
+    def test_continuous_footnote_present_risk_footnote_absent(self, tmp_path):
+        """The C-ECE / R-ECE footnote does not render under continuous-only."""
+        report = generate_report(
+            df=self._make_continuous_only_df(),
+            experiment_name="continuous_only",
+            output_path=tmp_path / "report.md",
+        )
+        assert "C-ECE" not in report
+        assert "R-ECE" not in report
+        # Continuous footnote content — match the substantive phrases rather
+        # than the exact string so wording tweaks don't break the test.
+        assert "r_squared: higher is better" in report
+        assert "parse_rate" in report
+
+    def test_metric_values_render(self, tmp_path):
+        report = generate_report(
+            df=self._make_continuous_only_df(),
+            experiment_name="continuous_only",
+            output_path=tmp_path / "report.md",
+        )
+        assert "4200.000" in report  # mae for model_a
+        assert "0.420" in report  # r_squared for model_a
+        assert "0.970" in report  # parse_rate for model_a
+
+
+class TestMixedRiskAndContinuousReport:
+    """When an experiment somehow produces both risk_scorer and continuous_scorer
+    metrics, the report emits two sub-sections — Risk Metrics first, then
+    Regression Metrics — each with its own footnote.
+    """
+
+    def _make_mixed_df(self):
+        return pd.DataFrame(
+            {
+                "model": ["model_a", "model_b"],
+                "results_total_samples": [500, 500],
+                "score_risk_scorer_cruijff_kit/auc_score": [0.85, 0.72],
+                "score_risk_scorer_cruijff_kit/brier_score": [0.15, 0.22],
+                "score_continuous_scorer/mae": [4200.0, 5100.0],
+                "score_continuous_scorer/r_squared": [0.42, 0.18],
+            }
+        )
+
+    def test_both_headings_present_in_order(self, tmp_path):
+        report = generate_report(
+            df=self._make_mixed_df(),
+            experiment_name="mixed",
+            output_path=tmp_path / "report.md",
+        )
+        assert "## Risk Metrics" in report
+        assert "## Regression Metrics" in report
+        assert report.index("## Risk Metrics") < report.index("## Regression Metrics")
+
+    def test_both_footnotes_present(self, tmp_path):
+        report = generate_report(
+            df=self._make_mixed_df(),
+            experiment_name="mixed",
+            output_path=tmp_path / "report.md",
+        )
+        assert "C-ECE" in report
+        assert "r_squared: higher is better" in report
+
+    def test_metrics_split_across_tables(self, tmp_path):
+        """Risk metrics live under the Risk heading; regression metrics under the
+        Regression heading. AUC must not appear under the Regression heading.
+        """
+        report = generate_report(
+            df=self._make_mixed_df(),
+            experiment_name="mixed",
+            output_path=tmp_path / "report.md",
+        )
+        risk_start = report.index("## Risk Metrics")
+        reg_start = report.index("## Regression Metrics")
+        risk_section = report[risk_start:reg_start]
+        reg_section = report[reg_start:]
+        assert "0.850" in risk_section  # AUC under Risk
+        assert "0.850" not in reg_section
+        assert "4200.000" in reg_section  # mae under Regression
+        assert "4200.000" not in risk_section
+
+
+# =============================================================================
 # Provenance metadata
 # =============================================================================
 
