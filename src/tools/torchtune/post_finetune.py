@@ -1,0 +1,81 @@
+"""Post-finetune adapter housekeeping (#465 wrapper-principle move).
+
+Reads the run's finetune.yaml to determine the output_dir, base checkpoint
+dir, and adapter-save mode; then walks every `epoch_N` subdirectory and
+applies the matching step:
+
+- adapter-only saves (`save_adapter_weights_only: True`): rewrite
+  `adapter_config.json`'s `base_model_name_or_path` to the absolute local
+  base path so the dir is self-loading on offline compute.
+- merged saves (`save_adapter_weights_only: False`): stash adapter files
+  into an `adapter_weights/` subdir so transformers' PEFT auto-detection
+  doesn't shadow the merged checkpoint.
+
+Invoke as a SLURM post-train step (from the dir containing finetune.yaml):
+    python -m cruijff_kit.tools.torchtune.post_finetune --config finetune.yaml
+"""
+
+import argparse
+import re
+from pathlib import Path
+
+import yaml
+from torchtune import utils
+
+from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
+    rewrite_adapter_config_base_path,
+    stash_adapter_files,
+)
+
+log = utils.get_logger("DEBUG")
+
+EPOCH_RE = re.compile(r"^epoch_(\d+)$")
+
+
+def discover_epoch_dirs(output_dir: Path) -> list[int]:
+    epochs = []
+    for child in output_dir.iterdir():
+        if not child.is_dir():
+            continue
+        match = EPOCH_RE.match(child.name)
+        if match:
+            epochs.append(int(match.group(1)))
+    return sorted(epochs)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--config",
+        default="finetune.yaml",
+        help="Path to the finetune.yaml the recipe used (defaults to cwd/finetune.yaml)",
+    )
+    args = parser.parse_args()
+
+    cfg_path = Path(args.config)
+    with cfg_path.open() as f:
+        cfg = yaml.safe_load(f)
+
+    output_dir = Path(cfg["output_dir"])
+    base_model_path = cfg["checkpointer"]["checkpoint_dir"]
+    save_adapter_weights_only = bool(cfg.get("save_adapter_weights_only", False))
+
+    if not output_dir.is_dir():
+        raise SystemExit(f"output_dir from {cfg_path} not found: {output_dir}")
+
+    epochs = discover_epoch_dirs(output_dir)
+    if not epochs:
+        log.warning(f"No epoch_N subdirs in {output_dir}; nothing to do.")
+        return
+
+    for epoch in epochs:
+        if save_adapter_weights_only:
+            rewrite_adapter_config_base_path(
+                str(output_dir), epoch, base_model_path, log
+            )
+        else:
+            stash_adapter_files(str(output_dir), epoch, log)
+
+
+if __name__ == "__main__":
+    main()
