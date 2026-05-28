@@ -47,17 +47,6 @@ from cruijff_kit.utils.logger import setup_logger
 logger = setup_logger(__name__)
 # !--- end cruijff_kit patch ---!
 
-# !--- cruijff_kit patch ---!
-# Feature: custom_metrics - Experimental metrics calculation during training
-# Conditional import of custom metrics
-try:
-    from utils.finetune_custom_metrics import calculate_custom_metrics
-
-    CUSTOM_METRICS_AVAILABLE = True
-except ImportError:
-    CUSTOM_METRICS_AVAILABLE = False
-# !--- end cruijff_kit patch ---!
-
 log = utils.get_logger("DEBUG")
 
 
@@ -187,12 +176,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._save_adapter_weights_only = cfg.get("save_adapter_weights_only", False)
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-
-        # !--- cruijff_kit patch ---!
-        # Feature: custom_metrics - Enable metrics calculation if available
-        self._calculate_custom_metrics = CUSTOM_METRICS_AVAILABLE
-        self._custom_metrics = {}
-        # !--- end cruijff_kit patch ---!
 
         # activation checkpointing/offloading
         self._enable_activation_checkpointing = cfg.get(
@@ -838,31 +821,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 with self.activations_handling_ctx:
                     logits = self._model(**batch)
 
-                # !--- cruijff_kit patch ---!
-                # Feature: custom_metrics - Calculate custom metrics before computing loss.
-                # Guarded (#465): if the metrics function raises, log once and auto-disable
-                # so a buggy metric doesn't kill an entire training run.
-                if self._calculate_custom_metrics:
-                    try:
-                        metrics = calculate_custom_metrics(
-                            logits, labels, self._tokenizer, self._loss_fn.ignore_index
-                        )
-                        for metric_name, metric_value in metrics.items():
-                            if isinstance(metric_value, torch.Tensor):
-                                self._custom_metrics[metric_name] = (
-                                    metric_value.detach().item()
-                                )
-                            else:
-                                self._custom_metrics[metric_name] = metric_value
-                    except Exception as e:
-                        log.warning(
-                            f"calculate_custom_metrics raised {type(e).__name__}: {e}. "
-                            "Disabling custom metrics for the rest of this run."
-                        )
-                        self._calculate_custom_metrics = False
-                        self._custom_metrics = {}
-                # !--- end cruijff_kit patch ---!
-
                 # Shift labels to compute loss
                 # equivalent to doing labels[..., 1:] and logits[..., :-1, :]
                 # But this way we dont need to slice the logits. We just add an ignore index to labels.
@@ -931,13 +889,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
                         if self._clip_grad_norm is not None:
                             log_dict.update({"grad_norm": grad_norm})
-
-                        # !--- cruijff_kit patch ---!
-                        # Feature: custom_metrics - Add custom metrics to log_dict and reset
-                        if self._custom_metrics:
-                            log_dict.update(self._custom_metrics)
-                            self._custom_metrics = {}
-                        # !--- end cruijff_kit patch ---!
 
                         self._metric_logger.log_dict(
                             log_dict,
