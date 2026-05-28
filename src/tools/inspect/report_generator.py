@@ -24,13 +24,15 @@ from typing import Optional
 
 import pandas as pd
 
+from cruijff_kit.tools.inspect.scorers.continuous_scorer import (
+    METRIC_NAMES as _CONTINUOUS_METRIC_NAMES,
+)
 from cruijff_kit.tools.inspect.viz_helpers import detect_metrics, display_name
 
-# Suffixes that identify continuous_scorer metrics. The supplementary metric
-# name format is "{scorer_name}/{metric_name}" (e.g.
+# Supplementary metric names have the form "{scorer_name}/{metric_name}" (e.g.
 # "risk_scorer_cruijff_kit/auc_score", "continuous_scorer/mae"); we classify
-# by the part after the last "/" (#519).
-CONTINUOUS_METRIC_SUFFIXES = frozenset({"mae", "rmse", "r_squared", "parse_rate"})
+# by the part after the last "/" against the set the continuous_scorer module
+# itself exports, so adding a new metric there auto-classifies here (#519).
 
 _RISK_FOOTNOTE = (
     '*C-ECE (Confidence ECE): "when I\'m X% confident, am I right X% of the time?" '
@@ -48,7 +50,7 @@ _CONTINUOUS_FOOTNOTE = (
 
 def _is_continuous_metric(name: str) -> bool:
     """True if *name* is a continuous_scorer metric (e.g. ``foo/mae``)."""
-    return name.rsplit("/", 1)[-1] in CONTINUOUS_METRIC_SUFFIXES
+    return name.rsplit("/", 1)[-1] in _CONTINUOUS_METRIC_NAMES
 
 
 def _split_calibration_by_category(
