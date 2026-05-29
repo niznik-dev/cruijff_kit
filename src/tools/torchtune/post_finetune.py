@@ -1,4 +1,4 @@
-"""Post-finetune adapter housekeeping (#465 wrapper-principle move).
+"""Post-finetune adapter housekeeping.
 
 Reads the run's finetune.yaml to determine the output_dir, base checkpoint
 dir, and adapter-save mode; then walks every `epoch_N` subdirectory and
@@ -22,7 +22,7 @@ from pathlib import Path
 import yaml
 from torchtune import utils
 
-from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
+from cruijff_kit.tools.torchtune.adapter_utils import (
     rewrite_adapter_config_base_path,
     stash_adapter_files,
 )
