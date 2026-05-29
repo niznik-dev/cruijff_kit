@@ -8,6 +8,7 @@ All notable changes to cruijff_kit will be documented in this file.
 
 - `epochs_to_save` / `save_last_epoch_only` config keys and the `validate_epochs_to_save` helper from custom recipes and `setup_finetune.py`. Upstream torchtune's save-every-epoch behavior is restored; combine with `save_adapter_weights_only: True` (the default since 0.3.2) to keep disk usage modest. Part of the milestone-wide return to wrapper-only recipes. (#465, #525)
 - Custom-metrics framework: `src/utils/finetune_custom_metrics.py`, the recipe-side `calculate_custom_metrics` integration in `_loss_step` / the training loop, and the try/except auto-disable guard. No known consumers in this repo; if needed, a wrapper-layer reimplementation can come back later. Part of the milestone-wide return to wrapper-only recipes. (#465, #526)
+- `tqdm_miniters` config key and the recipe-side progress-bar override; the `tqdm` progress bars revert to upstream torchtune defaults. The override existed to keep SLURM logs short enough that log-reading wouldn't choke on chatty `tqdm` output; that constraint is obsolete now that large / carriage-return-heavy logs paginate cleanly (verified on a 626 KB / 10k-step log). Logs are more verbose without it (a controlled A/B measured ~25× more progress-bar lines/epoch at fast step-speed) but remain fully readable. Part of the milestone-wide return to wrapper-only recipes. (#465, #527)
 
 ## [0.3.2] - 2026-05-21
 
