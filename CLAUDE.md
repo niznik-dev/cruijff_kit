@@ -57,15 +57,6 @@ For detailed architecture documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE
 - **Modular tools**: Separate scripts for finetune setup and evaluation setup
 - **HPC-first design**: Built for SLURM clusters with automated script generation
 
-## Recipe Patching Policy (#465)
-
-All cruijff_kit divergences from torchtune in `src/tools/torchtune/custom_recipes/` live in marked `# !--- cruijff_kit patch ---!` blocks — those blocks are the audit trail. Risk is governed by **location**, not patch count:
-
-- **Outside `train()`** (imports, config reads, `_setup_data`, post-`save_checkpoint` file ops): fine where they are. Failure modes are detectable — missing config keys raise at init, file-ops fail loudly.
-- **Inside `train()` or hooks that read or write training-loop state** (loss accounting, gradient state, checkpoint scheduling, per-step metric emission): not allowed. Silent-corruption modes — zero-checkpoint runs, mid-step crashes that taint the metric stream — only appear here, and they survive even with defensive guards.
-
-The direction (milestone [Wrapper-only principle (#465)](https://github.com/niznik-dev/cruijff_kit/milestone/11), in-flight) is to land at zero in-`train()` patches. Post-train responsibilities (e.g., adapter housekeeping) move to a wrapper layer; in-`train()` features revert to upstream torchtune. If a future feature genuinely needs training-loop state, design the wrapper-side hook first; don't patch the recipe.
-
 ## Skills
 
 cruijff_kit includes Claude Code skills to streamline common workflows. These skills are optional - all workflows can also be performed manually.
