@@ -52,7 +52,6 @@ cruijff_kit/
 │   │   ├── layout.py                    # Layout constants (e.g. ARTIFACTS_DIR)
 │   │   ├── run_names.py                 # Random name generation for runs
 │   │   ├── logger.py                    # Structured logging utilities
-│   │   ├── finetune_custom_metrics.py   # Custom metrics for torchtune
 │   │   ├── check_if_model_is_finetuned.py  # Model state inspection
 │   │   ├── calc_token_stats.py          # Token-count statistics for datasets
 │   │   └── spot_check.py                # Quick model inference testing
@@ -117,7 +116,6 @@ setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
 
 **Custom features added to torchtune:**
 - Adapter-only saves with self-loading offline (rewrite `adapter_config.json` base path after save; `port_cruijff_adapter` restores HF Hub name for export)
-- Custom metrics integration via `src/utils/finetune_custom_metrics.py`
 - Validation during training (requires nightly build)
 
 ### 2. Evaluation Workflow
@@ -382,7 +380,6 @@ Common utilities in `src/utils/`:
 - `layout.py` - Layout constants (e.g. `ARTIFACTS_DIR`)
 - `run_names.py` - Generate random experiment names
 - `logger.py` - Structured logging helpers
-- `finetune_custom_metrics.py` - Define training metrics
 - `check_if_model_is_finetuned.py` - Inspect model state
 
 ## HPC Integration
@@ -403,12 +400,6 @@ Common utilities in `src/utils/`:
 - **User scratch space** for outputs (configure path in `claude.local.md`)
 
 ## Extension Points
-
-### Adding Custom Metrics
-
-1. Edit `src/utils/finetune_custom_metrics.py`
-2. Define metric function following torcheval patterns
-3. Recipe automatically imports and uses it
 
 ### Supporting New Dataset Formats
 
