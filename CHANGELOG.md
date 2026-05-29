@@ -8,6 +8,7 @@ All notable changes to cruijff_kit will be documented in this file.
 
 - `epochs_to_save` / `save_last_epoch_only` config keys and the `validate_epochs_to_save` helper from custom recipes and `setup_finetune.py`. Upstream torchtune's save-every-epoch behavior is restored; combine with `save_adapter_weights_only: True` (the default since 0.3.2) to keep disk usage modest. Part of the milestone-wide return to wrapper-only recipes. (#465, #525)
 - Custom-metrics framework: `src/utils/finetune_custom_metrics.py`, the recipe-side `calculate_custom_metrics` integration in `_loss_step` / the training loop, and the try/except auto-disable guard. No known consumers in this repo; if needed, a wrapper-layer reimplementation can come back later. Part of the milestone-wide return to wrapper-only recipes. (#465, #526)
+- `num_workers` / `persistent_workers` DataLoader knobs: the `--num_workers` / `--persistent_workers` CLI flags on `setup_finetune.py`, their `finetune.yaml` propagation, and the recipe-side DataLoader wiring in all 3 custom recipes. Measured throughput gains were minimal; users needing parallel data loading can reintroduce it via a wrapper or recipe fork. Part of the milestone-wide return to wrapper-only recipes. (#465, #528)
 
 ## [0.3.2] - 2026-05-21
 
