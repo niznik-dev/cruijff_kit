@@ -8,6 +8,7 @@ All notable changes to cruijff_kit will be documented in this file.
 
 - `epochs_to_save` / `save_last_epoch_only` config keys and the `validate_epochs_to_save` helper from custom recipes and `setup_finetune.py`. Upstream torchtune's save-every-epoch behavior is restored; combine with `save_adapter_weights_only: True` (the default since 0.3.2) to keep disk usage modest. Part of the milestone-wide return to wrapper-only recipes. (#465, #525)
 - Custom-metrics framework: `src/utils/finetune_custom_metrics.py`, the recipe-side `calculate_custom_metrics` integration in `_loss_step` / the training loop, and the try/except auto-disable guard. No known consumers in this repo; if needed, a wrapper-layer reimplementation can come back later. Part of the milestone-wide return to wrapper-only recipes. (#465, #526)
+- Dead `setup_logger` import block from the three custom recipes — it bound a module-level `logger` that was never used (the recipes log via torchtune's `log`). `src/utils/logger.py` itself is unchanged (still used by the inspect subtree). Part of the milestone-wide return to wrapper-only recipes. (#465, #529)
 
 ## [0.3.2] - 2026-05-21
 
