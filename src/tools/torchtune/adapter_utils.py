@@ -1,13 +1,19 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the
-# LICENSE file in the root directory of this source tree.
+"""Helpers for adapter directories produced by torchtune fine-tuning.
 
-"""
-Utility functions for custom recipes.
+These functions tweak what torchtune writes so the resulting adapter/merged
+checkpoints survive being loaded elsewhere (offline compute, a different
+machine, or a downstream inspect-ai eval):
 
-!--- cruijff_kit patch ---!
+- `check_adapter_base_path` — validate that an adapter dir's
+  `base_model_name_or_path` is loadable here (used at eval setup/submit time).
+- `rewrite_adapter_config_base_path` — repoint `adapter_config.json` at a local
+  absolute base path (adapter-only saves).
+- `stash_adapter_files` — move adapter files out of sight so transformers'
+  PEFT auto-detection doesn't shadow a merged checkpoint (merged saves).
+
+Adapters are a torchtune output artifact, so this knowledge lives on the
+torchtune side; inspect tooling imports `check_adapter_base_path` across the
+same way it imports `MODEL_CONFIGS` from `model_configs.py`.
 """
 
 import json

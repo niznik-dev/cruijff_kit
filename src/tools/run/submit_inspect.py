@@ -37,7 +37,7 @@ from cruijff_kit.tools.run._submit_common import (
     resolve_user,
     submit_and_monitor,
 )
-from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
+from cruijff_kit.tools.torchtune.adapter_utils import (
     check_adapter_base_path,
 )
 
