@@ -19,7 +19,7 @@ import argparse
 import re
 from pathlib import Path
 
-import yaml
+from omegaconf import OmegaConf
 from torchtune import utils
 
 from cruijff_kit.tools.torchtune.adapter_utils import (
@@ -30,6 +30,25 @@ from cruijff_kit.tools.torchtune.adapter_utils import (
 log = utils.get_logger("DEBUG")
 
 EPOCH_RE = re.compile(r"^epoch_(\d+)$")
+
+
+def read_run_config(cfg_path) -> tuple[Path, str, bool]:
+    """Read finetune.yaml via OmegaConf so ${...} interpolations resolve.
+
+    Load with OmegaConf, not yaml.safe_load: finetune.yaml uses ${...}
+    interpolation (e.g. checkpoint_dir: ${models_dir}/...) that torchtune
+    resolves at training time. Reading the raw yaml leaves the literal
+    "${models_dir}" string, which abspath() then roots under the cwd. Accessing
+    individual nodes resolves only the interpolations they need.
+
+    Returns (output_dir, base_model_path, save_adapter_weights_only).
+    """
+    cfg = OmegaConf.load(cfg_path)
+    return (
+        Path(str(cfg.output_dir)),
+        str(cfg.checkpointer.checkpoint_dir),
+        bool(cfg.get("save_adapter_weights_only", False)),
+    )
 
 
 def discover_epoch_dirs(output_dir: Path) -> list[int]:
@@ -53,12 +72,7 @@ def main():
     args = parser.parse_args()
 
     cfg_path = Path(args.config)
-    with cfg_path.open() as f:
-        cfg = yaml.safe_load(f)
-
-    output_dir = Path(cfg["output_dir"])
-    base_model_path = cfg["checkpointer"]["checkpoint_dir"]
-    save_adapter_weights_only = bool(cfg.get("save_adapter_weights_only", False))
+    output_dir, base_model_path, save_adapter_weights_only = read_run_config(cfg_path)
 
     if not output_dir.is_dir():
         raise SystemExit(f"output_dir from {cfg_path} not found: {output_dir}")
