@@ -34,6 +34,8 @@ When working in this project, the following principles should guide your decisio
 
 5. **Self improving** - Always look for ways to learn from earlier experiments to design new experiments, improve skills, and improve analysis. The more work we do, the easier things should be because we have more designs, results, and logs from which to learn.
 
+6. **Wrapper-only** - cruijff_kit integrates with external tools (torchtune, inspect-ai) by wrapping them, not modifying their internals.
+
 ## Terminology
 
 **Experiment**: A set of one or more runs designed to answer a scientific question.
