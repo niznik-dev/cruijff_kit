@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 
 
-from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
+from cruijff_kit.tools.torchtune.adapter_utils import (
     check_adapter_base_path,
     rewrite_adapter_config_base_path,
     stash_adapter_files,

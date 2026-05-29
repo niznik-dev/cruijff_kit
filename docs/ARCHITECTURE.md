@@ -52,7 +52,6 @@ cruijff_kit/
 │   │   ├── layout.py                    # Layout constants (e.g. ARTIFACTS_DIR)
 │   │   ├── run_names.py                 # Random name generation for runs
 │   │   ├── logger.py                    # Structured logging utilities
-│   │   ├── finetune_custom_metrics.py   # Custom metrics for torchtune
 │   │   ├── check_if_model_is_finetuned.py  # Model state inspection
 │   │   ├── calc_token_stats.py          # Token-count statistics for datasets
 │   │   └── spot_check.py                # Quick model inference testing
@@ -116,9 +115,7 @@ setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
   - `custom_recipe_utils.py` - Shared utilities for recipes
 
 **Custom features added to torchtune:**
-- Selective epoch saving (`epochs_to_save`)
 - Adapter-only saves with self-loading offline (rewrite `adapter_config.json` base path after save; `port_cruijff_adapter` restores HF Hub name for export)
-- Custom metrics integration via `src/utils/finetune_custom_metrics.py`
 - Validation during training (requires nightly build)
 
 ### 2. Evaluation Workflow
@@ -284,13 +281,6 @@ After running finetune:
   - When referencing epochs in evaluation scripts, use the 0-indexed value
   - Example: After 1 epoch of training, evaluate using `epoch_0`
 
-- **epochs_to_save**: Controls which epochs to save
-  - `'all'` - Save every epoch (default)
-  - `'none'` - Don't save any checkpoints
-  - `"0,2,4"` - Comma-delimited list of specific epochs (0-indexed)
-
-- **save_last_epoch_only**: `'true'`/`'false'` - Only save the final epoch
-
 - **save_adapter_weights_only**: `'true'`/`'false'` (default `'true'`) - Save only the LoRA adapter (~MB), skip the merged base+LoRA checkpoint (~GB). The saved `adapter_config.json` has its `base_model_name_or_path` rewritten to the local base-model path so the dir is self-loading on offline compute. Use `python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <epoch_dir>` to restore the HF Hub name when exporting.
 
 ### Custom Recipe Usage
@@ -390,7 +380,6 @@ Common utilities in `src/utils/`:
 - `layout.py` - Layout constants (e.g. `ARTIFACTS_DIR`)
 - `run_names.py` - Generate random experiment names
 - `logger.py` - Structured logging helpers
-- `finetune_custom_metrics.py` - Define training metrics
 - `check_if_model_is_finetuned.py` - Inspect model state
 
 ## HPC Integration
@@ -411,12 +400,6 @@ Common utilities in `src/utils/`:
 - **User scratch space** for outputs (configure path in `claude.local.md`)
 
 ## Extension Points
-
-### Adding Custom Metrics
-
-1. Edit `src/utils/finetune_custom_metrics.py`
-2. Define metric function following torcheval patterns
-3. Recipe automatically imports and uses it
 
 ### Supporting New Dataset Formats
 
