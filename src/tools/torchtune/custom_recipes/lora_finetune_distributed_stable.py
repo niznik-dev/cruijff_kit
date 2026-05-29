@@ -15,10 +15,8 @@ import torch
 from omegaconf import DictConfig, ListConfig
 
 # !--- cruijff_kit patch ---!
-# Feature: adapter_config base-path rewrite (adapter-only saves) and stash_adapter_files (merged saves)
+# Feature: epochs_to_save - selective checkpoint saving
 from cruijff_kit.tools.torchtune.custom_recipes.custom_recipe_utils import (
-    rewrite_adapter_config_base_path,
-    stash_adapter_files,
     validate_epochs_to_save,
 )
 # !--- end cruijff_kit patch ---!
@@ -213,8 +211,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._epochs_to_save = validate_epochs_to_save(
             raw_epochs_to_save, self.total_epochs
         )
-        # Base-model checkpoint_dir (used to rewrite adapter_config.json after save)
-        self._base_model_path = cfg.checkpointer.checkpoint_dir
         # !--- end cruijff_kit patch ---!
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -1009,18 +1005,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             if curr_epoch in self._epochs_to_save:
                 log.info(f"Starting checkpoint save for epoch {curr_epoch}...")
                 self.save_checkpoint(epoch=curr_epoch)
-
-                # Adapter-only save: rewrite adapter_config.json's base path.
-                # Merged save: stash adapter files so the merged checkpoint
-                # loads as merged (rather than being shadowed by PEFT auto-
-                # detection). Rank 0 only.
-                if self._is_rank_zero:
-                    if self._save_adapter_weights_only:
-                        rewrite_adapter_config_base_path(
-                            self._output_dir, curr_epoch, self._base_model_path, log
-                        )
-                    else:
-                        stash_adapter_files(self._output_dir, curr_epoch, log)
             else:
                 log.info(f"Skipping checkpoint save for epoch {curr_epoch}...")
             # !--- end cruijff_kit patch ---!
