@@ -122,7 +122,7 @@ _METRICS: list[tuple[str, callable]] = [
     ("parse_rate", parse_rate),
 ]
 
-# Exported so report_generator (#519) can classify columns by scorer category
+# Exported so report_generator can classify columns by scorer category
 # without re-listing names.
 METRIC_NAMES: frozenset[str] = frozenset(name for name, _ in _METRICS)
 
