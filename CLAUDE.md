@@ -113,12 +113,17 @@ All use Llama-3.2-1B-Instruct with `{ck_data_dir}/capitalization/words_5L_80P_10
 
 ### Code Comments
 
-- **No issue/PR numbers in code comments.** Comments must explain the code as it
-  stands, self-contained. Provenance ("why did this change?") belongs in the
-  commit message and PR description — `git blame` recovers it when needed.
+- **No issue/PR numbers in code comments under `src/`.** Production-code comments
+  must explain the code as it stands, self-contained. Provenance ("why did this
+  change?") belongs in the commit message and PR description — `git blame`
+  recovers it when needed.
   - ❌ `# Exported so viz_helpers (#534) can classify columns without re-listing.`
   - ✅ `# Exported so viz_helpers can classify columns without re-listing.`
   - Pointers to code that still exists are fine (e.g. `# See src/tools/.../inspect_task.py`) — those reference live structure, not ephemeral tracker state.
+  - **Tests are exempt.** Test files may cite the originating issue/PR — a
+    `"""Regression: ... (#447)"""` docstring documents *which bug the test guards*,
+    and the issue holds the repro and discussion. That traceability is worth more
+    in test code than the rot risk costs.
 
 ## Git Workflow
 

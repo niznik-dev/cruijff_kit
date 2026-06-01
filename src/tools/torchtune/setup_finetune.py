@@ -891,7 +891,7 @@ def main():
             args.custom_recipe = "cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_distributed_stable"
 
     # Warn if validation was requested for a multi-GPU run. The distributed
-    # recipe has no val loop yet (issue #474), so val will be silently skipped
+    # recipe has no val loop yet, so val will be silently skipped
     # at training time. The scaffold-torchtune agent is supposed to emit this
     # warning too, but duplicating it here makes the failure loud even when
     # setup_finetune.py is invoked outside the agent path.
@@ -952,7 +952,7 @@ def main():
 
         # Verify the (possibly auto-switched) recipe resolves to a real module on disk.
         # Without this, e.g. a single-device _nightly recipe with gpus>1 silently rewrites to
-        # _distributed_nightly, which doesn't exist (see issue #474), and the SLURM job
+        # _distributed_nightly, which doesn't exist, and the SLURM job
         # fails late at runtime instead of at scaffold time.
         recipe_module_path = (
             Path(__file__).parent
