@@ -5,10 +5,16 @@ target_value / error) and aggregate metrics via read_eval_log, so the tests mock
 read_eval_log with SimpleNamespace fakes shaped like a real EvalLog.
 """
 
+import json
+import sys
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from cruijff_kit.tools.inspect.summary_continuous import compute_metrics
+from cruijff_kit.tools.inspect.summary_continuous import (
+    compute_metrics,
+    main,
+    print_summary,
+)
 
 # read_eval_log is imported lazily inside compute_metrics; patch it at the source.
 PATCH_TARGET = "inspect_ai.log.read_eval_log"
@@ -148,3 +154,104 @@ class TestComputeMetrics:
         result = compute_metrics(f)
         assert result["status"] == "error"
         assert "corrupt archive" in result["message"]
+
+
+class TestPrintSummary:
+    """The default (non-JSON) CLI path — must survive None metrics/distributions."""
+
+    @patch(PATCH_TARGET)
+    def test_survives_all_parse_failures(self, mock_read, tmp_path, capsys):
+        f = tmp_path / "t.eval"
+        f.touch()
+        mock_read.return_value = _log(
+            [_sample(None, 42.0, None), _sample(None, 37.0, None)],
+            metrics={"parse_rate": _metric(0.0), "mae": _metric(float("nan"))},
+        )
+        result = print_summary(f)  # must not raise
+        assert result["parse_failures"] == 2
+        # None metrics / None distributions render as "n/a" rather than crashing.
+        assert "n/a" in capsys.readouterr().out
+
+    @patch(PATCH_TARGET)
+    def test_prints_metrics_on_success(self, mock_read, tmp_path, capsys):
+        f = tmp_path / "t.eval"
+        f.touch()
+        mock_read.return_value = _log(
+            [_sample(40.0, 42.0, -2.0), _sample(45.0, 42.0, 3.0)]
+        )
+        print_summary(f)
+        out = capsys.readouterr().out
+        assert "MAE:" in out and "Prediction" in out
+
+
+class TestBoundaries:
+    @patch(PATCH_TARGET)
+    def test_all_predictions_unparseable(self, mock_read, tmp_path):
+        """Base-model parse_rate=0 path: no predictions -> None distributions."""
+        f = tmp_path / "t.eval"
+        f.touch()
+        mock_read.return_value = _log(
+            [_sample(None, 42.0, None), _sample(None, 37.0, None)],
+            metrics={"parse_rate": _metric(0.0)},
+        )
+        r = compute_metrics(f)
+        assert r["parsed"] == 0
+        assert r["parse_failures"] == 2
+        assert r["prediction_distribution"] is None
+        assert r["residual_distribution"] is None
+
+    @patch(PATCH_TARGET)
+    def test_single_sample_zero_std(self, mock_read, tmp_path):
+        f = tmp_path / "t.eval"
+        f.touch()
+        mock_read.return_value = _log([_sample(50.0, 48.0, 2.0)])
+        d = compute_metrics(f)["prediction_distribution"]
+        assert d["std"] == 0.0
+        assert d["min"] == d["max"] == d["mean"] == 50.0
+
+
+class TestMissingScorerKey:
+    @patch(PATCH_TARGET)
+    def test_other_scorer_only_soft_degrades(self, mock_read, tmp_path):
+        """Samples scored only by a different scorer -> graceful, not KeyError.
+
+        Guards the SCORER_NAME hardcoded-coupling: a name miss must fail soft
+        (empty per-sample glance), not explode.
+        """
+        f = tmp_path / "t.eval"
+        f.touch()
+        other = SimpleNamespace(scores={"match": SimpleNamespace(metadata={})})
+        mock_read.return_value = _log([other, other])
+        r = compute_metrics(f)
+        assert r["status"] == "success"
+        assert r["parse_failures"] == 2
+        assert r["prediction_distribution"] is None
+
+
+class TestEdges:
+    @patch(PATCH_TARGET)
+    def test_results_none_still_computes_distributions(self, mock_read, tmp_path):
+        """No results.scores -> aggregate metrics None, but samples still glance."""
+        f = tmp_path / "t.eval"
+        f.touch()
+        mock_read.return_value = SimpleNamespace(
+            results=None,
+            samples=[_sample(40.0, 42.0, -2.0), _sample(44.0, 42.0, 2.0)],
+        )
+        r = compute_metrics(f)
+        assert r["status"] == "success"
+        assert r["metrics"]["mae"] is None
+        assert r["metrics"]["parse_rate"] == 1.0  # fallback from samples
+        assert r["prediction_distribution"]["mean"] == 42.0
+
+    @patch(PATCH_TARGET)
+    def test_main_json_dir_batch(self, mock_read, tmp_path, capsys):
+        (tmp_path / "a.eval").touch()
+        (tmp_path / "b.eval").touch()
+        mock_read.return_value = _log([_sample(40.0, 42.0, -2.0)])
+        with patch.object(sys, "argv", ["prog", str(tmp_path), "--json"]):
+            main()
+        payload = json.loads(capsys.readouterr().out)
+        assert isinstance(payload, list)
+        assert len(payload) == 2
+        assert all(item["status"] == "success" for item in payload)
