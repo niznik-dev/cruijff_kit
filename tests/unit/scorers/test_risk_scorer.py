@@ -23,7 +23,14 @@ from inspect_ai.model._model_output import (
 from inspect_ai.model._chat_message import ChatMessageAssistant
 from inspect_ai.scorer import Score, CORRECT, INCORRECT, Target
 
-from cruijff_kit.tools.inspect.scorers.risk_scorer import risk_scorer, mean_risk_score
+from inspect_ai._util.registry import registry_info
+
+from cruijff_kit.tools.inspect.scorers.risk_scorer import (
+    risk_scorer,
+    mean_risk_score,
+    risk_metric_suite,
+    METRIC_NAMES,
+)
 
 # =============================================================================
 # Helpers
@@ -489,3 +496,41 @@ class TestMeanRiskScoreMetric:
         metric_fn = mean_risk_score()
         result = metric_fn(scores)
         assert result == pytest.approx(0.73, abs=1e-6)
+
+
+# =============================================================================
+# Metric suite ↔ METRIC_NAMES ↔ inspect-ai registration contract
+# =============================================================================
+
+
+class TestMetricSuiteContract:
+    """The hand-written METRIC_NAMES must agree with what inspect-ai emits.
+
+    METRIC_NAMES is written out by hand because inspect-ai's @metric clobbers
+    each factory's __name__ (all report as "metric_wrapper"), so the names can't
+    be introspected from the factories at runtime. These tests cross the
+    inspect-ai boundary to prove the hand-written names match the names
+    inspect-ai actually keys each metric under — and that key is what lands in
+    the eval-log column that has_risk_scorer later classifies. This is the
+    drift the names exist to prevent; the unit-level "METRIC_NAMES == set of
+    _METRICS names" check is a tautology and would not catch it.
+    """
+
+    def test_suite_size_matches_metric_names(self):
+        assert len(risk_metric_suite()) == len(METRIC_NAMES)
+
+    def test_registered_names_match_metric_names(self):
+        # inspect-ai registers each metric under its factory name; that name is
+        # what appears in the eval-log column. Assert our hand-written names
+        # match what inspect-ai will emit, so a rename on either side is caught.
+        emitted = {
+            registry_info(m).name.rsplit("/", 1)[-1] for m in risk_metric_suite()
+        }
+        assert emitted == set(METRIC_NAMES)
+
+    def test_suite_returns_fresh_instances(self):
+        # Each scorer instantiates its own metrics; a shared module-level list
+        # would alias mutable Metric objects across risk_scorer and
+        # numeric_risk_scorer. Fresh instances per call keep them independent.
+        first, second = risk_metric_suite(), risk_metric_suite()
+        assert all(a is not b for a, b in zip(first, second))

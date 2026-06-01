@@ -1,6 +1,7 @@
 """Unit tests for per-sample risk data extraction and plot generation."""
 
 import numpy as np
+import pytest
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -13,6 +14,7 @@ from cruijff_kit.tools.inspect.viz_helpers import (
     generate_calibration_overlay,
     generate_prediction_histogram,
 )
+from cruijff_kit.tools.inspect.scorers.risk_scorer import METRIC_NAMES
 
 
 # =============================================================================
@@ -187,20 +189,29 @@ class TestExtractPerSampleRiskData:
 
 
 class TestHasRiskScorer:
-    def test_true_when_auc_present(self):
+    @pytest.mark.parametrize("metric_name", sorted(METRIC_NAMES))
+    def test_true_for_each_real_risk_metric(self, metric_name):
+        # Any real risk metric trips detection — not just auc_score, which is
+        # all the old substring check caught.
+        dm = DetectedMetrics(supplementary=[f"risk_scorer_cruijff_kit/{metric_name}"])
+        assert dm.has_risk_scorer is True
+
+    def test_true_for_numeric_risk_scorer_prefix(self):
+        # numeric_risk_scorer shares the same metric suite, so its columns
+        # must classify identically.
         dm = DetectedMetrics(
-            accuracy=["match"],
-            supplementary=[
-                "risk_scorer_cruijff_kit/auc_score",
-                "risk_scorer_cruijff_kit/ece",
-            ],
+            supplementary=["numeric_risk_scorer_cruijff_kit/auc_score"]
         )
         assert dm.has_risk_scorer is True
 
-    def test_false_when_no_auc(self):
+    def test_false_for_continuous_metrics(self):
         dm = DetectedMetrics(
-            accuracy=["match"], supplementary=["risk_scorer_cruijff_kit/ece"]
+            supplementary=["continuous_scorer/mae", "continuous_scorer/rmse"]
         )
+        assert dm.has_risk_scorer is False
+
+    def test_false_when_accuracy_only(self):
+        dm = DetectedMetrics(accuracy=["match"], supplementary=[])
         assert dm.has_risk_scorer is False
 
     def test_false_when_empty(self):
