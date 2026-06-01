@@ -23,6 +23,10 @@ from inspect_ai.model._model_output import (
 from inspect_ai.model._chat_message import ChatMessageAssistant
 from inspect_ai.scorer import Score, CORRECT, INCORRECT, Target
 
+# Private inspect-ai path: the only way to read the name a @metric is registered
+# under (and thus what lands in the eval-log column). Used solely to verify our
+# hand-written METRIC_NAMES against what inspect-ai actually emits. If a version
+# bump moves this, the test fails loudly at import rather than passing silently.
 from inspect_ai._util.registry import registry_info
 
 from cruijff_kit.tools.inspect.scorers.risk_scorer import (
