@@ -8,7 +8,7 @@ These values feed estimate_compute.scale_finetune_time /
 scale_eval_time, which predict wall-time as total_tokens / tps.
 
 v1 supports single-GPU runs only; the torchtune parser hard-fails on
-distributed recipes (see issue #473 for multi-GPU follow-up).
+distributed recipes. Multi-GPU support is a planned follow-up.
 """
 
 import re
@@ -74,7 +74,7 @@ def parse_torchtune_throughput(slurm_out_text: str) -> dict:
         if "Distributed" in recipe_name or "distributed" in recipe_name.lower():
             raise ValueError(
                 f"Distributed recipe {recipe_name!r} is not supported in v1 "
-                "(single-GPU only). See issue #473 for multi-GPU follow-up."
+                "(single-GPU only). Multi-GPU support is a planned follow-up."
             )
 
     tps_match = _WANDB_TPS_RE.search(slurm_out_text)

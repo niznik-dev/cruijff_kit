@@ -157,7 +157,7 @@ def state_key(work_dir: Path, slurm_name: str, experiment_dir: Path) -> str:
     """Stable per-job key for the resume state file.
 
     Using `work_dir.name` collapses all eval entries onto a single key
-    because every run's eval workdir is `<run_dir>/eval` (issue #451 comment).
+    because every run's eval workdir is `<run_dir>/eval`.
     Including the relative path keeps each entry unique.
     """
     rel = work_dir.relative_to(experiment_dir)
@@ -332,7 +332,7 @@ def log_oom_retry(
 
     `delta` is the keys we adjusted (e.g. {"batch_size": 64}); `prev_values`
     is the same keys' values before the adjustment. Both dicts forward-compat
-    with multi-key strategies (see #254 PR B).
+    with multi-key strategies.
 
     Block shape (no `Job ID:` line — safe from the analyze-experiment regex,
     which would otherwise harvest the retry as a fresh SUBMIT):
@@ -360,7 +360,7 @@ def log_oom_exhausted(
 
     The run stays in its last terminal state (OUT_OF_MEMORY or FAILED,
     depending on which detection path fired — see `_detect_oom`); other runs
-    keep monitoring. No active escalation in PR A (#254). Block shape:
+    keep monitoring. No active escalation. Block shape:
 
         [YYYY-MM-DD HH:MM:SS] OOM_EXHAUSTED: <name>
         Details: tried [{"batch_size": 64}, {"batch_size": 32}, {"batch_size": 16}] across 3 retries
@@ -672,8 +672,8 @@ def submit_and_monitor(
     - `stagger_sec` between submissions (HF datasets cache race).
     - `poll_sec` when waiting for queue room or for in-flight jobs.
     - Auto-retry: training runs that land in OUT_OF_MEMORY are
-      automatically resubmitted with batch_size halved, up to 3 times
-      (see #254 PR A). Pass `no_retry=True` to disable; that gate will
+      automatically resubmitted with batch_size halved, up to 3 times.
+      Pass `no_retry=True` to disable; that gate will
       also cover future non-OOM retry strategies.
 
     The first three can be overridden mid-run via `<exp_dir>/logs/monitor.json`.
@@ -952,7 +952,7 @@ def _all_terminal(state: dict) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# OOM auto-retry (#254 PR A)
+# OOM auto-retry
 # ---------------------------------------------------------------------------
 #
 # When a job lands in an OOM-equivalent terminal state, we halve `batch_size`

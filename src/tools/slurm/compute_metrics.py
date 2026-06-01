@@ -606,7 +606,7 @@ def harvest_jids_from_run_logs(
       2. Surface them in the rendered report (e.g., as a "*Compute Utilization
          unavailable: ...*" note) instead of silently omitting the section.
 
-    Pre-#451, analyze-experiment's compute step "skipped silently if no run
+    Previously, analyze-experiment's compute step "skipped silently if no run
     logs exist." This helper makes the absence loud.
     """
     finetune_path = experiment_dir / "logs" / "run-torchtune.log"

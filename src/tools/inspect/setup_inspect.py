@@ -28,8 +28,8 @@ from cruijff_kit.tools.torchtune.model_configs import MODEL_CONFIGS
 TEMPLATE_PATH = Path(__file__).parent / "templates" / "eval_template.slurm"
 
 # Default ceiling on samples per HF batch for inspect-ai's HF provider.
-# Matches inspect-ai's upstream default. Empirically (see issue #318
-# investigation comment), raising this on variable-length workloads
+# Matches inspect-ai's upstream default. Empirically, raising this on
+# variable-length workloads
 # (e.g. verbose ACS prompts) can slow evals down because larger batches
 # pad to the longest sequence and the forward pass becomes memory-bound.
 # Users can override per experiment via `evaluation.max_connections` in

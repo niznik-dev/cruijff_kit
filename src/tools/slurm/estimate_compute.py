@@ -415,7 +415,7 @@ def estimate_from_prior(
     # parameter-count ratio (e.g. 8B/1B ≈ 2x at seq=128, not the 6.5x
     # param-count would predict); in compute-bound regimes it approaches
     # param-count. No single correction factor handles both — see
-    # cross_model_calibration.yaml and issue #492.
+    # cross_model_calibration.yaml.
     cross_model = bool(all_finetune_jobs) and not matching_finetune
     if cross_model:
         models_in_prior = sorted(
@@ -430,7 +430,7 @@ def estimate_from_prior(
             "regimes and over-predict in IO-bound regimes. Prefer a "
             "same-model prior when possible. See cross_model_calibration"
             ".yaml in this directory for measured ratios (lookup not "
-            "yet wired in — issue #492)."
+            "yet wired in)."
         )
 
     # --- Fine-tuning estimate ---
@@ -570,7 +570,7 @@ def estimate_from_prior_broadcast(
     )
 
     if not models_in_prior:
-        # No per-job model field (legacy summaries pre-#491). Fall back
+        # No per-job model field (legacy summaries). Fall back
         # to the summary-level model so single-model legacy priors still
         # produce one prediction.
         summary_model = prior_summary.get("model")

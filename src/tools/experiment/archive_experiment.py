@@ -140,8 +140,8 @@ def inventory_experiment(experiment_dir, output_dir_base):
             )
 
     # --- Check completeness ---
-    # Each run's eval/ holds one cell directory per (task, epoch) pair (issue
-    # #498). A run counts as complete when at least one cell has eval logs.
+    # Each run's eval/ holds one cell directory per (task, epoch) pair. A run
+    # counts as complete when at least one cell has eval logs.
     incomplete_runs = []
     for entry in eval_matrix:
         run_name = entry.get("run")
