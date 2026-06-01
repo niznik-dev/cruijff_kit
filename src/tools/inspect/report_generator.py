@@ -32,7 +32,7 @@ from cruijff_kit.tools.inspect.viz_helpers import detect_metrics, display_name
 # Supplementary metric names have the form "{scorer_name}/{metric_name}" (e.g.
 # "risk_scorer_cruijff_kit/auc_score", "continuous_scorer/mae"); we classify
 # by the part after the last "/" against the set the continuous_scorer module
-# itself exports, so adding a new metric there auto-classifies here (#519).
+# itself exports, so adding a new metric there auto-classifies here.
 
 _RISK_FOOTNOTE = (
     '*C-ECE (Confidence ECE): "when I\'m X% confident, am I right X% of the time?" '
@@ -526,7 +526,7 @@ def _format_model_table(
     if calibration:
         # Emit only the footnote(s) matching the metric categories actually
         # present, so a continuous-only experiment doesn't render the
-        # misleading C-ECE/R-ECE explanation (#519).
+        # misleading C-ECE/R-ECE explanation.
         has_risk = any(not _is_continuous_metric(n) for n in supp_names)
         has_continuous = any(_is_continuous_metric(n) for n in supp_names)
         if has_risk:
@@ -830,7 +830,7 @@ def generate_report(
     calibration_only = not metrics and bool(calibration_results)
 
     # sections is a list of (heading, table_markdown, footnotes) tuples so the
-    # mixed case (#519) can emit a Risk Metrics sub-section followed by a
+    # mixed case can emit a Risk Metrics sub-section followed by a
     # Regression Metrics sub-section under the same Executive Summary.
     sections: list[tuple[str, str, list[str]]] = []
 

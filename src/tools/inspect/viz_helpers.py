@@ -32,6 +32,8 @@ from inspect_ai.analysis import (
     EvalTask,
 )
 
+from .scorers.risk_scorer import METRIC_NAMES as _RISK_METRIC_NAMES
+
 logger = logging.getLogger(__name__)
 
 
@@ -206,8 +208,15 @@ class DetectedMetrics:
 
     @property
     def has_risk_scorer(self) -> bool:
-        """True when the evaluation used risk_scorer (has AUC metric)."""
-        return any("auc_score" in m for m in self.supplementary)
+        """True when the evaluation used risk_scorer/numeric_risk_scorer.
+
+        Supplementary names have the form ``{scorer_name}/{metric_name}``; we
+        classify by the part after the last ``/`` against the set the
+        risk scorer module exports, so renaming a metric there stays in sync.
+        """
+        return any(
+            m.rsplit("/", 1)[-1] in _RISK_METRIC_NAMES for m in self.supplementary
+        )
 
 
 def detect_metrics(logs_df: pd.DataFrame) -> DetectedMetrics:

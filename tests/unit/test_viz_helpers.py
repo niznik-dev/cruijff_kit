@@ -232,3 +232,69 @@ class TestDeduplicateEvalFiles:
         kept, skipped = deduplicate_eval_files(files)
         assert len(kept) == 1
         assert len(skipped) == 0
+
+
+# =============================================================================
+# detect_metrics() -> has_risk_scorer on realistically-shaped columns
+# =============================================================================
+
+
+class TestRiskDetectionPipeline:
+    """End-to-end detection on columns shaped like evals_df() output.
+
+    Column names mirror what evals_df() produces for a real run:
+    ``score_{scorer}/{metric}``. Exercises the detect_metrics -> has_risk_scorer
+    path the analyze step relies on for plot routing, rather than hand-building
+    a DetectedMetrics. Uses the real metric names (not a synthetic "ece").
+    """
+
+    def test_risk_run_detected_end_to_end(self):
+        df = pd.DataFrame(
+            {
+                "model": ["a"],
+                "score_match_accuracy": [0.8],
+                "score_match_stderr": [0.01],
+                "score_risk_scorer_cruijff_kit/mean_risk_score": [0.5],
+                "score_risk_scorer_cruijff_kit/expected_calibration_error": [0.1],
+                "score_risk_scorer_cruijff_kit/risk_calibration_error": [0.1],
+                "score_risk_scorer_cruijff_kit/brier_score": [0.2],
+                "score_risk_scorer_cruijff_kit/auc_score": [0.7],
+            }
+        )
+        detected = detect_metrics(df)
+        assert detected.accuracy == ["match"]
+        assert detected.has_risk_scorer is True
+
+    def test_numeric_risk_run_detected_end_to_end(self):
+        df = pd.DataFrame(
+            {
+                "model": ["a"],
+                "score_numeric_risk_scorer_cruijff_kit/auc_score": [0.7],
+                "score_numeric_risk_scorer_cruijff_kit/brier_score": [0.2],
+            }
+        )
+        assert detect_metrics(df).has_risk_scorer is True
+
+    def test_continuous_only_not_detected_as_risk(self):
+        df = pd.DataFrame(
+            {
+                "model": ["a"],
+                "score_continuous_scorer/mae": [3.1],
+                "score_continuous_scorer/rmse": [4.2],
+                "score_continuous_scorer/r_squared": [0.3],
+                "score_continuous_scorer/parse_rate": [1.0],
+            }
+        )
+        detected = detect_metrics(df)
+        assert detected.supplementary  # columns were picked up as supplementary
+        assert detected.has_risk_scorer is False
+
+    def test_accuracy_only_not_detected_as_risk(self):
+        df = pd.DataFrame(
+            {
+                "model": ["a"],
+                "score_match_accuracy": [0.8],
+                "score_match_stderr": [0.01],
+            }
+        )
+        assert detect_metrics(df).has_risk_scorer is False

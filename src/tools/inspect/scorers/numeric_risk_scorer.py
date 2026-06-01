@@ -12,13 +12,10 @@ predicted label is the positive (last) label, otherwise the negative (first).
 from inspect_ai.scorer import scorer, Score, CORRECT, INCORRECT
 from inspect_ai.solver import TaskState
 from inspect_ai.scorer import Target
-from .risk_scorer import mean_risk_score
-from .calibration_metrics import (
-    expected_calibration_error,
-    risk_calibration_error,
-    brier_score,
-    auc_score,
-)
+
+# numeric_risk_scorer publishes the identical metric suite as risk_scorer, so it
+# reuses risk_scorer's public suite helper rather than re-declaring the metrics.
+from .risk_scorer import risk_metric_suite
 
 
 def _parse_risk_score(text: str) -> float | None:
@@ -36,15 +33,7 @@ def _parse_risk_score(text: str) -> float | None:
     return value
 
 
-@scorer(
-    metrics=[
-        mean_risk_score(),
-        expected_calibration_error(),
-        risk_calibration_error(),
-        brier_score(),
-        auc_score(),
-    ]
-)
+@scorer(metrics=risk_metric_suite())
 def numeric_risk_scorer(labels: tuple[str, str] = ("0", "1")):
     """
     Scorer that parses a numeric probability from the model's text output.

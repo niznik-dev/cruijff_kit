@@ -109,6 +109,17 @@ All use Llama-3.2-1B-Instruct with `{ck_data_dir}/capitalization/words_5L_80P_10
 
 **Purpose:** Catch regressions in skills, ensure documentation changes don't break workflows, validate end-to-end integration.
 
+## Code Conventions
+
+### Code Comments
+
+- **No issue/PR numbers in code comments.** Comments must explain the code as it
+  stands, self-contained. Provenance ("why did this change?") belongs in the
+  commit message and PR description — `git blame` recovers it when needed.
+  - ❌ `# Exported so viz_helpers (#534) can classify columns without re-listing.`
+  - ✅ `# Exported so viz_helpers can classify columns without re-listing.`
+  - Pointers to code that still exists are fine (e.g. `# See src/tools/.../inspect_task.py`) — those reference live structure, not ephemeral tracker state.
+
 ## Git Workflow
 
 ### Issue Management

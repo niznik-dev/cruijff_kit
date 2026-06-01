@@ -34,15 +34,34 @@ def mean_risk_score() -> Metric:
     return compute
 
 
-@scorer(
-    metrics=[
-        mean_risk_score(),
-        expected_calibration_error(),
-        risk_calibration_error(),
-        brier_score(),
-        auc_score(),
-    ]
-)
+# Source of truth for this scorer's metrics. Names are explicit because
+# inspect-ai's @metric wraps each factory and clobbers __name__ (all five
+# would report as "metric_wrapper"), so introspection can't recover them.
+# Adding one: define/import the @metric factory, then append (name, factory)
+# here — the @scorer registration and METRIC_NAMES are derived from this list.
+_METRICS: list[tuple[str, callable]] = [
+    ("mean_risk_score", mean_risk_score),
+    ("expected_calibration_error", expected_calibration_error),
+    ("risk_calibration_error", risk_calibration_error),
+    ("brier_score", brier_score),
+    ("auc_score", auc_score),
+]
+
+# Exported so viz_helpers can classify columns by scorer category
+# without re-listing names.
+METRIC_NAMES: frozenset[str] = frozenset(name for name, _ in _METRICS)
+
+
+def risk_metric_suite() -> list[Metric]:
+    """Instantiated metric suite shared by risk_scorer and numeric_risk_scorer.
+
+    Both scorers publish the identical suite; this is the public surface they
+    reuse so neither reaches into the private _METRICS bookkeeping.
+    """
+    return [factory() for _, factory in _METRICS]
+
+
+@scorer(metrics=risk_metric_suite())
 def risk_scorer(option_tokens: list[str] = ("0", "1")):
     """
     Scorer that extracts risk scores from logprobs of the first generated token.
