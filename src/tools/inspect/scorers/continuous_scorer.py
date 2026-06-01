@@ -110,7 +110,24 @@ def parse_rate() -> Metric:
     return compute
 
 
-@scorer(metrics=[mae(), rmse(), r_squared(), parse_rate()])
+# Source of truth for this scorer's metrics. Names are explicit because
+# inspect-ai's @metric wraps each factory and clobbers __name__ (all four
+# would report as "metric_wrapper"), so introspection can't recover them.
+# Adding one: define the @metric factory above, then append (name, factory)
+# here — the @scorer registration and METRIC_NAMES are derived from this list.
+_METRICS: list[tuple[str, callable]] = [
+    ("mae", mae),
+    ("rmse", rmse),
+    ("r_squared", r_squared),
+    ("parse_rate", parse_rate),
+]
+
+# Exported so report_generator (#519) can classify columns by scorer category
+# without re-listing names.
+METRIC_NAMES: frozenset[str] = frozenset(name for name, _ in _METRICS)
+
+
+@scorer(metrics=[factory() for _, factory in _METRICS])
 def continuous_scorer():
     """
     Scorer for continuous/regression predictions.

@@ -16,6 +16,10 @@ All notable changes to cruijff_kit will be documented in this file.
 - `num_workers` / `persistent_workers` DataLoader knobs: the `--num_workers` / `--persistent_workers` CLI flags on `setup_finetune.py`, their `finetune.yaml` propagation, and the recipe-side DataLoader wiring in all 3 custom recipes. Measured throughput gains were minimal; users needing parallel data loading can reintroduce it via a wrapper or recipe fork. Part of the milestone-wide return to wrapper-only recipes. (#465, #528)
 - Dead `setup_logger` import block from the three custom recipes — it bound a module-level `logger` that was never used (the recipes log via torchtune's `log`). `src/utils/logger.py` itself is unchanged (still used by the inspect subtree). Part of the milestone-wide return to wrapper-only recipes. (#465, #529)
 
+### Fixed
+
+- `report_generator` no longer emits the misleading `## Risk Metrics` heading + C-ECE/R-ECE footnote on `continuous_scorer`-only experiments. The section now renders as `## Regression Metrics` with an mae / rmse / r_squared / parse_rate footnote. Mixed risk + regression experiments emit two sub-sections, one per category. (#519)
+
 ## [0.3.2] - 2026-05-21
 
 ### Added

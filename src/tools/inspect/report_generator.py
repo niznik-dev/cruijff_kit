@@ -17,14 +17,65 @@ Example usage:
 
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
 
+from cruijff_kit.tools.inspect.scorers.continuous_scorer import (
+    METRIC_NAMES as _CONTINUOUS_METRIC_NAMES,
+)
 from cruijff_kit.tools.inspect.viz_helpers import detect_metrics, display_name
+
+# Supplementary metric names have the form "{scorer_name}/{metric_name}" (e.g.
+# "risk_scorer_cruijff_kit/auc_score", "continuous_scorer/mae"); we classify
+# by the part after the last "/" against the set the continuous_scorer module
+# itself exports, so adding a new metric there auto-classifies here (#519).
+
+_RISK_FOOTNOTE = (
+    '*C-ECE (Confidence ECE): "when I\'m X% confident, am I right X% of the time?" '
+    'R-ECE (Risk ECE): "when I say P(Y=1)=X, is Y=1 X% of the time?" '
+    "Both ECE and Brier: lower is better. AUC: higher is better.*"
+)
+
+_CONTINUOUS_FOOTNOTE = (
+    "*mae / rmse: lower is better. r_squared: higher is better "
+    "(R²=1 perfect, R²=0 predicts the mean). "
+    "parse_rate: fraction of outputs successfully parsed as numbers "
+    "(low values mean the model is emitting non-numeric text).*"
+)
+
+
+def _is_continuous_metric(name: str) -> bool:
+    """True if *name* is a continuous_scorer metric (e.g. ``foo/mae``)."""
+    return name.rsplit("/", 1)[-1] in _CONTINUOUS_METRIC_NAMES
+
+
+def _split_calibration_by_category(
+    results: list["CalibrationResult"],
+) -> tuple[list["CalibrationResult"], list["CalibrationResult"]]:
+    """Split calibration results into ``(risk_results, continuous_results)``.
+
+    Each output list contains :class:`CalibrationResult` objects with only the
+    subset of metrics belonging to that category. A result with no metrics in
+    a given category is omitted from that list.
+    """
+    risk_results: list["CalibrationResult"] = []
+    continuous_results: list["CalibrationResult"] = []
+    for r in results:
+        risk_metrics = {
+            n: v for n, v in r.metrics.items() if not _is_continuous_metric(n)
+        }
+        continuous_metrics = {
+            n: v for n, v in r.metrics.items() if _is_continuous_metric(n)
+        }
+        if risk_metrics:
+            risk_results.append(replace(r, metrics=risk_metrics))
+        if continuous_metrics:
+            continuous_results.append(replace(r, metrics=continuous_metrics))
+    return risk_results, continuous_results
 
 
 @dataclass
@@ -473,9 +524,15 @@ def _format_model_table(
             f"*Sample size: {uniform_sample_size:,} per model{split_note}*"
         )
     if calibration:
-        footnotes.append(
-            '*C-ECE (Confidence ECE): "when I\'m X% confident, am I right X% of the time?" R-ECE (Risk ECE): "when I say P(Y=1)=X, is Y=1 X% of the time?" Both ECE and Brier: lower is better. AUC: higher is better.*'
-        )
+        # Emit only the footnote(s) matching the metric categories actually
+        # present, so a continuous-only experiment doesn't render the
+        # misleading C-ECE/R-ECE explanation (#519).
+        has_risk = any(not _is_continuous_metric(n) for n in supp_names)
+        has_continuous = any(_is_continuous_metric(n) for n in supp_names)
+        if has_risk:
+            footnotes.append(_RISK_FOOTNOTE)
+        if has_continuous:
+            footnotes.append(_CONTINUOUS_FOOTNOTE)
 
     return "\n".join(lines), footnotes
 
@@ -772,37 +829,67 @@ def generate_report(
     # accuracy table.
     calibration_only = not metrics and bool(calibration_results)
 
+    # sections is a list of (heading, table_markdown, footnotes) tuples so the
+    # mixed case (#519) can emit a Risk Metrics sub-section followed by a
+    # Regression Metrics sub-section under the same Executive Summary.
+    sections: list[tuple[str, str, list[str]]] = []
+
     if calibration_only:
-        section_heading = "## Risk Metrics\n"
-        model_table = _format_calibration_table(calibration_results)
-        footnotes = []
+        risk_results, continuous_results = _split_calibration_by_category(
+            calibration_results
+        )
+
+        # Sample-size footnote is shared across whichever sub-sections we emit.
+        sample_footnote: Optional[str] = None
         sizes = {r.sample_size for r in calibration_results}
         if len(sizes) == 1:
             uniform_n = sizes.pop()
             split_note = f" ({eval_split_name} split)" if eval_split_name else ""
-            footnotes.append(f"*Sample size: {uniform_n:,} per model{split_note}*")
-        footnotes.append(
-            '*C-ECE (Confidence ECE): "when I\'m X% confident, am I right X% of the time?" R-ECE (Risk ECE): "when I say P(Y=1)=X, is Y=1 X% of the time?" Both ECE and Brier: lower is better. AUC: higher is better.*'
-        )
+            sample_footnote = f"*Sample size: {uniform_n:,} per model{split_note}*"
+
+        if risk_results:
+            risk_footnotes = ([sample_footnote] if sample_footnote else []) + [
+                _RISK_FOOTNOTE
+            ]
+            sections.append(
+                (
+                    "## Risk Metrics\n",
+                    _format_calibration_table(risk_results),
+                    risk_footnotes,
+                )
+            )
+        if continuous_results:
+            # When both categories render, the sample-size footnote already
+            # appeared under Risk Metrics; don't repeat it here.
+            cont_footnotes = (
+                [sample_footnote] if sample_footnote and not risk_results else []
+            ) + [_CONTINUOUS_FOOTNOTE]
+            sections.append(
+                (
+                    "## Regression Metrics\n",
+                    _format_calibration_table(continuous_results),
+                    cont_footnotes,
+                )
+            )
     else:
-        section_heading = "## Model Comparison\n"
         model_table, footnotes = _format_model_table(
             metrics,
             calibration_results,
             eval_split_name=eval_split_name,
         )
+        sections.append(("## Model Comparison\n", model_table, footnotes))
 
     report_lines.extend(
         [
             "## Executive Summary\n",
             narrative + "\n",
-            section_heading,
-            model_table + "\n",
         ]
     )
-
-    if footnotes:
-        report_lines.append("  \n".join(footnotes) + "\n")
+    for heading, table, footnotes in sections:
+        report_lines.append(heading)
+        report_lines.append(table + "\n")
+        if footnotes:
+            report_lines.append("  \n".join(footnotes) + "\n")
 
     # Add per-task breakdown if applicable
     task_breakdown = _format_per_task_breakdown(metrics)
