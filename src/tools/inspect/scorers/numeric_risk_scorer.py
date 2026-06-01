@@ -14,8 +14,8 @@ from inspect_ai.solver import TaskState
 from inspect_ai.scorer import Target
 
 # numeric_risk_scorer publishes the identical metric suite as risk_scorer, so it
-# reuses the same canonical _METRICS list rather than re-declaring it.
-from .risk_scorer import _METRICS
+# reuses risk_scorer's public suite helper rather than re-declaring the metrics.
+from .risk_scorer import risk_metric_suite
 
 
 def _parse_risk_score(text: str) -> float | None:
@@ -33,7 +33,7 @@ def _parse_risk_score(text: str) -> float | None:
     return value
 
 
-@scorer(metrics=[factory() for _, factory in _METRICS])
+@scorer(metrics=risk_metric_suite())
 def numeric_risk_scorer(labels: tuple[str, str] = ("0", "1")):
     """
     Scorer that parses a numeric probability from the model's text output.
