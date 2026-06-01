@@ -115,6 +115,33 @@ Parses a numeric probability from the model's text output (e.g., "0.73"). For ta
 - Use `numeric_risk_scorer` when the model outputs a probability as text
 - Both produce compatible metadata, so all calibration metrics (ECE, Brier, AUC) and visualization code work with either
 
+### continuous_scorer
+
+Parses a numeric value from the model's text output and computes regression metrics across samples. For tasks where the model predicts a continuous quantity (e.g., age, income) rather than a class label.
+
+**Source:** `src/tools/inspect/scorers/continuous_scorer.py`
+
+**Parameters:** None.
+
+**Metrics produced:**
+- `mae`: Mean Absolute Error across parsed predictions (lower is better)
+- `rmse`: Root Mean Squared Error across parsed predictions (lower is better)
+- `r_squared`: Coefficient of determination (R²=1 perfect, R²=0 no better than predicting the mean, R²<0 worse than the mean baseline)
+- `parse_rate`: Fraction of outputs successfully parsed as numbers (low values mean the model is emitting non-numeric text)
+
+**Requirements:**
+- `max_tokens` must be wide enough for the expected number of digits — a too-tight limit truncates the number and tanks `parse_rate`
+- Does NOT require logprobs (works with any model, including API models)
+- PYTHONPATH must include cruijff_kit repo root (handled by scaffold-inspect)
+
+**Typical usage:** Regression targets — age, income, hours worked, commute time.
+
+```yaml
+- name: "continuous_scorer"
+```
+
+**Base-model note:** On a base (non-instruct) model, continuous tasks often hit `parse_rate=0` because the model continues the prompt instead of emitting a bare number. An `assistant_prefix: "Answer: "` (or similar) usually lifts it off zero. The same caveat applies to `risk_scorer` on base models.
+
 ## Design-Time Considerations
 
 When a user selects scorers during experiment design, follow these guidelines:
@@ -123,6 +150,7 @@ When a user selects scorers during experiment design, follow these guidelines:
 - **Scorer parameters** (e.g., `option_tokens`) are specified in experiment_summary.yaml and flow through to eval_config.yaml at scaffold time. Task files read them at runtime.
 - **If `risk_scorer` is selected:** Ask which tokens represent the answer classes (default: `["0", "1"]` for binary). The task file will automatically request logprobs when `risk_scorer` is in the scorer list.
 - **If `numeric_risk_scorer` is selected:** Ask what the ground-truth target values are in the dataset (default: `["0", "1"]` for binary). The model should be prompted to output a single probability as text.
+- **If `continuous_scorer` is selected:** No parameters to ask about. Confirm the target is a continuous quantity (not a class label), and that `max_tokens` is wide enough for the expected number of digits. For base models, suggest an `assistant_prefix` so `parse_rate` doesn't start at zero.
 - **If `match` is selected:** Ask whether matching should be exact, case-sensitive, etc. Defaults (`location: "exact"`, `ignore_case: false`) work well for constrained-output tasks.
 
 ## Common Scorer Combinations
@@ -146,4 +174,10 @@ scorer:
 ```yaml
 scorer:
   - name: "match"
+```
+
+### Regression / continuous target
+```yaml
+scorer:
+  - name: "continuous_scorer"
 ```
