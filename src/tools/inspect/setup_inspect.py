@@ -69,6 +69,7 @@ KNOWN_STRUCTURAL_KEYS = {
     "output_dir",
     "eval_dir",  # auto-derived in load_eval_config
     "max_connections",  # inspect CLI flag, not a -T arg
+    "do_sample",  # -M model arg (greedy vs sampling), rendered by render_template
     # Read by the @task function at runtime, not by setup_inspect.py:
     "scorer",
     "system_prompt",
@@ -184,9 +185,10 @@ def load_eval_config(config_path):
             stacklevel=2,
         )
 
-    # inspect-ai's HF provider runs with sampling enabled, which makes HF
-    # transformers build a TemperatureLogitsWarper that does `scores / temperature`.
-    # TemperatureLogitsWarper.__init__ raises ValueError for temperature <= 0
+    # Decoding defaults to do_sample=false (greedy argmax), which ignores
+    # temperature entirely. But if a user opts into sampling (do_sample: true),
+    # HF transformers builds a TemperatureLogitsWarper that does
+    # `scores / temperature` and raises ValueError for temperature <= 0
     # (division by zero produces inf/NaN logits). Fail fast at scaffold time
     # rather than letting a SLURM job crash hours later.
     temperature = config.get("temperature")
@@ -324,6 +326,16 @@ def render_template(cli_args, config):
     script = script.replace("<MODEL_PATH>", config["model_path"])
     script = script.replace("<TASK_ARGS>", task_args)
     script = script.replace("<METADATA_ARGS>", metadata_args)
+
+    # Decoding mode: greedy argmax (do_sample=false) is the default — it is
+    # deterministic and bitwise-reproducible, with no RNG in the eval pipeline.
+    # Emitted explicitly on every script so the decoding mode is auditable.
+    # Override with `do_sample: true` in eval_config.yaml to enable sampling
+    # (temperature then applies).
+    do_sample = config.get("do_sample", False)
+    script = script.replace(
+        "<DOSAMPLE_ARGS>", f"  -M do_sample={_format_value(do_sample)} \\\n"
+    )
 
     max_connections = config.get("max_connections", DEFAULT_MAX_CONNECTIONS)
     script = script.replace("<MAX_CONNECTIONS>", str(max_connections))

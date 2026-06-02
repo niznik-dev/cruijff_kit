@@ -461,6 +461,58 @@ class TestRenderTemplate:
 
 
 # ---------------------------------------------------------------------------
+# do_sample (greedy argmax vs sampling)
+# ---------------------------------------------------------------------------
+
+
+class TestDoSample:
+    """Decoding mode. Greedy argmax (do_sample=false) is the default and is
+    emitted explicitly on every rendered script (#499)."""
+
+    def test_default_renders_do_sample_false(self):
+        """With no do_sample in config, the script emits -M do_sample=false."""
+        script = render_template(make_cli_args(), make_config())
+        assert "-M do_sample=false" in script
+        assert "-M do_sample=true" not in script
+
+    def test_explicit_true_renders_do_sample_true(self):
+        """do_sample: true in config enables sampling via -M do_sample=true."""
+        config = make_config(do_sample=True)
+        script = render_template(make_cli_args(), config)
+        assert "-M do_sample=true" in script
+        assert "-M do_sample=false" not in script
+
+    def test_explicit_false_renders_do_sample_false(self):
+        """do_sample: false in config renders -M do_sample=false."""
+        config = make_config(do_sample=False)
+        script = render_template(make_cli_args(), config)
+        assert "-M do_sample=false" in script
+
+    def test_position_after_model_path_before_log_dir(self):
+        """do_sample -M arg sits after model_path and before --log-dir."""
+        script = render_template(make_cli_args(), make_config())
+        mp_pos = script.index("-M model_path=")
+        ds_pos = script.index("-M do_sample=")
+        logdir_pos = script.index("--log-dir")
+        assert mp_pos < ds_pos < logdir_pos
+
+    def test_do_sample_not_warned_as_unknown(self, tmp_path, recwarn):
+        """do_sample is in KNOWN_STRUCTURAL_KEYS and must not trigger the
+        unknown-key warning (regression guard for #499)."""
+        config_file = tmp_path / "eval_config.yaml"
+        config_file.write_text(MINIMAL_EVAL_CONFIG + "do_sample: false\n")
+        load_eval_config(str(config_file))
+        unknown_warnings = [
+            w
+            for w in recwarn.list
+            if "do_sample" in str(w.message) and "not consumed" in str(w.message)
+        ]
+        assert unknown_warnings == [], (
+            f"do_sample should not be warned as unknown; got: {unknown_warnings}"
+        )
+
+
+# ---------------------------------------------------------------------------
 # max_connections
 # ---------------------------------------------------------------------------
 
