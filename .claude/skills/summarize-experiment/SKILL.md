@@ -1,6 +1,6 @@
 ---
 name: summarize-experiment
-description: Create a lightweight summary of experiment results from a completed (fine-tuned and evaluated) experiment. Use after run-experiment to capture key metrics from the experiment in textual form.   
+description: Create the standard summary of experiment results from a completed (fine-tuned and evaluated) experiment. Run this right after run-experiment as the required post-run step — captures key metrics (loss, accuracy, regression metrics) into summary.md.
 ---
 
 # Summarize Experiment
@@ -9,7 +9,7 @@ Generate a `summary.md` file capturing key metrics from a completed experiment. 
 
 ## Your Task
 
-Create a lightweight summary of experiment results:
+Create the standard post-run summary of experiment results:
 
 1. Parse run status from experiment_summary.yaml
 2. Extract final training loss from SLURM stdout
@@ -331,7 +331,7 @@ Running summarize-experiment multiple times overwrites summary.md. This is inten
 
 ## Relationship to Other Skills
 
-- **After:** run-experiment (or manual execution)
-- **Before:** analyze-experiment
-- **Optional hook:** run-experiment can invoke this at completion
+- **After:** run-experiment — this is the required post-run step once an experiment completes (or manual execution)
+- **Before:** analyze-experiment is optional and can be run any time afterward
+- **Hook:** run-experiment runs this automatically at completion
 

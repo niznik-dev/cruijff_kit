@@ -28,8 +28,9 @@ RUN        →  run-experiment
                 ├─ optimizers/torchtune/    (fine-tuning pipeline)
                 └─ evaluators/inspect/      (evaluation pipeline; sequential, after fine-tuning)
 
-ANALYZE    →  summarize-experiment
-              analyze-experiment
+SUMMARIZE  →  summarize-experiment   (required post-run step)
+
+ANALYZE    →  analyze-experiment      (optional; any time after run)
               (optional: analyze-to-pdf)
 
 CLEANUP    →  archive-experiment

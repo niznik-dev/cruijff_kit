@@ -1,6 +1,6 @@
 ---
 name: analyze-experiment
-description: Generate visualizations from completed experiment evaluations using inspect-viz. Use after run-experiment to create interactive HTML plots from inspect-ai evaluation logs.
+description: Optionally generate visualizations and a full report from completed experiment evaluations using inspect-viz. Run any time after run-experiment (not required — summarize-experiment is the required post-run step) to create interactive HTML plots and analysis/report.md from inspect-ai evaluation logs.
 ---
 
 # Analyze Experiment
@@ -312,13 +312,13 @@ Full report: /scratch/gpfs/user/ck-projects/{project}/my_experiment/analysis/rep
 
 ## Relationship to Other Skills
 
-- **After:** run-experiment, summarize-experiment
+- **After:** run-experiment — optional, and can be run any time afterward. (`summarize-experiment` is the required post-run step; analyze is an optional deeper pass.)
 - **Reads:** experiment_summary.yaml, .eval files
 - **Creates:** HTML visualizations, analysis log
 
 **Workflow position:**
 ```
-design-experiment → scaffold-experiment → run-experiment → analyze-experiment
+design-experiment → scaffold-experiment → run-experiment → summarize-experiment → (optional) analyze-experiment
 ```
 
 ## Important Notes

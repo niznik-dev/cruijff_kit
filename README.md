@@ -109,9 +109,9 @@ If you have [Claude Code](https://docs.anthropic.com/en/docs/claude-code), use t
 | 1 | `/design-experiment` | Plan runs, create `experiment_summary.yaml` |
 | 2 | `/scaffold-experiment` | Generate configs, SLURM scripts, directory structure |
 | 3 | `/run-experiment` | Submit jobs, monitor progress, validate outputs |
-| 4 | `/summarize-experiment` | Collect key metrics (loss, accuracy) into summary |
+| 4 | `/summarize-experiment` | Collect key metrics (loss, accuracy) into summary — the required post-run step |
 
-Additional skills: `/create-inspect-task` for custom evaluations, `/analyze-experiment` for visualizations, `/create-quiz` to turn experiment results into a self-grading HTML quiz.
+Optional skills (run any time after an experiment): `/analyze-experiment` for visualizations and a full report, `/create-inspect-task` for custom evaluations, `/create-quiz` to turn experiment results into a self-grading HTML quiz.
 
 See `.claude/skills/*/SKILL.md` for detailed documentation on each skill.
 

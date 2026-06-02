@@ -266,21 +266,22 @@ Complete workflow: {total_duration}
 
 1. View results: `inspect view --port=$(get_free_port)`
 2. Export data: `inspect log export ...`
-3. Analyze results (see experiment_summary.yaml for configuration)
+3. Summarize results: run `summarize-experiment` (the required post-run step). `analyze-experiment` is optional and can be run any time afterward.
 ```
 
-### Optional: Analyze Results
+### Next Step: Summarize Results
 
-After completing the experiment, offer to analyze the results:
+After completing the experiment, run `summarize-experiment` — this is the standard post-run step and produces the `summary.md` every experiment should have:
 
-> Experiment complete! Would you like me to run `analyze-experiment` to generate visualizations and a full report?
-> [Y/n]
+> Experiment complete! Running `summarize-experiment` to capture key metrics into summary.md.
+
+**Then, optionally:** offer a deeper analysis.
+
+> Want me to also run `analyze-experiment` for visualizations and a full report? It's optional and can be run any time. [y/N]
 
 **If yes:** Invoke the `analyze-experiment` skill to create interactive plots and `analysis/report.md`.
 
-**If no:** Skip analysis. User can run `analyze-experiment` manually later.
-
-*Note: `summarize-experiment` is also available for a lightweight text-only summary if a full analysis isn't needed.*
+**If no:** Skip it — `analyze-experiment` can be run any time later against the same evaluation logs.
 
 ## Important Notes
 
@@ -293,7 +294,7 @@ After completing the experiment, offer to analyze the results:
 
 **Relationship to other skills:**
 - **Before:** design-experiment, scaffold-experiment
-- **After:** analyze-experiment (recommended), summarize-experiment (lightweight alternative)
+- **After:** summarize-experiment (the required next step), then optionally analyze-experiment (any time)
 - **Standalone:** Individual tool modules can run independently
 
 **Resumability:**
