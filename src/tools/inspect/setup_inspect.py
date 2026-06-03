@@ -185,14 +185,11 @@ def load_eval_config(config_path):
             stacklevel=2,
         )
 
-    # Decoding mode decides whether temperature is live. The default is greedy
-    # argmax (do_sample=false), under which HF ignores temperature entirely — so
-    # we drop it from the config, keeping the rendered -T args honest about what
-    # actually controls decoding. Temperature only becomes meaningful when a user
-    # opts into sampling (do_sample: true): there HF builds a
-    # TemperatureLogitsWarper that does `scores / temperature` and raises
-    # ValueError for temperature <= 0. Require and validate it only on that path,
-    # failing fast at scaffold time rather than hours into a SLURM job.
+    # Temperature is live only under sampling. The default greedy argmax
+    # (do_sample=false) ignores it, so we drop it — keeps the rendered -T args
+    # honest. Under sampling HF's TemperatureLogitsWarper divides logits by it
+    # and rejects <= 0, so require and validate it there, failing fast at
+    # scaffold time rather than hours into a SLURM job.
     do_sample = config.get("do_sample", False)
     temperature = config.get("temperature")
     if do_sample:
@@ -210,8 +207,6 @@ def load_eval_config(config_path):
                 f"Use a positive value (e.g. 1.0)."
             )
     else:
-        # Greedy decoding: temperature is inert. Drop it so build_task_args won't
-        # emit a -T temperature that does nothing.
         config.pop("temperature", None)
 
     return config
@@ -342,11 +337,8 @@ def render_template(cli_args, config):
     script = script.replace("<TASK_ARGS>", task_args)
     script = script.replace("<METADATA_ARGS>", metadata_args)
 
-    # Decoding mode: greedy argmax (do_sample=false) is the default — it is
-    # deterministic and bitwise-reproducible, with no RNG in the eval pipeline.
-    # Emitted explicitly on every script so the decoding mode is auditable.
-    # Override with `do_sample: true` in eval_config.yaml to enable sampling
-    # (temperature then applies).
+    # Emitted on every script so the decoding mode is auditable. Default false =
+    # greedy argmax (deterministic, no RNG); `do_sample: true` enables sampling.
     do_sample = config.get("do_sample", False)
     script = script.replace(
         "<DOSAMPLE_ARGS>", f"  -M do_sample={_format_value(do_sample)} \\\n"
