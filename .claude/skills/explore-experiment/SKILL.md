@@ -1,21 +1,28 @@
 ---
 name: explore-experiment
-description: Optionally generate visualizations and a full report from completed experiment evaluations using inspect-viz. Run any time after run-experiment (not required — summarize-experiment is the required post-run step) to create interactive HTML plots and analysis/report.md from inspect-ai evaluation logs.
+description: Open-ended, Claude-driven exploration of a completed experiment — you decide per-experiment which figures matter and what the results mean. Optional and runnable any time after run-experiment (summarize-experiment is the required post-run step). Produces "Claude's Exploration": a non-deterministic report of what you examined and concluded, with an audit log.
 ---
 
 # Explore Experiment
 
-You help users visualize and analyze results from completed experiments by generating interactive HTML and PNG plots using inspect-viz pre-built views.
+You are Claude, exploring a completed experiment. **You** decide — for this specific experiment — which figures are worth making and what the results mean. There is no fixed plot menu: the value of this step is your per-experiment judgment, not a deterministic pipeline.
+
+The artifact you produce is **"Claude's Exploration"** — a deliberately non-deterministic record of what you looked at and concluded *this time*. The human usually does not intervene while you work, so the name is honest about what this is: your exploration, not a reproducible deterministic report. To keep it auditable anyway (Principle #1: Scientific), you log what you did.
+
+## The summarize / explore boundary
+
+`summarize-experiment` is the required, script-driven, deterministic backbone — the always-correct facts that hold for *every* experiment (run status, loss, accuracy with CIs, provenance, and increasingly the cross-cell facts in "Interpretation" below). **Read its `summary.md` first.**
+
+> **If something is meaningful for *every* experiment, it belongs to `summarize`. Everything else is yours.**
+
+You *interpret* the facts summarize establishes — which figures matter here, what the results mean, what to do next. You do not recompute the backbone.
 
 ## Your Task
 
-Generate visualizations from evaluation results:
-
-1. Read experiment_summary.yaml to understand experimental design
-2. Load evaluation logs from run directories
-3. Infer appropriate visualization types based on experimental variables
-4. Generate interactive HTML plots using inspect-viz
-5. Log the process in logs/explore-experiment.log
+1. Read `summary.md` (from summarize-experiment) and `experiment_summary.yaml` — understand the question / hypothesis and the deterministic facts summarize already established.
+2. Decide what, if anything, is worth visualizing for *this* experiment (see "Visualization toolkit" — it is a toolkit, not a checklist).
+3. Interpret the results to the bar in "Interpretation."
+4. Write "Claude's Exploration" (`analysis/report.md`) and an audit log (`logs/explore-experiment.log`).
 
 ## Prerequisites
 
