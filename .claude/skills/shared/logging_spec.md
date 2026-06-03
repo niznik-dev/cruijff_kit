@@ -113,7 +113,7 @@ See:
 - `design-experiment/logging.md` - Planning-specific logging
 - `scaffold-experiment/logging.md` - Config generation logging
 - `run-experiment/logging.md` - Execution logging
-- `explore/logging.md` - Visualization logging
+- `explore-experiment/logging.md` - Visualization logging
 
 ---
 
@@ -130,7 +130,7 @@ Logs are always created within the experiment directory's `logs/` subdirectory:
     ├── scaffold-inspect.log             # Evaluation config generation
     ├── run-torchtune.log                # Fine-tuning execution
     ├── run-inspect.log                  # Evaluation execution
-    ├── explore.log           # Visualization generation
+    ├── explore-experiment.log           # Visualization generation
     └── summarize-experiment.log         # Results summary
 ```
 

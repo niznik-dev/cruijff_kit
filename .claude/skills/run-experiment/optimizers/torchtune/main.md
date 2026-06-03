@@ -12,7 +12,7 @@ The submitter (`src/tools/run/submit_torchtune.py`) handles every operational st
 2. Drip-feeds `sbatch` for each run's `finetune.slurm`, capping concurrency at `max_submit`.
 3. Staggers `stagger_sec` between submissions to dodge the HF datasets cache race.
 4. Polls SLURM (`squeue` first, `sacct` fallback) until every job reaches a terminal state, at `poll_sec` cadence.
-5. Emits the canonical 4-line `SUBMIT_JOB:` / `Job ID:` / `Result:` blocks to `logs/run-torchtune.log` (consumed by `explore`'s compute step via `harvest_jids_from_run_logs()` in `tools/slurm/compute_metrics.py`).
+5. Emits the canonical 4-line `SUBMIT_JOB:` / `Job ID:` / `Result:` blocks to `logs/run-torchtune.log` (consumed by `explore-experiment`'s compute step via `harvest_jids_from_run_logs()` in `tools/slurm/compute_metrics.py`).
 6. Persists `logs/run-torchtune.state.json` for resume after interruption — keyed by `{relative_path}/finetune.slurm` so eval jobs in different runs don't collide.
 
 The three knobs (`max_submit`, `stagger_sec`, `poll_sec`) resolve in this order: `--max-submit` / `--stagger-sec` / `--poll-sec` (CLI) > `<repo>/.config/config.json` > built-in defaults (25 / 5 / 60).

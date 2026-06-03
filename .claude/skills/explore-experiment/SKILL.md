@@ -1,9 +1,9 @@
 ---
-name: explore
+name: explore-experiment
 description: Optionally generate visualizations and a full report from completed experiment evaluations using inspect-viz. Run any time after run-experiment (not required — summarize-experiment is the required post-run step) to create interactive HTML plots and analysis/report.md from inspect-ai evaluation logs.
 ---
 
-# Explore
+# Explore Experiment
 
 You help users visualize and analyze results from completed experiments by generating interactive HTML and PNG plots using inspect-viz pre-built views.
 
@@ -15,7 +15,7 @@ Generate visualizations from evaluation results:
 2. Load evaluation logs from run directories
 3. Infer appropriate visualization types based on experimental variables
 4. Generate interactive HTML plots using inspect-viz
-5. Log the process in logs/explore.log
+5. Log the process in logs/explore-experiment.log
 
 ## Prerequisites
 
@@ -135,7 +135,7 @@ Generate a compute utilization section. Always call `harvest_jids_from_run_logs(
 
 ### 7. Logging → `logging.md`
 
-Document process in `{experiment_dir}/logs/explore.log`
+Document process in `{experiment_dir}/logs/explore-experiment.log`
 
 **See `logging.md` for:**
 - Plain text format specification
@@ -222,7 +222,7 @@ After running, the experiment directory will contain:
 │   ├── prediction_histogram.png (if risk_scorer used)
 │   └── ...
 ├── logs/
-│   └── explore.log
+│   └── explore-experiment.log
 └── experiment_summary.yaml
 ```
 
@@ -239,7 +239,7 @@ After running, the experiment directory will contain:
 - Do not proceed
 
 **If visualization generation fails:**
-- Log error details in explore.log
+- Log error details in explore-experiment.log
 - Continue with remaining visualizations
 - Report which visualizations failed in summary
 
@@ -256,14 +256,14 @@ Before reporting success, verify:
 - ✓ At least one visualization was generated
 - ✓ HTML files exist in analysis/ directory
 - ✓ report.md was generated in analysis/ directory
-- ✓ Log file created (logs/explore.log)
+- ✓ Log file created (logs/explore-experiment.log)
 
 ## Output Summary
 
 After completing analysis, provide a summary:
 
 ```markdown
-## Explore Complete
+## Explore Experiment Complete
 
 Experiment: `{experiment_dir}`
 
@@ -297,7 +297,7 @@ cd {experiment_dir}/analysis && python -m http.server 8080
 
 ### Log
 
-Details recorded in `logs/explore.log`
+Details recorded in `logs/explore-experiment.log`
 
 ### Report Path
 
@@ -312,13 +312,13 @@ Full report: /scratch/gpfs/user/ck-projects/{project}/my_experiment/analysis/rep
 
 ## Relationship to Other Skills
 
-- **After:** run-experiment — optional, and can be run any time afterward. (`summarize-experiment` is the required post-run step; explore is an optional deeper pass.)
+- **After:** run-experiment — optional, and can be run any time afterward. (`summarize-experiment` is the required post-run step; explore-experiment is an optional deeper pass.)
 - **Reads:** experiment_summary.yaml, .eval files
 - **Creates:** HTML visualizations, analysis log
 
 **Workflow position:**
 ```
-design-experiment → scaffold-experiment → run-experiment → summarize-experiment → (optional) explore
+design-experiment → scaffold-experiment → run-experiment → summarize-experiment → (optional) explore-experiment
 ```
 
 ## Important Notes

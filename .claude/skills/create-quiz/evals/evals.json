@@ -20,7 +20,7 @@
       "id": 3,
       "name": "skill-prerequisites-missing",
       "prompt": "make a quiz from this experiment: {experiment_c}",
-      "expected_output": "If analysis/report.md does NOT exist for that experiment, the skill should stop and tell the user to run explore first — not silently produce a low-quality quiz with no grounding. If report.md does exist, produce a normal quiz.",
+      "expected_output": "If analysis/report.md does NOT exist for that experiment, the skill should stop and tell the user to run explore-experiment first — not silently produce a low-quality quiz with no grounding. If report.md does exist, produce a normal quiz.",
       "files": []
     }
   ]

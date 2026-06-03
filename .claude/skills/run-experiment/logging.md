@@ -141,7 +141,7 @@ The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll
 iteration. When at least one knob changes, a `MONITOR_CONFIG` block lands
 in the per-tool log. Unchanged knobs are still shown so the active
 picture is complete. The block contains no `Job ID:` line, so the
-`SUBMIT_JOB:` / `SUBMIT_EVAL:` harvest regex used by `explore`
+`SUBMIT_JOB:` / `SUBMIT_EVAL:` harvest regex used by `explore-experiment`
 does not match it.
 
 ```

@@ -3,8 +3,8 @@
 Three responsibilities are exercised:
 
 1. Canonical log shape — every submission writes a 4-line block whose
-   regex round-trips through the explore regex anchors at
-   `.claude/skills/explore/generation.md:387-388`.
+   regex round-trips through the explore-experiment regex anchors at
+   `.claude/skills/explore-experiment/generation.md:387-388`.
 2. State-file shape and resume — the state key includes the relative path,
    so eval entries don't collapse onto a single key (the issue #451 comment
    #2 bug). Atomic write + resume skips already-submitted jobs.
@@ -29,7 +29,7 @@ from cruijff_kit.tools.run import submit_inspect, submit_torchtune
 
 
 # ---------------------------------------------------------------------------
-# Regexes (must match explore/generation.md exactly)
+# Regexes (must match explore-experiment/generation.md exactly)
 # ---------------------------------------------------------------------------
 
 SUBMIT_JOB_RE = re.compile(r"SUBMIT_JOB: ([\w.-]+)\n.*?\nJob ID: (\d+)")
@@ -174,7 +174,7 @@ def _write_eval_experiment(
 
 
 class TestCanonicalLogShape:
-    def test_finetune_log_lines_match_explore_regex(
+    def test_finetune_log_lines_match_explore_experiment_regex(
         self, tmp_path, fake_slurm, fast_sleep
     ):
         _write_finetune_experiment(tmp_path, ["rank4", "rank8"])
@@ -200,7 +200,9 @@ class TestCanonicalLogShape:
         # ALL_COMPLETE is emitted at end
         assert "ALL_COMPLETE" in log
 
-    def test_eval_log_lines_match_explore_regex(self, tmp_path, fake_slurm, fast_sleep):
+    def test_eval_log_lines_match_explore_experiment_regex(
+        self, tmp_path, fake_slurm, fast_sleep
+    ):
         _write_eval_experiment(
             tmp_path,
             {
@@ -1049,7 +1051,7 @@ class TestMonitorConfig:
         assert "poll_sec=10 (was 20)" in log
 
     def test_config_block_does_not_match_jid_harvest_regex(self, tmp_path):
-        """MONITOR_CONFIG must not false-match the explore harvesters."""
+        """MONITOR_CONFIG must not false-match the explore-experiment harvesters."""
         log_path = tmp_path / "logs" / "run-torchtune.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
 

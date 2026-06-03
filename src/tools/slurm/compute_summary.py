@@ -137,7 +137,7 @@ def load_summary(path: str | Path) -> dict:
     if isinstance(data, list):
         raise ValueError(
             f"{path} contains a bare job list (old format). "
-            "Re-run explore to generate the summary format."
+            "Re-run explore-experiment to generate the summary format."
         )
 
     return data
