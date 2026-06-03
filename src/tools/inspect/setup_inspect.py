@@ -69,6 +69,7 @@ KNOWN_STRUCTURAL_KEYS = {
     "output_dir",
     "eval_dir",  # auto-derived in load_eval_config
     "max_connections",  # inspect CLI flag, not a -T arg
+    "do_sample",  # -M model arg (greedy vs sampling), rendered by render_template
     # Read by the @task function at runtime, not by setup_inspect.py:
     "scorer",
     "system_prompt",
@@ -184,18 +185,29 @@ def load_eval_config(config_path):
             stacklevel=2,
         )
 
-    # inspect-ai's HF provider runs with sampling enabled, which makes HF
-    # transformers build a TemperatureLogitsWarper that does `scores / temperature`.
-    # TemperatureLogitsWarper.__init__ raises ValueError for temperature <= 0
-    # (division by zero produces inf/NaN logits). Fail fast at scaffold time
-    # rather than letting a SLURM job crash hours later.
+    # Temperature is live only under sampling. The default greedy argmax
+    # (do_sample=false) ignores it, so we drop it — keeps the rendered -T args
+    # honest. Under sampling HF's TemperatureLogitsWarper divides logits by it
+    # and rejects <= 0, so require and validate it there, failing fast at
+    # scaffold time rather than hours into a SLURM job.
+    do_sample = config.get("do_sample", False)
     temperature = config.get("temperature")
-    if temperature is not None and temperature <= 0:
-        raise ValueError(
-            f"eval_config.yaml has temperature={temperature}, which HuggingFace's "
-            f"TemperatureLogitsWarper rejects (it would divide logits by zero). "
-            f"Use a small positive value (e.g. 1e-7) for near-greedy decoding."
-        )
+    if do_sample:
+        if temperature is None:
+            raise ValueError(
+                "eval_config.yaml sets do_sample: true (sampling) but provides no "
+                "temperature. Sampling needs an explicit temperature > 0 (e.g. 1.0). "
+                "For deterministic decoding, omit do_sample — it defaults to false "
+                "(greedy argmax)."
+            )
+        if temperature <= 0:
+            raise ValueError(
+                f"eval_config.yaml has temperature={temperature}, which HuggingFace's "
+                f"TemperatureLogitsWarper rejects (it would divide logits by zero). "
+                f"Use a positive value (e.g. 1.0)."
+            )
+    else:
+        config.pop("temperature", None)
 
     return config
 
@@ -324,6 +336,13 @@ def render_template(cli_args, config):
     script = script.replace("<MODEL_PATH>", config["model_path"])
     script = script.replace("<TASK_ARGS>", task_args)
     script = script.replace("<METADATA_ARGS>", metadata_args)
+
+    # Emitted on every script so the decoding mode is auditable. Default false =
+    # greedy argmax (deterministic, no RNG); `do_sample: true` enables sampling.
+    do_sample = config.get("do_sample", False)
+    script = script.replace(
+        "<DOSAMPLE_ARGS>", f"  -M do_sample={_format_value(do_sample)} \\\n"
+    )
 
     max_connections = config.get("max_connections", DEFAULT_MAX_CONNECTIONS)
     script = script.replace("<MAX_CONNECTIONS>", str(max_connections))

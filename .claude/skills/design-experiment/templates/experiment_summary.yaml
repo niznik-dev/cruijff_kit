@@ -189,11 +189,15 @@ runs:
 
 evaluation:
   system_prompt: string            # REQUIRED: Must match training system prompt
-  temperature: float               # REQUIRED: Evaluation temperature. Must be strictly > 0.
-                                   # HF's TemperatureLogitsWarper does `scores / temperature`
-                                   # and raises ValueError at <= 0 (division by zero).
-                                   # Use 1e-7 for near-greedy decoding.
-                                   # setup_inspect.py rejects 0 at scaffold time.
+  temperature: float               # OPTIONAL: Sampling temperature. Required ONLY when do_sample: true,
+                                   # where it must be > 0 (HF's TemperatureLogitsWarper does
+                                   # `scores / temperature` and raises ValueError at <= 0). Under the
+                                   # default greedy decoding (do_sample: false) it is inert — dropped by
+                                   # setup_inspect.py — so omit it entirely for deterministic evals.
+  do_sample: bool                  # OPTIONAL: Decoding mode (default: false). False = greedy argmax —
+                                   # deterministic, bitwise-reproducible, no RNG. setup_inspect.py
+                                   # emits `-M do_sample=false` on every eval script when absent.
+                                   # Set true only for sampling-based evals (then temperature is required).
   max_tokens: int                  # OPTIONAL: Cap on tokens generated per response.
                                    # If omitted, the @task function's per-task default applies
                                    # (5 for ACS / model_organism, 20 for capitalization).
