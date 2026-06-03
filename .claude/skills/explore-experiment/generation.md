@@ -283,44 +283,48 @@ if detected.has_risk_scorer:
 
 **Skipped models:** Models with <2 valid samples or only one class (e.g., zeroshot models that always predict the same thing) are silently skipped. The function logs which models were skipped at INFO level.
 
-## Analysis & Interpretation (Required)
+## Interpretation (Required)
 
-**This step is required by default.** After generating visualizations and before calling `generate_report()`, write a `future_directions` string that interprets results and suggests next steps.
+**Required.** The deterministic backbone is summarize's job; interpretation is yours. Do a **hypothesis-first re-read** of the data — not a restatement of the tables. Write five sections, each **mandatory or an explicit "n/a — reason"** (no silent skips). The bar: a canned summary of `length_sweep_nth14` once just restated the saturation table and lifted next-steps from the design doc; a hypothesis-first re-read of the *same numbers* surfaced a monotonicity violation, a relative-target-position confound, and a prose-vs-table self-contradiction it had missed. Clear that bar.
 
-The analysis should cover:
+### The five sections
 
-1. **Key findings**: What do the metrics mean for the research question in experiment_summary.yaml? Reference the hypothesis if one exists.
-2. **Surprises or anomalies**: Anything unexpected — large gaps between models, metrics that disagree, base rates that explain accuracy, etc.
-3. **Concrete next steps**: Suggest 2-4 specific follow-up experiments or analyses. Be actionable, not vague.
+1. **Hypothesis adjudication.** Decompose `experiment.hypothesis` into individual falsifiable claims. Each gets exactly one verdict — **Confirmed / Violated / Inconclusive** — with the cell-level evidence behind it. If the hypothesis is absent, infer predictions from `experiment.question` + `variables` and flag that you're doing so.
+2. **Cross-cell pattern audit.** A mechanical checklist over the results grid: monotonicity per variable, base-rate sanity, saturation cells (≥0.95 default), equivalent-cell agreement. *(As summarize grows these into deterministic facts on `summary.md`, read them from there and spend your effort interpreting the flagged surprises rather than recomputing.)*
+3. **Mechanistic interpretation.** What does each variable's variation actually test? Give a parsimonious explanation for every surprise, and **name confounds explicitly** (e.g. "k was varied, but that also moved the target's *relative* position — those are entangled").
+4. **Self-consistency audit.** Check every numerical claim in your prose against the source table, literally: `claim → table value`. Catch prose that says "saturates at N=500" while its own table shows the ≥0.95 cutoff at N=100.
+5. **Calibrated next steps.** Each item names what to vary / what mechanism it tests / what outcome is informative. "The design didn't actually test X — fix the design first" is a valid and valuable item.
 
-Example:
-```python
-future_directions = """
-### Key Findings
+### Adversarial pre-pass
 
-Fine-tuning dramatically improved both models from 0% zero-shot to 75-78% accuracy,
-confirming the hypothesis. The instruct model's edge (78.5% vs 0.2%) appears to come
-from its ability to format text output, not from better discrimination — the base
-model actually achieves higher AUC (0.883 vs 0.876).
+Before you read the results, state — from the hypothesis alone — what cell-level evidence *would* falsify each claim. Then check whether that evidence appears. Doing this first, not after, is what keeps the adjudication honest instead of post-hoc.
 
-### Anomalies
+### Worked shape (hypothesis-first)
 
-The base fine-tuned model has near-zero text accuracy despite excellent AUC, suggesting
-it learned the probability distribution but not the output format. This is expected
-for base models without chat template training.
+```markdown
+### Hypothesis adjudication
+- Claim: "accuracy is monotonic in k at each N." → **Violated.** At N=25 and N=100,
+  k=30 is the *hardest* cell, not k=100 — the curve is non-monotonic below saturation.
+- Claim: "k=15 saturates by N=500." → **Inconclusive / mis-stated** — see self-consistency.
 
-### Suggested Next Steps
+### Cross-cell pattern audit
+- Monotonicity (k, per N): violated at every sub-saturation N (valley at k=30).
+- Saturation (≥0.95): k=15 hits 0.996 at N=100 — saturation is N=100, not N=500.
 
-1. **Compare with 1B/3B results**: The 8B instruct model (78.5%) barely outperforms
-   the 3B (76.6%) — check if scaling to 8B is worth the 4x compute cost.
-2. **Calibration deep-dive**: ECE of 0.019 for instruct is surprisingly good —
-   verify this holds with the corrected ECE metric on fresh evals.
-3. **Increase training data**: All models trained on 40K samples. Try 100K to see
-   if the accuracy plateau breaks.
-"""
+### Mechanistic interpretation
+- x=14 lands ~47% through the sequence at k=30 — nearest the middle. Difficulty tracks
+  *relative* target position, not absolute length. **Confound:** varying k implicitly
+  varied relative target position; they are entangled in this design.
+
+### Self-consistency audit
+- Prose "k=15 saturates at N=500" contradicts its own table (k=15 = 0.996 at N=100). Fix.
+
+### Calibrated next steps
+1. Hold relative target position fixed while varying k — separates length from position.
+   Informative if the k=30 valley disappears.
 ```
 
-Only omit this section if the user explicitly asks to skip it (e.g., "just generate the plots, no analysis").
+Only omit interpretation if the user explicitly asks for plots-only (e.g., "just generate the plots, no analysis").
 
 ## Report Generation
 

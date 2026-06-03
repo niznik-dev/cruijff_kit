@@ -20,8 +20,8 @@ You *interpret* the facts summarize establishes — which figures matter here, w
 ## Your Task
 
 1. Read `summary.md` (from summarize-experiment) and `experiment_summary.yaml` — understand the question / hypothesis and the deterministic facts summarize already established.
-2. Decide what, if anything, is worth visualizing for *this* experiment (see "Visualization toolkit" — it is a toolkit, not a checklist).
-3. Interpret the results to the bar in "Interpretation."
+2. Decide what, if anything, is worth visualizing for *this* experiment (see "Choose what to show" — it is a toolkit, not a checklist).
+3. Interpret the results to the bar in "Interpret — clear the bar."
 4. Write "Claude's Exploration" (`analysis/report.md`) and an audit log (`logs/explore-experiment.log`).
 
 ## Prerequisites
@@ -95,15 +95,19 @@ Build whatever you chose. `generation.md` holds reference *recipes* — not a re
 - matplotlib overlay helpers (ROC, calibration, prediction histogram) for `risk_scorer` evals
 - Dynamic metric detection, PNG export, and output-file naming
 
-### 5. Generate Analysis & Interpretation → `generation.md`
+### 5. Interpret — clear the bar → `generation.md`
 
-**This step is required by default.** Write a `future_directions` string that interprets the results and suggests next steps. This section should:
+**Required.** Interpretation is the heart of explore: a hypothesis-first re-read of the data, not a restatement of the tables. Write five sections, each **mandatory or an explicit "n/a — reason"** (no silent skips):
 
-1. Interpret the key findings (what do the metrics mean for the research question?)
-2. Note any surprises or anomalies in the results
-3. Suggest concrete next experiments or analyses
+1. **Hypothesis adjudication** — decompose `experiment.hypothesis` into individual falsifiable claims; give each one verdict (Confirmed / Violated / Inconclusive) with cell-level evidence. If there is no hypothesis, infer predictions from `experiment.question` + `variables` and flag the gap.
+2. **Cross-cell pattern audit** — monotonicity per variable, base-rate sanity, saturation cells (≥0.95 by default), equivalent-cell agreement. *(As summarize grows these into deterministic facts, read them from `summary.md` and interpret the surprises rather than recomputing.)*
+3. **Mechanistic interpretation** — what each variable's variation actually tests; a parsimonious explanation for each surprise; name confounds explicitly.
+4. **Self-consistency audit** — check every numerical claim in your prose against the source table (`claim → table value`), literally, not interpretively.
+5. **Calibrated next steps** — each specifies what to vary / what mechanism it tests / what outcome is informative. "The design didn't actually test X — fix the design first" is a valid item.
 
-Only omit this section if the user explicitly asks to skip it.
+**Adversarial pre-pass:** before reading the data, state from the hypothesis alone what cell-level evidence *would* falsify each claim — then check whether it appears. This guards against post-hoc rationalization.
+
+Record what you concluded — and why each figure was worth making — in the audit log (`logs/explore-experiment.log`). Only omit interpretation if the user explicitly asks for plots-only.
 
 ### 6. Generate Report → `generation.md`
 
@@ -139,11 +143,11 @@ Generate a compute utilization section. Always call `harvest_jids_from_run_logs(
 
 ### 7. Logging → `logging.md`
 
-Document process in `{experiment_dir}/logs/explore-experiment.log`
+Document the process in `{experiment_dir}/logs/explore-experiment.log`. This log is what keeps a deliberately non-deterministic step auditable (Principle #1): record which data you read, which figures you chose to make and **why**, and what you concluded.
 
 **See `logging.md` for:**
 - Plain text format specification
-- Action types (LOCATE, PARSE, LOAD, INFER, GENERATE)
+- Action types (`LOAD_EVALS`, `CHOOSE_FIGURE`, `GENERATE_PLOT`, `RECORD_INTERPRETATION`, …)
 - Example log entries
 
 ---
