@@ -1,6 +1,6 @@
 # Generation: Creating Visualizations
 
-This module describes how to generate visualizations using inspect-viz pre-built views.
+This module collects reference *recipes* for generating figures — not a required sequence. The inspect-viz pre-built views below are the quickest path when one fits; for bespoke figures, reach for matplotlib, seaborn, or plotly directly (the ROC / calibration overlays further down are already matplotlib). Draw on what fits the experiment.
 
 ## Overview
 

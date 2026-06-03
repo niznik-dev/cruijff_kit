@@ -28,7 +28,7 @@ You *interpret* the facts summarize establishes — which figures matter here, w
 
 - experiment_summary.yaml exists (from design-experiment)
 - Evaluations complete (from run-experiment)
-- inspect-viz installed (`pip install inspect-viz`)
+- Plotting toolkit installed — inspect-viz, matplotlib, seaborn, plotly are all bundled by `pip install -e .`
 - Conda environment activated (from claude.local.md)
 - **Optional:** playwright for PNG export (`pip install playwright && playwright install chromium`)
 
@@ -71,32 +71,29 @@ Use helper functions from `src/tools/inspect/viz_helpers.py`:
 - How to construct subdirs list from experiment_summary.yaml
 - Preparing data for each view type
 
-### 3. Select Visualizations
+### 3. Choose what to show — a toolkit, not a menu
 
-Map experimental variables to appropriate pre-built views:
+There is no fixed plot menu. Decide what, if anything, is worth showing for *this* experiment. Generating **zero** plots is a valid outcome if `summary.md` already tells the story; so is a bespoke figure no pre-built view covers.
 
-| Variable Type | View |
-|---------------|------|
-| Multiple models | `scores_by_model` |
-| Binary factor | `scores_by_factor` |
-| Multiple tasks/conditions | `scores_by_task` |
-| Model × task matrix | `scores_heatmap` |
-| Multiple metrics | `scores_radar_by_task` |
+The environment ships four plotting tools — peers chosen by fit, not a ranking:
 
-### 4. Generate Plots → `generation.md`
+| Tool | Reach for it when… | Output |
+|------|---------------------|--------|
+| **inspect-viz** | a pre-built eval view fits as-is (scores by task / model / factor, heatmap, radar) | interactive HTML |
+| **matplotlib** | you want full control of a static figure (already how the ROC / calibration / histogram overlays are built) | PNG |
+| **seaborn** | statistical cuts with good defaults — distributions, regressions, annotated heatmaps | PNG (matplotlib-backed) |
+| **plotly** | you want custom interactivity a pre-built inspect-viz view can't give | interactive HTML |
 
-Create visualizations using inspect-viz:
-1. Wrap dataframes with `Data.from_dataframe()`
-2. Call appropriate pre-built view functions
-3. Save HTML with `write_html()`
-4. Auto-export PNG with `write_png()` if playwright is available
+`pandas` (`df.plot`, `df.style`), `scipy`, and `scikit-learn` are also on hand for quick cuts and the stats beneath the plots. Nothing here is mandatory or exhaustive — if something else in the environment fits the question better, use it.
+
+### 4. Generate the figures → `generation.md`
+
+Build whatever you chose. `generation.md` holds reference *recipes* — not a required sequence. A bespoke matplotlib / seaborn / plotly figure written from scratch is as valid as a pre-built view.
 
 **See `generation.md` for:**
-- Dynamic metric detection
-- View function signatures and parameters
-- PNG export with playwright auto-detection
-- Output file naming conventions
-- Creating multiple plots per experiment
+- inspect-viz pre-built view signatures and parameters
+- matplotlib overlay helpers (ROC, calibration, prediction histogram) for `risk_scorer` evals
+- Dynamic metric detection, PNG export, and output-file naming
 
 ### 5. Generate Analysis & Interpretation → `generation.md`
 
@@ -151,7 +148,9 @@ Document process in `{experiment_dir}/logs/explore-experiment.log`
 
 ---
 
-## Supported Pre-built Views
+## inspect-viz pre-built views (one tool's catalog)
+
+These are the ready-made views **inspect-viz** offers — convenient when one fits as-is, but only one of the four tools in "Choose what to show." For anything they don't cover, drop to matplotlib / seaborn / plotly.
 
 | View | Use Case | Required Data |
 |------|----------|---------------|
