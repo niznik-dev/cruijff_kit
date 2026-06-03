@@ -11,7 +11,7 @@ The artifact you produce is **"Claude's Exploration"** — a deliberately non-de
 
 ## The summarize / explore boundary
 
-`summarize-experiment` is the required, script-driven, deterministic backbone — the always-correct facts that hold for *every* experiment (run status, loss, accuracy with CIs, provenance, and increasingly the cross-cell facts in "Interpretation" below). **Read its `summary.md` first.**
+`summarize-experiment` is the required, script-driven, deterministic backbone — the always-correct facts that hold for *every* experiment (run status, loss, accuracy with CIs, provenance, and the structure-free cross-cell facts — base rate, saturation). **Read its `summary.md` first.**
 
 > **If something is meaningful for *every* experiment, it belongs to `summarize`. Everything else is yours.**
 
@@ -100,7 +100,9 @@ Build whatever you chose. `generation.md` holds reference *recipes* — not a re
 **Required.** Interpretation is the heart of explore: a hypothesis-first re-read of the data, not a restatement of the tables. Write five sections, each **mandatory or an explicit "n/a — reason"** (no silent skips):
 
 1. **Hypothesis adjudication** — decompose `experiment.hypothesis` into individual falsifiable claims; give each one verdict (Confirmed / Violated / Inconclusive) with cell-level evidence. If there is no hypothesis, infer predictions from `experiment.question` + `variables` and flag the gap.
-2. **Cross-cell pattern audit** — monotonicity per variable, base-rate sanity, saturation cells (≥0.95 by default), equivalent-cell agreement. *(As summarize grows these into deterministic facts, read them from `summary.md` and interpret the surprises rather than recomputing.)*
+2. **Cross-cell pattern audit** — scan the results grid, split by what a script can honestly do:
+   - **Base-rate floor** and **saturation** (≥0.95) are pure counting — structure-free, true for every experiment. These are summarize's to compute; once `summary.md` carries them, read them from there instead of recomputing.
+   - **Monotonicity** (does a metric move one direction as an *ordinal* variable climbs?) and **equivalent-cell agreement** (do cells the design means to be the same actually agree?) depend on knowing your experiment's shape — which variables are ordered, which cells are meant to match. A generic script would have to guess that, so they stay your judgment: make the calls here.
 3. **Mechanistic interpretation** — what each variable's variation actually tests; a parsimonious explanation for each surprise; name confounds explicitly.
 4. **Self-consistency audit** — check every numerical claim in your prose against the source table (`claim → table value`), literally, not interpretively.
 5. **Calibrated next steps** — each specifies what to vary / what mechanism it tests / what outcome is informative. "The design didn't actually test X — fix the design first" is a valid item.
