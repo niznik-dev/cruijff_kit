@@ -131,10 +131,10 @@ Claude submits the SLURM jobs and monitors them:
 
 Total time: approximately 10-15 minutes for the 1B model with 1,000 samples.
 
-### Step 4: Analyze Results
+### Step 4: Explore Results
 
 ```
-/analyze-experiment
+/explore
 ```
 
 This skill reads the evaluation logs from both runs and generates an `analysis/` directory containing:
@@ -144,7 +144,7 @@ This skill reads the evaluation logs from both runs and generates an `analysis/`
 - **Static PNG exports** - If `playwright` is installed, PNG versions of all plots are generated automatically
 - **Calibration and ROC curves** - If `risk_scorer` is selected, additional diagnostic plots show how well the model's confidence aligns with actual outcomes (fine-tuned runs only — base models don't produce usable logprobs in zeroshot mode, so their calibration columns will be empty)
 
-The required post-run step is `/summarize-experiment`, which writes key metrics to `summary.md`. The `/analyze-experiment` visualizations shown above are optional and can be generated any time after the run.
+The required post-run step is `/summarize-experiment`, which writes key metrics to `summary.md`. The `/explore` visualizations shown above are optional and can be generated any time after the run.
 
 ---
 
@@ -197,7 +197,7 @@ After completing this onboarding experiment:
 - **Experiment with hyperparameters and other models** - Try different LoRA ranks, learning rates, or larger models like Llama-3.2-3B-Instruct
 - **Scale up** - Generate a 50,000-sample dataset for more realistic results
 - **Add calibration scoring** - If you ran with `match` only, re-run with `risk_scorer` added to see calibration metrics and ROC/calibration curves
-- **Create custom evaluation tasks** - The ACS tasks in `blueprints/folktexts/inspect_task.py` are one example of an inspect-ai evaluation task, but you can create your own for any dataset. Use `/create-inspect-task` to build evaluations for your own data — the skill walks you through defining the dataset format, scorer configuration, and prompt template. Once created, your custom task plugs into the same `/design-experiment` → `/run-experiment` → `/summarize-experiment` → (optional) `/analyze-experiment` pipeline
+- **Create custom evaluation tasks** - The ACS tasks in `blueprints/folktexts/inspect_task.py` are one example of an inspect-ai evaluation task, but you can create your own for any dataset. Use `/create-inspect-task` to build evaluations for your own data — the skill walks you through defining the dataset format, scorer configuration, and prompt template. Once created, your custom task plugs into the same `/design-experiment` → `/run-experiment` → `/summarize-experiment` → (optional) `/explore` pipeline
 
 For detailed reference on all ACS tasks, data formats, and training parameters, see `blueprints/folktexts/README.md`.
 

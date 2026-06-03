@@ -1,6 +1,6 @@
 ---
 name: analyze-to-pdf
-description: Convert experiment analysis reports (report.md) to PDF using pandoc. Use after analyze-experiment to create shareable PDF reports.
+description: Convert experiment analysis reports (report.md) to PDF using pandoc. Use after explore to create shareable PDF reports.
 ---
 
 # Analyze to PDF

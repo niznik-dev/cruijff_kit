@@ -25,7 +25,7 @@ Each experiment lives in a single self-contained directory. The root contains th
 │   ├── .detach                  # Optional sentinel — touch to detach the watcher
 │   ├── monitor.json             # Optional live settings (poll_sec / stagger_sec / max_submit)
 │   ├── summarize-experiment.log
-│   └── analyze-experiment.log
+│   └── explore.log
 ├── {run_name}/                  # Self-contained per-run directory (one per run)
 │   ├── setup_finetune.yaml      # Fine-tuning configuration input
 │   ├── finetune.yaml            # Generated torchtune config
@@ -68,7 +68,7 @@ Each experiment lives in a single self-contained directory. The root contains th
 │           └── ...
 └── analysis/                    # Cross-run visualizations and reports
     ├── report.md                # Markdown report with metrics
-    ├── compute_metrics.json     # Raw compute metrics (JSON, see analyze-experiment/generation.md for schema)
+    ├── compute_metrics.json     # Raw compute metrics (JSON, see explore/generation.md for schema)
     ├── *.html                   # Interactive HTML plots
     └── *.png                    # Static plot exports
 ```
@@ -97,7 +97,7 @@ So the resolved checkpoint path for a given run is `{experiment_dir}/{run_name}/
 | scaffold-experiment | Run directories, configs, SLURM scripts, `logs/scaffold-*.log` | Experiment dir |
 | run-experiment | SLURM outputs, checkpoints, eval logs, `logs/run-*.log` | Experiment dir |
 | summarize-experiment | `summary.md`, `logs/summarize-experiment.log` | Experiment dir |
-| analyze-experiment | `analysis/` directory, `logs/analyze-experiment.log` | Experiment dir |
+| explore | `analysis/` directory, `logs/explore.log` | Experiment dir |
 | archive-experiment | `archive.log`, mirrored experiment dir minus `*/artifacts/` | Archive dir (originals deleted) |
 
 ## Archive Directory

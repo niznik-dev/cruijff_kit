@@ -46,7 +46,7 @@ STATE_NAME = "run-inspect.state.json"
 
 
 def _eval_name(run_dir_name: str, cell_dir_name: str) -> str:
-    """Build a SUBMIT_EVAL identifier matching the analyze-experiment regex `[\\w./-]+`.
+    """Build a SUBMIT_EVAL identifier matching the explore regex `[\\w./-]+`.
 
     The cell-dir name encodes task (+ epoch for fine-tuned runs):
 

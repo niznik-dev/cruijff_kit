@@ -53,7 +53,7 @@ This skill invokes callable Python submitters that handle SLURM submission, drip
 **Evaluator modules:** See [evaluators/](evaluators/) for the schema description.
 - inspect-ai → `python -m cruijff_kit.tools.run.submit_inspect <experiment_dir>` (writes `logs/run-inspect.log` + `logs/run-inspect.state.json`)
 
-Both submitters are resume-safe: re-invoking after an interruption reads the JSON state file and skips already-submitted entries. Both emit canonical `SUBMIT_JOB:` / `SUBMIT_EVAL:` lines that `analyze-experiment`'s compute-utilization step harvests. Future tools (DSPy, custom trainers, custom evaluators) plug in here as additional submitters.
+Both submitters are resume-safe: re-invoking after an interruption reads the JSON state file and skips already-submitted entries. Both emit canonical `SUBMIT_JOB:` / `SUBMIT_EVAL:` lines that `explore`'s compute-utilization step harvests. Future tools (DSPy, custom trainers, custom evaluators) plug in here as additional submitters.
 
 ## Reading Tool Specifications
 
@@ -266,7 +266,7 @@ Complete workflow: {total_duration}
 
 1. View results: `inspect view --port=$(get_free_port)`
 2. Export data: `inspect log export ...`
-3. Summarize results: run `summarize-experiment` (the required post-run step). `analyze-experiment` is optional and can be run any time afterward.
+3. Summarize results: run `summarize-experiment` (the required post-run step). `explore` is optional and can be run any time afterward.
 ```
 
 ### Next Step: Summarize Results
@@ -277,11 +277,11 @@ After completing the experiment, run `summarize-experiment` — this is the stan
 
 **Then, optionally:** offer a deeper analysis.
 
-> Want me to also run `analyze-experiment` for visualizations and a full report? It's optional and can be run any time. [y/N]
+> Want me to also run `explore` for visualizations and a full report? It's optional and can be run any time. [y/N]
 
-**If yes:** Invoke the `analyze-experiment` skill to create interactive plots and `analysis/report.md`.
+**If yes:** Invoke the `explore` skill to create interactive plots and `analysis/report.md`.
 
-**If no:** Skip it — `analyze-experiment` can be run any time later against the same evaluation logs.
+**If no:** Skip it — `explore` can be run any time later against the same evaluation logs.
 
 ## Important Notes
 
@@ -294,7 +294,7 @@ After completing the experiment, run `summarize-experiment` — this is the stan
 
 **Relationship to other skills:**
 - **Before:** design-experiment, scaffold-experiment
-- **After:** summarize-experiment (the required next step), then optionally analyze-experiment (any time)
+- **After:** summarize-experiment (the required next step), then optionally explore (any time)
 - **Standalone:** Individual tool modules can run independently
 
 **Resumability:**

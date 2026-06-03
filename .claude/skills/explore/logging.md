@@ -1,15 +1,15 @@
-# Logging - analyze-experiment
+# Logging - explore
 
 **See [shared/logging_spec.md](../../shared/logging_spec.md) for complete format specification and general logging guidelines.**
 
-This document covers analyze-experiment-specific logging practices.
+This document covers explore-specific logging practices.
 
 ---
 
 ## Log File Location
 
 ```
-{experiment_dir}/logs/analyze-experiment.log
+{experiment_dir}/logs/explore.log
 ```
 
 Created during analysis to record data loading, visualization selection, and generation.

@@ -15,7 +15,7 @@ from pathlib import Path
 # Canonical run-experiment log shape lives at
 # .claude/skills/run-experiment/logging.md and is enforced by
 # src/tools/run/_submit_common.py. Both regexes mirror those in
-# .claude/skills/analyze-experiment/generation.md:387-388.
+# .claude/skills/explore/generation.md:387-388.
 SUBMIT_JOB_RE = re.compile(r"SUBMIT_JOB: ([\w.-]+)\n.*?\nJob ID: (\d+)", re.DOTALL)
 SUBMIT_EVAL_RE = re.compile(r"SUBMIT_EVAL: ([\w./-]+)\n.*?\nJob ID: (\d+)", re.DOTALL)
 
@@ -606,7 +606,7 @@ def harvest_jids_from_run_logs(
       2. Surface them in the rendered report (e.g., as a "*Compute Utilization
          unavailable: ...*" note) instead of silently omitting the section.
 
-    Previously, analyze-experiment's compute step "skipped silently if no run
+    Previously, explore's compute step "skipped silently if no run
     logs exist." This helper makes the absence loud.
     """
     finetune_path = experiment_dir / "logs" / "run-torchtune.log"

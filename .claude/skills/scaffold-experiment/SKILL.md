@@ -289,7 +289,7 @@ Successfully scaffolded experiment:
 2. Run `run-experiment` skill to execute the complete workflow:
    - Fine-tuning via `run-torchtune`
    - Evaluation via `run-inspect`
-3. Run `analyze-experiment` skill to interpret results
+3. Run `explore` skill to interpret results
 
 ## Validation Before Completion
 

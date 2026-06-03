@@ -289,7 +289,7 @@ The function returns a dict with:
 - `prior_experiment`: name of the prior experiment used
 - `scaling_details`: human-readable list of scaling calculations
 
-**Do not** manually implement scaling logic — `estimate_compute.py` handles all scaling (throughput-based: `total_tokens / tps_gpu`, safety margins, rounding). Prior runs must have tps fields on their job dicts, which are populated by `enrich_job_with_throughput()` during analyze-experiment. If they don't (older summaries pre-dating issue #473), the relevant section of the result is None.
+**Do not** manually implement scaling logic — `estimate_compute.py` handles all scaling (throughput-based: `total_tokens / tps_gpu`, safety margins, rounding). Prior runs must have tps fields on their job dicts, which are populated by `enrich_job_with_throughput()` during explore. If they don't (older summaries pre-dating issue #473), the relevant section of the result is None.
 
 **Multi-model prior?** If the prior summary contains jobs across multiple models (e.g. a calibration experiment with 1B/3B/8B fine-tunes), use `estimate_from_prior_broadcast()` instead — it returns one prediction per model in the prior, no looping needed:
 
