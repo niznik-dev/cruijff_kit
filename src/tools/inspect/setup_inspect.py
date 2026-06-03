@@ -185,19 +185,34 @@ def load_eval_config(config_path):
             stacklevel=2,
         )
 
-    # Decoding defaults to do_sample=false (greedy argmax), which ignores
-    # temperature entirely. But if a user opts into sampling (do_sample: true),
-    # HF transformers builds a TemperatureLogitsWarper that does
-    # `scores / temperature` and raises ValueError for temperature <= 0
-    # (division by zero produces inf/NaN logits). Fail fast at scaffold time
-    # rather than letting a SLURM job crash hours later.
+    # Decoding mode decides whether temperature is live. The default is greedy
+    # argmax (do_sample=false), under which HF ignores temperature entirely — so
+    # we drop it from the config, keeping the rendered -T args honest about what
+    # actually controls decoding. Temperature only becomes meaningful when a user
+    # opts into sampling (do_sample: true): there HF builds a
+    # TemperatureLogitsWarper that does `scores / temperature` and raises
+    # ValueError for temperature <= 0. Require and validate it only on that path,
+    # failing fast at scaffold time rather than hours into a SLURM job.
+    do_sample = config.get("do_sample", False)
     temperature = config.get("temperature")
-    if temperature is not None and temperature <= 0:
-        raise ValueError(
-            f"eval_config.yaml has temperature={temperature}, which HuggingFace's "
-            f"TemperatureLogitsWarper rejects (it would divide logits by zero). "
-            f"Use a small positive value (e.g. 1e-7) for near-greedy decoding."
-        )
+    if do_sample:
+        if temperature is None:
+            raise ValueError(
+                "eval_config.yaml sets do_sample: true (sampling) but provides no "
+                "temperature. Sampling needs an explicit temperature > 0 (e.g. 1.0). "
+                "For deterministic decoding, omit do_sample — it defaults to false "
+                "(greedy argmax)."
+            )
+        if temperature <= 0:
+            raise ValueError(
+                f"eval_config.yaml has temperature={temperature}, which HuggingFace's "
+                f"TemperatureLogitsWarper rejects (it would divide logits by zero). "
+                f"Use a positive value (e.g. 1.0)."
+            )
+    else:
+        # Greedy decoding: temperature is inert. Drop it so build_task_args won't
+        # emit a -T temperature that does nothing.
+        config.pop("temperature", None)
 
     return config
 

@@ -513,6 +513,57 @@ class TestDoSample:
 
 
 # ---------------------------------------------------------------------------
+# temperature gating (live only under sampling)
+# ---------------------------------------------------------------------------
+
+
+class TestTemperatureGating:
+    """temperature is live only under sampling (do_sample: true). Under the
+    default greedy argmax it is inert: dropped from config, never rendered."""
+
+    def _write(self, tmp_path, extra):
+        config_file = tmp_path / "eval_config.yaml"
+        config_file.write_text(MINIMAL_EVAL_CONFIG + extra)
+        return str(config_file)
+
+    def test_greedy_default_drops_temperature(self, tmp_path):
+        """No do_sample (greedy default): temperature is dropped, not rendered."""
+        config = load_eval_config(self._write(tmp_path, "temperature: 1.0e-7\n"))
+        assert "temperature" not in config
+        assert "temperature" not in build_task_args(config)
+
+    def test_greedy_explicit_false_drops_temperature(self, tmp_path):
+        """do_sample: false also drops temperature."""
+        config = load_eval_config(
+            self._write(tmp_path, "temperature: 0.8\ndo_sample: false\n")
+        )
+        assert "temperature" not in config
+
+    def test_greedy_drops_nonpositive_temperature_without_error(self, tmp_path):
+        """Under greedy a <= 0 temperature is inert — dropped, never validated."""
+        config = load_eval_config(self._write(tmp_path, "temperature: 0\n"))
+        assert "temperature" not in config
+
+    def test_sampling_keeps_and_renders_temperature(self, tmp_path):
+        """do_sample: true keeps temperature and renders it as a -T arg."""
+        config = load_eval_config(
+            self._write(tmp_path, "temperature: 0.7\ndo_sample: true\n")
+        )
+        assert config["temperature"] == 0.7
+        assert '-T temperature="0.7"' in build_task_args(config)
+
+    def test_sampling_requires_temperature(self, tmp_path):
+        """do_sample: true without a temperature fails fast at scaffold time."""
+        with pytest.raises(ValueError, match="do_sample: true"):
+            load_eval_config(self._write(tmp_path, "do_sample: true\n"))
+
+    def test_sampling_rejects_nonpositive_temperature(self, tmp_path):
+        """do_sample: true with temperature <= 0 raises (HF would divide by zero)."""
+        with pytest.raises(ValueError, match="TemperatureLogitsWarper"):
+            load_eval_config(self._write(tmp_path, "temperature: 0\ndo_sample: true\n"))
+
+
+# ---------------------------------------------------------------------------
 # max_connections
 # ---------------------------------------------------------------------------
 

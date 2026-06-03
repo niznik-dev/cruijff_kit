@@ -76,7 +76,8 @@ Extract the following information from the YAML structure:
 
 6. **Evaluation configuration:**
    - `evaluation.system_prompt` - Must match training
-   - `evaluation.temperature` - Evaluation temperature
+   - `evaluation.do_sample` - OPTIONAL decoding mode (default false = greedy argmax)
+   - `evaluation.temperature` - OPTIONAL sampling temperature; required only when `do_sample: true`
    - `evaluation.max_connections` - OPTIONAL ceiling on samples per HF batch. If absent, `setup_inspect.py` defaults to 32 (matching inspect-ai upstream). Propagate to each eval_config.yaml only if explicitly set in experiment_summary.yaml. Note: raising this on variable-length workloads can slow evals due to padding waste; see issue #318 investigation comment.
    - `evaluation.scorer[]` - List of scorers with optional params (see Parsing Scorer Configuration below)
    - `evaluation.tasks[]` - List of evaluation tasks
@@ -296,9 +297,9 @@ output_dir: /outputs/run1/artifacts/
 data_path: /data/acs_income.json
 vis_label: 1B_ft
 use_chat_template: "true"
-temperature: 1.0e-7    # propagated from evaluation.temperature; ignored under
-                       # the default greedy decoding (only applies if do_sample: true)
 max_tokens: 5          # propagated from evaluation.max_tokens (if set)
+# temperature: omitted under greedy decoding (the default). Propagate it ONLY
+# when do_sample: true — it is the sampling temperature and is otherwise inert.
 
 # Metadata (--metadata key=value)
 epoch: 0
@@ -349,7 +350,7 @@ Extract values from setup_finetune.yaml (fine-tuned runs) or experiment_summary.
 - `system_prompt`: per-cell resolution — start from the run's configuration (may vary per run!), then **override with `task['system_prompt']` if the task entry sets it** (per-task override, see Parsing Evaluation Tasks above). This is how heterogeneous prompts inside one run end up in distinct cells.
 - `assistant_prefix`: same per-cell resolution as `system_prompt` if `task['assistant_prefix']` is set.
 - `scorer`: From `evaluation.scorer` in experiment_summary.yaml
-- `temperature`: From `evaluation.temperature` in experiment_summary.yaml (REQUIRED in the schema). Always propagate. Must be strictly > 0; `setup_inspect.py` hard-errors on `<= 0` because HF's `TemperatureLogitsWarper` does `scores / temperature` and raises `ValueError` at zero (division by zero → inf/NaN logits). Note: under the default greedy decoding (`do_sample: false`) temperature is ignored by HF, but the `> 0` rule still guards the `do_sample: true` override path.
+- `temperature`: From `evaluation.temperature` in experiment_summary.yaml (OPTIONAL). Propagate **only when `do_sample: true`** — temperature is the sampling temperature and is inert under the default greedy decoding (`setup_inspect.py` drops it from the task args when `do_sample` is false). On the sampling path it must be strictly > 0; `setup_inspect.py` hard-errors on a missing or `<= 0` temperature when `do_sample: true`, because HF's `TemperatureLogitsWarper` does `scores / temperature` and raises `ValueError` at zero (division by zero → inf/NaN logits).
 - `do_sample`: From `evaluation.do_sample` in experiment_summary.yaml (OPTIONAL, default `false`). Propagate only if explicitly set; when absent, `setup_inspect.py` emits `-M do_sample=false` (greedy argmax — deterministic, bitwise-reproducible, no RNG). Set `true` only for sampling-based evals.
 - `max_tokens`: From `evaluation.max_tokens` in experiment_summary.yaml (OPTIONAL). Propagate only if explicitly set; otherwise omit and the @task function's per-task default applies.
 
