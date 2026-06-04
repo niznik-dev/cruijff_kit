@@ -4,9 +4,27 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-06-04
+
 ### Added
 
+#### Skills & Workflows
+- `summarize-experiment` is now continuous-scorer aware: it detects `continuous_scorer` runs and reports regression metrics (mae / rmse / r_squared / parse_rate) instead of silently falling back to accuracy. (#544)
+
+#### Documentation & Data
 - Sixth project principle, **Wrapper-only**, documented in `CLAUDE.md`: cruijff_kit integrates with external tools (torchtune, inspect-ai) by wrapping them, not modifying their internals. Capstone of the milestone-wide return to wrapper-only recipes. (#465)
+- `continuous_scorer` is now documented in the scorers reference. (#543)
+
+### Changed
+
+- inspect-ai evaluations now default to `do_sample=false` (greedy decoding); `temperature` is optional and gated on `do_sample`. Empirically verified safe on Llama-3.2-1B-Instruct with chat template + logprobs. (#546)
+- Risk scorer `METRIC_NAMES` are hoisted into a canonical module and shared via a public helper rather than reaching into inspect-ai's private `_METRICS`. (#540)
+- Swept stale issue/PR-number references out of `src/` code comments, per the code-comment convention. (#542)
+
+### Fixed
+
+- `report_generator` no longer emits the misleading `## Risk Metrics` heading + C-ECE/R-ECE footnote on `continuous_scorer`-only experiments. The section now renders as `## Regression Metrics` with an mae / rmse / r_squared / parse_rate footnote. Mixed risk + regression experiments emit two sub-sections, one per category. (#519)
+- GPU smoke test updated for the `cell.slurm` filename (per-cell evaluation layout). (#522)
 
 ### Removed
 
@@ -15,10 +33,6 @@ All notable changes to cruijff_kit will be documented in this file.
 - `tqdm_miniters` config key and the recipe-side progress-bar override; the `tqdm` progress bars revert to upstream torchtune defaults. The override existed to keep SLURM logs short enough that log-reading wouldn't choke on chatty `tqdm` output; that constraint is obsolete now that large / carriage-return-heavy logs paginate cleanly (verified on a 626 KB / 10k-step log). Logs are more verbose without it (a controlled A/B measured ~25× more progress-bar lines/epoch at fast step-speed) but remain fully readable. Part of the milestone-wide return to wrapper-only recipes. (#465, #527)
 - `num_workers` / `persistent_workers` DataLoader knobs: the `--num_workers` / `--persistent_workers` CLI flags on `setup_finetune.py`, their `finetune.yaml` propagation, and the recipe-side DataLoader wiring in all 3 custom recipes. Measured throughput gains were minimal; users needing parallel data loading can reintroduce it via a wrapper or recipe fork. Part of the milestone-wide return to wrapper-only recipes. (#465, #528)
 - Dead `setup_logger` import block from the three custom recipes — it bound a module-level `logger` that was never used (the recipes log via torchtune's `log`). `src/utils/logger.py` itself is unchanged (still used by the inspect subtree). Part of the milestone-wide return to wrapper-only recipes. (#465, #529)
-
-### Fixed
-
-- `report_generator` no longer emits the misleading `## Risk Metrics` heading + C-ECE/R-ECE footnote on `continuous_scorer`-only experiments. The section now renders as `## Regression Metrics` with an mae / rmse / r_squared / parse_rate footnote. Mixed risk + regression experiments emit two sub-sections, one per category. (#519)
 
 ## [0.3.2] - 2026-05-21
 
