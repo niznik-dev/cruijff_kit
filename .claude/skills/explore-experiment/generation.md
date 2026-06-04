@@ -285,7 +285,18 @@ if detected.has_risk_scorer:
 
 ## Interpretation (Required)
 
-**Required.** The deterministic backbone is summarize's job; interpretation is yours. Do a **hypothesis-first re-read** of the data — not a restatement of the tables. Write five sections, each **mandatory or an explicit "n/a — reason"** (no silent skips). The bar: a canned summary of `length_sweep_nth14` once just restated the saturation table and lifted next-steps from the design doc; a hypothesis-first re-read of the *same numbers* surfaced a monotonicity violation, a relative-target-position confound, and a prose-vs-table self-contradiction it had missed. Clear that bar.
+**Required.** The deterministic backbone is summarize's job; interpretation is yours. Do a **hypothesis-first re-read** of the data — not a restatement of the tables. Open with a jargon-free **Bottom line**, then write five rigorous sections, each **mandatory or an explicit "n/a — reason"** (no silent skips). The bar: a canned summary of `length_sweep_nth14` once just restated the saturation table and lifted next-steps from the design doc; a hypothesis-first re-read of the *same numbers* surfaced a monotonicity violation, a relative-target-position confound, and a prose-vs-table self-contradiction it had missed. Clear that bar — and clear it *readably* (see Audience, below).
+
+### Audience: lead with the conclusion, make the rigor optional
+
+Write so a curious non-specialist — a student new to the project, a collaborator from another field — can read the **top of the report and come away with the real finding**, not a teaser for it. The rigorous sections stay (rigor is cheap to keep and it's what makes explore trustworthy), but *reading and understanding all of them must not be the price of admission*. Structure for progressive disclosure:
+
+- **Open with a "Bottom line"** — 3–5 jargon-free sentences: what was tested, what you actually found, and the surprises. Someone who stops reading here should still have the correct takeaway. It goes *above* the data tables, not after the adjudication.
+- **Define each metric the first time it appears**, in one clause. "AUC — how well the model *ranks* high earners above low earners; 0.5 is a coin flip" costs a line and unlocks the whole table. Don't assume argmax / Brier / ECE / AUC are known.
+- **Point at the figure that carries the story.** A reader with the headline plot and the bottom line has the result; the prose is the escort, not the gate.
+- **Demote bookkeeping.** The self-consistency audit (section 4) is for auditors, not readers — put its output in an appendix or the audit log (`explore-experiment.log`), not the main reading path. Same for compute utilization.
+
+The five sections still happen in full — they're the *depth* layer a skeptical reader descends into to verify the bottom line, not the layer a newcomer must climb to reach it.
 
 ### The five sections
 
@@ -294,7 +305,7 @@ if detected.has_risk_scorer:
    - **Base-rate floor** and **saturation cells** (≥0.95 default) are pure counting: structure-free, true for every experiment. These are summarize's to compute; once `summary.md` carries them, read them from there rather than recomputing.
    - **Monotonicity** (does a metric move one direction as an *ordinal* variable climbs?) and **equivalent-cell agreement** (do cells the design intends to be the same actually agree?) depend on knowing your experiment's shape — which variables are ordered, which cells are meant to match. A generic script would have to guess that, so they stay judgment calls: make them here. (Monotonicity could go deterministic only if the design declares its ordinal variables — a separate schema project, not assumed here.)
 3. **Mechanistic interpretation.** What does each variable's variation actually test? Give a parsimonious explanation for every surprise, and **name confounds explicitly** (e.g. "k was varied, but that also moved the target's *relative* position — those are entangled").
-4. **Self-consistency audit.** Check every numerical claim in your prose against the source table, literally: `claim → table value`. Catch prose that says "saturates at N=500" while its own table shows the ≥0.95 cutoff at N=100.
+4. **Self-consistency audit.** Check every numerical claim in your prose against the source table, literally: `claim → table value`. Catch prose that says "saturates at N=500" while its own table shows the ≥0.95 cutoff at N=100. **Do the check, but put its output in an appendix or the audit log** — it's verification bookkeeping, not part of the reader's path to the finding (see Audience).
 5. **Calibrated next steps.** Each item names what to vary / what mechanism it tests / what outcome is informative. "The design didn't actually test X — fix the design first" is a valid and valuable item.
 
 ### Adversarial pre-pass
@@ -304,6 +315,13 @@ Before you read the results, state — from the hypothesis alone — what cell-l
 ### Worked shape (hypothesis-first)
 
 ```markdown
+## Bottom line
+We checked whether the model stays accurate as the input gets longer (more items, "k").
+It mostly does — except in a surprising dip around the middle lengths, where it does *worse*
+than at either extreme. That dip turned out to be an artifact of *where the answer sits* in
+the sequence, not the length itself. Plain-language takeaway: "longer = harder" is wrong here;
+"answer-in-the-middle = harder" is the real pattern. See `accuracy_by_k.png`.
+
 ### Hypothesis adjudication
 - Claim: "accuracy is monotonic in k at each N." → **Violated.** At N=25 and N=100,
   k=30 is the *hardest* cell, not k=100 — the curve is non-monotonic below saturation.
@@ -318,12 +336,13 @@ Before you read the results, state — from the hypothesis alone — what cell-l
   *relative* target position, not absolute length. **Confound:** varying k implicitly
   varied relative target position; they are entangled in this design.
 
-### Self-consistency audit
-- Prose "k=15 saturates at N=500" contradicts its own table (k=15 = 0.996 at N=100). Fix.
-
 ### Calibrated next steps
 1. Hold relative target position fixed while varying k — separates length from position.
    Informative if the k=30 valley disappears.
+
+---
+#### Appendix: self-consistency audit
+- Prose "k=15 saturates at N=500" contradicts its own table (k=15 = 0.996 at N=100). Fix.
 ```
 
 Only omit interpretation if the user explicitly asks for plots-only (e.g., "just generate the plots, no analysis").
