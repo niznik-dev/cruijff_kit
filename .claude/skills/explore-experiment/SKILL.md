@@ -112,27 +112,20 @@ Build whatever you chose. `generation.md` holds reference *recipes* — not a re
 
 Record what you concluded — and why each figure was worth making — in the audit log (`logs/explore-experiment.log`). Only omit interpretation if the user explicitly asks for plots-only.
 
-### 6. Generate Report → `generation.md`
+### 6. Write Report → `generation.md`
 
-Create markdown report with metrics and comparisons:
-1. Extract metrics from evaluation dataframe
-2. Compute Wilson score confidence intervals
-3. Generate narrative summary and comparison tables
-4. Include `future_directions` from step 5
-5. Write report to `exploration/report.md`
+**Author `exploration/report.md` yourself** — there is no report-assembling
+function. Compose the markdown directly (prose, inline figures, provenance), the
+way you wrote `summary.md`:
+1. Open with a jargon-free **Bottom line**, then the five interpretation sections.
+2. **Cite `../summary.md`** for the canonical metric tables — don't re-render
+   them; quote only the specific numbers your argument turns on.
+3. Embed figures **inline with descriptive captions** at the point you discuss
+   them (no dumped "Visualizations" appendix).
+4. Close with a **summarized** provenance footer (count + glob, not every
+   absolute path) in a collapsible `<details>` block.
 
-Uses `src/tools/inspect/report_generator.py`:
-```python
-from cruijff_kit.tools.inspect.report_generator import generate_report
-
-report = generate_report(
-    df=logs_df,
-    experiment_name=experiment_name,
-    output_path=Path(experiment_dir) / "exploration" / "report.md",
-    config=experiment_config,  # Optional, for research question metadata
-    future_directions=future_directions,  # From step 5
-)
-```
+See `generation.md` → "Report Generation" for the full shape and rationale.
 
 ### 6b. Compute Utilization Report → `generation.md`
 
@@ -200,7 +193,7 @@ Which visualization would you like?
 
 ### Tracking Generated Files
 
-**Important:** Track which PNG files you generate during this run. Only pass those to `generate_report()` so the report embeds only the visualizations created in this session, not stale outputs from previous runs.
+**Important:** Track which PNG files you generate during this run, and embed only those inline in `report.md` — never stale outputs from a previous session.
 
 ```python
 generated_pngs = []
@@ -208,8 +201,7 @@ generated_pngs = []
 # After each successful PNG export
 generated_pngs.append(png_path)
 
-# Pass to report generator
-generate_report(..., generated_pngs=generated_pngs)
+# Embed only these inline in report.md (with descriptive captions)
 ```
 
 **Smart defaults for everything else:**

@@ -31,7 +31,7 @@ cruijff_kit/
 │   │   │   ├── setup_inspect.py         # Generate evaluation SLURM scripts from template
 │   │   │   ├── parse_eval_log.py        # Parse inspect-ai evaluation logs
 │   │   │   ├── prebuild_cache.py        # Pre-build HF datasets cache before SLURM dispatch
-│   │   │   ├── report_generator.py      # Build markdown reports from eval logs
+│   │   │   ├── report_generator.py      # Markdown→PDF preprocessing for authored reports
 │   │   │   ├── summary_binary.py        # Binary-classification summary helpers
 │   │   │   ├── viz_helpers.py           # Plot/data adapters for inspect-viz
 │   │   │   ├── scorers/                 # Custom scorers (risk_scorer, calibration_metrics, …)
