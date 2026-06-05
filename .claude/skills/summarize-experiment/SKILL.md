@@ -339,5 +339,5 @@ Running summarize-experiment multiple times overwrites summary.md. This is inten
 
 - **After:** run-experiment — this is the required post-run step once an experiment completes (or manual execution)
 - **Before:** explore-experiment is optional and can be run any time afterward
-- **Hook:** run-experiment runs this automatically at completion
+- **Invoked by:** run-experiment runs this as its standard completion step (part of the skill flow, not a configured hook)
 
