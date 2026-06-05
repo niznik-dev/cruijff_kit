@@ -33,7 +33,7 @@ See the modular sub-files for details:
 
 ## Prerequisites
 
-- The experiment has been run AND analyzed (`analysis/report.md` exists). If it hasn't been analyzed yet, ask the user to run `explore-experiment` first — without it, there's nothing concrete to ground questions in.
+- The experiment has been run AND explored (`analysis/report.md` exists). `explore-experiment` is an *optional* post-run step in general — but create-quiz requires it: `report.md`'s figures and interpretation are what ground the questions, and the required `summarize-experiment` step (`summary.md`) alone doesn't produce them. If `report.md` is missing, ask the user to run `explore-experiment` first — without it, there's nothing concrete to ground questions in.
 - The cruijff conda environment is activated (the renderer uses Jinja2; same env as the rest of the toolkit).
 
 ## Workflow
@@ -218,7 +218,7 @@ End with the absolute path to `quiz.html` on its own line so the user can comman
 
 ## Relationship to other skills
 
-- **After:** `explore-experiment` (mandatory — needs `report.md`)
+- **After:** `explore-experiment` — the optional analysis pass in general, but mandatory *for create-quiz* (it needs `report.md`)
 - **Reads:** `experiment_summary.yaml`, `analysis/report.md`, `analysis/*.png`, `summary.md`
 - **Creates:** `quiz/quiz.{json,html}`, `logs/create-quiz.log`
 

@@ -12,7 +12,7 @@ If found, treat `{cwd}` as the (single) experiment directory. If not, ask the us
 
 For each directory provided, verify:
 - `experiment_summary.yaml` exists
-- `analysis/report.md` exists (this skill requires `explore-experiment` to have run; if missing, stop and tell the user)
+- `analysis/report.md` exists (create-quiz requires the optional `explore-experiment` pass to have run — summarize alone doesn't produce it; if missing, stop and tell the user)
 
 ## Loading `experiment_summary.yaml`
 
@@ -81,7 +81,7 @@ Run all of the above for each experiment independently and store the results und
 ## Error handling
 
 - **Missing `experiment_summary.yaml`:** stop, tell the user the directory doesn't look like a cruijff_kit experiment.
-- **Missing `analysis/report.md`:** stop, suggest running `explore-experiment` first.
+- **Missing `analysis/report.md`:** stop, suggest running the optional `explore-experiment` pass first (the required `summarize-experiment` step doesn't produce `report.md`).
 - **Malformed YAML:** report the error, don't try to recover.
 - **No PNGs:** continue, just don't generate image-read questions.
 
