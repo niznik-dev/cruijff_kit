@@ -10,6 +10,7 @@ Metrics computed:
 - Balanced Accuracy: (Recall_0 + Recall_1) / 2 - robust to class imbalance
 - F1 Score: harmonic mean of precision and recall - penalizes imbalance
 - Precision(1), Recall(1), Recall(0): per-class metrics
+- Class balance: actual label split (provenance, not a performance metric)
 
 Inspect-ai stores logs as zip archives with samples/*.json containing results.
 
@@ -75,6 +76,13 @@ def compute_metrics(path: Path) -> dict:
     fn = matrix["1"]["0"]
     other = matrix["0"]["other"] + matrix["1"]["other"]
 
+    # Eval-set class balance (provenance — the actual label split, not a "floor").
+    # Denominator is binary-labeled targets; unparsed predictions still count
+    # toward their actual class.
+    n_1 = tp + fn + matrix["1"]["other"]
+    n_0 = tn + fp + matrix["0"]["other"]
+    n_labeled = n_0 + n_1
+
     accuracy = (tp + tn) / len(samples) if samples else 0
     precision_1 = tp / (tp + fp) if (tp + fp) > 0 else 0
     recall_1 = tp / (tp + fn) if (tp + fn) > 0 else 0
@@ -90,6 +98,12 @@ def compute_metrics(path: Path) -> dict:
         "status": "success",
         "path": str(path),
         "samples": len(samples),
+        "class_balance": {
+            "frac_1": round(n_1 / n_labeled, 4) if n_labeled else 0,
+            "frac_0": round(n_0 / n_labeled, 4) if n_labeled else 0,
+            "n_1": n_1,
+            "n_0": n_0,
+        },
         "accuracy": round(accuracy, 4),
         "balanced_accuracy": round(balanced_accuracy, 4),
         "f1": round(f1, 4),
@@ -122,6 +136,11 @@ def print_summary(path: Path) -> dict:
     print(f"{path.name}")
     print(f"{'=' * 60}")
     print(f"n = {result['samples']}")
+    cb = result["class_balance"]
+    print(
+        f"Class balance:     {cb['frac_1']:.1%} class 1 / {cb['frac_0']:.1%} class 0 "
+        f"({cb['n_1']}/{cb['n_0']})"
+    )
 
     print("\n                    Predicted")
     print("                 0      1      other")

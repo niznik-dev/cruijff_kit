@@ -11,7 +11,7 @@ The artifact you produce is **"Claude's Exploration"** — a deliberately non-de
 
 ## The summarize / explore boundary
 
-`summarize-experiment` is the required, script-driven, deterministic backbone — the always-correct facts that hold for *every* experiment (run status, loss, accuracy with CIs, provenance, and the structure-free cross-cell facts — base rate, saturation). **Read its `summary.md` first.**
+`summarize-experiment` is the required, script-driven, deterministic backbone — the always-correct facts that hold for *every* experiment (run status, loss, accuracy with CIs, provenance including eval-set class balance, and the structure-free cross-cell fact of saturation). **Read its `summary.md` first.**
 
 > **If something is meaningful for *every* experiment, it belongs to `summarize`. Everything else is yours.**
 
@@ -101,7 +101,8 @@ Build whatever you chose. `generation.md` holds reference *recipes* — not a re
 
 1. **Hypothesis adjudication** — decompose `experiment.hypothesis` into individual falsifiable claims; give each one verdict (Confirmed / Violated / Inconclusive) with cell-level evidence. If there is no hypothesis, infer predictions from `experiment.question` + `variables` and flag the gap.
 2. **Cross-cell pattern audit** — scan the results grid, split by what a script can honestly do:
-   - **Base-rate floor** and **saturation** (≥0.95) are pure counting — structure-free, true for every experiment. These are summarize's to compute; once `summary.md` carries them, read them from there instead of recomputing.
+   - **Saturation** (accuracy ≥0.95) is pure counting — structure-free, true for every experiment. This is summarize's to compute; `summary.md` carries it, so read it from there instead of recomputing.
+   - **Base-rate floor** is *not* structure-free. The arithmetic is — the eval-set class balance, which summarize reports as provenance — but whether that split is the *meaningful* baseline depends on intent. A deliberately balanced split's 50/50 says nothing; the truer floor in a fine-tuning experiment is usually the base-model eval, not label prevalence. Reading the class balance is free; deciding what the floor actually is stays your judgment, made here.
    - **Monotonicity** (does a metric move one direction as an *ordinal* variable climbs?) and **equivalent-cell agreement** (do cells the design means to be the same actually agree?) depend on knowing your experiment's shape — which variables are ordered, which cells are meant to match. A generic script would have to guess that, so they stay your judgment: make the calls here.
 3. **Mechanistic interpretation** — what each variable's variation actually tests; a parsimonious explanation for each surprise; name confounds explicitly.
 4. **Self-consistency audit** — check every numerical claim in your prose against the source table (`claim → table value`), literally, not interpretively.
