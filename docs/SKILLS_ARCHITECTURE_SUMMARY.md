@@ -30,7 +30,7 @@ RUN        →  run-experiment
 
 SUMMARIZE  →  summarize-experiment   (required post-run step)
 
-ANALYZE    →  explore-experiment      (optional; any time after run)
+EXPLORE    →  explore-experiment      (optional; any time after run)
               (optional: analyze-to-pdf)
 
 CLEANUP    →  archive-experiment
