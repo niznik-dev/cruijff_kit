@@ -279,7 +279,7 @@ After completing the experiment, run `summarize-experiment` — this is the stan
 
 > Want me to also run `explore-experiment` for visualizations and a full report? It's optional and can be run any time. [y/N]
 
-**If yes:** Invoke the `explore-experiment` skill to create interactive plots and `analysis/report.md`.
+**If yes:** Invoke the `explore-experiment` skill to create interactive plots and `exploration/report.md`.
 
 **If no:** Skip it — `explore-experiment` can be run any time later against the same evaluation logs.
 

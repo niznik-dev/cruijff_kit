@@ -50,7 +50,7 @@ Record which engine is available for the conversion step.
 
 **If no argument provided:**
 1. Check if current directory contains `experiment_summary.yaml`
-2. If yes, look for `analysis/report.md`
+2. If yes, look for `exploration/report.md`
 3. If that file exists, use it
 4. Otherwise, ask the user for a path
 

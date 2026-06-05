@@ -649,7 +649,7 @@ class TestComputeSection:
         assert "00:09:52" in report
 
     def test_compute_section_after_analysis(self, tmp_path):
-        """compute_section appears after Analysis & Interpretation."""
+        """compute_section appears after Exploration & Interpretation."""
         compute = "## Compute Utilization\n\nGPU data here."
         future = "### Key Findings\n\nSome analysis."
         report = generate_report(
@@ -659,7 +659,7 @@ class TestComputeSection:
             future_directions=future,
             compute_section=compute,
         )
-        analysis_pos = report.index("Analysis & Interpretation")
+        analysis_pos = report.index("Exploration & Interpretation")
         compute_pos = report.index("Compute Utilization")
         separator_pos = report.index("---", compute_pos)
         assert compute_pos > analysis_pos

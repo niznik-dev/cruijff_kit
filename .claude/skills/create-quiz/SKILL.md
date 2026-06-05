@@ -19,7 +19,7 @@ The recipient has **not seen the experiment, the report, or any of the source fi
 ## Your task
 
 1. Locate one or two experiment directories.
-2. Parse what each contains: the design (`experiment_summary.yaml`), the analysis (`analysis/report.md`, `summary.md`), and any rendered figures (`analysis/*.png`).
+2. Parse what each contains: the design (`experiment_summary.yaml`), the analysis (`exploration/report.md`, `summary.md`), and any rendered figures (`exploration/*.png`).
 3. Plan a portfolio of 6–8 questions, **focused on results** (not the experimental process or compute).
 4. Write a canonical `quiz/quiz.json` spec.
 5. Render `quiz/quiz.html` via `python -m cruijff_kit.tools.quiz.render_quiz`.
@@ -33,7 +33,7 @@ See the modular sub-files for details:
 
 ## Prerequisites
 
-- The experiment has been run AND explored (`analysis/report.md` exists). `explore-experiment` is an *optional* post-run step in general — but create-quiz requires it: `report.md`'s figures and interpretation are what ground the questions, and the required `summarize-experiment` step (`summary.md`) alone doesn't produce them. If `report.md` is missing, ask the user to run `explore-experiment` first — without it, there's nothing concrete to ground questions in.
+- The experiment has been run AND explored (`exploration/report.md` exists). `explore-experiment` is an *optional* post-run step in general — but create-quiz requires it: `report.md`'s figures and interpretation are what ground the questions, and the required `summarize-experiment` step (`summary.md`) alone doesn't produce them. If `report.md` is missing, ask the user to run `explore-experiment` first — without it, there's nothing concrete to ground questions in.
 - The cruijff conda environment is activated (the renderer uses Jinja2; same env as the rest of the toolkit).
 
 ## Workflow
@@ -42,18 +42,18 @@ See the modular sub-files for details:
 
 Accept one or two paths. If none provided and the current directory has `experiment_summary.yaml`, use it. Otherwise ask the user.
 
-If two experiments are given, both must individually pass the prerequisite check (each has its own `analysis/report.md`). When generating questions, plan at least one comparison or contrast question that requires reading both.
+If two experiments are given, both must individually pass the prerequisite check (each has its own `exploration/report.md`). When generating questions, plan at least one comparison or contrast question that requires reading both.
 
 ### 2. Parse inputs → `parsing.md`
 
 For each experiment, extract:
 - Research question, hypothesis, purpose (`experiment_summary.yaml: experiment.{question, hypothesis, purpose}`)
 - Run names, conditions, evaluation matrix
-- Headline number(s) and per-condition results from `analysis/report.md`
+- Headline number(s) and per-condition results from `exploration/report.md`
 - Anomalies and suggested next steps (also in `report.md`)
 - Final training loss + accuracies from `summary.md` (if present)
-- Available figures: list of PNGs in `analysis/`
-- **The full content of `analysis/report.md`** as a string — for the appendix write-up.
+- Available figures: list of PNGs in `exploration/`
+- **The full content of `exploration/report.md`** as a string — for the appendix write-up.
 - **The full content of `experiment_summary.yaml`** as a string — for the appendix details block.
 
 Preserve full numeric precision when reading from `report.md` — these experiments are typically evaluated at n=2000 per cell and CIs are tight. Store the *source* number verbatim (e.g. `0.987`, `99.8%–100.0%`), don't round to `0.99`. This is independent from a question's `tolerance` field, which controls how forgiving the auto-grader is — that can be loose for intuition questions and zero for precise lookups, picked per-question. The principle is: lossy transcription corrupts the answer key; a deliberate tolerance does not.
@@ -120,8 +120,8 @@ The canonical spec. Schema is documented in `generation.md`. Top level contains:
 - `intro` (markdown, self-contained setup)
 - `experiments` (footer credit, name-only)
 - `questions` array
-- `full_writeup_md` — the verbatim contents of `analysis/report.md`
-- `full_writeup_image_dir` — absolute path to `analysis/` so the renderer can resolve image refs
+- `full_writeup_md` — the verbatim contents of `exploration/report.md`
+- `full_writeup_image_dir` — absolute path to `exploration/` so the renderer can resolve image refs
 - `experiment_summary_yaml` — the verbatim contents of `experiment_summary.yaml`
 
 How the renderer places these:
@@ -187,7 +187,7 @@ If the user passed two paths, briefly summarize what's in each (one-line researc
 ## Validation before completion
 
 Before reporting success, verify:
-- ✓ Both experiment(s) had `analysis/report.md`.
+- ✓ Both experiment(s) had `exploration/report.md`.
 - ✓ The `intro` field includes a task description, an example input → output, the experimental axes with definitions, and the chance baseline (if applicable).
 - ✓ `quiz/quiz.json` validates against the schema in `generation.md` (6–8 questions, default mix, every question has an explanation).
 - ✓ Every explanation is **self-sufficient** — it quotes the relevant numbers / facts inline and does not say "see report.md" or reference any external doc the recipient can't open.
@@ -219,7 +219,7 @@ End with the absolute path to `quiz.html` on its own line so the user can comman
 ## Relationship to other skills
 
 - **After:** `explore-experiment` — the optional analysis pass in general, but mandatory *for create-quiz* (it needs `report.md`)
-- **Reads:** `experiment_summary.yaml`, `analysis/report.md`, `analysis/*.png`, `summary.md`
+- **Reads:** `experiment_summary.yaml`, `exploration/report.md`, `exploration/*.png`, `summary.md`
 - **Creates:** `quiz/quiz.{json,html}`, `logs/create-quiz.log`
 
 Workflow position:

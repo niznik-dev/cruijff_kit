@@ -86,7 +86,7 @@ Result: scores_by_task (matplotlib)
 
 [2026-01-29 14:00:15] GENERATE_PLOT: scores_by_task
 Details: Creating bar chart with match metric
-Result: analysis/scores_by_task.html
+Result: exploration/scores_by_task.html
 
 [2026-01-29 14:00:18] RECORD_INTERPRETATION
 Details: Claim "accuracy monotonic in k" adjudicated against the results grid
@@ -94,10 +94,10 @@ Result: Violated — k=30 is the hardest cell at N=25 and N=100 (non-monotonic)
 
 [2026-01-29 14:00:20] GENERATE_REPORT
 Details: Creating markdown report with metrics and comparisons
-Result: analysis/report.md (3 models)
+Result: exploration/report.md (3 models)
 
 [2026-01-29 14:00:20] COMPLETE
 Details: All visualizations generated
-Result: 2 plots created in analysis/
+Result: 2 plots created in exploration/
 Duration: 20 seconds
 ```

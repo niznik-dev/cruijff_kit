@@ -137,7 +137,7 @@ Total time: approximately 10-15 minutes for the 1B model with 1,000 samples.
 /explore-experiment
 ```
 
-This skill reads the evaluation logs from both runs and generates an `analysis/` directory containing:
+This skill reads the evaluation logs from both runs and generates an `exploration/` directory containing:
 
 - **`report.md`** - A markdown report with accuracy comparisons, confidence intervals, and if `risk_scorer` is selected for binary tasks, calibration metrics like ECE, Brier score, and AUC
 - **HTML plots** - Side-by-side comparisons of base vs. fine-tuned performance, viewable in any browser

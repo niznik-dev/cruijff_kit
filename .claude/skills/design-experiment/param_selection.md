@@ -226,7 +226,7 @@ If user says "yes" (default), add the constraint/partition values from `claude.l
 - Dataset packing - enabled by default, affects batch size
 - If no prior data is available, start conservative (batch_size=4 for 1B, 2 for 3B, 1 for 8B+)
 - For help estimating: check `{scratch_dir}/ck-projects/*/slurm-*.out` for similar runs
-- **Consult past compute utilization analyses** - If previous experiments have `analysis/compute_metrics.json` or a compute section in `report.md`, use that data to inform time limits, memory allocations, and GPU resource requests for new runs
+- **Consult past compute utilization analyses** - If previous experiments have `exploration/compute_metrics.json` or a compute section in `report.md`, use that data to inform time limits, memory allocations, and GPU resource requests for new runs
 
 ### Generate Runs List
 
@@ -243,9 +243,9 @@ Estimate SLURM time limits, GPU counts, and memory allocations using `src/tools/
 #### 1. Discovery
 
 Search for `compute_metrics.json` files from past experiments:
-- `{scratch_dir}/ck-projects/*/analysis/compute_metrics.json`
+- `{scratch_dir}/ck-projects/*/exploration/compute_metrics.json`
 
-**Note:** `compute_metrics.json` lives in `{experiment_dir}/analysis/`, NOT in the output directory.
+**Note:** `compute_metrics.json` lives in `{experiment_dir}/exploration/`, NOT in the output directory.
 
 If none found, skip this entire step silently.
 

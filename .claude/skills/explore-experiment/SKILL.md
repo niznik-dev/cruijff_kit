@@ -22,7 +22,7 @@ You *interpret* the facts summarize establishes — which figures matter here, w
 1. Read `summary.md` (from summarize-experiment) and `experiment_summary.yaml` — understand the question / hypothesis and the deterministic facts summarize already established.
 2. Decide what, if anything, is worth visualizing for *this* experiment (see "Choose what to show" — it is a toolkit, not a checklist).
 3. Interpret the results to the bar in "Interpret — clear the bar."
-4. Write "Claude's Exploration" (`analysis/report.md`) and an audit log (`logs/explore-experiment.log`).
+4. Write "Claude's Exploration" (`exploration/report.md`) and an audit log (`logs/explore-experiment.log`).
 
 ## Prerequisites
 
@@ -119,7 +119,7 @@ Create markdown report with metrics and comparisons:
 2. Compute Wilson score confidence intervals
 3. Generate narrative summary and comparison tables
 4. Include `future_directions` from step 5
-5. Write report to `analysis/report.md`
+5. Write report to `exploration/report.md`
 
 Uses `src/tools/inspect/report_generator.py`:
 ```python
@@ -128,7 +128,7 @@ from cruijff_kit.tools.inspect.report_generator import generate_report
 report = generate_report(
     df=logs_df,
     experiment_name=experiment_name,
-    output_path=Path(experiment_dir) / "analysis" / "report.md",
+    output_path=Path(experiment_dir) / "exploration" / "report.md",
     config=experiment_config,  # Optional, for research question metadata
     future_directions=future_directions,  # From step 5
 )
@@ -140,7 +140,7 @@ Generate a compute utilization section. Always call `harvest_jids_from_run_logs(
 
 1. Call `harvest_jids_from_run_logs(experiment_dir)`. It already prints `WARNING:` lines to stderr for any missing or malformed log files.
 2. **If `warnings` is non-empty**: append a visible "**Compute Utilization unavailable:** ..." note to the rendered report listing each warning, instead of silently skipping. Do NOT omit the section header. (Closes the silent-skip gap from issue #451.)
-3. **If JIDs are present**: for each, run `seff` and parse with helpers in `src/tools/slurm/compute_metrics.py`; read `gpu_metrics.csv` per run and summarize with `summarize_gpu_metrics()`; format with `format_compute_table()`; save raw metrics to `analysis/compute_metrics.json`; pass the formatted table as `compute_section` to `generate_report()`.
+3. **If JIDs are present**: for each, run `seff` and parse with helpers in `src/tools/slurm/compute_metrics.py`; read `gpu_metrics.csv` per run and summarize with `summarize_gpu_metrics()`; format with `format_compute_table()`; save raw metrics to `exploration/compute_metrics.json`; pass the formatted table as `compute_section` to `generate_report()`.
 
 **Loud-warn, do not silently skip.** When the logs are genuinely absent (e.g., analyzing a colleague's experiment without local logs), the warning text in `report.md` tells the operator how to recover (typically: re-run `run-experiment`, or re-create the canonical log via `src/tools/run/submit_*.py`).
 
@@ -171,18 +171,18 @@ These are the ready-made views **inspect-viz** offers — convenient when one fi
 
 ## User Questions
 
-### Existing Analysis Outputs
+### Existing Exploration Outputs
 
-If `analysis/` directory exists with files, **ask the user**:
+If `exploration/` directory exists with files, **ask the user**:
 
 ```
-Found existing analysis outputs in analysis/. What would you like to do?
+Found existing exploration outputs in exploration/. What would you like to do?
 
 1. Keep existing files, add new outputs (Recommended)
-2. Clean analysis directory first
+2. Clean exploration directory first
 ```
 
-If user chooses option 2, delete contents of `analysis/` before generating new outputs.
+If user chooses option 2, delete contents of `exploration/` before generating new outputs.
 
 ### Visualization Selection
 
@@ -224,7 +224,7 @@ After running, the experiment directory will contain:
 
 ```
 {experiment_dir}/
-├── analysis/
+├── exploration/
 │   ├── report.md               # Markdown report with metrics
 │   ├── scores_by_task.html
 │   ├── scores_by_task.png      (if playwright available)
@@ -267,8 +267,8 @@ Before reporting success, verify:
 - ✓ experiment_summary.yaml was found and parsed
 - ✓ Evaluation logs were loaded successfully
 - ✓ At least one visualization was generated
-- ✓ HTML files exist in analysis/ directory
-- ✓ report.md was generated in analysis/ directory
+- ✓ HTML files exist in exploration/ directory
+- ✓ report.md was generated in exploration/ directory
 - ✓ Log file created (logs/explore-experiment.log)
 
 ## Output Summary
@@ -282,14 +282,14 @@ Experiment: `{experiment_dir}`
 
 ### Report Generated
 
-✓ Markdown report: `analysis/report.md`
+✓ Markdown report: `exploration/report.md`
   - Executive summary with best performer
   - Model comparison table with 95% CIs
   - Calibration metrics (if available)
 
 ### Visualizations Generated
 
-✓ {N} visualizations created in `analysis/`
+✓ {N} visualizations created in `exploration/`
 
 **Created:**
 - scores_by_task.html - Task comparison (match accuracy)
@@ -300,12 +300,12 @@ Experiment: `{experiment_dir}`
 
 Open HTML files in a browser:
 ```bash
-open {experiment_dir}/analysis/scores_by_task.html
+open {experiment_dir}/exploration/scores_by_task.html
 ```
 
 Or start a local server:
 ```bash
-cd {experiment_dir}/analysis && python -m http.server 8080
+cd {experiment_dir}/exploration && python -m http.server 8080
 ```
 
 ### Log
@@ -314,13 +314,13 @@ Details recorded in `logs/explore-experiment.log`
 
 ### Report Path
 
-`{experiment_dir}/analysis/report.md`
+`{experiment_dir}/exploration/report.md`
 ```
 
 **IMPORTANT:** Always end your output summary with the **full absolute path** to `report.md` on its own line, so the user can command-click it in their terminal/IDE. Example:
 
 ```
-Full report: /scratch/gpfs/user/ck-projects/{project}/my_experiment/analysis/report.md
+Full report: /scratch/gpfs/user/ck-projects/{project}/my_experiment/exploration/report.md
 ```
 
 ## Relationship to Other Skills
@@ -341,7 +341,7 @@ design-experiment → scaffold-experiment → run-experiment → summarize-exper
 - **Dynamic metric detection** - plots all available score columns (no hardcoding)
 - **Must run after evaluations complete** - requires .eval files to exist
 - Visualizations are independent - one failing doesn't stop others
-- Output directory (`analysis/`) is created if it doesn't exist
+- Output directory (`exploration/`) is created if it doesn't exist
 - HTML files are standalone (no external dependencies to view)
 - PNG files require playwright (skipped with warning if not installed)
 - Uses helper functions from `src/tools/inspect/viz_helpers.py`

@@ -38,8 +38,8 @@ Result: 2/2 runs complete
 Details: Keep 14 files (2.3 MB), Delete 47 files (15234.7 MB)
 Result: Ready to archive
 
-[2026-03-23 14:00:02] RESOLVE_FINDINGS: Using analysis/report.md as findings source
-Details: No findings.md found, falling back to analysis/report.md
+[2026-03-23 14:00:02] RESOLVE_FINDINGS: Using exploration/report.md as findings source
+Details: No findings.md found, falling back to exploration/report.md
 
 [2026-03-23 14:00:05] VERIFY_ARCHIVE: Archive integrity check passed
 Details: 14/14 files verified, all sizes match

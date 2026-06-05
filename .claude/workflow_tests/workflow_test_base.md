@@ -59,7 +59,7 @@ Does fine-tuning improve capitalization accuracy over the base model? Again, the
 - The base run's evaluation `checkpoint_path` points to the HuggingFace model (not a local checkpoint)
 - `logs/run-torchtune.log` exists and contains at least one canonical `SUBMIT_JOB:` block followed by `Job ID:` (regex: `r'SUBMIT_JOB: ([\w.-]+)\n.*?\nJob ID: (\d+)'`)
 - `logs/run-inspect.log` exists and contains canonical `SUBMIT_EVAL:` blocks
-- After running `explore-experiment`, `analysis/report.md` contains a `## Compute Utilization` header **and** `analysis/compute_metrics.json` exists with at least one entry per submitted job (closes #451 silent-skip gap)
+- After running `explore-experiment`, `exploration/report.md` contains a `## Compute Utilization` header **and** `exploration/compute_metrics.json` exists with at least one entry per submitted job (closes #451 silent-skip gap)
 
 ## Estimated wall time
 

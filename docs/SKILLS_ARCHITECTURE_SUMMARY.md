@@ -136,7 +136,7 @@ ck-projects/{project}/{experiment_name}/
 │           ├── cell.slurm           # From scaffold-inspect
 │           └── logs/
 │               └── *.eval           # inspect-ai outputs
-└── analysis/                      # From explore-experiment
+└── exploration/                      # From explore-experiment
     ├── report.md
     └── *.html
 ```

@@ -115,7 +115,7 @@ See [logging.md](logging.md) for action types and format.
 
 ## What Gets Kept
 
-The **entire experiment directory** is copied to the archive, preserving its original structure. This includes configs, SLURM scripts, eval logs, analysis, logs, and any other files. Since these are all small (KB-scale), there's no reason to selectively delete them.
+The **entire experiment directory** is copied to the archive, preserving its original structure. This includes configs, SLURM scripts, eval logs, exploration, logs, and any other files. Since these are all small (KB-scale), there's no reason to selectively delete them.
 
 ## What Gets Deleted
 
@@ -167,7 +167,7 @@ the project name:
 │           ├── eval_config.yaml
 │           ├── cell.slurm
 │           └── logs/*.eval
-├── analysis/
+├── exploration/
 │   ├── report.md
 │   └── *.html
 └── archive.log

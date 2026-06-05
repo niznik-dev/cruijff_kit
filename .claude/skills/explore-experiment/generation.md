@@ -27,7 +27,7 @@ from inspect_viz.view import (
 from cruijff_kit.tools.inspect.viz_helpers import sanitize_columns_for_viz
 
 # Create output directory
-output_dir = os.path.join(experiment_dir, "analysis")
+output_dir = os.path.join(experiment_dir, "exploration")
 os.makedirs(output_dir, exist_ok=True)
 
 # IMPORTANT: sanitize column names before passing to inspect-viz.
@@ -387,7 +387,7 @@ The generated `report.md` includes:
 | Model Comparison | Table with accuracy, 95% CI, sample size |
 | Calibration & Risk Metrics | ECE, Brier, AUC, Mean Risk Score (if supplementary metrics detected) |
 | Per-Task Breakdown | Best model per task (if multiple tasks) |
-| Analysis & Interpretation | Key findings, anomalies, and suggested next steps |
+| Exploration & Interpretation | Key findings, anomalies, and suggested next steps |
 | Provenance | Attribution and source eval log paths (collapsible) |
 
 ### Confidence Intervals
@@ -431,10 +431,10 @@ After generating visualizations and before the report, add compute metrics. This
        jobs=jobs,  # list of job metric dicts from steps 3-4
        experiment_summary_path=os.path.join(experiment_dir, "experiment_summary.yaml"),
    )
-   save_summary(summary, os.path.join(experiment_dir, "analysis", "compute_metrics.json"))
+   save_summary(summary, os.path.join(experiment_dir, "exploration", "compute_metrics.json"))
    ```
    `build_summary()` reads `experiment_summary.yaml` to extract metadata (model, dataset_size, epochs, batch_size, date) and wraps the job list in the summary format. `save_summary()` writes the JSON file.
-7. Pass `compute_section=` to `generate_report()` (inserted after Analysis & Interpretation)
+7. Pass `compute_section=` to `generate_report()` (inserted after Exploration & Interpretation)
 
 **Key functions** from `tools.slurm.compute_metrics`:
 - `check_jobstats_available() -> bool` — auto-detect jobstats on PATH

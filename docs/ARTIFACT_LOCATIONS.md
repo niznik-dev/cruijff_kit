@@ -66,14 +66,14 @@ Each experiment lives in a single self-contained directory. The root contains th
 │       │   └── USE_POLICY.md
 │       └── epoch_N/             # Additional epoch checkpoints (if multi-epoch)
 │           └── ...
-└── analysis/                    # explore-experiment output (dir name predates the rename — see note)
-    ├── report.md                # "Claude's Exploration" report (dir/file names retained; see note)
+└── exploration/                 # explore-experiment output ("Claude's Exploration")
+    ├── report.md                # "Claude's Exploration" report
     ├── compute_metrics.json     # Raw compute metrics (JSON, see explore-experiment/generation.md for schema)
     ├── *.html                   # Interactive HTML plots
     └── *.png                    # Static plot exports
 ```
 
-> **Note on the `analysis/` name.** The skill that writes this directory was renamed `analyze-experiment` → `explore-experiment`, and the report's title is now "Claude's Exploration." The directory and file names (`analysis/`, `report.md`) are deliberately retained: they are hardcoded by ~19 downstream readers (`archive_experiment.py`, `create-quiz`, `analyze-to-pdf`, the workflow tests, and tests), so renaming them would be wide churn for no functional gain. This is a documented decision, not a missed rename.
+> **Note.** This directory was renamed `analysis/` → `exploration/` to match the `explore-experiment` skill and its "Claude's Exploration" report. The rename is a clean break, not dual-path: experiment folders created before the rename may still have an `analysis/` directory on disk, and the current readers (`archive_experiment.py`, `create-quiz`, `analyze-to-pdf`) look only for `exploration/`.
 
 For a multi-run experiment (e.g. comparing two models), each run gets its own self-contained `{run_name}/` directory at the experiment root, with configs, `eval/`, and `artifacts/` all nested inside. A run can be copied as a unit (`cp -r {run_name}/ elsewhere/`).
 
@@ -99,7 +99,7 @@ So the resolved checkpoint path for a given run is `{experiment_dir}/{run_name}/
 | scaffold-experiment | Run directories, configs, SLURM scripts, `logs/scaffold-*.log` | Experiment dir |
 | run-experiment | SLURM outputs, checkpoints, eval logs, `logs/run-*.log` | Experiment dir |
 | summarize-experiment | `summary.md`, `logs/summarize-experiment.log` | Experiment dir |
-| explore-experiment | `analysis/` directory, `logs/explore-experiment.log` | Experiment dir |
+| explore-experiment | `exploration/` directory, `logs/explore-experiment.log` | Experiment dir |
 | archive-experiment | `archive.log`, mirrored experiment dir minus `*/artifacts/` | Archive dir (originals deleted) |
 
 ## Archive Directory
@@ -125,7 +125,7 @@ After archiving with `archive-experiment`, the experiment is mirrored under its 
 │           ├── cell.slurm
 │           └── logs/
 │               └── *.eval
-├── analysis/                    # Reports and visualizations
+├── exploration/                 # Reports and visualizations
 │   ├── report.md
 │   └── *.html
 └── archive.log                  # Archive process log

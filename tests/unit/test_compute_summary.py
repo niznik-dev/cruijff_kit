@@ -157,7 +157,7 @@ class TestSaveAndLoadSummary:
             "date": "2025-10-22",
             "jobs": SAMPLE_JOBS,
         }
-        out_path = tmp_path / "analysis" / "compute_metrics.json"
+        out_path = tmp_path / "exploration" / "compute_metrics.json"
         save_summary(summary, out_path)
         loaded = load_summary(out_path)
         assert loaded == summary
