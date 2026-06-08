@@ -70,12 +70,7 @@ For each COMPLETED fine-tuning run:
    - The step number from the last match is the total training steps
 3. Record: run_name, final_loss, total_steps, epoch, step
 
-**Note:** Training SLURM outputs are in the output directory, NOT the run directory.
-
-**If SLURM stdout missing:**
-- Log warning
-- Record "N/A" for loss
-- Continue with other runs
+**Note:** Training SLURM outputs are in the output directory, NOT the run directory. (Missing stdout → record `N/A`, continue; see Error Handling.)
 
 ### 4. Extract Evaluation Accuracy
 
@@ -91,19 +86,10 @@ For each COMPLETED evaluation:
 5. **Dispatch on scorer type:**
    - **Binary classification** (`match`/`exact_match` on 0/1 targets): also run `summary_binary.py` for balanced accuracy and F1 (below).
    - **`continuous_scorer`** (regression targets): run `summary_continuous.py` for mae/rmse/r²/parse_rate and a prediction-distribution glance (below). Accuracy is not meaningful here — do not report it.
+   - **`risk_scorer`** (binary 0/1, but its CORRECT/INCORRECT is *exact-string-match* and `summary_binary.py` crashes on its `.eval` archives): take `accuracy`/`samples` from `parse_eval_log` only — do **not** run `summary_binary.py` on it. Argmax accuracy and format-compliance % are explore-experiment's job, not summarize's.
 6. Record the metrics appropriate to the scorer — classification → accuracy, balanced_accuracy, f1; regression → mae, rmse, r_squared, parse_rate. Always record run_name, task, epoch, samples.
 
-**Script output format:**
-```json
-{
-  "status": "success",
-  "task": "capitalization",
-  "accuracy": 0.85,
-  "samples": 100,
-  "scorer": "exact_match",
-  "model": "..."
-}
-```
+**Returns** (JSON): consume `task`, `accuracy`, `samples`, `scorer`, `model`. The `scorer` field drives the dispatch in step 5; on failure it returns `{"status": "error", "message": ...}` (see Error Handling).
 
 #### Mapping Epochs via SLURM Job Names
 
@@ -123,88 +109,31 @@ The `.eval` files don't currently store epoch information directly. To reliably 
    grep -oP 'match/accuracy: \K[0-9.]+' slurm-{jobid}.out
    ```
 
-**Example workflow:**
-```bash
-# Get job names for all eval jobs
-sacct -j 2773062,2773063,2773065 --format=JobID,JobName%50
+Reliable regardless of submission order, timing, or resubmissions — the epoch comes from the scaffold-set job name, **never** from file order or timestamp.
 
-# Output shows epoch in job name:
-# 2773062  eval-general_eval-lowlr-ep0
-# 2773063  eval-general_eval-lowlr-ep1
-# 2773065  eval-general_eval-lowlr-ep2
-```
-
-This approach is reliable because:
-- Job names are set by scaffold-inspect and include epoch info
-- Works regardless of submission order or timing
-- Survives job failures and resubmissions
-
-**If extraction fails:**
-- Script returns `{"status": "error", "message": "..."}`
-- Log the error
-- Record "ERROR" for accuracy
-- Continue with other evaluations
+(Extraction failure → record `ERROR` for accuracy, continue; see Error Handling.)
 
 #### Computing Balanced Accuracy and F1 (Binary Classification)
 
-For binary classification tasks (0/1 targets), use `summary_binary.py` to compute additional metrics:
+For binary (0/1) classification, run `summary_binary.py` for the imbalance-aware metrics:
 
 ```bash
 python -m cruijff_kit.tools.inspect.summary_binary {path_to_eval_file} --json
 ```
 
-**JSON output format:**
-```json
-{
-  "status": "success",
-  "path": "/path/to/file.eval",
-  "samples": 100,
-  "class_balance": {"frac_1": 0.62, "frac_0": 0.38, "n_1": 62, "n_0": 38},
-  "accuracy": 0.85,
-  "balanced_accuracy": 0.83,
-  "f1": 0.82,
-  "precision_1": 0.80,
-  "recall_1": 0.84,
-  "recall_0": 0.82,
-  "confusion_matrix": {"tp": 42, "tn": 43, "fp": 7, "fn": 8, "other": 0}
-}
-```
+Consume `accuracy`, `balanced_accuracy`, `f1`, and `class_balance` (`{frac_1, frac_0, n_1, n_0}`). Balanced accuracy and F1 are the imbalance-robust reads; record `class_balance` in **Datasets Used** as provenance (the "not a floor" rule lives there).
 
-**Why these metrics matter for imbalanced data:**
-- **Balanced Accuracy** = (Recall_0 + Recall_1) / 2 — not inflated by majority class
-- **F1 Score** = harmonic mean of precision and recall — penalizes class imbalance
-- **class_balance** — the actual label split of the eval set (provenance, *not* a performance metric). Record it in **Datasets Used** so a reader can see at a glance whether a split is balanced or skewed. Deciding whether that split implies a meaningful accuracy baseline is explore-experiment's judgment, not summarize's — summarize reports the split, it does not editorialize it as a floor.
-
-**Note:** For non-binary *classification* tasks (multiclass), only accuracy is reported (Bal. Acc and F1 shown as "-"). Continuous/regression tasks use `continuous_scorer` and the regression path below, not accuracy.
+**Multiclass:** report accuracy only (Bal. Acc and F1 as "-"). **Regression** (`continuous_scorer`): use the path below, never accuracy.
 
 #### Computing Regression Metrics (Continuous Targets)
 
-For continuous/regression tasks scored by `continuous_scorer`, use `summary_continuous.py`:
+For `continuous_scorer` (regression) tasks, run `summary_continuous.py`:
 
 ```bash
 python -m cruijff_kit.tools.inspect.summary_continuous {path_to_eval_file} --json
 ```
 
-**JSON output format:**
-```json
-{
-  "status": "success",
-  "scorer": "continuous_scorer",
-  "samples": 100,
-  "parsed": 100,
-  "parse_failures": 0,
-  "metrics": {"mae": 2.5, "rmse": 3.1, "r_squared": 0.42, "parse_rate": 1.0},
-  "prediction_distribution": {"min": 18.0, "max": 81.0, "mean": 44.2, "std": 12.7},
-  "target_distribution": {"min": 17.0, "max": 90.0, "mean": 45.1, "std": 18.3},
-  "residual_distribution": {"min": -30.0, "max": 25.0, "mean": -0.9, "std": 4.8}
-}
-```
-
-**What the metrics mean:**
-- **mae / rmse** — average error magnitude (lower is better); pulled straight from the scorer's results.
-- **r_squared** — fraction of variance explained (1 perfect, 0 no better than predicting the mean, <0 worse).
-- **parse_rate** — fraction of outputs parsed as numbers; a low value means the model emitted non-numeric text.
-- **distributions** — the sanity glance the aggregate metrics hide. A `prediction_distribution.std` of 0 means the model emitted a single constant (a low R² then reflects that, not noise), and `parse_failures` flags how many outputs couldn't be parsed (common on base models — see the base-model note in `references/scorers.md`).
+Consume `metrics` (`mae`, `rmse`, `r_squared`, `parse_rate`) and the `prediction`/`target`/`residual` distributions. Two operational flags to always surface: **`parse_rate` below 1.0** means the model isn't really doing the task (non-numeric output — common on base models, see `references/scorers.md`), and a **prediction std of 0** means it emitted a constant (the low R² then reflects that, not noise).
 
 ### 5. Generate summary.md
 
@@ -244,7 +173,7 @@ Create `{experiment_dir}/summary.md` with the following structure:
 | rank8_lr1e-5 | capitalization | 1 | 0.96 | 0.95 | 0.95 | ✓ | 100 |
 | base_model | capitalization | - | 0.45 | 0.50 | 0.31 |   | 100 |
 
-**Sat.** = saturated, `✓` when accuracy ≥ 0.95 — a maxed-out cell with no headroom left to measure. This is pure counting (structure-free, true for every experiment), so summarize flags it and explore-experiment reads it from here instead of recomputing.
+**Sat.** = saturated, `✓` when accuracy ≥ 0.95 (a maxed-out cell, no headroom left to measure). summarize flags it here; explore-experiment reads it from this column rather than recomputing.
 
 **Best performing:** rank8_lr1e-5 (epoch 1) with 95% balanced accuracy
 
@@ -322,9 +251,7 @@ See [logging.md](logging.md) for action types and format.
 
 ## Idempotency
 
-Running summarize-experiment multiple times overwrites summary.md. This is intentional:
-- Allows re-running after fixing failed runs
-- Summary always reflects current state
+Re-running overwrites `summary.md` — intentional, so the summary always reflects current state (e.g. after fixing and re-running failed runs).
 
 ## Output Files
 
