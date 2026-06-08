@@ -175,19 +175,7 @@ plot = scores_by_model(
 
 ## Output File Naming
 
-Use descriptive names that indicate the view type and content:
-
-```python
-# Pattern: {view_type}_{metric}.html
-
-# Examples:
-"scores_by_task_sample_size_match.html"
-"scores_by_task_balanced_match.html"
-"scores_heatmap_sample_size_match.html"
-"scores_by_factor_balanced_match.html"
-"scores_by_model_match.html"
-"scores_radar_sample_size.html"
-```
+Name files for what they show — `{content}_{metric}.png` / `.html` (e.g. `auc_by_condition.png`, `scores_by_task_match.html`) — so the reader knows the figure from its filename.
 
 ## Dynamic Metric Detection
 
@@ -310,13 +298,13 @@ Write so a curious non-specialist — a student new to the project, a collaborat
 - **Point at the figure that carries the story.** A reader with the headline plot and the bottom line has the result; the prose is the escort, not the gate.
 - **Tables are reference, not the reading path.** A table is welcome *alongside* the prose — keep it small and scannable, for at-a-glance lookup. It must never be where the finding lives: every number and verdict in it is also stated in the narrative, so a reader who skips the table loses nothing but convenience. No dense "here's the whole grid, parse it yourself" dump as the focal artifact.
 - **Demote bookkeeping.** The self-consistency audit (section 4) is for auditors, not readers — put its output in an appendix or the audit log (`explore-experiment.log`), not the main reading path. Same for compute utilization.
-- **Voice.** Write as a smart, creative data scientist describing the patterns to peers: phenomenon-first, connected narrative prose — not a bulleted list of findings, and not a table the reader must parse to get the result (a small reference table alongside the prose is welcome). Be vivid and precise; name the strangest cell and chase it. Favor short declarative sentences and commit to each call rather than hedging. Concision serves warmth: trim every sentence standing between the reader and the finding.
+- **Voice.** Write as a smart, creative data scientist describing patterns to peers: phenomenon-first, connected narrative prose, not a bulleted list of findings. Be vivid and precise; name the strangest cell and chase it. Favor short declarative sentences and commit to each call rather than hedging. Concision serves warmth: trim every sentence standing between the reader and the finding.
 
 The five sections still happen in full — they're the *depth* layer a skeptical reader descends into to verify the bottom line, not the layer a newcomer must climb to reach it.
 
 ### The five sections
 
-1. **What the data does, vs. what we expected.** Decompose `experiment.hypothesis` into individual falsifiable claims and **walk through them one at a time, each as its own short paragraph** — describe the phenomenon and its mechanism first, then say where it met or broke the expectation. A compact verdict table is fine as an at-a-glance companion, but it must not *be* the adjudication — the per-claim paragraphs carry every verdict and its evidence, so a reader who skips the table loses nothing. Don't let a dense grid stand in for the walkthrough. Anchor each paragraph with a one-word verdict (**Confirmed / Violated / Inconclusive**) and cite the cell-level evidence, but let the description carry the weight. If the hypothesis is absent, infer predictions from `experiment.question` + `variables` and flag that you're doing so.
+1. **What the data does, vs. what we expected.** Decompose `experiment.hypothesis` into individual falsifiable claims and **walk through them one at a time, each as its own short paragraph** — describe the phenomenon and its mechanism first, then say where it met or broke the expectation. Anchor each paragraph with a one-word verdict (**Confirmed / Violated / Inconclusive**) and cite cell-level evidence, but let the description carry the weight (a verdict table may accompany the prose but must not replace it — see Audience). If the hypothesis is absent, infer predictions from `experiment.question` + `variables` and flag that you're doing so.
 2. **Cross-cell pattern audit.** Scan the results grid — but split the work by what a script can honestly do:
    - **Saturation cells** (accuracy ≥0.95 default) are pure counting: structure-free, true for every experiment. This is summarize's to compute; `summary.md` carries the `✓` flags, so read them from there rather than recomputing.
    - **Base-rate floor** is *not* structure-free. The arithmetic is — the eval-set class balance, which summarize reports as provenance — but whether that split is the *meaningful* baseline depends on intent (a balanced split's 50/50 says nothing; the truer floor in a fine-tuning experiment is usually the base-model eval). Read the class balance from `summary.md`; deciding what the floor actually is stays your judgment, made here.

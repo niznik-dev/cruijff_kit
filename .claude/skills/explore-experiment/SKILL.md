@@ -129,13 +129,12 @@ See `generation.md` → "Report Generation" for the full shape and rationale.
 
 ### 6b. Compute Utilization Report → `generation.md`
 
-Generate a compute utilization section. Always call `harvest_jids_from_run_logs(experiment_dir)` from `src/tools/slurm/compute_metrics.py` first — it returns `(jids_dict, warnings)`:
+Add a compute-utilization appendix. Call `harvest_jids_from_run_logs(experiment_dir)` (from `src/tools/slurm/compute_metrics.py`) — it returns `(jids_dict, warnings)`:
 
-1. Call `harvest_jids_from_run_logs(experiment_dir)`. It already prints `WARNING:` lines to stderr for any missing or malformed log files.
-2. **If `warnings` is non-empty**: append a visible "**Compute Utilization unavailable:** ..." note to the rendered report listing each warning, instead of silently skipping. Do NOT omit the section header. (Closes the silent-skip gap from issue #451.)
-3. **If JIDs are present**: for each, run `seff` and parse with helpers in `src/tools/slurm/compute_metrics.py`; read `gpu_metrics.csv` per run and summarize with `summarize_gpu_metrics()`; format with `format_compute_table()`; save raw metrics to `exploration/compute_metrics.json`; pass the formatted table as `compute_section` to `generate_report()`.
+- **If `warnings` is non-empty**, surface a visible "**Compute Utilization unavailable:** ..." note in `report.md` (one line per warning) — never silently skip the section (issue #451). The warning text tells the operator how to recover (re-run `run-experiment`, or rebuild the log via `src/tools/run/submit_*.py`).
+- **If JIDs are present**, gather per-job metrics (`seff`, `summarize_gpu_metrics()`), format with `format_compute_table()`, save `exploration/compute_metrics.json`, and write the table into `report.md` yourself as a demoted appendix.
 
-**Loud-warn, do not silently skip.** When the logs are genuinely absent (e.g., analyzing a colleague's experiment without local logs), the warning text in `report.md` tells the operator how to recover (typically: re-run `run-experiment`, or re-create the canonical log via `src/tools/run/submit_*.py`).
+Full recipe (paths, helpers, dual-source GPU util) in `generation.md` → "Compute Utilization Analysis".
 
 ### 7. Logging → `logging.md`
 
@@ -177,38 +176,13 @@ Found existing exploration outputs in exploration/. What would you like to do?
 
 If user chooses option 2, delete contents of `exploration/` before generating new outputs.
 
-### Visualization Selection
+### Defaults — apply these, don't ask
 
-When `vis_label` creates multiple task variants (conditions), **ask the user** which visualization to generate:
-
-```
-Found {N} conditions via vis_label: {list}
-
-Which visualization would you like?
-
-1. scores_by_task - Compare conditions side-by-side (Recommended)
-2. scores_heatmap - Model × condition matrix
-3. Both
-```
-
-### Tracking Generated Files
-
-**Important:** Track which PNG files you generate during this run, and embed only those inline in `report.md` — never stale outputs from a previous session.
-
-```python
-generated_pngs = []
-
-# After each successful PNG export
-generated_pngs.append(png_path)
-
-# Embed only these inline in report.md (with descriptive captions)
-```
-
-**Smart defaults for everything else:**
-- Deduplication: Automatic (keep most recent per model+epoch)
-- Epochs: Use latest only (unless user explicitly asks for all)
-- Metrics: Plot all available (dynamically detected)
-- PNG: Auto-detect playwright; generate if available, skip with warning if not
+- **Figures:** you choose them (no fixed menu); embed only the ones you generated *this run*, never stale outputs from a prior session.
+- **Deduplication:** automatic (keep most recent per model+epoch).
+- **Epochs:** latest only, unless the user asks for all.
+- **Metrics:** plot all detected (don't hardcode).
+- **PNG:** auto-detect playwright; export if present, skip with a warning if not.
 
 ## Output Structure
 
@@ -217,19 +191,15 @@ After running, the experiment directory will contain:
 ```
 {experiment_dir}/
 ├── exploration/
-│   ├── report.md               # Markdown report with metrics
-│   ├── scores_by_task.html
-│   ├── scores_by_task.png      (if playwright available)
-│   ├── scores_heatmap.html
-│   ├── scores_heatmap.png      (if playwright available)
-│   ├── roc_curves.png          (if risk_scorer used)
-│   ├── calibration_curves.png  (if risk_scorer used)
-│   ├── prediction_histogram.png (if risk_scorer used)
-│   └── ...
+│   ├── report.md             # Claude's Exploration (you author this)
+│   ├── <your figures>.png    # whichever figures you chose to make
+│   └── compute_metrics.json  # if compute logs were available
 ├── logs/
 │   └── explore-experiment.log
 └── experiment_summary.yaml
 ```
+
+The figure set is **not** fixed — `report.md` and the audit log are the only guaranteed outputs; everything else depends on what you chose to show.
 
 ## Error Handling
 
@@ -243,110 +213,39 @@ After running, the experiment directory will contain:
 - Suggest running run-experiment skill first
 - Do not proceed
 
-**If visualization generation fails:**
+**If a figure fails to generate:**
 - Log error details in explore-experiment.log
-- Continue with remaining visualizations
-- Report which visualizations failed in summary
-
-**If inference cannot determine view type:**
-- Log warning
-- Ask user which view to generate
-- Or skip and note in summary
+- Continue with the remaining figures
+- Report which ones failed in your summary
 
 ## Validation Before Completion
 
-Before reporting success, verify:
-- ✓ experiment_summary.yaml was found and parsed
-- ✓ Evaluation logs were loaded successfully
-- ✓ At least one visualization was generated
-- ✓ HTML files exist in exploration/ directory
-- ✓ report.md was generated in exploration/ directory
-- ✓ Log file created (logs/explore-experiment.log)
+Before reporting success, confirm `report.md` and `logs/explore-experiment.log` exist, and that every figure you reference inline was actually generated this run.
 
 ## Output Summary
 
-After completing analysis, provide a summary:
-
-```markdown
-## Explore Experiment Complete
-
-Experiment: `{experiment_dir}`
-
-### Report Generated
-
-✓ Markdown report: `exploration/report.md`
-  - Executive summary with best performer
-  - Model comparison table with 95% CIs
-  - Calibration metrics (if available)
-
-### Visualizations Generated
-
-✓ {N} visualizations created in `exploration/`
-
-**Created:**
-- scores_by_task.html - Task comparison (match accuracy)
-- scores_heatmap.html - Model × task matrix
-- scores_by_model.html - Model comparison
-
-### Viewing Results
-
-Open HTML files in a browser:
-```bash
-open {experiment_dir}/exploration/scores_by_task.html
-```
-
-Or start a local server:
-```bash
-cd {experiment_dir}/exploration && python -m http.server 8080
-```
-
-### Log
-
-Details recorded in `logs/explore-experiment.log`
-
-### Report Path
-
-`{experiment_dir}/exploration/report.md`
-```
-
-**IMPORTANT:** Always end your output summary with the **full absolute path** to `report.md` on its own line, so the user can command-click it in their terminal/IDE. Example:
+When done, briefly tell the user what you examined and concluded, which figures you made (by their *actual* filenames), and where the audit log is. **End with the full absolute path to `report.md` on its own line** so they can command-click it:
 
 ```
-Full report: /scratch/gpfs/user/ck-projects/{project}/my_experiment/exploration/report.md
+Full report: {experiment_dir}/exploration/report.md
 ```
 
 ## Relationship to Other Skills
 
 - **After:** run-experiment — optional, and can be run any time afterward. (`summarize-experiment` is the required post-run step; explore-experiment is an optional deeper pass.)
-- **Reads:** experiment_summary.yaml, .eval files
-- **Creates:** HTML visualizations, analysis log
+- **Reads:** experiment_summary.yaml, .eval files, ../summary.md
+- **Creates:** `exploration/report.md`, the figures you chose, and the audit log
 
 **Workflow position:**
 ```
 design-experiment → scaffold-experiment → run-experiment → summarize-experiment → (optional) explore-experiment
 ```
 
-## Important Notes
-
-- **Metadata-driven** - uses `vis_label` metadata for task names, JSON metadata for epoch/finetuned/source_model
-- **Automatic deduplication** - when multiple evals exist for the same model+epoch, keeps only the most recent (logs skipped files)
-- **Dynamic metric detection** - plots all available score columns (no hardcoding)
-- **Must run after evaluations complete** - requires .eval files to exist
-- Visualizations are independent - one failing doesn't stop others
-- Output directory (`exploration/`) is created if it doesn't exist
-- HTML files are standalone (no external dependencies to view)
-- PNG files require playwright (skipped with warning if not installed)
-- Uses helper functions from `src/tools/inspect/viz_helpers.py`
-
 ## Module Organization
 
 | Module | Purpose |
 |--------|---------|
 | parsing.md | Experiment location and YAML parsing |
-| data_loading.md | Helper functions for loading logs |
-| generation.md | Plot creation workflow |
-| logging.md | Plain text audit trail specification |
-
-## Implementation Reference
-
-Helper functions are implemented in `src/tools/inspect/viz_helpers.py`. Live usage is shown inline throughout `generation.md`.
+| data_loading.md | Loading logs via `viz_helpers.py` |
+| generation.md | Figure recipes, interpretation, report + compute |
+| logging.md | Audit-trail format |

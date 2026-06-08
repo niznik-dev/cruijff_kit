@@ -255,12 +255,7 @@ Re-running overwrites `summary.md` — intentional, so the summary always reflec
 
 ## Output Files
 
-```
-{experiment_dir}/
-├── summary.md                    # Human-readable summary (new)
-└── logs/
-    └── summarize-experiment.log  # Process log (new)
-```
+Writes `summary.md` and `logs/summarize-experiment.log` in the experiment directory.
 
 ## Relationship to Other Skills
 
