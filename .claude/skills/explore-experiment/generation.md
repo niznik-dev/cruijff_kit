@@ -283,9 +283,23 @@ if detected.has_risk_scorer:
 
 **Skipped models:** Models with <2 valid samples or only one class (e.g., zeroshot models that always predict the same thing) are silently skipped. The function logs which models were skipped at INFO level.
 
+## Figure craft
+
+A few habits that make a figure earn its place — guidance, not mandates:
+
+- **Show the mechanism, not just the metric.** ROC and calibration curves re-express AUC — they show a metric a second way. Often more illuminating is the raw quantity the metrics are *computed from*: a per-cell distribution of the model's predicted score (e.g. a small-multiples grid of P(1) histograms across an ordinal/condition axis). One such view can carry two metrics at once — where the mass sits is the *bias* (mean prediction), how wide it is is the *discrimination* (a collapsed, narrow distribution has no spread left to rank with, so AUC falls toward chance). When two metrics share a cause, prefer the figure that shows the cause over a second figure that restates one of them.
+- **Use color to carry a dimension, not just to decorate.** A two-color palette leaves an encoding channel on the table. When a figure spans an ordinal axis (ladder rungs, k, epochs), map that axis to a sequential colormap (e.g. `viridis`) so the reader sees the ordering in the color itself; reserve categorical palettes for unordered groups (models). A richer, deliberate palette reads as more legible, not busier — lean into color rather than defaulting to the sparest set that technically distinguishes the lines.
+
 ## Interpretation (Required)
 
 **Required.** The deterministic backbone is summarize's job; interpretation is yours. Do a **hypothesis-first re-read** of the data — not a restatement of the tables. Open with a jargon-free **Bottom line**, then write five rigorous sections, each **mandatory or an explicit "n/a — reason"** (no silent skips). The bar: a canned summary of `length_sweep_nth14` once just restated the saturation table and lifted next-steps from the design doc; a hypothesis-first re-read of the *same numbers* surfaced a monotonicity violation, a relative-target-position confound, and a prose-vs-table self-contradiction it had missed. Clear that bar — and clear it *readably* (see Audience, below).
+
+### Describe, don't just adjudicate
+
+Your job is to **characterize the shape of the result** the way a sharp, creative data scientist would — lead with the phenomenon and its mechanism, and cite numbers as the evidence *for* a described pattern, not as entries in a scorecard. The pre-registered hypotheses are the expectations you measure reality against; they are an *input* to the description, not its skeleton. Two consequences:
+
+- **The most interesting pattern is often the one nobody pre-registered — chase it.** A rank inversion, a non-monotone valley, a single cell that behaves unlike its neighbors: these rarely map onto a tidy H1/H2, and they are usually where the real finding lives. Give them room even though no hypothesis named them.
+- **Keep the discipline; demote its bookkeeping.** Still run the adversarial pre-pass (below) and still reach a verdict on every pre-registered claim — that honesty check is non-negotiable (Principle #1, and it is what stops description from sliding into pleasant story-telling about noise). But the verdict is the *first word of a described paragraph*, not the whole entry, and the scorecard view belongs inline or in the audit log, never as the report's organizing spine. You may *optionally* draft a short free-form "pattern description" passage high in the report, unconstrained by the section template, to set the scene before the structured sections.
 
 ### Audience: lead with the conclusion, make the rigor optional
 
@@ -294,18 +308,20 @@ Write so a curious non-specialist — a student new to the project, a collaborat
 - **Open with a "Bottom line"** — 3–5 jargon-free sentences: what was tested, what you actually found, and the surprises. Someone who stops reading here should still have the correct takeaway. It goes *above* the data tables, not after the adjudication.
 - **Define each metric the first time it appears**, in one clause. "AUC — how well the model *ranks* high earners above low earners; 0.5 is a coin flip" costs a line and unlocks the whole table. Don't assume argmax / Brier / ECE / AUC are known.
 - **Point at the figure that carries the story.** A reader with the headline plot and the bottom line has the result; the prose is the escort, not the gate.
+- **Tables are reference, not the reading path.** A table is welcome *alongside* the prose — keep it small and scannable, for at-a-glance lookup. It must never be where the finding lives: every number and verdict in it is also stated in the narrative, so a reader who skips the table loses nothing but convenience. No dense "here's the whole grid, parse it yourself" dump as the focal artifact.
 - **Demote bookkeeping.** The self-consistency audit (section 4) is for auditors, not readers — put its output in an appendix or the audit log (`explore-experiment.log`), not the main reading path. Same for compute utilization.
+- **Voice.** Write as a smart, creative data scientist describing the patterns to peers: phenomenon-first, connected narrative prose — not a bulleted list of findings, and not a table the reader must parse to get the result (a small reference table alongside the prose is welcome). Be vivid and precise; name the strangest cell and chase it. Favor short declarative sentences and commit to each call rather than hedging. Concision serves warmth: trim every sentence standing between the reader and the finding.
 
 The five sections still happen in full — they're the *depth* layer a skeptical reader descends into to verify the bottom line, not the layer a newcomer must climb to reach it.
 
 ### The five sections
 
-1. **Hypothesis adjudication.** Decompose `experiment.hypothesis` into individual falsifiable claims. Each gets exactly one verdict — **Confirmed / Violated / Inconclusive** — with the cell-level evidence behind it. If the hypothesis is absent, infer predictions from `experiment.question` + `variables` and flag that you're doing so.
+1. **What the data does, vs. what we expected.** Decompose `experiment.hypothesis` into individual falsifiable claims and **walk through them one at a time, each as its own short paragraph** — describe the phenomenon and its mechanism first, then say where it met or broke the expectation. A compact verdict table is fine as an at-a-glance companion, but it must not *be* the adjudication — the per-claim paragraphs carry every verdict and its evidence, so a reader who skips the table loses nothing. Don't let a dense grid stand in for the walkthrough. Anchor each paragraph with a one-word verdict (**Confirmed / Violated / Inconclusive**) and cite the cell-level evidence, but let the description carry the weight. If the hypothesis is absent, infer predictions from `experiment.question` + `variables` and flag that you're doing so.
 2. **Cross-cell pattern audit.** Scan the results grid — but split the work by what a script can honestly do:
    - **Saturation cells** (accuracy ≥0.95 default) are pure counting: structure-free, true for every experiment. This is summarize's to compute; `summary.md` carries the `✓` flags, so read them from there rather than recomputing.
    - **Base-rate floor** is *not* structure-free. The arithmetic is — the eval-set class balance, which summarize reports as provenance — but whether that split is the *meaningful* baseline depends on intent (a balanced split's 50/50 says nothing; the truer floor in a fine-tuning experiment is usually the base-model eval). Read the class balance from `summary.md`; deciding what the floor actually is stays your judgment, made here.
    - **Monotonicity** (does a metric move one direction as an *ordinal* variable climbs?) and **equivalent-cell agreement** (do cells the design intends to be the same actually agree?) depend on knowing your experiment's shape — which variables are ordered, which cells are meant to match. A generic script would have to guess that, so they stay judgment calls: make them here. (Monotonicity could go deterministic only if the design declares its ordinal variables — a separate schema project, not assumed here.)
-3. **Mechanistic interpretation.** What does each variable's variation actually test? Give a parsimonious explanation for every surprise, and **name confounds explicitly** (e.g. "k was varied, but that also moved the target's *relative* position — those are entangled").
+3. **Mechanistic interpretation.** What does each variable's variation actually test? Give a parsimonious explanation for every surprise, and **name confounds explicitly** (e.g. "k was varied, but that also moved the target's *relative* position — those are entangled"). Where a figure makes a mechanism visible, **tie the visual feature to the scalar it explains** ("the mass collapsing to a spike *is* the AUC drop") rather than describing the figure and the number in separate breaths.
 4. **Self-consistency audit.** Check every numerical claim in your prose against the source table, literally: `claim → table value`. Catch prose that says "saturates at N=500" while its own table shows the ≥0.95 cutoff at N=100. **Do the check, but put its output in an appendix or the audit log** — it's verification bookkeeping, not part of the reader's path to the finding (see Audience).
 5. **Calibrated next steps.** Each item names what to vary / what mechanism it tests / what outcome is informative. "The design didn't actually test X — fix the design first" is a valid and valuable item.
 
@@ -323,10 +339,12 @@ than at either extreme. That dip turned out to be an artifact of *where the answ
 the sequence, not the length itself. Plain-language takeaway: "longer = harder" is wrong here;
 "answer-in-the-middle = harder" is the real pattern. See `accuracy_by_k.png`.
 
-### Hypothesis adjudication
-- Claim: "accuracy is monotonic in k at each N." → **Violated.** At N=25 and N=100,
-  k=30 is the *hardest* cell, not k=100 — the curve is non-monotonic below saturation.
-- Claim: "k=15 saturates by N=500." → **Inconclusive / mis-stated** — see self-consistency.
+### What the data does, vs. what we expected
+- **Violated.** Accuracy is *not* monotonic in k. At N=25 and N=100 the hardest cell is
+  k=30, not k=100 — the curve sags in the middle and recovers, the opposite of the
+  "more items, harder" story we expected. (Claim under test: "accuracy is monotonic in k.")
+- **Inconclusive / mis-stated.** The "k=15 saturates by N=500" claim can't be adjudicated as
+  written — see self-consistency; its own table puts saturation at N=100.
 
 ### Cross-cell pattern audit
 - Monotonicity (k, per N): violated at every sub-saturation N (valley at k=30).
@@ -353,8 +371,8 @@ Only omit interpretation if the user explicitly asks for plots-only (e.g., "just
 **You author `exploration/report.md` directly** — there is no report-assembling
 function. Write the markdown yourself, the same way you'd write `summary.md`:
 prose, tables, and figures you compose, not a skeleton a generator fills in. This
-is what makes the A/C-style reports good and keeps the deterministic backbone in
-one place (`summary.md`).
+is what keeps the report reading like prose a person wrote, and keeps the
+deterministic backbone in one place (`summary.md`).
 
 ### Don't re-render the deterministic tables — cite them
 
@@ -382,8 +400,9 @@ Compose `report.md` as:
 6. **Provenance footer** — attribution plus a *summarized* pointer to the source
    logs (a count + common directory or glob, e.g. "10 .eval logs under
    `{1B,3B}-Instruct_base/eval/acs_income_p*/logs/`"), kept in a collapsible
-   `<details>` block. Do **not** enumerate every absolute path — that is the
-   B-style verbosity, and the long lines overflow the PDF.
+   `<details>` block. Do **not** enumerate every absolute path — that path-dump
+   verbosity overflows the PDF with long lines and buries the provenance that
+   matters.
 
 ### Track which figures you embed
 

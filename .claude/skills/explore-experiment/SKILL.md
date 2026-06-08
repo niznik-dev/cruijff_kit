@@ -73,7 +73,7 @@ Use helper functions from `src/tools/inspect/viz_helpers.py`:
 
 ### 3. Choose what to show — a toolkit, not a menu
 
-There is no fixed plot menu. Decide what, if anything, is worth showing for *this* experiment. Generating **zero** plots is a valid outcome if `summary.md` already tells the story; so is a bespoke figure no pre-built view covers.
+There is no fixed plot menu. Decide what, if anything, is worth showing for *this* experiment. Generating **zero** plots is a valid outcome if `summary.md` already tells the story; so is a bespoke figure no pre-built view covers. But when a result has any shape worth seeing, lean toward showing it — a figure the reader can scan beats a sentence describing one, and a near-empty report under-serves them. Err toward the figure when in doubt. Two craft habits worth applying as you choose (detail in `generation.md` → "Figure craft"): prefer a figure that shows the *mechanism* — the raw quantity the metrics are computed from — over one that re-expresses a metric you already have; and use color to carry a dimension (map an ordinal axis to a sequential colormap) rather than defaulting to the sparest palette.
 
 The environment ships four plotting tools — peers chosen by fit, not a ranking:
 
@@ -99,7 +99,7 @@ Build whatever you chose. `generation.md` holds reference *recipes* — not a re
 
 **Required.** Interpretation is the heart of explore: a hypothesis-first re-read of the data, not a restatement of the tables. Write five sections, each **mandatory or an explicit "n/a — reason"** (no silent skips):
 
-1. **Hypothesis adjudication** — decompose `experiment.hypothesis` into individual falsifiable claims; give each one verdict (Confirmed / Violated / Inconclusive) with cell-level evidence. If there is no hypothesis, infer predictions from `experiment.question` + `variables` and flag the gap.
+1. **What the data does, vs. what we expected** — decompose `experiment.hypothesis` into individual falsifiable claims and walk through them one at a time, each as its own short paragraph: describe the phenomenon and mechanism first, anchor with a one-word verdict (Confirmed / Violated / Inconclusive) plus cell-level evidence. A compact table is fine as at-a-glance reference, but the prose must stand alone (repeat every number/verdict in the narrative) — tables are reference, never the focal artifact. Lead with description; chase the pattern nobody pre-registered. If there is no hypothesis, infer predictions from `experiment.question` + `variables` and flag the gap. (See `generation.md` → "Describe, don't just adjudicate".)
 2. **Cross-cell pattern audit** — scan the results grid, split by what a script can honestly do:
    - **Saturation** (accuracy ≥0.95) is pure counting — structure-free, true for every experiment. This is summarize's to compute; `summary.md` carries it, so read it from there instead of recomputing.
    - **Base-rate floor** is *not* structure-free. The arithmetic is — the eval-set class balance, which summarize reports as provenance — but whether that split is the *meaningful* baseline depends on intent. A deliberately balanced split's 50/50 says nothing; the truer floor in a fine-tuning experiment is usually the base-model eval, not label prevalence. Reading the class balance is free; deciding what the floor actually is stays your judgment, made here.
