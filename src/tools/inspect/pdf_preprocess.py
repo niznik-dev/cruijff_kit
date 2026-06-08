@@ -8,7 +8,7 @@ assembles reports; it only holds the small, reusable transforms that prepare an
 authored ``report.md`` for ``pandoc`` (see the analyze-to-pdf skill).
 
 Example usage:
-    from cruijff_kit.tools.inspect.report_generator import expand_details_for_pdf
+    from cruijff_kit.tools.inspect.pdf_preprocess import expand_details_for_pdf
 
     pdf_ready = expand_details_for_pdf(Path("report.md").read_text())
 """

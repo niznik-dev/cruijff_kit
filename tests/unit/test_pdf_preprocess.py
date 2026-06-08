@@ -1,11 +1,11 @@
-"""Unit tests for tools/inspect/report_generator.py — PDF preprocessing helpers.
+"""Unit tests for tools/inspect/pdf_preprocess.py — PDF preprocessing helpers.
 
 The module no longer assembles reports (explore-experiment authors ``report.md``
 directly). What remains is the markdown-to-PDF preprocessing used by the
 analyze-to-pdf skill.
 """
 
-from cruijff_kit.tools.inspect.report_generator import (
+from cruijff_kit.tools.inspect.pdf_preprocess import (
     PDF_LATEX_HEADER,
     expand_details_for_pdf,
     sanitize_unicode_for_pdf,

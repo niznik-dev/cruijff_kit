@@ -59,11 +59,11 @@ Record which engine is available for the conversion step.
 ## Preprocess for PDF
 
 Two preprocessing passes prepare the markdown for LaTeX, and a LaTeX header file
-caps figures and tables. All three come from `report_generator`:
+caps figures and tables. All three come from `pdf_preprocess`:
 
 ```python
 from pathlib import Path
-from cruijff_kit.tools.inspect.report_generator import (
+from cruijff_kit.tools.inspect.pdf_preprocess import (
     PDF_LATEX_HEADER,
     expand_details_for_pdf,
     sanitize_unicode_for_pdf,

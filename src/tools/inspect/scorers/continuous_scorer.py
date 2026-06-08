@@ -122,8 +122,9 @@ _METRICS: list[tuple[str, callable]] = [
     ("parse_rate", parse_rate),
 ]
 
-# Exported so report_generator can classify columns by scorer category
-# without re-listing names.
+# Mirrors risk_scorer.METRIC_NAMES (which viz_helpers uses to detect risk
+# metrics). Kept for parallelism across scorer modules; no current consumer for
+# the continuous set.
 METRIC_NAMES: frozenset[str] = frozenset(name for name, _ in _METRICS)
 
 
