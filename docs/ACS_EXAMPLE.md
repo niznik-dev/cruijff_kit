@@ -131,20 +131,26 @@ Claude submits the SLURM jobs and monitors them:
 
 Total time: approximately 10-15 minutes for the 1B model with 1,000 samples.
 
-### Step 4: Explore Results
+### Step 4: Summarize Results
+
+```
+/summarize-experiment
+```
+
+This is the required post-run step. It reads the evaluation logs from both runs and writes `summary.md` — a compact table of key metrics (accuracy, balanced accuracy, F1, and eval-set class balance) for every run, so the experiment's headline numbers are captured the moment it finishes.
+
+### Step 5: Explore Results (optional)
 
 ```
 /explore-experiment
 ```
 
-This skill reads the evaluation logs from both runs and generates an `exploration/` directory containing:
+Optional and runnable any time after the run. This skill reads the same evaluation logs and generates an `exploration/` directory containing:
 
 - **`report.md`** - A markdown report with accuracy comparisons, confidence intervals, and if `risk_scorer` is selected for binary tasks, calibration metrics like ECE, Brier score, and AUC
 - **HTML plots** - Side-by-side comparisons of base vs. fine-tuned performance, viewable in any browser
 - **Static PNG exports** - If `playwright` is installed, PNG versions of all plots are generated automatically
 - **Calibration and ROC curves** - If `risk_scorer` is selected, additional diagnostic plots show how well the model's confidence aligns with actual outcomes (fine-tuned runs only — base models don't produce usable logprobs in zeroshot mode, so their calibration columns will be empty)
-
-The required post-run step is `/summarize-experiment`, which writes key metrics to `summary.md`. The `/explore-experiment` visualizations shown above are optional and can be generated any time after the run.
 
 ---
 
