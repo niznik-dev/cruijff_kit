@@ -73,8 +73,6 @@ Each experiment lives in a single self-contained directory. The root contains th
     └── *.png                    # Static plot exports
 ```
 
-> **Note.** This directory was renamed `analysis/` → `exploration/` to match the `explore-experiment` skill and its "Claude's Exploration" report. The rename is a clean break, not dual-path: experiment folders created before the rename may still have an `analysis/` directory on disk, and the current readers (`archive_experiment.py`, `create-quiz`, `analyze-to-pdf`) look only for `exploration/`.
-
 For a multi-run experiment (e.g. comparing two models), each run gets its own self-contained `{run_name}/` directory at the experiment root, with configs, `eval/`, and `artifacts/` all nested inside. A run can be copied as a unit (`cp -r {run_name}/ elsewhere/`).
 
 ## Training Artifact Directory
