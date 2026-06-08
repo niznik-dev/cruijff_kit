@@ -1,34 +1,54 @@
-"""Tests for cruijff_kit.tools.inspect.summary_binary."""
+"""Tests for cruijff_kit.tools.inspect.summary_binary.
 
-import json
-import zipfile
+Fixtures build genuine inspect-ai eval logs via write_eval_log so the code under
+test exercises the real read_eval_log() path rather than a hand-rolled zip (#317).
+"""
+
 from pathlib import Path
 
 import pytest
+from inspect_ai.log import EvalLog, EvalSample, EvalSpec, write_eval_log
+from inspect_ai.model import ChatMessageAssistant, ChatMessageUser, ModelOutput
 
 from cruijff_kit.tools.inspect.summary_binary import (
-    load_samples,
-    get_prediction,
     compute_metrics,
+    get_prediction,
+    load_samples,
 )
 
+_CREATED = "2026-01-01T00:00:00"
 
-def _make_sample(target: str, prediction: str) -> dict:
-    """Helper to create a sample dict matching inspect-ai format."""
-    return {
-        "target": target,
-        "messages": [
-            {"role": "user", "content": "What is the answer?"},
-            {"role": "assistant", "content": prediction},
+
+def _make_sample(target: str, prediction: str) -> EvalSample:
+    """A single eval sample: the model emitted `prediction` for `target`."""
+    return EvalSample(
+        id=0,
+        epoch=1,
+        input="What is the answer?",
+        target=target,
+        messages=[
+            ChatMessageUser(content="What is the answer?"),
+            ChatMessageAssistant(content=prediction),
         ],
-    }
+        output=ModelOutput.from_content("mockmodel", prediction),
+    )
 
 
-def _write_eval_file(path: Path, samples: list[dict]):
-    """Write samples into a fake .eval zip archive."""
-    with zipfile.ZipFile(path, "w") as z:
-        for i, sample in enumerate(samples):
-            z.writestr(f"samples/{i}.json", json.dumps(sample))
+def _write_eval_file(path: Path, samples: list[EvalSample]):
+    """Write samples into a real inspect-ai .eval log."""
+    for i, sample in enumerate(samples):
+        sample.id = i  # ids must be unique within a log
+    log = EvalLog(
+        eval=EvalSpec(
+            created=_CREATED,
+            task="binary_test",
+            dataset={},
+            model="mockmodel",
+            config={},
+        ),
+        samples=samples,
+    )
+    write_eval_log(log, str(path))
 
 
 @pytest.fixture
@@ -89,10 +109,18 @@ def eval_with_other(tmp_path):
 
 @pytest.fixture
 def empty_eval(tmp_path):
-    """An eval file with no samples."""
+    """A header-only eval file with no samples."""
     path = tmp_path / "empty.eval"
-    with zipfile.ZipFile(path, "w") as z:
-        z.writestr("metadata.json", "{}")
+    log = EvalLog(
+        eval=EvalSpec(
+            created=_CREATED,
+            task="binary_test",
+            dataset={},
+            model="mockmodel",
+            config={},
+        )
+    )
+    write_eval_log(log, str(path))
     return path
 
 
@@ -103,9 +131,9 @@ class TestLoadSamples:
         samples = load_samples(perfect_eval)
         assert len(samples) == 4
 
-    def test_returns_list_of_dicts(self, perfect_eval):
+    def test_returns_list_of_samples(self, perfect_eval):
         samples = load_samples(perfect_eval)
-        assert all(isinstance(s, dict) for s in samples)
+        assert all(isinstance(s, EvalSample) for s in samples)
 
     def test_empty_file(self, empty_eval):
         samples = load_samples(empty_eval)
@@ -115,38 +143,43 @@ class TestLoadSamples:
 class TestGetPrediction:
     """Tests for get_prediction."""
 
-    def test_extracts_assistant_message(self):
-        sample = _make_sample("1", "0")
-        assert get_prediction(sample) == "0"
+    def test_extracts_completion(self):
+        assert get_prediction(_make_sample("1", "0")) == "0"
 
     def test_strips_whitespace(self):
-        sample = {
-            "messages": [
-                {"role": "assistant", "content": "  1  "},
-            ]
-        }
-        assert get_prediction(sample) == "1"
+        assert get_prediction(_make_sample("1", "  1  ")) == "1"
 
-    def test_uses_last_assistant_message(self):
-        sample = {
-            "messages": [
-                {"role": "assistant", "content": "first"},
-                {"role": "user", "content": "try again"},
-                {"role": "assistant", "content": "second"},
-            ]
-        }
+    def test_falls_back_to_last_assistant_message(self):
+        """With no model output, walk messages and take the last assistant turn."""
+        sample = EvalSample(
+            id=0,
+            epoch=1,
+            input="q",
+            target="1",
+            messages=[
+                ChatMessageAssistant(content="first"),
+                ChatMessageUser(content="try again"),
+                ChatMessageAssistant(content="second"),
+            ],
+        )
         assert get_prediction(sample) == "second"
 
     def test_no_assistant_message(self):
-        sample = {"messages": [{"role": "user", "content": "hello"}]}
+        sample = EvalSample(
+            id=0,
+            epoch=1,
+            input="q",
+            target="1",
+            messages=[ChatMessageUser(content="hello")],
+        )
         assert get_prediction(sample) == ""
 
     def test_empty_messages(self):
-        sample = {"messages": []}
+        sample = EvalSample(id=0, epoch=1, input="q", target="1", messages=[])
         assert get_prediction(sample) == ""
 
-    def test_no_messages_key(self):
-        sample = {}
+    def test_no_messages_and_no_output(self):
+        sample = EvalSample(id=0, epoch=1, input="q", target="1")
         assert get_prediction(sample) == ""
 
 
