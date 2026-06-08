@@ -28,8 +28,9 @@ RUN        →  run-experiment
                 ├─ optimizers/torchtune/    (fine-tuning pipeline)
                 └─ evaluators/inspect/      (evaluation pipeline; sequential, after fine-tuning)
 
-ANALYZE    →  summarize-experiment
-              analyze-experiment
+SUMMARIZE  →  summarize-experiment   (required post-run step)
+
+EXPLORE    →  explore-experiment      (optional; any time after run)
               (optional: analyze-to-pdf)
 
 CLEANUP    →  archive-experiment
@@ -45,7 +46,7 @@ CLEANUP    →  archive-experiment
 | `scaffold-experiment` | Launch `scaffold-torchtune` + `scaffold-inspect` subagents to generate setup configs and SLURM scripts for all runs |
 | `run-experiment` | Submit fine-tuning jobs, wait for completion, then submit evaluation jobs; monitor SLURM and update status tables in `experiment_summary.yaml` |
 | `summarize-experiment` | Generate `summary.md` with key metrics (loss, accuracy) after experiment completion |
-| `analyze-experiment` | Generate interactive HTML plots and `report.md` from inspect-ai logs (uses inspect-viz) |
+| `explore-experiment` | Generate interactive HTML plots and `report.md` from inspect-ai logs (uses inspect-viz) |
 | `archive-experiment` | Preserve experiment files, delete checkpoint directories |
 
 ### Data preparation
@@ -122,7 +123,7 @@ ck-projects/{project}/{experiment_name}/
 │   ├── design-experiment.log
 │   ├── scaffold-experiment.log
 │   ├── run-experiment.log
-│   ├── analyze-experiment.log
+│   ├── explore-experiment.log
 │   └── summarize-experiment.log
 ├── {run_name}/                    # One per run (e.g., rank8_lr1e-5)
 │   ├── setup_finetune.yaml        # From scaffold-torchtune
@@ -135,14 +136,14 @@ ck-projects/{project}/{experiment_name}/
 │           ├── cell.slurm           # From scaffold-inspect
 │           └── logs/
 │               └── *.eval           # inspect-ai outputs
-└── analysis/                      # From analyze-experiment
+└── exploration/                      # From explore-experiment
     ├── report.md
     └── *.html
 ```
 
 ## Key Design Principles
 
-**1. Single responsibility.** Each skill does one thing. `scaffold-experiment` only generates configs; `run-experiment` only submits and monitors jobs; `analyze-experiment` only renders results.
+**1. Single responsibility.** Each skill does one thing. `scaffold-experiment` only generates configs; `run-experiment` only submits and monitors jobs; `explore-experiment` only renders results.
 
 **2. Sequential dependencies.** `run-experiment` enforces fine-tuning before evaluation — eval jobs require completed checkpoints. The order is encoded in the workflow modules, not in user discipline.
 

@@ -87,8 +87,8 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
 
     # Optional extras
     if extras:
-        if "analysis" in extras:
-            analysis = exp_dir / "analysis"
+        if "exploration" in extras:
+            analysis = exp_dir / "exploration"
             analysis.mkdir()
             (analysis / "report.md").write_text("# Analysis Report")
             (analysis / "plot.html").write_text("<html>plot</html>")
@@ -146,12 +146,12 @@ def test_inventory_missing_summary(tmp_path):
 
 def test_inventory_with_analysis(tmp_path):
     """Analysis directory → included in keep files."""
-    exp_dir, out_base = _make_experiment(tmp_path, extras=["analysis"])
+    exp_dir, out_base = _make_experiment(tmp_path, extras=["exploration"])
     result = inventory_experiment(exp_dir, out_base)
 
     archive_paths = [kf["archive_path"] for kf in result["keep_files"]]
-    assert "analysis/report.md" in archive_paths
-    assert "analysis/plot.html" in archive_paths
+    assert "exploration/report.md" in archive_paths
+    assert "exploration/plot.html" in archive_paths
 
 
 def test_inventory_skips_symlinks_under_artifacts(tmp_path):
@@ -203,11 +203,11 @@ def test_findings_from_explicit_file(tmp_path):
 
 
 def test_findings_from_report(tmp_path):
-    """No findings.md, but analysis/report.md exists → use report."""
-    exp_dir, out_base = _make_experiment(tmp_path, extras=["analysis"])
+    """No findings.md, but exploration/report.md exists → use report."""
+    exp_dir, out_base = _make_experiment(tmp_path, extras=["exploration"])
     result = inventory_experiment(exp_dir, out_base)
 
-    assert result["findings_source"].endswith("analysis/report.md")
+    assert result["findings_source"].endswith("exploration/report.md")
 
 
 def test_findings_from_summary(tmp_path):
@@ -362,7 +362,7 @@ def test_dry_run_no_side_effects(tmp_path):
 
 def test_archive_full_workflow(tmp_path):
     """End-to-end: inventory → archive → verify → delete."""
-    exp_dir, out_base = _make_experiment(tmp_path, extras=["analysis"])
+    exp_dir, out_base = _make_experiment(tmp_path, extras=["exploration"])
     archive_base = str(tmp_path / "ck-archive")
 
     result = archive_experiment(exp_dir, archive_base)
@@ -377,7 +377,7 @@ def test_archive_full_workflow(tmp_path):
     # Archive exists with expected files
     archive_dir = Path(result["archive_dir"])
     assert (archive_dir / "experiment_summary.yaml").exists()
-    assert (archive_dir / "analysis" / "report.md").exists()
+    assert (archive_dir / "exploration" / "report.md").exists()
     # Configs preserved in archive
     assert (archive_dir / "run_rank4" / "finetune.yaml").exists()
 

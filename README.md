@@ -19,12 +19,12 @@ We are grateful to the following funders and supporters: [Princeton AI Lab](http
 
 ## What cruijff_kit Does
 
-cruijff_kit lets you **design**, **scaffold**, **run**, and **analyze** LLM experiments on HPC clusters.
+cruijff_kit lets you **design**, **scaffold**, **run**, and **explore** LLM experiments on HPC clusters.
 
 - **Design** - Plan runs with specific models, datasets, and hyperparameters
 - **Scaffold** - Auto-generate torchtune configs, inspect-ai tasks, and SLURM scripts
 - **Run** - Submit fine-tuning and evaluation jobs with dependency management
-- **Analyze** - Collect metrics, generate visualizations, compare across runs
+- **Explore** - Collect metrics, generate visualizations, compare across runs
 
 ## ⚠ Alpha Release ⚠
 
@@ -109,9 +109,9 @@ If you have [Claude Code](https://docs.anthropic.com/en/docs/claude-code), use t
 | 1 | `/design-experiment` | Plan runs, create `experiment_summary.yaml` |
 | 2 | `/scaffold-experiment` | Generate configs, SLURM scripts, directory structure |
 | 3 | `/run-experiment` | Submit jobs, monitor progress, validate outputs |
-| 4 | `/summarize-experiment` | Collect key metrics (loss, accuracy) into summary |
+| 4 | `/summarize-experiment` | Collect key metrics (loss, accuracy) into summary — the required post-run step |
 
-Additional skills: `/create-inspect-task` for custom evaluations, `/analyze-experiment` for visualizations, `/create-quiz` to turn experiment results into a self-grading HTML quiz.
+Optional skills (run any time after an experiment): `/explore-experiment` for visualizations and a full report, `/create-inspect-task` for custom evaluations, `/create-quiz` to turn experiment results into a self-grading HTML quiz.
 
 See `.claude/skills/*/SKILL.md` for detailed documentation on each skill.
 

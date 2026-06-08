@@ -32,6 +32,8 @@ dependencies = [
     "tokenizers>=0.22.1",
     "scikit-learn",
     "matplotlib",
+    "seaborn",  # explore-experiment: statistical plots layered over matplotlib
+    "plotly",  # explore-experiment: interactive HTML, alternative to inspect-viz
     "markdown",
 ]
 

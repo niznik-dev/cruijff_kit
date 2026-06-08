@@ -56,8 +56,8 @@ The canonical spec the renderer consumes. Path: `{experiment_dir}/quiz/quiz.json
 
   // full_writeup_md: rendered as a `<details>` panel hidden until the recipient clicks "See Final Score".
   // Contains the answers; must not be available before submission. Auto-opens after reveal.
-  "full_writeup_md": "raw markdown content of analysis/report.md. The renderer pre-renders it to HTML. Image references like ![alt](headline.png) are resolved against full_writeup_image_dir and base64-embedded so the file remains portable.",
-  "full_writeup_image_dir": "absolute path to the analysis/ directory (the dir containing the PNGs that report.md references)"
+  "full_writeup_md": "raw markdown content of exploration/report.md. The renderer pre-renders it to HTML. Image references like ![alt](headline.png) are resolved against full_writeup_image_dir and base64-embedded so the file remains portable.",
+  "full_writeup_image_dir": "absolute path to the exploration/ directory (the dir containing the PNGs that report.md references)"
 }
 ```
 

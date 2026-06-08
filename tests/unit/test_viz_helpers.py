@@ -244,7 +244,7 @@ class TestRiskDetectionPipeline:
 
     Column names mirror what evals_df() produces for a real run:
     ``score_{scorer}/{metric}``. Exercises the detect_metrics -> has_risk_scorer
-    path the analyze step relies on for plot routing, rather than hand-building
+    path the explore-experiment step relies on for plot routing, rather than hand-building
     a DetectedMetrics. Uses the real metric names (not a synthetic "ece").
     """
 

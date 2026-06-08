@@ -226,7 +226,7 @@ If user says "yes" (default), add the constraint/partition values from `claude.l
 - Dataset packing - enabled by default, affects batch size
 - If no prior data is available, start conservative (batch_size=4 for 1B, 2 for 3B, 1 for 8B+)
 - For help estimating: check `{scratch_dir}/ck-projects/*/slurm-*.out` for similar runs
-- **Consult past compute utilization analyses** - If previous experiments have `analysis/compute_metrics.json` or a compute section in `report.md`, use that data to inform time limits, memory allocations, and GPU resource requests for new runs
+- **Consult past compute utilization analyses** - If previous experiments have `exploration/compute_metrics.json` or a compute section in `report.md`, use that data to inform time limits, memory allocations, and GPU resource requests for new runs
 
 ### Generate Runs List
 
@@ -243,9 +243,9 @@ Estimate SLURM time limits, GPU counts, and memory allocations using `src/tools/
 #### 1. Discovery
 
 Search for `compute_metrics.json` files from past experiments:
-- `{scratch_dir}/ck-projects/*/analysis/compute_metrics.json`
+- `{scratch_dir}/ck-projects/*/exploration/compute_metrics.json`
 
-**Note:** `compute_metrics.json` lives in `{experiment_dir}/analysis/`, NOT in the output directory.
+**Note:** `compute_metrics.json` lives in `{experiment_dir}/exploration/`, NOT in the output directory.
 
 If none found, skip this entire step silently.
 
@@ -289,7 +289,7 @@ The function returns a dict with:
 - `prior_experiment`: name of the prior experiment used
 - `scaling_details`: human-readable list of scaling calculations
 
-**Do not** manually implement scaling logic — `estimate_compute.py` handles all scaling (throughput-based: `total_tokens / tps_gpu`, safety margins, rounding). Prior runs must have tps fields on their job dicts, which are populated by `enrich_job_with_throughput()` during analyze-experiment. If they don't (older summaries pre-dating issue #473), the relevant section of the result is None.
+**Do not** manually implement scaling logic — `estimate_compute.py` handles all scaling (throughput-based: `total_tokens / tps_gpu`, safety margins, rounding). Prior runs must have tps fields on their job dicts, which are populated by `enrich_job_with_throughput()` during explore-experiment. If they don't (older summaries pre-dating issue #473), the relevant section of the result is None.
 
 **Multi-model prior?** If the prior summary contains jobs across multiple models (e.g. a calibration experiment with 1B/3B/8B fine-tunes), use `estimate_from_prior_broadcast()` instead — it returns one prediction per model in the prior, no looping needed:
 

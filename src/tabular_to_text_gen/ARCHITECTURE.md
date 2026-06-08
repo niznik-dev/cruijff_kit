@@ -345,7 +345,7 @@ Shared fixtures in `conftest.py` provide reusable `Schema`, `ColumnSchema`, `Seg
 tabular_to_text_gen is a standalone step in the cruijff_kit experiment pipeline:
 
 ```
-design-experiment → tabular_to_text_gen (this tool) → scaffold-experiment → run-experiment → analyze-experiment
+design-experiment → tabular_to_text_gen (this tool) → scaffold-experiment → run-experiment → summarize-experiment → explore-experiment (optional)
 ```
 
 The user runs `convert.py` once per (condition × split) pair. The generated `.json` files are referenced in `experiment_summary.yaml` run parameters as `dataset_path` and `eval_dataset_path`. The `.meta.json` sidecars provide row counts and provenance without needing to parse the full data files.

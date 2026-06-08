@@ -3,7 +3,7 @@
 `submit_torchtune` and `submit_inspect` both:
 - discover slurm scripts under an experiment directory,
 - drip-feed sbatch them under the SLURM gpu-test QoS cap (default 25),
-- emit the canonical 4-line log block that analyze-experiment's regex consumes,
+- emit the canonical 4-line log block that explore-experiment's regex consumes,
 - persist resume state as JSON keyed by relative path,
 - monitor the submitted jobs to terminal state.
 
@@ -17,7 +17,7 @@ Canonical log block shape (from .claude/skills/run-experiment/logging.md):
     Job ID: <jid>
     Result: success
 
-The regex in .claude/skills/analyze-experiment/generation.md is
+The regex in .claude/skills/explore-experiment/generation.md is
 `SUBMIT_JOB: ([\\w.-]+)\\n.*?\\nJob ID: (\\d+)` (and SUBMIT_EVAL for evals).
 """
 
@@ -272,7 +272,7 @@ def log_monitor_detached(log_path: Path, reason: str, summary: dict) -> None:
     """Canonical 'monitor stopped watching' block.
 
     Reason is one of "SIGINT", "SIGTERM", "sentinel". Jobs are unaffected;
-    this only records that the watcher exited. analyze-experiment's
+    this only records that the watcher exited. explore-experiment's
     SUBMIT_JOB/SUBMIT_EVAL/Job ID regex won't match this block, so the
     harvest path is undisturbed.
     """
@@ -297,7 +297,7 @@ def log_monitor_config(
     ones that actually changed in this refresh. Unchanged knobs are still
     shown so an operator reading the log sees the full active picture.
 
-    Block shape (no `Job ID:` line — safe from the analyze-experiment
+    Block shape (no `Job ID:` line — safe from the explore-experiment
     SUBMIT_JOB/SUBMIT_EVAL harvest regex):
 
         [YYYY-MM-DD HH:MM:SS] MONITOR_CONFIG: applied
@@ -334,7 +334,7 @@ def log_oom_retry(
     is the same keys' values before the adjustment. Both dicts forward-compat
     with multi-key strategies.
 
-    Block shape (no `Job ID:` line — safe from the analyze-experiment regex,
+    Block shape (no `Job ID:` line — safe from the explore-experiment regex,
     which would otherwise harvest the retry as a fresh SUBMIT):
 
         [YYYY-MM-DD HH:MM:SS] OOM_RETRY: <name>

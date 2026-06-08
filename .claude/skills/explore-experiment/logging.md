@@ -1,15 +1,15 @@
-# Logging - analyze-experiment
+# Logging - explore-experiment
 
 **See [shared/logging_spec.md](../../shared/logging_spec.md) for complete format specification and general logging guidelines.**
 
-This document covers analyze-experiment-specific logging practices.
+This document covers explore-experiment-specific logging practices.
 
 ---
 
 ## Log File Location
 
 ```
-{experiment_dir}/logs/analyze-experiment.log
+{experiment_dir}/logs/explore-experiment.log
 ```
 
 Created during analysis to record data loading, visualization selection, and generation.
@@ -24,11 +24,12 @@ Created during analysis to record data loading, visualization selection, and gen
 | `PARSE_CONFIG` | Parse experiment_summary.yaml for run info |
 | `LOAD_EVALS` | Load evaluation logs from run directories |
 | `DEDUPLICATE` | Remove duplicate evals (keep most recent per model+epoch) |
-| `SELECT_VIEW` | Record user's visualization choice |
+| `CHOOSE_FIGURE` | Record which figure you chose to make, and why it was worth making |
 | `GENERATE_PLOT` | Create individual visualization |
+| `RECORD_INTERPRETATION` | Record a conclusion and the cell-level evidence behind it |
 | `GENERATE_REPORT` | Create markdown report with metrics |
 | `COMPUTE_METRICS` | Extract and format compute utilization data |
-| `COMPLETE` | Mark analysis finished with summary |
+| `COMPLETE` | Mark exploration finished with summary |
 
 ---
 
@@ -79,20 +80,24 @@ Result: 6 eval files loaded
 Details: Checking for duplicate model+epoch combinations
 Result: Kept 6 files, skipped 0 duplicates
 
-[2026-01-29 14:00:10] SELECT_VIEW
-Details: User selected visualization type
-Result: scores_by_task
+[2026-01-29 14:00:10] CHOOSE_FIGURE
+Details: Per-task bars chosen — hypothesis predicts a task gap worth showing
+Result: scores_by_task (matplotlib)
 
 [2026-01-29 14:00:15] GENERATE_PLOT: scores_by_task
 Details: Creating bar chart with match metric
-Result: analysis/scores_by_task.html
+Result: exploration/scores_by_task.html
 
-[2026-01-29 14:00:18] GENERATE_REPORT
+[2026-01-29 14:00:18] RECORD_INTERPRETATION
+Details: Claim "accuracy monotonic in k" adjudicated against the results grid
+Result: Violated — k=30 is the hardest cell at N=25 and N=100 (non-monotonic)
+
+[2026-01-29 14:00:20] GENERATE_REPORT
 Details: Creating markdown report with metrics and comparisons
-Result: analysis/report.md (3 models)
+Result: exploration/report.md (3 models)
 
 [2026-01-29 14:00:20] COMPLETE
 Details: All visualizations generated
-Result: 2 plots created in analysis/
+Result: 2 plots created in exploration/
 Duration: 20 seconds
 ```

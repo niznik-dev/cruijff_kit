@@ -31,7 +31,7 @@ cruijff_kit/
 │   │   │   ├── setup_inspect.py         # Generate evaluation SLURM scripts from template
 │   │   │   ├── parse_eval_log.py        # Parse inspect-ai evaluation logs
 │   │   │   ├── prebuild_cache.py        # Pre-build HF datasets cache before SLURM dispatch
-│   │   │   ├── report_generator.py      # Build markdown reports from eval logs
+│   │   │   ├── pdf_preprocess.py        # Markdown→PDF preprocessing for authored reports
 │   │   │   ├── summary_binary.py        # Binary-classification summary helpers
 │   │   │   ├── viz_helpers.py           # Plot/data adapters for inspect-viz
 │   │   │   ├── scorers/                 # Custom scorers (risk_scorer, calibration_metrics, …)
@@ -347,8 +347,8 @@ Use Claude Code skills to automate multi-run experiments. Skills generate all co
 1. **Design:** Use `design-experiment` skill to create experiment plan (`experiment_summary.yaml`)
 2. **Scaffold:** Use `scaffold-experiment` skill to generate all run directories and configs
 3. **Execute:** Use `run-experiment` skill to run fine-tuning and evaluation
-4. **Summarize:** Use `summarize-experiment` skill to generate results summary
-5. **Analyze:** Use `analyze-experiment` skill for detailed analysis and comparison
+4. **Summarize:** Use `summarize-experiment` skill to generate the results summary — the required post-run step
+5. **Explore (optional):** Use `explore-experiment` skill for detailed analysis and comparison — optional, and can be run any time after the experiment
 6. **Archive:** Use `archive-experiment` skill to archive completed experiments (preserves configs/logs/results, deletes large checkpoints)
 
 **Benefits:**

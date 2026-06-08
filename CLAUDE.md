@@ -71,8 +71,8 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 - **convert-tabular-to-text** ✅ - Convert tabular data to text representations for LLM experiments (use after design, before scaffold)
 - **scaffold-experiment** ✅ - Create organized directory structures, configs, and SLURM scripts for all runs
 - **run-experiment** ✅ - Submit jobs to SLURM and monitor their progress until completion
-- **summarize-experiment** ✅ - Generate summary.md with key metrics (loss, accuracy) after experiment completion
-- **analyze-experiment** ✅ - Generate interactive HTML visualizations from evaluation logs using inspect-viz; selects views based on experimental variables (model, factor, task, metric) and adds calibration / ROC plots when `risk_scorer` is present
+- **summarize-experiment** ✅ - Generate summary.md with key metrics (loss, accuracy) — the required post-run step after every experiment
+- **explore-experiment** ✅ - *Optional, any time after run.* Generate interactive HTML visualizations from evaluation logs using inspect-viz; selects views based on experimental variables (model, factor, task, metric) and adds calibration / ROC plots when `risk_scorer` is present
 - **analyze-to-pdf** ✅ - Convert analysis reports (markdown) to PDF using pandoc
 - **create-quiz** ✅ - Turn one or two completed experiments into a self-contained, self-grading HTML quiz that tests a recipient's intuition. Each answer cites the row/figure/section it came from
 - **archive-experiment** ✅ - Archive completed experiments, preserving all experiment files while deleting checkpoint directories

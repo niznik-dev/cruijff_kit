@@ -12,7 +12,7 @@ If found, treat `{cwd}` as the (single) experiment directory. If not, ask the us
 
 For each directory provided, verify:
 - `experiment_summary.yaml` exists
-- `analysis/report.md` exists (this skill requires `analyze-experiment` to have run; if missing, stop and tell the user)
+- `exploration/report.md` exists (create-quiz requires the optional `explore-experiment` pass to have run — summarize alone doesn't produce it; if missing, stop and tell the user)
 
 ## Loading `experiment_summary.yaml`
 
@@ -40,7 +40,7 @@ Also pull:
 
 The hypothesis text often pre-states predictions in plain English (e.g. "k=15 saturates trivially by N=25 or N=100"). These are gold for "did the data confirm the hypothesis here?" questions.
 
-## Loading `analysis/report.md`
+## Loading `exploration/report.md`
 
 The richest input. Read the whole file (typically a few hundred lines) and extract:
 
@@ -49,7 +49,7 @@ The richest input. Read the whole file (typically a few hundred lines) and extra
 - **Per-condition summary** (sometimes named "Per-k summary", "Saturation check", etc.) — these are pivot tables that question stems can read directly
 - **Anomalies** section — operational quirks (failed submissions, wrong configs) that make great "spot the problem" questions
 - **Suggested next steps** — what experiments would come next; useful for free-text intuition questions ("what experiment would you propose?")
-- **Visualizations** — list of `analysis/*.png` referenced in the report
+- **Visualizations** — list of `exploration/*.png` referenced in the report
 
 Don't paraphrase numbers. Store them as strings exactly as they appear (`"0.987"`, `"99.8%–100.0%"`) so the answer key matches what the recipient would see if they cracked open `report.md`.
 
@@ -66,8 +66,8 @@ This data overlaps with `report.md` but is sometimes formatted more usefully (e.
 ## Discovering figures
 
 ```python
-analysis_dir = Path(experiment_dir) / "analysis"
-pngs = sorted(analysis_dir.glob("*.png"))
+exploration_dir = Path(experiment_dir) / "exploration"
+pngs = sorted(exploration_dir.glob("*.png"))
 ```
 
 Each PNG is a candidate for an image-read question. Skip the question type if no PNGs exist — don't try to synthesize one.
@@ -81,7 +81,7 @@ Run all of the above for each experiment independently and store the results und
 ## Error handling
 
 - **Missing `experiment_summary.yaml`:** stop, tell the user the directory doesn't look like a cruijff_kit experiment.
-- **Missing `analysis/report.md`:** stop, suggest running `analyze-experiment` first.
+- **Missing `exploration/report.md`:** stop, suggest running the optional `explore-experiment` pass first (the required `summarize-experiment` step doesn't produce `report.md`).
 - **Malformed YAML:** report the error, don't try to recover.
 - **No PNGs:** continue, just don't generate image-read questions.
 

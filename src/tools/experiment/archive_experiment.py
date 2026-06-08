@@ -6,7 +6,7 @@ only bulk checkpoint artifacts.
 Usage:
     python archive_experiment.py <experiment_dir> [--dry-run] [--force] [--archive-base <path>]
 
-Keeps: entire experiment directory (configs, SLURM scripts, eval logs, analysis, etc.)
+Keeps: entire experiment directory (configs, SLURM scripts, eval logs, exploration, etc.)
 Deletes: model checkpoint directories ({run_name}/artifacts/)
 
 Output:
@@ -120,8 +120,8 @@ def inventory_experiment(experiment_dir, output_dir_base):
     findings_source = None
     if (exp_dir / "findings.md").exists():
         findings_source = str(exp_dir / "findings.md")
-    elif (exp_dir / "analysis" / "report.md").exists():
-        findings_source = str(exp_dir / "analysis" / "report.md")
+    elif (exp_dir / "exploration" / "report.md").exists():
+        findings_source = str(exp_dir / "exploration" / "report.md")
     elif (exp_dir / "summary.md").exists():
         findings_source = str(exp_dir / "summary.md")
 

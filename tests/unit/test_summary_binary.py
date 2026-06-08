@@ -245,3 +245,60 @@ class TestComputeMetrics:
         assert cm["tn"] == 1
         assert cm["fp"] == 0
         assert cm["fn"] == 0
+
+
+class TestClassBalance:
+    """Class balance is eval-set provenance — the actual label split, computed
+    from the confusion matrix's actual-class totals. Reported by summarize as a
+    neutral fact, not framed as a performance floor.
+    """
+
+    def test_balanced_split(self, perfect_eval):
+        """2 class-1, 2 class-0 → 50/50."""
+        cb = compute_metrics(perfect_eval)["class_balance"]
+        assert cb == {"frac_1": 0.5, "frac_0": 0.5, "n_1": 2, "n_0": 2}
+
+    def test_imbalanced_split(self, tmp_path):
+        """3 class-1, 1 class-0 → 75/25, independent of correctness."""
+        samples = [
+            _make_sample("1", "0"),  # wrong predictions must not move the balance
+            _make_sample("1", "1"),
+            _make_sample("1", "1"),
+            _make_sample("0", "1"),
+        ]
+        path = tmp_path / "imbalanced.eval"
+        _write_eval_file(path, samples)
+        cb = compute_metrics(path)["class_balance"]
+        assert cb == {"frac_1": 0.75, "frac_0": 0.25, "n_1": 3, "n_0": 1}
+
+    def test_unparsed_predictions_count_toward_actual_class(self, eval_with_other):
+        """Targets 1,0,1,0 with two unparsed predictions: the actual-label split
+        is still 50/50 — an unparseable output doesn't drop its sample from the
+        denominator."""
+        cb = compute_metrics(eval_with_other)["class_balance"]
+        assert cb == {"frac_1": 0.5, "frac_0": 0.5, "n_1": 2, "n_0": 2}
+
+    def test_denominator_excludes_non_binary_targets(self, tmp_path):
+        """Only {0,1}-labeled samples enter the balance; "2"/"3" targets don't."""
+        samples = [
+            _make_sample("1", "1"),
+            _make_sample("0", "0"),
+            _make_sample("2", "1"),  # excluded
+            _make_sample("3", "0"),  # excluded
+        ]
+        path = tmp_path / "non_binary_balance.eval"
+        _write_eval_file(path, samples)
+        cb = compute_metrics(path)["class_balance"]
+        assert cb == {"frac_1": 0.5, "frac_0": 0.5, "n_1": 1, "n_0": 1}
+
+    def test_all_non_binary_targets_balance_is_zero(self, tmp_path):
+        """No {0,1} targets at all → n_labeled is 0, so the fractions report 0
+        rather than raising ZeroDivisionError."""
+        samples = [
+            _make_sample("2", "1"),
+            _make_sample("3", "0"),
+        ]
+        path = tmp_path / "no_binary.eval"
+        _write_eval_file(path, samples)
+        cb = compute_metrics(path)["class_balance"]
+        assert cb == {"frac_1": 0, "frac_0": 0, "n_1": 0, "n_0": 0}
