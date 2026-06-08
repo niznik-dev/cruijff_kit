@@ -101,13 +101,9 @@ The `.eval` files don't currently store epoch information directly. To reliably 
    ```bash
    sacct -j {job_ids} --format=JobID,JobName%50
    ```
-4. **Parse epoch from job name** - scaffold-inspect names jobs like `eval-{task}-{run}-ep{N}`:
-   - `eval-general_eval-lowlr-ep0` → epoch 0
-   - `eval-general_eval-lowlr-ep9` → epoch 9
-5. **Extract accuracy from SLURM output:**
-   ```bash
-   grep -oP 'match/accuracy: \K[0-9.]+' slurm-{jobid}.out
-   ```
+4. **Parse epoch from the job name** — scaffold-inspect names eval jobs `eval-{task}-ep{N}` (or `eval-{task}` for a base run with no epoch). The *run* is identified by which `{run_dir}/eval/` the slurm file sits in, not by the job name:
+   - `eval-acs_income-ep0` → epoch 0
+   - `eval-acs_income-ep9` → epoch 9
 
 Reliable regardless of submission order, timing, or resubmissions — the epoch comes from the scaffold-set job name, **never** from file order or timestamp.
 
