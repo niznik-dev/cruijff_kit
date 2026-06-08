@@ -290,3 +290,15 @@ class TestClassBalance:
         _write_eval_file(path, samples)
         cb = compute_metrics(path)["class_balance"]
         assert cb == {"frac_1": 0.5, "frac_0": 0.5, "n_1": 1, "n_0": 1}
+
+    def test_all_non_binary_targets_balance_is_zero(self, tmp_path):
+        """No {0,1} targets at all → n_labeled is 0, so the fractions report 0
+        rather than raising ZeroDivisionError."""
+        samples = [
+            _make_sample("2", "1"),
+            _make_sample("3", "0"),
+        ]
+        path = tmp_path / "no_binary.eval"
+        _write_eval_file(path, samples)
+        cb = compute_metrics(path)["class_balance"]
+        assert cb == {"frac_1": 0, "frac_0": 0, "n_1": 0, "n_0": 0}

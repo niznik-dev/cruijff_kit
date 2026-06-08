@@ -121,6 +121,14 @@ class TestSanitizeUnicodeForPdf:
         block = "```\n≥ ✓ /a/b/c\n```"
         assert sanitize_unicode_for_pdf(block) == block
 
+    def test_unbalanced_fence_rewrites_trailing_glyphs(self):
+        """Pins a known limitation: an odd fence count leaves the unterminated
+        block in the prose bucket, so its glyphs get rewritten. Authored reports
+        are assumed to balance their fences; if a future splitter learns to
+        handle odd fences, update this expectation deliberately."""
+        out = sanitize_unicode_for_pdf("prose ≥ x\n```\ncode ≥ y")
+        assert out == "prose $\\geq$  x\n```\ncode $\\geq$  y"
+
     def test_long_inline_code_gets_break_points(self):
         """Long unbreakable paths in inline code get zero-width breaks so they
         wrap instead of overflowing the page (#551)."""

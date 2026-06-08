@@ -169,7 +169,7 @@ Create `{experiment_dir}/summary.md` with the following structure:
 | rank8_lr1e-5 | capitalization | 1 | 0.96 | 0.95 | 0.95 | ✓ | 100 |
 | base_model | capitalization | - | 0.45 | 0.50 | 0.31 |   | 100 |
 
-**Sat.** = saturated, `✓` when accuracy ≥ 0.95 (a maxed-out cell, no headroom left to measure). summarize flags it here; explore-experiment reads it from this column rather than recomputing.
+**Sat.** = saturated, `✓` when accuracy ≥ 0.95 (a maxed-out cell, no headroom left to measure). summarize flags it here; explore-experiment reads it from this column when present, else recomputes it from Accuracy.
 
 **Best performing:** rank8_lr1e-5 (epoch 1) with 95% balanced accuracy
 
