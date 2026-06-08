@@ -2,14 +2,6 @@
 
 This module collects reference *recipes* for generating figures — not a required sequence. The inspect-viz pre-built views below are the quickest path when one fits; for bespoke figures, reach for matplotlib, seaborn, or plotly directly (the ROC / calibration overlays further down are already matplotlib). Draw on what fits the experiment.
 
-## Overview
-
-The generation workflow:
-
-1. Wrap dataframe in `Data.from_dataframe()`
-2. Call the appropriate view function with parameters
-3. Save HTML with `write_html()`
-
 ## Setup
 
 ```python
@@ -175,19 +167,7 @@ plot = scores_by_model(
 
 ## Output File Naming
 
-Use descriptive names that indicate the view type and content:
-
-```python
-# Pattern: {view_type}_{metric}.html
-
-# Examples:
-"scores_by_task_sample_size_match.html"
-"scores_by_task_balanced_match.html"
-"scores_heatmap_sample_size_match.html"
-"scores_by_factor_balanced_match.html"
-"scores_by_model_match.html"
-"scores_radar_sample_size.html"
-```
+Name files for what they show — `{content}_{metric}.png` / `.html` (e.g. `auc_by_condition.png`, `scores_by_task_match.html`) — so the reader knows the figure from its filename.
 
 ## Dynamic Metric Detection
 
@@ -283,9 +263,23 @@ if detected.has_risk_scorer:
 
 **Skipped models:** Models with <2 valid samples or only one class (e.g., zeroshot models that always predict the same thing) are silently skipped. The function logs which models were skipped at INFO level.
 
+## Figure craft
+
+A few habits that make a figure earn its place — guidance, not mandates:
+
+- **Show the mechanism, not just the metric.** ROC and calibration curves re-express AUC — they show a metric a second way. Often more illuminating is the raw quantity the metrics are *computed from*: a per-cell distribution of the model's predicted score (e.g. a small-multiples grid of P(1) histograms across an ordinal/condition axis). One such view can carry two metrics at once — where the mass sits is the *bias* (mean prediction), how wide it is is the *discrimination* (a collapsed, narrow distribution has no spread left to rank with, so AUC falls toward chance). When two metrics share a cause, prefer the figure that shows the cause over a second figure that restates one of them.
+- **Use color to carry a dimension, not just to decorate.** A two-color palette leaves an encoding channel on the table. When a figure spans an ordinal axis (ladder rungs, k, epochs), map that axis to a sequential colormap (e.g. `viridis`) so the reader sees the ordering in the color itself; reserve categorical palettes for unordered groups (models). A richer, deliberate palette reads as more legible, not busier — lean into color rather than defaulting to the sparest set that technically distinguishes the lines.
+
 ## Interpretation (Required)
 
 **Required.** The deterministic backbone is summarize's job; interpretation is yours. Do a **hypothesis-first re-read** of the data — not a restatement of the tables. Open with a jargon-free **Bottom line**, then write five rigorous sections, each **mandatory or an explicit "n/a — reason"** (no silent skips). The bar: a canned summary of `length_sweep_nth14` once just restated the saturation table and lifted next-steps from the design doc; a hypothesis-first re-read of the *same numbers* surfaced a monotonicity violation, a relative-target-position confound, and a prose-vs-table self-contradiction it had missed. Clear that bar — and clear it *readably* (see Audience, below).
+
+### Describe, don't just adjudicate
+
+Your job is to **characterize the shape of the result** the way a sharp, creative data scientist would — lead with the phenomenon and its mechanism, and cite numbers as the evidence *for* a described pattern, not as entries in a scorecard. The pre-registered hypotheses are the expectations you measure reality against; they are an *input* to the description, not its skeleton. Two consequences:
+
+- **The most interesting pattern is often the one nobody pre-registered — chase it.** A rank inversion, a non-monotone valley, a single cell that behaves unlike its neighbors: these rarely map onto a tidy H1/H2, and they are usually where the real finding lives. Give them room even though no hypothesis named them.
+- **Keep the discipline; demote its bookkeeping.** Still run the adversarial pre-pass (below) and still reach a verdict on every pre-registered claim — that honesty check is non-negotiable (Principle #1, and it is what stops description from sliding into pleasant story-telling about noise). But the verdict is the *first word of a described paragraph*, not the whole entry, and the scorecard view belongs inline or in the audit log, never as the report's organizing spine. You may *optionally* draft a short free-form "pattern description" passage high in the report, unconstrained by the section template, to set the scene before the structured sections.
 
 ### Audience: lead with the conclusion, make the rigor optional
 
@@ -294,18 +288,20 @@ Write so a curious non-specialist — a student new to the project, a collaborat
 - **Open with a "Bottom line"** — 3–5 jargon-free sentences: what was tested, what you actually found, and the surprises. Someone who stops reading here should still have the correct takeaway. It goes *above* the data tables, not after the adjudication.
 - **Define each metric the first time it appears**, in one clause. "AUC — how well the model *ranks* high earners above low earners; 0.5 is a coin flip" costs a line and unlocks the whole table. Don't assume argmax / Brier / ECE / AUC are known.
 - **Point at the figure that carries the story.** A reader with the headline plot and the bottom line has the result; the prose is the escort, not the gate.
+- **Tables are reference, not the reading path.** A table is welcome *alongside* the prose — keep it small and scannable, for at-a-glance lookup. It must never be where the finding lives: every number and verdict in it is also stated in the narrative, so a reader who skips the table loses nothing but convenience. No dense "here's the whole grid, parse it yourself" dump as the focal artifact.
 - **Demote bookkeeping.** The self-consistency audit (section 4) is for auditors, not readers — put its output in an appendix or the audit log (`explore-experiment.log`), not the main reading path. Same for compute utilization.
+- **Voice.** Write as a smart, creative data scientist describing patterns to peers: phenomenon-first, connected narrative prose, not a bulleted list of findings. Be vivid and precise; name the strangest cell and chase it. Favor short declarative sentences and commit to each call rather than hedging. Concision serves warmth: trim every sentence standing between the reader and the finding.
 
 The five sections still happen in full — they're the *depth* layer a skeptical reader descends into to verify the bottom line, not the layer a newcomer must climb to reach it.
 
 ### The five sections
 
-1. **Hypothesis adjudication.** Decompose `experiment.hypothesis` into individual falsifiable claims. Each gets exactly one verdict — **Confirmed / Violated / Inconclusive** — with the cell-level evidence behind it. If the hypothesis is absent, infer predictions from `experiment.question` + `variables` and flag that you're doing so.
+1. **What the data does, vs. what we expected.** Decompose `experiment.hypothesis` into individual falsifiable claims and **walk through them one at a time, each as its own short paragraph** — describe the phenomenon and its mechanism first, then say where it met or broke the expectation. Anchor each paragraph with a one-word verdict (**Confirmed / Violated / Inconclusive**) and cite cell-level evidence, but let the description carry the weight (a verdict table may accompany the prose but must not replace it — see Audience). If the hypothesis is absent, infer predictions from `experiment.question` + `variables` and flag that you're doing so.
 2. **Cross-cell pattern audit.** Scan the results grid — but split the work by what a script can honestly do:
    - **Saturation cells** (accuracy ≥0.95 default) are pure counting: structure-free, true for every experiment. This is summarize's to compute; `summary.md` carries the `✓` flags, so read them from there rather than recomputing.
    - **Base-rate floor** is *not* structure-free. The arithmetic is — the eval-set class balance, which summarize reports as provenance — but whether that split is the *meaningful* baseline depends on intent (a balanced split's 50/50 says nothing; the truer floor in a fine-tuning experiment is usually the base-model eval). Read the class balance from `summary.md`; deciding what the floor actually is stays your judgment, made here.
    - **Monotonicity** (does a metric move one direction as an *ordinal* variable climbs?) and **equivalent-cell agreement** (do cells the design intends to be the same actually agree?) depend on knowing your experiment's shape — which variables are ordered, which cells are meant to match. A generic script would have to guess that, so they stay judgment calls: make them here. (Monotonicity could go deterministic only if the design declares its ordinal variables — a separate schema project, not assumed here.)
-3. **Mechanistic interpretation.** What does each variable's variation actually test? Give a parsimonious explanation for every surprise, and **name confounds explicitly** (e.g. "k was varied, but that also moved the target's *relative* position — those are entangled").
+3. **Mechanistic interpretation.** What does each variable's variation actually test? Give a parsimonious explanation for every surprise, and **name confounds explicitly** (e.g. "k was varied, but that also moved the target's *relative* position — those are entangled"). Where a figure makes a mechanism visible, **tie the visual feature to the scalar it explains** ("the mass collapsing to a spike *is* the AUC drop") rather than describing the figure and the number in separate breaths.
 4. **Self-consistency audit.** Check every numerical claim in your prose against the source table, literally: `claim → table value`. Catch prose that says "saturates at N=500" while its own table shows the ≥0.95 cutoff at N=100. **Do the check, but put its output in an appendix or the audit log** — it's verification bookkeeping, not part of the reader's path to the finding (see Audience).
 5. **Calibrated next steps.** Each item names what to vary / what mechanism it tests / what outcome is informative. "The design didn't actually test X — fix the design first" is a valid and valuable item.
 
@@ -323,10 +319,12 @@ than at either extreme. That dip turned out to be an artifact of *where the answ
 the sequence, not the length itself. Plain-language takeaway: "longer = harder" is wrong here;
 "answer-in-the-middle = harder" is the real pattern. See `accuracy_by_k.png`.
 
-### Hypothesis adjudication
-- Claim: "accuracy is monotonic in k at each N." → **Violated.** At N=25 and N=100,
-  k=30 is the *hardest* cell, not k=100 — the curve is non-monotonic below saturation.
-- Claim: "k=15 saturates by N=500." → **Inconclusive / mis-stated** — see self-consistency.
+### What the data does, vs. what we expected
+- **Violated.** Accuracy is *not* monotonic in k. At N=25 and N=100 the hardest cell is
+  k=30, not k=100 — the curve sags in the middle and recovers, the opposite of the
+  "more items, harder" story we expected. (Claim under test: "accuracy is monotonic in k.")
+- **Inconclusive / mis-stated.** The "k=15 saturates by N=500" claim can't be adjudicated as
+  written — see self-consistency; its own table puts saturation at N=100.
 
 ### Cross-cell pattern audit
 - Monotonicity (k, per N): violated at every sub-saturation N (valley at k=30).
@@ -350,58 +348,53 @@ Only omit interpretation if the user explicitly asks for plots-only (e.g., "just
 
 ## Report Generation
 
-After generating visualizations and writing the analysis, create a markdown report:
+**You author `exploration/report.md` directly** — there is no report-assembling
+function. Write the markdown yourself, the same way you'd write `summary.md`:
+prose, tables, and figures you compose, not a skeleton a generator fills in. This
+is what keeps the report reading like prose a person wrote, and keeps the
+deterministic backbone in one place (`summary.md`).
 
-```python
-from pathlib import Path
-from cruijff_kit.tools.inspect.report_generator import generate_report
+### Don't re-render the deterministic tables — cite them
 
-# Track PNGs generated during this run
-generated_pngs = []
+`summary.md` (from summarize-experiment) is the **single source of truth** for the
+canonical metric tables (run status, accuracy/AUC/Brier/ECE, training loss). Do
+**not** rebuild those tables in `report.md`. Reference them — `see ../summary.md`
+— and pull only the specific numbers your argument turns on, quoting them inline
+("3B p5_noise reaches 0.731 AUC vs the 0.537 baseline"). One source of truth, no
+drift between the two files.
 
-# After each successful PNG export:
-# generated_pngs.append(png_path)
+### Shape (lead with the conclusion — see Audience, above)
 
-# Generate report after visualizations
-report = generate_report(
-    df=logs_df,                              # DataFrame from evals_df_prep + parse_eval_metadata
-    experiment_name=experiment_name,          # e.g., "acs_income_2026-01-29"
-    output_path=Path(output_dir) / "report.md",
-    config=experiment_config,                 # Optional: experiment_summary.yaml dict
-    generated_pngs=generated_pngs,            # Only embed PNGs from this run
-    eval_log_paths=eval_log_paths,            # List of .eval file Paths used
-    generated_by="Claude Opus 4.6",           # Attribution (use actual model name)
-    future_directions=future_directions,      # Analysis from previous step
-)
-```
+Compose `report.md` as:
 
-**Important:** Pass `generated_pngs` to ensure the report only embeds visualizations created in this session, not stale outputs from previous runs.
+1. `# Claude's Exploration` + a one-line metadata header (experiment, date, models
+   evaluated, **Generated by:** *<your actual model name>*).
+2. **Bottom line** — 3–5 jargon-free sentences (above any data).
+3. The five interpretation sections (defining each metric on first use).
+4. **Figures embedded inline** at the point you discuss them — `![descriptive
+   caption](figure.png)` with a real caption, *not* a bare filename and *not* a
+   dumped "Visualizations" appendix at the end. Use the bare filename (relative
+   path) so the PDF converter resolves it.
+5. **Demote bookkeeping** — the self-consistency audit and compute utilization go
+   in an appendix or the audit log, not the main reading path.
+6. **Provenance footer** — attribution plus a *summarized* pointer to the source
+   logs (a count + common directory or glob, e.g. "10 .eval logs under
+   `{1B,3B}-Instruct_base/eval/acs_income_p*/logs/`"), kept in a collapsible
+   `<details>` block. Do **not** enumerate every absolute path — that path-dump
+   verbosity overflows the PDF with long lines and buries the provenance that
+   matters.
 
-### Report Contents
+### Track which figures you embed
 
-The generated `report.md` includes:
+Keep a list of the PNGs you generated *this run* and embed only those — never
+stale outputs from a previous session. (You're embedding them inline by hand, so
+this is just discipline about which filenames you reference.)
 
-| Section | Description |
-|---------|-------------|
-| Executive Summary | Best performer and model count |
-| Model Comparison | Table with accuracy, 95% CI, sample size |
-| Calibration & Risk Metrics | ECE, Brier, AUC, Mean Risk Score (if supplementary metrics detected) |
-| Per-Task Breakdown | Best model per task (if multiple tasks) |
-| Exploration & Interpretation | Key findings, anomalies, and suggested next steps |
-| Provenance | Attribution and source eval log paths (collapsible) |
+### If a metric you want isn't in `summary.md`
 
-### Confidence Intervals
-
-Uses Wilson score intervals (preferred over normal approximation):
-- Never produces intervals outside [0, 1]
-- Works well with small samples and extreme proportions
-
-### Error Handling
-
-**If metrics extraction fails:**
-- Log error
-- Report generation skipped with warning
-- Visualizations still generated
+Compute it from the eval data you already loaded (`evals_df_prep` /
+`extract_per_sample_risk_data`, the viz helpers) and state how you derived it.
+Don't hand-transcribe numbers you haven't verified.
 
 ## Compute Utilization Analysis
 
@@ -415,7 +408,8 @@ After generating visualizations and before the report, add compute metrics. This
    a. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
    b. Read `gpu_metrics.csv` with `summarize_gpu_metrics()`. **Paths differ by job type:**
       - Fine-tuning: `{output_dir}/{run}/artifacts/gpu_metrics.csv`
-      - Evaluation: `{output_dir}/{run}/artifacts/epoch_{N}/gpu_metrics.csv`
+      - Evaluation of a fine-tuned checkpoint: `{output_dir}/{run}/artifacts/epoch_{N}/gpu_metrics.csv`
+      - Base/control eval (no epoch): `{output_dir}/{run}/artifacts/gpu_metrics.csv`
    c. If jobstats available: run `run_jobstats(job_id)` for CPU metrics (JSON) and `run_jobstats(job_id, json_mode=False)` for notes. Parse with `parse_jobstats_json()` and `extract_jobstats_notes()`.
 4. Build job dicts combining all sources:
    - **CPU**: from jobstats (`cpu_efficiency_pct`, `cpu_mem_used_gb`, `cpu_mem_allocated_gb`), or seff `cpu_efficiency` as fallback
@@ -434,7 +428,10 @@ After generating visualizations and before the report, add compute metrics. This
    save_summary(summary, os.path.join(experiment_dir, "exploration", "compute_metrics.json"))
    ```
    `build_summary()` reads `experiment_summary.yaml` to extract metadata (model, dataset_size, epochs, batch_size, date) and wraps the job list in the summary format. `save_summary()` writes the JSON file.
-7. Pass `compute_section=` to `generate_report()` (inserted after Exploration & Interpretation)
+7. Write the `format_compute_table` output into `report.md` yourself — as an
+   appendix or demoted section, not the main reading path (see Audience). If
+   `harvest_jids_from_run_logs` returned warnings, surface a "**Compute
+   Utilization unavailable:** ..." note instead of silently skipping.
 
 **Key functions** from `tools.slurm.compute_metrics`:
 - `check_jobstats_available() -> bool` — auto-detect jobstats on PATH
