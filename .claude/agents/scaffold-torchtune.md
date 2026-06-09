@@ -25,45 +25,34 @@ When invoked:
 3. **Read claude.local.md** — Get environment-specific settings (conda env, output dirs, etc.).
 4. **Identify varying parameters** — Determine which parameters change across runs (for directory naming).
 5. **For each fine-tuning run, build `setup_finetune.yaml` in two passes (in this order):**
-   1. **Mandatory: call `propagate_train_fields(experiment_summary, setup_finetune)`** to populate experiment-wide controls. See the "MANDATORY STEP" block immediately below.
+   1. **Call `propagate_train_fields(experiment_summary, setup_finetune)` first** to populate experiment-wide controls (see "Key Pattern: Propagate First" below).
    2. **Then** layer in per-run judgment fields (paths, `model_checkpoint`, varying `lora_rank` / `lr`, `custom_recipe` choice, `output_dir_base`, etc.). Propagation is idempotent — your per-run overrides win.
    3. **Apply the `text_completion` exception**: if `dataset_type` is `text_completion`, `pop("system_prompt", None)` from `setup_finetune` (base models have no chat template — the propagated value has nowhere to go).
    4. Write `setup_finetune.yaml` to disk.
 6. **EXECUTE `setup_finetune.py` AUTOMATICALLY using conda run** for each run — this generates `finetune.yaml` and `finetune.slurm`. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.
 7. **Create scaffold log** — Document all actions in `logs/scaffold-torchtune.log`. **Log the `propagate_train_fields()` call explicitly** so the audit trail shows it ran.
-8. **Report summary** — In your report, name the helper call and the count of fields it populated. **Do NOT produce a field-by-field derivation table for TRAIN_FIELDS values** — that's an anti-pattern (see "Reporting" below).
+8. **Report summary** — Name the helper call and how many fields it populated; don't tabulate the propagated `TRAIN_FIELDS` values (they weren't decisions).
 
-## MANDATORY STEP: Call `propagate_train_fields()`
+## Key Pattern: Propagate First
 
-Every `setup_finetune.yaml` you build must be populated by this exact
-call, once, before you write the file:
+Before writing any other field into `setup_finetune.yaml`, call:
 
 ```python
 from cruijff_kit.tools.experiment.propagate import propagate_train_fields
 propagate_train_fields(experiment_summary, setup_finetune)
 ```
 
-This is not optional, not an example, and not "what the helper would do."
-You must call it. It populates every field in `TRAIN_FIELDS`
-(`src/tools/experiment/propagate.py`) — currently `epochs`, `batch_size`,
-`batch_size_val`, `gradient_accumulation_steps`, `weight_decay`,
-`lora_dropout`, `prompt`, and `system_prompt` — from
-`experiment_summary.yaml` into `setup_finetune`.
+This fills every `TRAIN_FIELDS` value (`src/tools/experiment/propagate.py`:
+`epochs`, `batch_size`, `batch_size_val`, `gradient_accumulation_steps`,
+`weight_decay`, `lora_dropout`, `prompt`, `system_prompt`) straight from
+`experiment_summary.yaml`. **Don't hand-copy these** — `TRAIN_FIELDS` is the
+single source of truth (add new propagated controls there, not in this doc).
+The helper is idempotent, so per-run judgment fields you write afterward win.
 
-**Do not write these fields by hand. Do not extract them in your parsing
-step. Do not list them in your report's "How I Decided Each Field"
-table.** If you find yourself reading `controls.epochs` to copy into
-`setup_finetune.yaml`, stop — you have skipped this step. Source of
-truth for which fields are propagated lives in `TRAIN_FIELDS` itself; add
-or remove there, never in this doc.
-
-**One exception requires agent judgment *after* the call:** when
-`dataset_type` is `text_completion`, `pop()` the `system_prompt` (base
-models have no chat template). See "Generating setup_finetune.yaml" →
-text_completion exception below for the deriving rule.
-
-(Background: #470 → #502. A field whose only propagation path was a prose
-bullet got silently dropped when the bullet wasn't followed.)
+Exception: for `text_completion` datasets, `pop("system_prompt", None)` after
+the call (base models have no chat template — see the deriving rule below).
+Background: #470 → #502, where a field whose only propagation path was a prose
+bullet got silently dropped when the bullet wasn't followed.
 
 ## Model-Aware SLURM Resources
 
@@ -118,7 +107,7 @@ Extract the following information from the YAML structure:
    - `controls.validation_during_training` — Whether to run validation during training. Translates to `run_val_every_n_steps`: if `true`, set to `50` (the `finetune_template.yaml` default); if `false`, set to `0` (which causes `setup_finetune.py` to drop the validation dataset config). Do not emit `0` when the user requested validation — that silently disables it. **Not in `TRAIN_FIELDS`** because it's an agent transformation, not a copy.
    - `controls.dataset_type` *(optional)* — If set, drives the `text_completion` exception below. If absent, infer from model name (`-Instruct` suffix → `chat_completion`; otherwise → `text_completion`).
 
-   **All other `controls.*` fields** (`epochs`, `batch_size`, `batch_size_val`, `gradient_accumulation_steps`, `weight_decay`, `lora_dropout`, `prompt`, `system_prompt`) are populated by `propagate_train_fields()` per the MANDATORY STEP above. Do not extract or list them here — the helper reads them straight from `experiment_summary.yaml`. The canonical map lives in `TRAIN_FIELDS` (`src/tools/experiment/propagate.py`).
+   **All other `controls.*` fields** (`epochs`, `batch_size`, `batch_size_val`, `gradient_accumulation_steps`, `weight_decay`, `lora_dropout`, `prompt`, `system_prompt`) are populated by `propagate_train_fields()` (see "Key Pattern: Propagate First"). Don't extract them here — the helper reads them straight from `experiment_summary.yaml`.
 
    Note on `controls.batch_size_val`: honored by the `_single_device_nightly` recipe (the default); silently ignored by `_stable` / `_distributed` recipes since their custom-recipe builds don't read the field. Recipe falls back to `controls.batch_size` when absent.
 
@@ -237,24 +226,9 @@ For each run, create a `setup_finetune.yaml` file by:
    - Extract `input_dir_base` from parent directory of dataset path.
    - Set `input_formatting: ''`.
 
-2. **Call the propagation helper (MANDATORY).** This is the first thing
-   you write into `setup_finetune`. Run it once, before anything else.
-
-```python
-from cruijff_kit.tools.experiment.propagate import propagate_train_fields
-propagate_train_fields(experiment_summary, setup_finetune)
-```
-
-   This populates every `TRAIN_FIELDS` value (`src/tools/experiment/propagate.py`)
-   — currently `epochs`, `batch_size`, `batch_size_val`,
-   `gradient_accumulation_steps`, `weight_decay`, `lora_dropout`, `prompt`,
-   and `system_prompt` — from `experiment_summary.yaml`. The helper is
-   idempotent: source values of `None` or missing dotted paths are skipped,
-   and any per-run value Step 3 below writes (e.g. a varying `batch_size`)
-   will win because the helper preserves existing non-None values.
-
-   **To add a new propagated control, add an entry to `TRAIN_FIELDS` — do
-   not add a new bullet to this doc.**
+2. **Call `propagate_train_fields()` first** — the first write into
+   `setup_finetune`, before any field below. See "Key Pattern: Propagate
+   First" above for the call and the `TRAIN_FIELDS` set it fills.
 
 3. **Write the per-run judgment fields.** These require composition,
    branching, or per-run resolution. Because Step 2 ran first and the
@@ -320,12 +294,6 @@ cpus_per_task: {from runs[].compute.cpus_per_task, if present, e.g., 8}
 custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly  # or lora_finetune_distributed_stable for multi-GPU
 ```
 
-   **Do NOT write `epochs`, `batch_size_val`, `gradient_accumulation_steps`,
-   `weight_decay`, `lora_dropout`, `prompt`, or `system_prompt` in this
-   step.** Step 2's helper handled them. If you find yourself reaching
-   into `controls.*` to extract one of those, you have skipped Step 2 —
-   stop and run the helper.
-
 4. **Apply the text_completion exception for `system_prompt`.** Base /
    non-instruct models have no chat template to hold a system prompt; the
    propagation helper does not know about the dataset type, so this is the
@@ -344,13 +312,8 @@ if dataset_type in ("text_completion", "text_completion_dataset"):
 
 5. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
 
-**Reporting (anti-pattern alert).** When you report on the runs you
-scaffolded, **do not produce a "How I Decided Each Field" table covering
-`TRAIN_FIELDS` values**. Those did not require a decision — the helper
-copied them. A field-by-field table for propagated fields is the
-diagnostic signature that you skipped Step 2. Report instead: "Called
-`propagate_train_fields()` (populated N fields), then wrote per-run:
-my_wandb_run_name, model_checkpoint, lora_rank, custom_recipe, …."
+**Reporting:** name the `propagate_train_fields()` call and the field count;
+don't tabulate the propagated values per-field — they weren't decisions.
 
 **Important notes:**
 - Use absolute paths for robustness (e.g., `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/...`) rather than relative paths
@@ -500,19 +463,11 @@ Result: {outcome}
 - Parsing experiment_summary.yaml
 - Run identification (fine-tuned vs control)
 - Directory creation for each run
-- **`PROPAGATE_TRAIN_FIELDS` — one entry per run, recording that `propagate_train_fields()` ran and the count/names of `TRAIN_FIELDS` values it populated.** This is the audit trail for #502: a missing `PROPAGATE_TRAIN_FIELDS` entry means the call was skipped and the YAML is suspect.
+- **`PROPAGATE_TRAIN_FIELDS`** — one entry per run recording that `propagate_train_fields()` ran and how many `TRAIN_FIELDS` it populated. The #502 audit trail: a missing entry means the call was skipped and the YAML is suspect.
 - setup_finetune.yaml generation for each run (post-propagation judgment fields)
 - setup_finetune.py execution and results
 - Any errors or warnings
 - Final summary of created runs
-
-Example propagate entry:
-
-```
-[2025-10-24 16:30:11] PROPAGATE_TRAIN_FIELDS: rank8_lr1e-5
-Details: Called propagate_train_fields(experiment_summary, setup_finetune)
-Result: Populated 8 TRAIN_FIELDS values: epochs, batch_size, batch_size_val, gradient_accumulation_steps, weight_decay, lora_dropout, prompt, system_prompt
-```
 
 ### Example Log Entries
 
