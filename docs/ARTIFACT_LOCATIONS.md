@@ -77,16 +77,11 @@ For a multi-run experiment (e.g. comparing two models), each run gets its own se
 
 ## Training Artifact Directory
 
-Training artifacts live at `{run_name}/artifacts/` inside the experiment directory — they are *not* written to a separate base path. The relevant fields in `experiment_summary.yaml`:
+Training artifacts live at `{run_name}/artifacts/` inside the experiment directory — they are *not* written to a separate base path. The experiment root is `experiment.directory` in `experiment_summary.yaml`, and the checkpoint path for a given run and epoch is:
 
-```yaml
-experiment:
-  directory: "{experiment_dir}"
-output:
-  checkpoint_pattern: "{run_name}/artifacts/epoch_{N}"
 ```
-
-So the resolved checkpoint path for a given run is `{experiment_dir}/{run_name}/artifacts/epoch_{N}/`. See the tree above for the full contents of `{run_name}/artifacts/`.
+{experiment.directory}/{run_name}/artifacts/epoch_{N}/
+``` See the tree above for the full contents of `{run_name}/artifacts/`.
 
 > **Note:** A few files (`gpu_metrics.csv`, `torchtune_config.yaml`, `slurm-*.out`) appear both at the top of `{run_name}/artifacts/` and inside `epoch_0/`. The top-level copies are the live job's record; the per-epoch copies are snapshotted alongside the checkpoint.
 

@@ -138,9 +138,6 @@ data:
                                    #   perturbations list. Incompatible with llm_narrative template.
 
 output:
-  checkpoint_pattern: string       # REQUIRED: Pattern for checkpoint paths relative to experiment.directory
-                                   # Standard value: "{run_name}/artifacts/epoch_{N}"
-                                   # Full checkpoint path: {experiment.directory}/{run_name}/artifacts/epoch_{N}
   wandb_project: string            # REQUIRED: Weights & Biases project name
 
 # =============================================================================

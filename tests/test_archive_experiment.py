@@ -37,7 +37,6 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
             "directory": str(exp_dir),
         },
         "output": {
-            "checkpoint_pattern": "{run_name}/artifacts/epoch_{N}",
             "wandb_project": "test",
         },
         "runs": [
