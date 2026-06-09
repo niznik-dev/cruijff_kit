@@ -58,6 +58,7 @@ packages = [
   "cruijff_kit.tools.inspect",
   "cruijff_kit.tools.inspect.scorers",
   "cruijff_kit.tools.slurm",
+  "cruijff_kit.tools.experiment",
   "cruijff_kit.tools.model_organisms",
   "cruijff_kit.tools.quiz",
   "cruijff_kit.tabular_to_text_gen",

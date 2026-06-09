@@ -334,7 +334,14 @@ Note: `config_path` and `eval_dir` are **auto-derived** from the location of the
 
 #### Populating eval_config.yaml
 
-Extract values from setup_finetune.yaml (fine-tuned runs) or experiment_summary.yaml (control runs):
+The work splits cleanly between **agent judgment** (per-cell decisions, path
+composition, branching) and a **deterministic propagation step** (flat field
+copies from `experiment_summary.yaml`).
+
+**Step 1 — Agent decides per-cell.** Write these into `eval_config` first; the
+propagation step in Step 2 is idempotent and will not overwrite anything the
+agent has already set.
+
 - `task_script`: From `evaluation.tasks[].script` + `@` + task name
 - `task_name`: From `evaluation.tasks[].name`
 - `model_path`: Fine-tuned: `{base_directory}/{run_name}/artifacts/epoch_{N}`. Control: original model path
@@ -347,12 +354,32 @@ Extract values from setup_finetune.yaml (fine-tuned runs) or experiment_summary.
   4. Else — fall back to the dataset path in `setup_finetune.yaml` (fine-tuned runs) or `data.training.path` in `experiment_summary.yaml` (control runs).
 
   Log the resolved path into `logs/scaffold-inspect.log` so the audit trail captures exactly which file backed this evaluation.
-- `system_prompt`: per-cell resolution — start from the run's configuration (may vary per run!), then **override with `task['system_prompt']` if the task entry sets it** (per-task override, see Parsing Evaluation Tasks above). This is how heterogeneous prompts inside one run end up in distinct cells.
+- `system_prompt`: per-cell resolution — start from the run's configuration (may vary per run!), then **override with `task['system_prompt']` if the task entry sets it** (per-task override, see Parsing Evaluation Tasks above). This is how heterogeneous prompts inside one run end up in distinct cells. Write this before Step 2 — propagation will preserve your per-cell value.
 - `assistant_prefix`: same per-cell resolution as `system_prompt` if `task['assistant_prefix']` is set.
-- `scorer`: From `evaluation.scorer` in experiment_summary.yaml
-- `temperature`: From `evaluation.temperature` in experiment_summary.yaml (OPTIONAL). Propagate **only when `do_sample: true`** — temperature is the sampling temperature and is inert under the default greedy decoding (`setup_inspect.py` drops it from the task args when `do_sample` is false). On the sampling path it must be strictly > 0; `setup_inspect.py` hard-errors on a missing or `<= 0` temperature when `do_sample: true`, because HF's `TemperatureLogitsWarper` does `scores / temperature` and raises `ValueError` at zero (division by zero → inf/NaN logits).
-- `do_sample`: From `evaluation.do_sample` in experiment_summary.yaml (OPTIONAL, default `false`). Propagate only if explicitly set; when absent, `setup_inspect.py` emits `-M do_sample=false` (greedy argmax — deterministic, bitwise-reproducible, no RNG). Set `true` only for sampling-based evals.
-- `max_tokens`: From `evaluation.max_tokens` in experiment_summary.yaml (OPTIONAL). Propagate only if explicitly set; otherwise omit and the @task function's per-task default applies.
+
+**Step 2 — Call the propagation helper for experiment-wide defaults.**
+
+```python
+from cruijff_kit.tools.experiment.propagate import propagate_eval_fields
+propagate_eval_fields(experiment_summary, eval_config)
+```
+
+`propagate_eval_fields()` copies every field declared in `EVAL_FIELDS` (in
+`src/tools/experiment/propagate.py`) from `experiment_summary.yaml` into
+`eval_config.yaml`. The current map covers `system_prompt`, `temperature`,
+`do_sample`, `max_tokens`, `max_connections`, and `scorer`. Source values
+that are `None` or whose dotted path is missing are skipped; any key the
+agent already wrote in Step 1 is preserved.
+
+**To add a new propagated field, add an entry to `EVAL_FIELDS` — do not add a
+new bullet to this list.** This was the lesson from #470: a field whose only
+propagation path was a prose bullet got silently dropped when the bullet
+wasn't followed.
+
+Note on `temperature`: the helper copies it unconditionally when present in
+`experiment_summary.yaml`. `setup_inspect.py` is the gatekeeper — it drops
+`temperature` from rendered task args when `do_sample` is false, so an inert
+value in `eval_config.yaml` is harmless.
 
 #### setup_inspect.py Usage
 

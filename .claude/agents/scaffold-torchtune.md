@@ -212,7 +212,11 @@ For each run, create a `setup_finetune.yaml` file by:
    - Extract `input_dir_base` from parent directory of dataset path.
    - Set `input_formatting: ''`.
 
-2. **Populate template with run-specific values:**
+2. **Populate template with judgment fields.** Write the following fields by
+   hand; these are the ones that require composition, branching, or per-run
+   resolution. Experiment-wide controls (epochs, prompt, system_prompt, etc.)
+   are filled by `propagate_train_fields()` in step 3 — **do not write them
+   inline.**
 
 ```yaml
 # Run identification
@@ -231,20 +235,13 @@ dataset_ext: {resolved extension, e.g., ".json"}
 torchtune_model_name: {from models.base[0].name, e.g., "Llama-3.2-1B-Instruct"}
 model_checkpoint: {from models.base[0].path}
 
-# Varying parameters (optional, run-specific)
+# Varying parameters (per-run; idempotent merge below preserves these)
 lora_rank: {from run.parameters.lora_rank, if present}
 lr: {from run.parameters.lr, format as 1e-5 or 5e-5, if present}
-batch_size: {from run.parameters.batch_size if varies, if present}
+batch_size: {from run.parameters.batch_size if varies, else omit — propagation fills from controls.batch_size}
 seed: {from run.parameters.seed, if present}
 
-# Additional hyperparameters (optional, only if specified in controls)
-gradient_accumulation_steps: {from controls.gradient_accumulation_steps, if present}
-weight_decay: {from controls.weight_decay, if present}
-lora_dropout: {from controls.lora_dropout, if present}
-batch_size_val: {from controls.batch_size_val or run.parameters.batch_size_val, if present}
-
-# Training configuration (common across runs)
-epochs: {from controls.epochs}
+# Training-loop bookkeeping (not in TRAIN_FIELDS — keep inline)
 log_every_n_steps: {use template default, typically 1}
 run_val_every_n_steps: {50 if controls.validation_during_training else 0}
 
@@ -263,15 +260,6 @@ gpus: {from runs[].compute.gpus, if present}
 mem: {from runs[].compute.mem, if present, e.g., "80G"}
 cpus_per_task: {from runs[].compute.cpus_per_task, if present, e.g., 8}
 
-# System prompt (if specified)
-# If `dataset_type` is `text_completion` or `text_completion_dataset` 
-# (i.e. base / non-instruct models), omit system_prompt. Base models have no chat template, so the system prompt has no slot.
-# Only emit for chat_completion / chat_dataset / instruct_dataset.
-system_prompt: {from controls.system_prompt, often empty string ""}
-
-# Prompt template (if specified)
-prompt: {from controls.prompt, e.g., "Capitalize the given word: {input}\n"}
-
 # Custom Recipe (REQUIRED)
 # Select based on GPU count:
 #   - Single-GPU runs (1B / 3B / 8B): lora_finetune_single_device_nightly
@@ -287,7 +275,36 @@ prompt: {from controls.prompt, e.g., "Capitalize the given word: {input}\n"}
 custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly  # or lora_finetune_distributed_stable for multi-GPU
 ```
 
-4. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
+3. **Call the propagation helper for experiment-wide controls.**
+
+```python
+from cruijff_kit.tools.experiment.propagate import propagate_train_fields
+propagate_train_fields(experiment_summary, setup_finetune)
+```
+
+`propagate_train_fields()` copies every field declared in `TRAIN_FIELDS`
+(in `src/tools/experiment/propagate.py`) from `experiment_summary.yaml` into
+`setup_finetune.yaml`. The current map covers `epochs`, `batch_size`,
+`batch_size_val`, `gradient_accumulation_steps`, `weight_decay`,
+`lora_dropout`, `prompt`, and `system_prompt`. Source values that are `None`
+or whose dotted path is missing are skipped; any per-run value the agent
+already wrote in Step 2 (e.g. a varying `batch_size`) is preserved by
+idempotence.
+
+**To add a new propagated control, add an entry to `TRAIN_FIELDS` — do not
+add a new bullet to this list.**
+
+4. **Apply the text_completion exception for `system_prompt`.** Base /
+   non-instruct models have no chat template to hold a system prompt; the
+   propagation helper does not know about the dataset type, so this is the
+   agent's call:
+
+```python
+if dataset_type in ("text_completion", "text_completion_dataset"):
+    setup_finetune.pop("system_prompt", None)
+```
+
+5. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
 
 **Important notes:**
 - Use absolute paths for robustness (e.g., `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/...`) rather than relative paths
