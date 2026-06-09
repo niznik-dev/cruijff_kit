@@ -109,7 +109,7 @@ class TestDataSection:
 
 class TestOutputSection:
     def test_has_required_keys(self, summary):
-        required = ["base_directory", "checkpoint_pattern", "wandb_project"]
+        required = ["checkpoint_pattern", "wandb_project"]
         for key in required:
             assert key in summary["output"], f"Missing output.{key}"
 

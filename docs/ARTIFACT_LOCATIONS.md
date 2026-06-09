@@ -80,8 +80,9 @@ For a multi-run experiment (e.g. comparing two models), each run gets its own se
 Training artifacts live at `{run_name}/artifacts/` inside the experiment directory — they are *not* written to a separate base path. The relevant fields in `experiment_summary.yaml`:
 
 ```yaml
+experiment:
+  directory: "{experiment_dir}"
 output:
-  base_directory: "{experiment_dir}"          # Set to the experiment dir itself
   checkpoint_pattern: "{run_name}/artifacts/epoch_{N}"
 ```
 

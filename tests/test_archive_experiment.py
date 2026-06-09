@@ -36,7 +36,10 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
             "project": "capitalization",
             "directory": str(exp_dir),
         },
-        "output": {"base_directory": str(out_base)},
+        "output": {
+            "checkpoint_pattern": "{run_name}/artifacts/epoch_{N}",
+            "wandb_project": "test",
+        },
         "runs": [
             {"name": rn, "type": "fine-tuned", "model": "test", "parameters": {}}
             for rn in run_names

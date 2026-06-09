@@ -343,11 +343,11 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
             "message": f"Failed to parse experiment_summary.yaml: {e}",
         }
 
-    output_dir_base = config.get("output", {}).get("base_directory", "")
+    output_dir_base = config.get("experiment", {}).get("directory", "")
     if not output_dir_base:
         return {
             "status": "error",
-            "message": "No output.base_directory found in experiment_summary.yaml",
+            "message": "No experiment.directory found in experiment_summary.yaml",
         }
 
     project = config.get("experiment", {}).get("project", "")
