@@ -317,7 +317,7 @@ don't tabulate the propagated values per-field — they weren't decisions.
 - Use absolute paths for robustness (e.g., `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/...`) rather than relative paths
 - WandB project: Prefer using `my_wandb_project` from `claude.local.md` for consistency
 - Learning rate format: Keep scientific notation format from experiment summary (1e-5, 5e-5, etc.)
-- Output directory: Parse `output.base_directory` from experiment_summary.yaml to extract both `output_dir_base` and `experiment_name` components
+- Output directory: Parse `experiment.directory` from experiment_summary.yaml to extract both `output_dir_base` and `experiment_name` components
 
 ### Running setup_finetune.py
 
