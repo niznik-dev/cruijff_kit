@@ -12,7 +12,8 @@ Metrics computed:
 - Precision(1), Recall(1), Recall(0): per-class metrics
 - Class balance: actual label split (provenance, not a performance metric)
 
-Inspect-ai stores logs as zip archives with samples/*.json containing results.
+Eval logs are read via inspect-ai's read_eval_log() API, which handles the log
+format (and any future format changes) transparently.
 
 Usage:
     python summary_binary.py /path/to/log.eval
@@ -22,26 +23,29 @@ Usage:
 
 import argparse
 import json
-import zipfile
 from pathlib import Path
 
-
-def load_samples(path: Path) -> list:
-    """Load samples from an inspect-ai .eval file (zip archive)."""
-    samples = []
-    with zipfile.ZipFile(path, "r") as z:
-        for name in z.namelist():
-            if name.startswith("samples/") and name.endswith(".json"):
-                with z.open(name) as f:
-                    samples.append(json.load(f))
-    return samples
+from inspect_ai.log import EvalSample, read_eval_log
 
 
-def get_prediction(sample: dict) -> str:
-    """Extract model's prediction from sample (last assistant message)."""
-    for msg in reversed(sample.get("messages", [])):
-        if msg.get("role") == "assistant":
-            return msg.get("content", "").strip()
+def load_samples(path: Path) -> list[EvalSample]:
+    """Load samples from an inspect-ai .eval file via the official API.
+
+    Using read_eval_log() instead of poking at the zip internals keeps this
+    forward-compatible with inspect-ai log-format changes.
+    """
+    return read_eval_log(str(path)).samples or []
+
+
+def get_prediction(sample: EvalSample) -> str:
+    """Extract the model's prediction (its final completion), stripped."""
+    output = getattr(sample, "output", None)
+    if output is not None and output.completion:
+        return output.completion.strip()
+    # Fallback for samples without a model output: last assistant message.
+    for msg in reversed(sample.messages or []):
+        if msg.role == "assistant":
+            return (msg.text or "").strip()
     return ""
 
 
@@ -62,7 +66,7 @@ def compute_metrics(path: Path) -> dict:
     matrix = {"0": {"0": 0, "1": 0, "other": 0}, "1": {"0": 0, "1": 0, "other": 0}}
 
     for s in samples:
-        actual = s["target"]
+        actual = s.target
         pred = get_prediction(s)
         if pred not in ("0", "1"):
             pred = "other"
