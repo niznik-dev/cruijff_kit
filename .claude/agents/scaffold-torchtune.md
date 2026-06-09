@@ -51,8 +51,6 @@ The helper is idempotent, so per-run judgment fields you write afterward win.
 
 Exception: for `text_completion` datasets, `pop("system_prompt", None)` after
 the call (base models have no chat template — see the deriving rule below).
-Background: #470 → #502, where a field whose only propagation path was a prose
-bullet got silently dropped when the bullet wasn't followed.
 
 ## Model-Aware SLURM Resources
 

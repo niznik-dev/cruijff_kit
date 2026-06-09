@@ -54,9 +54,6 @@ This fills every `EVAL_FIELDS` value (`src/tools/experiment/propagate.py`:
 not in this doc). The helper is idempotent, so per-cell judgment fields you
 write afterward win (e.g. a per-task `system_prompt` override).
 
-Background: #470 → #502, where a field whose only propagation path was a prose
-bullet got silently dropped when the bullet wasn't followed.
-
 ## Input Format
 
 ### Finding the Experiment

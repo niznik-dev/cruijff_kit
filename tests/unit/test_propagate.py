@@ -135,6 +135,21 @@ def test_train_idempotence_preserves_per_run_value(representative_summary):
     assert setup_finetune["batch_size"] == 999
 
 
+def test_double_propagation_is_stable(representative_summary):
+    """f(f(x)) == f(x): a second pass must not clobber the first.
+
+    The scaffold agents may re-run propagation on the same config; the
+    docstring promises idempotence. Lock it across *two* calls (not just one),
+    and confirm a pre-existing per-cell override survives both passes.
+    """
+    eval_config = {"system_prompt": "Per-cell custom prompt"}
+    propagate_eval_fields(representative_summary, eval_config)
+    after_first = dict(eval_config)
+    propagate_eval_fields(representative_summary, eval_config)
+    assert eval_config == after_first  # second pass is a no-op
+    assert eval_config["system_prompt"] == "Per-cell custom prompt"  # override intact
+
+
 # -----------------------------------------------------------------------------
 # Source-side skip rules
 # -----------------------------------------------------------------------------
@@ -158,6 +173,19 @@ def test_source_partial_missing_path_is_skipped():
     eval_config: dict = {}
     propagate_eval_fields(summary, eval_config)
     assert eval_config == {}
+
+
+def test_malformed_section_is_skipped_not_crashed():
+    """A non-dict section (hand-edited YAML garbage) must skip, not crash.
+
+    _get_dotted's `isinstance(cur, dict)` guard handles this gracefully; lock
+    it so a future refactor can't silently turn the graceful skip into an
+    AttributeError when `evaluation` is a string/list instead of a mapping.
+    """
+    summary = {"evaluation": "oops not a dict"}
+    eval_config: dict = {}
+    result = propagate_eval_fields(summary, eval_config)
+    assert result == {}
 
 
 # -----------------------------------------------------------------------------
