@@ -20,20 +20,37 @@ This subagent can be invoked in two ways:
 ## Core Responsibilities Workflow
 
 When invoked:
-1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
-2. **Read experiment_summary.yaml** - Parse the experiment plan to extract run configurations
-3. **Read claude.local.md** - Get environment-specific settings (conda env, output dirs, etc.)
-4. **Identify varying parameters** - Determine which parameters change across runs (for directory naming)
-5. **For each fine-tuning run:**
-   - Create run directory with name from experiment configuration
-   - Generate `setup_finetune.yaml` from appropriate template
-   - **EXECUTE `setup_finetune.py` AUTOMATICALLY using conda run** - This generates `finetune.yaml` and `finetune.slurm`
-   - Verify outputs exist (finetune.yaml and finetune.slurm must be present)
-   - Report status
-6. **Create scaffold log** - Document all actions taken in `logs/scaffold-torchtune.log`
-7. **Report summary** - Show user what was created and any issues
+1. **Locate experiment** — Find the experiment directory (usually current directory or ask user).
+2. **Read experiment_summary.yaml** — Parse only the structural sections you need to make per-run decisions (runs, models, paths). **Do not enumerate or extract fields covered by `TRAIN_FIELDS`** — that's step 5's job, not yours.
+3. **Read claude.local.md** — Get environment-specific settings (conda env, output dirs, etc.).
+4. **Identify varying parameters** — Determine which parameters change across runs (for directory naming).
+5. **For each fine-tuning run, build `setup_finetune.yaml` in two passes (in this order):**
+   1. **Call `propagate_train_fields(experiment_summary, setup_finetune)` first** to populate experiment-wide controls (see "Key Pattern: Propagate First" below).
+   2. **Then** layer in per-run judgment fields (paths, `model_checkpoint`, varying `lora_rank` / `lr`, `custom_recipe` choice, `output_dir_base`, etc.). Propagation is idempotent — your per-run overrides win.
+   3. **Apply the `text_completion` exception**: if `dataset_type` is `text_completion`, `pop("system_prompt", None)` from `setup_finetune` (base models have no chat template — the propagated value has nowhere to go).
+   4. Write `setup_finetune.yaml` to disk.
+6. **EXECUTE `setup_finetune.py` AUTOMATICALLY using conda run** for each run — this generates `finetune.yaml` and `finetune.slurm`. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.
+7. **Create scaffold log** — Document all actions in `logs/scaffold-torchtune.log`. **Log the `propagate_train_fields()` call explicitly** so the audit trail shows it ran.
+8. **Report summary** — Name the helper call and how many fields it populated; don't tabulate the propagated `TRAIN_FIELDS` values (they weren't decisions).
 
-**CRITICAL: You must execute setup_finetune.py automatically. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.**
+## Key Pattern: Propagate First
+
+Before writing any other field into `setup_finetune.yaml`, call:
+
+```python
+from cruijff_kit.tools.experiment.propagate import propagate_train_fields
+propagate_train_fields(experiment_summary, setup_finetune)
+```
+
+This fills every `TRAIN_FIELDS` value (`src/tools/experiment/propagate.py`:
+`epochs`, `batch_size`, `batch_size_val`, `gradient_accumulation_steps`,
+`weight_decay`, `lora_dropout`, `prompt`, `system_prompt`) straight from
+`experiment_summary.yaml`. **Don't hand-copy these** — `TRAIN_FIELDS` is the
+single source of truth (add new propagated controls there, not in this doc).
+The helper is idempotent, so per-run judgment fields you write afterward win.
+
+Exception: for `text_completion` datasets, `pop("system_prompt", None)` after
+the call (base models have no chat template — see the deriving rule below).
 
 ## Model-Aware SLURM Resources
 
@@ -84,18 +101,13 @@ Extract the following information from the YAML structure:
    - `tools.preparation` - Should be "torchtune"
    - `tools.evaluation` - Should be "inspect-ai"
 
-3. **Control hyperparameters (held constant):**
-These are *example* parameters that the user might vary. There may be other parameters under `controls`, so check all of them that apply to `setup_finetune.yaml`:
-   - `controls.epochs` - Number of training epochs
-   - `controls.batch_size` - Batch size (if not varied)
-   - `controls.batch_size_val` - Optional larger batch size for validation passes. Honored by `_single_device_nightly` (the default recipe); silently ignored by `_stable` / `_distributed` recipes since their custom-recipe builds don't read the field. Recipe falls back to `controls.batch_size` when absent.
-   - `controls.system_prompt` - Training system prompt. 
-      - Omit this field from `setup_finetune.yaml` when `dataset_type` is `text_completion` or `text_completion_dataset` (i.e. base / non-instruct models). Base models have no chat template, so the system prompt has nowhere to go — `setup_finetune.py` will drop it with a warning.
-   - `controls.prompt` - Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
-   - `controls.validation_during_training` - Whether to run validation during training. Translates to `run_val_every_n_steps`: if `true`, set to `50` (the `finetune_template.yaml` default); if `false`, set to `0` (which causes `setup_finetune.py` to drop the validation dataset config). Do not emit `0` when the user requested validation — that silently disables it.
-   - `controls.gradient_accumulation_steps` - Gradient accumulation
-   - `controls.weight_decay` - Optimizer weight decay
-   - `controls.lora_dropout` - LoRA dropout
+3. **Control hyperparameters — non-propagated only:**
+   - `controls.validation_during_training` — Whether to run validation during training. Translates to `run_val_every_n_steps`: if `true`, set to `50` (the `finetune_template.yaml` default); if `false`, set to `0` (which causes `setup_finetune.py` to drop the validation dataset config). Do not emit `0` when the user requested validation — that silently disables it. **Not in `TRAIN_FIELDS`** because it's an agent transformation, not a copy.
+   - `controls.dataset_type` *(optional)* — If set, drives the `text_completion` exception below. If absent, infer from model name (`-Instruct` suffix → `chat_completion`; otherwise → `text_completion`).
+
+   **All other `controls.*` fields** (`epochs`, `batch_size`, `batch_size_val`, `gradient_accumulation_steps`, `weight_decay`, `lora_dropout`, `prompt`, `system_prompt`) are populated by `propagate_train_fields()` (see "Key Pattern: Propagate First"). Don't extract them here — the helper reads them straight from `experiment_summary.yaml`.
+
+   Note on `controls.batch_size_val`: honored by the `_single_device_nightly` recipe (the default); silently ignored by `_stable` / `_distributed` recipes since their custom-recipe builds don't read the field. Recipe falls back to `controls.batch_size` when absent.
 
 4. **Resources:**
    - `models.base[0].name` - Model identifier
@@ -212,7 +224,15 @@ For each run, create a `setup_finetune.yaml` file by:
    - Extract `input_dir_base` from parent directory of dataset path.
    - Set `input_formatting: ''`.
 
-2. **Populate template with run-specific values:**
+2. **Call `propagate_train_fields()` first** — the first write into
+   `setup_finetune`, before any field below. See "Key Pattern: Propagate
+   First" above for the call and the `TRAIN_FIELDS` set it fills.
+
+3. **Write the per-run judgment fields.** These require composition,
+   branching, or per-run resolution. Because Step 2 ran first and the
+   helper is idempotent, your writes here are not pre-empted *and* per-run
+   overrides take precedence when they set the same key (e.g. a varying
+   `batch_size`).
 
 ```yaml
 # Run identification
@@ -231,20 +251,14 @@ dataset_ext: {resolved extension, e.g., ".json"}
 torchtune_model_name: {from models.base[0].name, e.g., "Llama-3.2-1B-Instruct"}
 model_checkpoint: {from models.base[0].path}
 
-# Varying parameters (optional, run-specific)
+# Varying parameters (per-run; helper preserves these because it ran first
+# and your writes happen after — overrides win)
 lora_rank: {from run.parameters.lora_rank, if present}
 lr: {from run.parameters.lr, format as 1e-5 or 5e-5, if present}
-batch_size: {from run.parameters.batch_size if varies, if present}
+batch_size: {from run.parameters.batch_size if varies — overrides the helper-propagated controls.batch_size for this run}
 seed: {from run.parameters.seed, if present}
 
-# Additional hyperparameters (optional, only if specified in controls)
-gradient_accumulation_steps: {from controls.gradient_accumulation_steps, if present}
-weight_decay: {from controls.weight_decay, if present}
-lora_dropout: {from controls.lora_dropout, if present}
-batch_size_val: {from controls.batch_size_val or run.parameters.batch_size_val, if present}
-
-# Training configuration (common across runs)
-epochs: {from controls.epochs}
+# Training-loop bookkeeping (not in TRAIN_FIELDS — keep inline)
 log_every_n_steps: {use template default, typically 1}
 run_val_every_n_steps: {50 if controls.validation_during_training else 0}
 
@@ -263,15 +277,6 @@ gpus: {from runs[].compute.gpus, if present}
 mem: {from runs[].compute.mem, if present, e.g., "80G"}
 cpus_per_task: {from runs[].compute.cpus_per_task, if present, e.g., 8}
 
-# System prompt (if specified)
-# If `dataset_type` is `text_completion` or `text_completion_dataset` 
-# (i.e. base / non-instruct models), omit system_prompt. Base models have no chat template, so the system prompt has no slot.
-# Only emit for chat_completion / chat_dataset / instruct_dataset.
-system_prompt: {from controls.system_prompt, often empty string ""}
-
-# Prompt template (if specified)
-prompt: {from controls.prompt, e.g., "Capitalize the given word: {input}\n"}
-
 # Custom Recipe (REQUIRED)
 # Select based on GPU count:
 #   - Single-GPU runs (1B / 3B / 8B): lora_finetune_single_device_nightly
@@ -287,7 +292,26 @@ prompt: {from controls.prompt, e.g., "Capitalize the given word: {input}\n"}
 custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_device_nightly  # or lora_finetune_distributed_stable for multi-GPU
 ```
 
-4. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
+4. **Apply the text_completion exception for `system_prompt`.** Base /
+   non-instruct models have no chat template to hold a system prompt; the
+   propagation helper does not know about the dataset type, so this is the
+   agent's call.
+
+   **Deriving `dataset_type`:** if `controls.dataset_type` is set in
+   `experiment_summary.yaml`, use it verbatim. Otherwise infer from the
+   model name — Instruct models (e.g. `Llama-3.2-1B-Instruct`) get
+   `chat_completion`; base models (e.g. `Llama-3.2-1B`) get
+   `text_completion`.
+
+```python
+if dataset_type in ("text_completion", "text_completion_dataset"):
+    setup_finetune.pop("system_prompt", None)
+```
+
+5. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
+
+**Reporting:** name the `propagate_train_fields()` call and the field count;
+don't tabulate the propagated values per-field — they weren't decisions.
 
 **Important notes:**
 - Use absolute paths for robustness (e.g., `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/...`) rather than relative paths
@@ -437,7 +461,8 @@ Result: {outcome}
 - Parsing experiment_summary.yaml
 - Run identification (fine-tuned vs control)
 - Directory creation for each run
-- setup_finetune.yaml generation for each run
+- **`PROPAGATE_TRAIN_FIELDS`** — one entry per run recording that `propagate_train_fields()` ran and how many `TRAIN_FIELDS` it populated. The #502 audit trail: a missing entry means the call was skipped and the YAML is suspect.
+- setup_finetune.yaml generation for each run (post-propagation judgment fields)
 - setup_finetune.py execution and results
 - Any errors or warnings
 - Final summary of created runs

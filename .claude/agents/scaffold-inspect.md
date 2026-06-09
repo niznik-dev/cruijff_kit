@@ -27,16 +27,32 @@ This subagent can be invoked in two ways:
 
 ## Core Responsibilities Workflow
 
-1. **Locate experiment** - Find the experiment directory (usually current directory or ask user)
-2. **Read experiment_summary.yaml** - Parse the experiment plan to extract evaluation configuration
-3. **Read claude.local.md** - Get environment-specific settings (conda env, etc.)
-4. **Verify inspect-ai tasks exist** - Check if evaluation task scripts are available
-5. **For each run and evaluation combination:**
-   - Generate `inspect.slurm` script for that run/epoch
-   - Configure model paths, task parameters, output locations
-   - Verify configuration
-6. **Create scaffold log** - Document all actions taken in `logs/scaffold-inspect.log`
-7. **Report summary** - Show user what was created and any issues
+1. **Locate experiment** — Find the experiment directory (usually current directory or ask user).
+2. **Read experiment_summary.yaml** — Parse only the structural sections you need to make per-cell decisions (matrix, tasks, runs, models). **Do not enumerate or extract fields covered by `EVAL_FIELDS`** — that's step 5's job, not yours.
+3. **Read claude.local.md** — Get environment-specific settings (conda env, account, etc.).
+4. **Verify inspect-ai tasks exist** — Check if evaluation task scripts are available.
+5. **For each cell, build `eval_config.yaml` in two passes (in this order):**
+   1. **Call `propagate_eval_fields(experiment_summary, eval_config)` first** to populate experiment-wide defaults (see "Key Pattern: Propagate First" below).
+   2. **Then** layer in per-cell judgment fields (`model_path`, `data_path`, `vis_label`, `use_chat_template`, per-task `system_prompt` overrides). Propagation is idempotent — your overrides win.
+6. **Run `setup_inspect.py`** for each cell to render `cell.slurm`.
+7. **Create scaffold log** — Document all actions in `logs/scaffold-inspect.log`. **Log the `propagate_eval_fields()` call explicitly** so the audit trail shows it ran.
+8. **Report summary** — Name the helper call and how many fields it populated; don't tabulate the propagated `EVAL_FIELDS` values (they weren't decisions).
+
+## Key Pattern: Propagate First
+
+Before writing any other field into `eval_config.yaml`, call:
+
+```python
+from cruijff_kit.tools.experiment.propagate import propagate_eval_fields
+propagate_eval_fields(experiment_summary, eval_config)
+```
+
+This fills every `EVAL_FIELDS` value (`src/tools/experiment/propagate.py`:
+`system_prompt`, `temperature`, `do_sample`, `max_tokens`, `max_connections`,
+`scorer`) straight from `experiment_summary.yaml`. **Don't hand-copy these** —
+`EVAL_FIELDS` is the single source of truth (add new propagated fields there,
+not in this doc). The helper is idempotent, so per-cell judgment fields you
+write afterward win (e.g. a per-task `system_prompt` override).
 
 ## Input Format
 
@@ -74,14 +90,11 @@ Extract the following information from the YAML structure:
    - `runs[]` - List of all runs (fine-tuned + control)
    - For each run: `name`, `type`, `model`, `parameters`
 
-6. **Evaluation configuration:**
-   - `evaluation.system_prompt` - Must match training
-   - `evaluation.do_sample` - OPTIONAL decoding mode (default false = greedy argmax)
-   - `evaluation.temperature` - OPTIONAL sampling temperature; required only when `do_sample: true`
-   - `evaluation.max_connections` - OPTIONAL ceiling on samples per HF batch. If absent, `setup_inspect.py` defaults to 32 (matching inspect-ai upstream). Propagate to each eval_config.yaml only if explicitly set in experiment_summary.yaml. Note: raising this on variable-length workloads can slow evals due to padding waste; see issue #318 investigation comment.
-   - `evaluation.scorer[]` - List of scorers with optional params (see Parsing Scorer Configuration below)
-   - `evaluation.tasks[]` - List of evaluation tasks
-   - `evaluation.matrix[]` - Which runs evaluate on which tasks/epochs
+6. **Evaluation configuration — structural fields only:**
+   - `evaluation.tasks[]` — List of evaluation tasks (see Parsing Evaluation Tasks below)
+   - `evaluation.matrix[]` — Which runs evaluate on which tasks/epochs (see Parsing Evaluation Matrix below)
+
+   **All other `evaluation.*` fields** (`system_prompt`, `temperature`, `do_sample`, `max_tokens`, `max_connections`, `scorer`) are populated by `propagate_eval_fields()` (see "Key Pattern: Propagate First"). Don't extract them here — the helper reads them straight from `experiment_summary.yaml`.
 
 7. **Compute estimates (optional):**
    - `evaluation.compute.time` - Estimated SLURM time limit for eval jobs
@@ -230,22 +243,19 @@ From the `runs[]` list in experiment_summary.yaml, identify control runs:
 - These runs have no LoRA rank (or LoRA Rank = "-")
 - Example: `| Llama-3.2-1B-Instruct_control | Llama-3.2-1B-Instruct | - | Control | N/A |`
 
-### Extracting Values for All Runs (Fine-tuned and Control)
+### Per-cell agent work (Fine-tuned and Control)
 
-For both fine-tuned and control runs, generate `eval_config.yaml` with configuration for evaluation.
+For every cell — fine-tuned or control — `eval_config.yaml` is built by
+**calling `propagate_eval_fields()` first**, then layering in the per-cell
+judgment fields below. **Do not "copy" or "extract" any `EVAL_FIELDS`
+value by hand** — that is the helper's job.
 
-**For fine-tuned runs:**
-- Copy `prompt` and `system_prompt` from `setup_finetune.yaml`
-- If the cell's task has a `system_prompt` override, use that instead
-- Add scorer configuration from `evaluation.scorer` in experiment_summary.yaml
-- Place in `{experiment_dir}/{run_dir}/eval/{cell_name}/eval_config.yaml`
+The fields that *do* require agent judgment, per cell:
 
-**For control runs:**
-Extract the following from experiment_summary.yaml:
-- `data_path`: Full path from Resources → Dataset → Path
-- `prompt`: From Configuration → prompt (e.g., `"{input}"`)
-- `system_prompt`: From Configuration → System prompt (or the per-task override if set)
-- `model_path`: From Resources → Models (the control model path)
+- `model_path` — Fine-tuned: `{base_directory}/{run_name}/artifacts/epoch_{N}`. Control: `models.base[].path`.
+- `data_path` — resolved per the precedence ladder in "Populating eval_config.yaml" below.
+- `model_hf_name`, `output_dir`, `vis_label`, `use_chat_template`, `epoch`, `finetuned`, `source_model` — composed per the rules in "Populating eval_config.yaml".
+- Per-task overrides (`system_prompt`, `assistant_prefix`) — when an `evaluation.tasks[]` entry sets these, write them *after* the propagation call so they take precedence over the experiment-wide defaults.
 
 1. **Create the cell directory + logs dir for every (task, epoch) pair:**
    ```bash
@@ -290,51 +300,48 @@ output_dir: /outputs/run1/artifacts/
 
 > **Note:** For fine-tuned runs, `setup_inspect.py` derives `output_dir` from `model_path`'s parent at render time and ignores whatever you write in this field. The field is still required for schema consistency and as documentation, but the rendered SLURM's GPU metrics path is guaranteed to match `model_path`. Set `output_dir` to the artifacts directory (`{base}/{run}/artifacts/`) for clarity.
 
-**Optional keys** (task args passed as `-T`, metadata passed as `--metadata`):
+**Agent-supplied optional keys** (task args passed as `-T`, metadata passed as `--metadata`):
 
 ```yaml
-# Task args (-T key=value)
+# Task args (-T key=value) — agent writes these per cell
 data_path: /data/acs_income.json
 vis_label: 1B_ft
 use_chat_template: "true"
-max_tokens: 5          # propagated from evaluation.max_tokens (if set)
-# temperature: omitted under greedy decoding (the default). Propagate it ONLY
-# when do_sample: true — it is the sampling temperature and is otherwise inert.
 
-# Metadata (--metadata key=value)
+# Metadata (--metadata key=value) — agent writes these per cell
 epoch: 0
 finetuned: true
 source_model: Llama-3.2-1B-Instruct
-
-# Model arg (passed as -M do_sample=...)
-# Decoding mode. Defaults to false (greedy argmax — deterministic, no RNG).
-# setup_inspect.py emits -M do_sample=false on every script when absent.
-# Set to true only for sampling-based evals (temperature then applies).
-do_sample: false
-
-# Inspect CLI flag (passed as --max-connections)
-# Omit unless experiment_summary.yaml set evaluation.max_connections explicitly.
-# When absent, setup_inspect.py defaults to 32 (matches inspect-ai upstream).
-max_connections: 32
 ```
 
-**Experiment-specific config** (not used by SLURM renderer, read by inspect task at runtime):
-
-```yaml
-scorer:
-  - name: match
-  - name: risk_scorer
-    params:
-      option_tokens: ["0", "1"]
-system_prompt: ""
-prompt: "{input}\n"
-```
+**Propagated keys** — populated by `propagate_eval_fields()`. The current
+`EVAL_FIELDS` map covers `system_prompt`, `temperature`, `do_sample`,
+`max_tokens`, `max_connections`, `scorer`. You do not write these by
+hand. The downstream tooling tolerates missing/extra values: `do_sample`
+defaults to `false` at the SLURM-render layer when absent;
+`max_connections` defaults to 32. The agent's only responsibility is to
+call the helper.
 
 Note: `config_path` and `eval_dir` are **auto-derived** from the location of the YAML file — do not include them in eval_config.yaml.
 
 #### Populating eval_config.yaml
 
-Extract values from setup_finetune.yaml (fine-tuned runs) or experiment_summary.yaml (control runs):
+The order is fixed: **propagate first, judgment second.**
+
+**Step 1 — Call `propagate_eval_fields()` first** (see "Key Pattern: Propagate
+First" above for the call and the `EVAL_FIELDS` set it fills). Run it once per
+cell, before writing the YAML.
+
+Note on `temperature`: the helper copies it unconditionally when present.
+`setup_inspect.py` drops `temperature` from rendered task args when
+`do_sample` is false, so an inert value in `eval_config.yaml` is harmless.
+
+**Step 2 — Write the per-cell judgment fields.** These require composition,
+branching, or per-cell overrides. Because Step 1 ran first and the helper
+is idempotent, your writes here are not pre-empted *and* per-cell
+overrides take precedence when they set the same key (e.g. a per-task
+`system_prompt`).
+
 - `task_script`: From `evaluation.tasks[].script` + `@` + task name
 - `task_name`: From `evaluation.tasks[].name`
 - `model_path`: Fine-tuned: `{base_directory}/{run_name}/artifacts/epoch_{N}`. Control: original model path
@@ -347,12 +354,15 @@ Extract values from setup_finetune.yaml (fine-tuned runs) or experiment_summary.
   4. Else — fall back to the dataset path in `setup_finetune.yaml` (fine-tuned runs) or `data.training.path` in `experiment_summary.yaml` (control runs).
 
   Log the resolved path into `logs/scaffold-inspect.log` so the audit trail captures exactly which file backed this evaluation.
-- `system_prompt`: per-cell resolution — start from the run's configuration (may vary per run!), then **override with `task['system_prompt']` if the task entry sets it** (per-task override, see Parsing Evaluation Tasks above). This is how heterogeneous prompts inside one run end up in distinct cells.
-- `assistant_prefix`: same per-cell resolution as `system_prompt` if `task['assistant_prefix']` is set.
-- `scorer`: From `evaluation.scorer` in experiment_summary.yaml
-- `temperature`: From `evaluation.temperature` in experiment_summary.yaml (OPTIONAL). Propagate **only when `do_sample: true`** — temperature is the sampling temperature and is inert under the default greedy decoding (`setup_inspect.py` drops it from the task args when `do_sample` is false). On the sampling path it must be strictly > 0; `setup_inspect.py` hard-errors on a missing or `<= 0` temperature when `do_sample: true`, because HF's `TemperatureLogitsWarper` does `scores / temperature` and raises `ValueError` at zero (division by zero → inf/NaN logits).
-- `do_sample`: From `evaluation.do_sample` in experiment_summary.yaml (OPTIONAL, default `false`). Propagate only if explicitly set; when absent, `setup_inspect.py` emits `-M do_sample=false` (greedy argmax — deterministic, bitwise-reproducible, no RNG). Set `true` only for sampling-based evals.
-- `max_tokens`: From `evaluation.max_tokens` in experiment_summary.yaml (OPTIONAL). Propagate only if explicitly set; otherwise omit and the @task function's per-task default applies.
+- `system_prompt` *(per-task override only)*: write this **only** if the
+  `evaluation.tasks[]` entry sets a task-level `system_prompt`. When
+  present, the per-task override takes precedence over the experiment-wide
+  default the helper propagated. Do not "copy" `evaluation.system_prompt`
+  here — Step 1's helper already did that.
+- `assistant_prefix` *(per-task override only)*: same shape as `system_prompt`.
+
+**Reporting:** name the `propagate_eval_fields()` call and the field count;
+don't tabulate the propagated values per-field — they weren't decisions.
 
 #### setup_inspect.py Usage
 
@@ -736,6 +746,7 @@ Result: {outcome}
 - Verification of inspect-ai task scripts
 - Evaluation matrix analysis (which runs, which epochs, which tasks)
 - Directory creation
+- **`PROPAGATE_EVAL_FIELDS`** — one entry per cell recording that `propagate_eval_fields()` ran and how many `EVAL_FIELDS` it populated. The #502 audit trail: a missing entry means the call was skipped and the YAML is suspect.
 - SLURM script generation for each evaluation
 - Any errors or warnings
 - Final summary of created evaluation configs
