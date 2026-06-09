@@ -38,6 +38,28 @@ This subagent can be invoked in two ways:
 6. **Create scaffold log** - Document all actions taken in `logs/scaffold-inspect.log`
 7. **Report summary** - Show user what was created and any issues
 
+## Key Pattern: Two-Step Field Population
+
+For each cell's `eval_config.yaml`, the field set is populated in two
+distinct steps:
+
+1. **Agent judgment** — per-cell values requiring composition or branching
+   (model_path, data_path, per-task overrides).
+2. **Deterministic propagation** — call `propagate_eval_fields()` to copy
+   experiment-wide defaults (system_prompt, scorer, temperature, etc.)
+   from `experiment_summary.yaml`.
+
+```python
+from cruijff_kit.tools.experiment.propagate import propagate_eval_fields
+propagate_eval_fields(experiment_summary, eval_config)
+```
+
+**Do not hand-copy fields covered by EVAL_FIELDS.** The map in
+`src/tools/experiment/propagate.py` is the single source of truth — add to
+it when you need a new propagated field. (Background: #470 → #502.)
+
+See "Populating eval_config.yaml" below for the full per-field detail.
+
 ## Input Format
 
 ### Finding the Experiment
@@ -333,6 +355,11 @@ prompt: "{input}\n"
 Note: `config_path` and `eval_dir` are **auto-derived** from the location of the YAML file — do not include them in eval_config.yaml.
 
 #### Populating eval_config.yaml
+
+> **TL;DR — two steps:** Step 1 is per-cell judgment. Step 2 calls
+> `propagate_eval_fields()`. **Don't skip Step 2** or fields in
+> `EVAL_FIELDS` will silently drop. (See the "Key Pattern: Two-Step Field
+> Population" callout near the top of this doc for the shape.)
 
 The work splits cleanly between **agent judgment** (per-cell decisions, path
 composition, branching) and a **deterministic propagation step** (flat field

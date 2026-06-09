@@ -35,6 +35,32 @@ When invoked:
 
 **CRITICAL: You must execute setup_finetune.py automatically. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.**
 
+## Key Pattern: Two-Step Field Population
+
+For each fine-tuned run's `setup_finetune.yaml`, the field set is populated
+in two distinct steps:
+
+1. **Agent judgment** — per-run values requiring composition or branching
+   (paths, `model_checkpoint`, per-run `lora_rank` / `lr`, `custom_recipe`
+   choice).
+2. **Deterministic propagation** — call `propagate_train_fields()` to copy
+   experiment-wide controls (epochs, batch_size, prompt, system_prompt,
+   etc.) from `experiment_summary.yaml`.
+
+```python
+from cruijff_kit.tools.experiment.propagate import propagate_train_fields
+propagate_train_fields(experiment_summary, setup_finetune)
+```
+
+**Do not hand-copy fields covered by TRAIN_FIELDS.** The map in
+`src/tools/experiment/propagate.py` is the single source of truth — add to
+it when you need a new propagated field. (Background: #470 → #502.)
+
+**One exception requires agent judgment after the call:** when
+`dataset_type` is `text_completion`, `pop()` the `system_prompt` (base
+models have no chat template). See "Generating setup_finetune.yaml" →
+Step 4 below for detail.
+
 ## Model-Aware SLURM Resources
 
 The `setup_finetune.py` script automatically sets SLURM resources for memory, CPUs, and GPUs based on model size (from `model_configs.py`). **Partition and constraint are NOT set by model_configs** — they come from the caller.
@@ -297,7 +323,13 @@ add a new bullet to this list.**
 4. **Apply the text_completion exception for `system_prompt`.** Base /
    non-instruct models have no chat template to hold a system prompt; the
    propagation helper does not know about the dataset type, so this is the
-   agent's call:
+   agent's call.
+
+   **Deriving `dataset_type`:** if `controls.dataset_type` is set in
+   `experiment_summary.yaml`, use it verbatim. Otherwise infer from the
+   model name — Instruct models (e.g. `Llama-3.2-1B-Instruct`) get
+   `chat_completion`; base models (e.g. `Llama-3.2-1B`) get
+   `text_completion`.
 
 ```python
 if dataset_type in ("text_completion", "text_completion_dataset"):
