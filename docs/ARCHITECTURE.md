@@ -270,7 +270,7 @@ After running finetune:
 
 - **LoRA alpha**: Automatically set to 2 × rank by `setup_finetune.py`
 - **Run names**: Auto-generated positive adjective-noun pairs (e.g., "happy-narwhal") via `src/utils/run_names.py`
-- **Output structure**: `{output_dir_base}/{run_name}/artifacts/epoch_N/`
+- **Output structure**: `{experiment_dir}/{run_name}/artifacts/epoch_N/`
 
 ### Checkpoint Management
 

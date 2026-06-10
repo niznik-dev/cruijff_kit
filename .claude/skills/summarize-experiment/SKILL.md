@@ -48,7 +48,7 @@ Read experiment_summary.yaml to identify runs:
 - `epochs`: List of epochs to evaluate (null for control runs)
 
 **Determine status by checking filesystem:**
-- Fine-tuning: Check for `{output_base}/{run_name}/artifacts/` and SLURM outputs
+- Fine-tuning: Check for `{experiment_dir}/{run_name}/artifacts/` and SLURM outputs
 - Evaluation: Check for `{run_dir}/eval/*/logs/*.eval` files
 
 ### 3. Extract Training Loss
