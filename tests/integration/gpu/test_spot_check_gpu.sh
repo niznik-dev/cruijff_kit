@@ -33,7 +33,7 @@ fi
 echo "========================================="
 echo "Test 1: Fine-tuned 3B model"
 echo "========================================="
-python -m cruijff_kit.utils.spot_check \
+python -m cruijff_kit.tools.inspect.spot_check \
     --model "$FT" \
     --data "$DATA" \
     --split validation \
@@ -44,7 +44,7 @@ echo ""
 echo "========================================="
 echo "Test 2: Base 3B model (no fine-tuning)"
 echo "========================================="
-python -m cruijff_kit.utils.spot_check \
+python -m cruijff_kit.tools.inspect.spot_check \
     --model "$BASE" \
     --data "$DATA" \
     --split validation \
@@ -55,7 +55,7 @@ echo ""
 echo "========================================="
 echo "Test 3: Fine-tuned with --no-chat-template"
 echo "========================================="
-python -m cruijff_kit.utils.spot_check \
+python -m cruijff_kit.tools.inspect.spot_check \
     --model "$FT" \
     --data "$DATA" \
     --split validation \
@@ -67,7 +67,7 @@ echo ""
 echo "========================================="
 echo "Test 4: Fine-tuned with system prompt"
 echo "========================================="
-python -m cruijff_kit.utils.spot_check \
+python -m cruijff_kit.tools.inspect.spot_check \
     --model "$FT" \
     --data "$DATA" \
     --split validation \

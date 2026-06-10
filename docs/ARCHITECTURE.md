@@ -23,6 +23,8 @@ cruijff_kit/
 │   │   │   ├── config_recipe_loader.py  # Load and merge torchtune recipe configs
 │   │   │   ├── extract_loss.py          # Pull loss curves out of training logs
 │   │   │   ├── model_configs.py         # Per-model GPU/tokenizer settings
+│   │   │   ├── calc_token_stats.py      # Token-count stats for fine-tuning datasets
+│   │   │   ├── check_if_model_is_finetuned.py  # Diagnostic: base vs PEFT-adapter divergence
 │   │   │   ├── custom_recipes/          # Modified torchtune recipes
 │   │   │   ├── datasets/                # Custom dataset classes (chat_completion, text_completion)
 │   │   │   ├── templates/               # YAML/SLURM templates
@@ -34,13 +36,14 @@ cruijff_kit/
 │   │   │   ├── pdf_preprocess.py        # Markdown→PDF preprocessing for authored reports
 │   │   │   ├── summary_binary.py        # Binary-classification summary helpers
 │   │   │   ├── viz_helpers.py           # Plot/data adapters for inspect-viz
+│   │   │   ├── spot_check.py            # Quick inference check (mirrors inspect HF backend)
 │   │   │   ├── scorers/                 # Custom scorers (risk_scorer, calibration_metrics, …)
 │   │   │   ├── templates/               # SLURM templates (eval_template.slurm)
 │   │   │   └── heterogeneity/           # Group-level fairness analysis
 │   │   ├── experiment/             # Experiment-level operations
 │   │   │   ├── archive_experiment.py    # Archive a completed experiment
 │   │   │   └── prepare_data.py          # Top-level dataset preparation entry point
-│   │   ├── slurm/                  # SLURM-side helpers
+│   │   ├── slurm/                  # Compute-estimation/metrics utils for the design-experiment skill (no production importers)
 │   │   │   └── compute_metrics.py       # GPU metrics aggregation
 │   │   └── model_organisms/        # Synthetic sequence-labeling framework
 │   │       ├── inputs.py                # Input-type registry (bits, digits, letters)
@@ -48,13 +51,10 @@ cruijff_kit/
 │   │       ├── formats.py               # Text-rendering registry (spaced, dense, …)
 │   │       ├── generate.py              # Dataset generator CLI
 │   │       └── inspect_task.py          # Unified inspect-ai evaluation task
-│   ├── utils/                      # Shared utilities and helpers
+│   ├── utils/                      # Generic, cross-cutting infra owned by no single domain
 │   │   ├── layout.py                    # Layout constants (e.g. ARTIFACTS_DIR)
 │   │   ├── run_names.py                 # Random name generation for runs
-│   │   ├── logger.py                    # Structured logging utilities
-│   │   ├── check_if_model_is_finetuned.py  # Model state inspection
-│   │   ├── calc_token_stats.py          # Token-count statistics for datasets
-│   │   └── spot_check.py                # Quick model inference testing
+│   │   └── logger.py                    # Structured logging utilities
 │   └── tabular_to_text_gen/        # Tabular→text conversion pipeline (own ARCHITECTURE.md)
 │       ├── convert.py                   # CLI entry point
 │       ├── lib/                         # Conversion engine + perturbations + templates
@@ -376,11 +376,15 @@ At a high level: hand-write `setup_finetune.yaml` in each run directory under `c
 
 ### Using Utilities
 
-Common utilities in `src/utils/`:
+`src/utils/` holds generic, cross-cutting infrastructure owned by no single domain —
+either imported across multiple tool domains (e.g. `logger`, `layout`) or generic
+enough that any domain could use it, even if only one wires it up today (e.g.
+`run_names`). Domain-specific scripts live in their domain package under `src/tools/`
+instead.
+
 - `layout.py` - Layout constants (e.g. `ARTIFACTS_DIR`)
 - `run_names.py` - Generate random experiment names
 - `logger.py` - Structured logging helpers
-- `check_if_model_is_finetuned.py` - Inspect model state
 
 ## HPC Integration
 
