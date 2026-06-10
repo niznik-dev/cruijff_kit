@@ -6,20 +6,20 @@ Uses the same model-loading pattern as inspect-ai's HF backend so that
 "what you see in spot_check" matches "what inspect would do."
 
 Usage:
-    python -m cruijff_kit.utils.spot_check \
+    python -m cruijff_kit.tools.inspect.spot_check \
         --model /path/to/checkpoint \
         --data /path/to/eval_data.json \
         --n 5
 
     # With split (for nested JSON with train/validation keys)
-    python -m cruijff_kit.utils.spot_check \
+    python -m cruijff_kit.tools.inspect.spot_check \
         --model /path/to/model \
         --data /path/to/data.json \
         --split validation \
         --n 5
 
 Or from Python:
-    from cruijff_kit.utils.spot_check import spot_check
+    from cruijff_kit.tools.inspect.spot_check import spot_check
     spot_check(model_path, data_path, n=5, split="validation")
 """
 

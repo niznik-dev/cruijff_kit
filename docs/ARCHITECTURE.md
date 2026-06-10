@@ -23,6 +23,8 @@ cruijff_kit/
 │   │   │   ├── config_recipe_loader.py  # Load and merge torchtune recipe configs
 │   │   │   ├── extract_loss.py          # Pull loss curves out of training logs
 │   │   │   ├── model_configs.py         # Per-model GPU/tokenizer settings
+│   │   │   ├── calc_token_stats.py      # Token-count stats for fine-tuning datasets
+│   │   │   ├── check_if_model_is_finetuned.py  # Diagnostic: base vs PEFT-adapter divergence
 │   │   │   ├── custom_recipes/          # Modified torchtune recipes
 │   │   │   ├── datasets/                # Custom dataset classes (chat_completion, text_completion)
 │   │   │   ├── templates/               # YAML/SLURM templates
@@ -34,6 +36,7 @@ cruijff_kit/
 │   │   │   ├── pdf_preprocess.py        # Markdown→PDF preprocessing for authored reports
 │   │   │   ├── summary_binary.py        # Binary-classification summary helpers
 │   │   │   ├── viz_helpers.py           # Plot/data adapters for inspect-viz
+│   │   │   ├── spot_check.py            # Quick inference check (mirrors inspect HF backend)
 │   │   │   ├── scorers/                 # Custom scorers (risk_scorer, calibration_metrics, …)
 │   │   │   ├── templates/               # SLURM templates (eval_template.slurm)
 │   │   │   └── heterogeneity/           # Group-level fairness analysis
@@ -48,13 +51,10 @@ cruijff_kit/
 │   │       ├── formats.py               # Text-rendering registry (spaced, dense, …)
 │   │       ├── generate.py              # Dataset generator CLI
 │   │       └── inspect_task.py          # Unified inspect-ai evaluation task
-│   ├── utils/                      # Shared utilities and helpers
+│   ├── utils/                      # Cross-cutting infra (imported across ≥2 domains, owned by none)
 │   │   ├── layout.py                    # Layout constants (e.g. ARTIFACTS_DIR)
 │   │   ├── run_names.py                 # Random name generation for runs
-│   │   ├── logger.py                    # Structured logging utilities
-│   │   ├── check_if_model_is_finetuned.py  # Model state inspection
-│   │   ├── calc_token_stats.py          # Token-count statistics for datasets
-│   │   └── spot_check.py                # Quick model inference testing
+│   │   └── logger.py                    # Structured logging utilities
 │   └── tabular_to_text_gen/        # Tabular→text conversion pipeline (own ARCHITECTURE.md)
 │       ├── convert.py                   # CLI entry point
 │       ├── lib/                         # Conversion engine + perturbations + templates
@@ -376,11 +376,13 @@ At a high level: hand-write `setup_finetune.yaml` in each run directory under `c
 
 ### Using Utilities
 
-Common utilities in `src/utils/`:
+`src/utils/` holds cross-cutting infrastructure only — code imported across two or
+more tool domains and owned by none. Domain-specific scripts live in their domain
+package under `src/tools/` instead.
+
 - `layout.py` - Layout constants (e.g. `ARTIFACTS_DIR`)
 - `run_names.py` - Generate random experiment names
 - `logger.py` - Structured logging helpers
-- `check_if_model_is_finetuned.py` - Inspect model state
 
 ## HPC Integration
 

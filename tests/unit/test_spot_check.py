@@ -1,4 +1,4 @@
-"""Tests for cruijff_kit.utils.spot_check.
+"""Tests for cruijff_kit.tools.inspect.spot_check.
 
 Tests load_data directly. Tests for _load_model, _generate_one, and spot_check
 use mocks since they require GPU access.
@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import torch
 
-from cruijff_kit.utils.spot_check import (
+from cruijff_kit.tools.inspect.spot_check import (
     _generate_one,
     _load_model,
     load_data,
@@ -144,8 +144,8 @@ class TestLoadData:
 class TestLoadModel:
     """Tests for _load_model function."""
 
-    @patch("cruijff_kit.utils.spot_check.AutoModelForCausalLM")
-    @patch("cruijff_kit.utils.spot_check.AutoTokenizer")
+    @patch("cruijff_kit.tools.inspect.spot_check.AutoModelForCausalLM")
+    @patch("cruijff_kit.tools.inspect.spot_check.AutoTokenizer")
     def test_sets_pad_token_to_eos(self, mock_auto_tok, mock_auto_model):
         tok = MagicMock()
         tok.eos_token = "<eos>"
@@ -155,8 +155,8 @@ class TestLoadModel:
 
         assert tokenizer.pad_token == "<eos>"
 
-    @patch("cruijff_kit.utils.spot_check.AutoModelForCausalLM")
-    @patch("cruijff_kit.utils.spot_check.AutoTokenizer")
+    @patch("cruijff_kit.tools.inspect.spot_check.AutoModelForCausalLM")
+    @patch("cruijff_kit.tools.inspect.spot_check.AutoTokenizer")
     def test_sets_left_padding(self, mock_auto_tok, mock_auto_model):
         tok = MagicMock()
         tok.eos_token = "<eos>"
@@ -166,8 +166,8 @@ class TestLoadModel:
 
         assert tokenizer.padding_side == "left"
 
-    @patch("cruijff_kit.utils.spot_check.AutoModelForCausalLM")
-    @patch("cruijff_kit.utils.spot_check.AutoTokenizer")
+    @patch("cruijff_kit.tools.inspect.spot_check.AutoModelForCausalLM")
+    @patch("cruijff_kit.tools.inspect.spot_check.AutoTokenizer")
     def test_loads_with_device_map_auto(self, mock_auto_tok, mock_auto_model):
         tok = MagicMock()
         tok.eos_token = "<eos>"
@@ -179,8 +179,8 @@ class TestLoadModel:
             "/fake/path", device_map="auto"
         )
 
-    @patch("cruijff_kit.utils.spot_check.AutoModelForCausalLM")
-    @patch("cruijff_kit.utils.spot_check.AutoTokenizer")
+    @patch("cruijff_kit.tools.inspect.spot_check.AutoModelForCausalLM")
+    @patch("cruijff_kit.tools.inspect.spot_check.AutoTokenizer")
     def test_calls_model_eval(self, mock_auto_tok, mock_auto_model):
         tok = MagicMock()
         tok.eos_token = "<eos>"
@@ -244,8 +244,8 @@ class TestGenerateOne:
 class TestSpotCheck:
     """Tests for spot_check function."""
 
-    @patch("cruijff_kit.utils.spot_check._generate_one")
-    @patch("cruijff_kit.utils.spot_check._load_model")
+    @patch("cruijff_kit.tools.inspect.spot_check._generate_one")
+    @patch("cruijff_kit.tools.inspect.spot_check._load_model")
     def test_returns_results_with_match_info(self, mock_load, mock_gen, flat_data_file):
         mock_model = MagicMock()
         mock_model.device = torch.device("cpu")
@@ -265,8 +265,8 @@ class TestSpotCheck:
         assert results[1]["match"] is True
         assert results[2]["match"] is False
 
-    @patch("cruijff_kit.utils.spot_check._generate_one")
-    @patch("cruijff_kit.utils.spot_check._load_model")
+    @patch("cruijff_kit.tools.inspect.spot_check._generate_one")
+    @patch("cruijff_kit.tools.inspect.spot_check._load_model")
     def test_passes_sysprompt_to_generate(self, mock_load, mock_gen, flat_data_file):
         mock_model = MagicMock()
         mock_model.device = torch.device("cpu")
@@ -283,8 +283,8 @@ class TestSpotCheck:
         gen_kwargs = mock_gen.call_args[1]
         assert gen_kwargs["sysprompt"] == "Be helpful"
 
-    @patch("cruijff_kit.utils.spot_check._generate_one")
-    @patch("cruijff_kit.utils.spot_check._load_model")
+    @patch("cruijff_kit.tools.inspect.spot_check._generate_one")
+    @patch("cruijff_kit.tools.inspect.spot_check._load_model")
     def test_respects_no_chat_template(self, mock_load, mock_gen, flat_data_file):
         mock_model = MagicMock()
         mock_model.device = torch.device("cpu")
