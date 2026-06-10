@@ -8,7 +8,7 @@ from cruijff_kit.tools.torchtune.setup_finetune import (
     calculate_lora_alpha,
     validate_lr_scheduler,
     validate_dataset_type,
-    construct_output_dir,
+    construct_artifacts_dir,
     configure_dataset_for_format,
     extract_flat_params,
     compute_training_steps,
@@ -137,45 +137,65 @@ def test_validate_dataset_type_invalid():
     assert "invalid_dataset" in str(exc_info.value)
 
 
-# Tests for construct_output_dir()
+# Tests for construct_artifacts_dir()
 
 
-def test_construct_output_dir_with_experiment_and_trailing_slash():
+def test_construct_artifacts_dir_with_experiment_and_trailing_slash():
     """Test output dir construction with experiment name and trailing slash."""
-    result = construct_output_dir(
-        output_dir_base="/scratch/output/",
+    result = construct_artifacts_dir(
+        project_dir="/scratch/output/",
         experiment_name="my_experiment",
         model_run_name="run_123",
     )
     assert result == "/scratch/output/my_experiment/run_123/artifacts/"
 
 
-def test_construct_output_dir_with_experiment_no_trailing_slash():
+def test_construct_artifacts_dir_with_experiment_no_trailing_slash():
     """Test output dir construction with experiment name, no trailing slash."""
-    result = construct_output_dir(
-        output_dir_base="/scratch/output",
+    result = construct_artifacts_dir(
+        project_dir="/scratch/output",
         experiment_name="my_experiment",
         model_run_name="run_123",
     )
     assert result == "/scratch/output/my_experiment/run_123/artifacts/"
 
 
-def test_construct_output_dir_empty_experiment_name_raises():
+def test_construct_artifacts_dir_empty_experiment_name_raises():
     """Empty experiment_name must raise ValueError (legacy fallback retired)."""
     with pytest.raises(ValueError, match="experiment_name is required"):
-        construct_output_dir(
-            output_dir_base="/scratch/output/",
+        construct_artifacts_dir(
+            project_dir="/scratch/output/",
             experiment_name="",
             model_run_name="run_123",
         )
 
 
-def test_construct_output_dir_none_experiment_name_raises():
+def test_construct_artifacts_dir_none_experiment_name_raises():
     """None experiment_name must raise ValueError (legacy fallback retired)."""
     with pytest.raises(ValueError, match="experiment_name is required"):
-        construct_output_dir(
-            output_dir_base="/scratch/output/",
+        construct_artifacts_dir(
+            project_dir="/scratch/output/",
             experiment_name=None,
+            model_run_name="run_123",
+        )
+
+
+def test_construct_artifacts_dir_empty_project_dir_raises():
+    """Empty project_dir must raise, not silently root the path at '/'."""
+    with pytest.raises(ValueError, match="project_dir is required"):
+        construct_artifacts_dir(
+            project_dir="",
+            experiment_name="my_experiment",
+            model_run_name="run_123",
+        )
+
+
+def test_construct_artifacts_dir_none_project_dir_raises():
+    """None project_dir must raise ValueError, not AttributeError on .endswith."""
+    with pytest.raises(ValueError, match="project_dir is required"):
+        construct_artifacts_dir(
+            project_dir=None,
+            experiment_name="my_experiment",
             model_run_name="run_123",
         )
 

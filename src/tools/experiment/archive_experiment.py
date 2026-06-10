@@ -52,13 +52,12 @@ def _bytes_to_mb(b):
     return round(b / (1024 * 1024), 1)
 
 
-def inventory_experiment(experiment_dir, output_dir_base):
+def inventory_experiment(experiment_dir):
     """
     Categorize all experiment files as KEEP or DELETE.
 
     Args:
-        experiment_dir: Path to the experiment directory.
-        output_dir_base: Path to the output directory base (contains {run_name}/artifacts/ dirs).
+        experiment_dir: Path to the experiment directory (contains {run_name}/artifacts/ dirs).
 
     Returns:
         Dictionary with:
@@ -127,9 +126,8 @@ def inventory_experiment(experiment_dir, output_dir_base):
 
     # --- DELETE paths: only checkpoint directories ---
     delete_paths = []
-    out_base = Path(output_dir_base)
     for run_name in run_names:
-        out_dir = out_base / run_name / ARTIFACTS_DIR
+        out_dir = exp_dir / run_name / ARTIFACTS_DIR
         if out_dir.exists():
             delete_paths.append(
                 {
@@ -242,13 +240,12 @@ def verify_archive(archive_dir, inventory):
     }
 
 
-def delete_originals(experiment_dir, output_dir_base, run_names):
+def delete_originals(experiment_dir, run_names):
     """
-    Remove the experiment directory and checkpoint output directories.
+    Remove the experiment directory and its checkpoint directories.
 
     Args:
         experiment_dir: Path to the experiment directory.
-        output_dir_base: Path to the output directory base.
         run_names: List of run names.
 
     Returns:
@@ -258,10 +255,11 @@ def delete_originals(experiment_dir, output_dir_base, run_names):
     errors = []
     freed_bytes = 0
 
+    exp_dir = Path(experiment_dir)
+
     # Delete checkpoint directories (the big ones)
-    out_base = Path(output_dir_base)
     for run_name in run_names:
-        out_dir = out_base / run_name / ARTIFACTS_DIR
+        out_dir = exp_dir / run_name / ARTIFACTS_DIR
         if out_dir.exists():
             size = _dir_size_bytes(out_dir)
             try:
@@ -271,16 +269,7 @@ def delete_originals(experiment_dir, output_dir_base, run_names):
             except Exception as e:
                 errors.append({"path": str(out_dir), "error": str(e)})
 
-    # Clean up output base directory if now empty
-    if out_base.exists() and not any(out_base.iterdir()):
-        try:
-            out_base.rmdir()
-            deleted.append(str(out_base))
-        except Exception as e:
-            errors.append({"path": str(out_base), "error": str(e)})
-
     # Delete experiment directory (now archived)
-    exp_dir = Path(experiment_dir)
     if exp_dir.exists():
         size = _dir_size_bytes(exp_dir)
         try:
@@ -333,7 +322,7 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
             "message": f"experiment_summary.yaml not found in {experiment_dir}",
         }
 
-    # Parse to get output directory
+    # Parse and validate required experiment fields
     try:
         with open(summary_path) as f:
             config = yaml.safe_load(f)
@@ -343,8 +332,7 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
             "message": f"Failed to parse experiment_summary.yaml: {e}",
         }
 
-    output_dir_base = config.get("experiment", {}).get("directory", "")
-    if not output_dir_base:
+    if not config.get("experiment", {}).get("directory", ""):
         return {
             "status": "error",
             "message": "No experiment.directory found in experiment_summary.yaml",
@@ -359,7 +347,7 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
         }
 
     # Inventory
-    inventory = inventory_experiment(str(exp_dir), output_dir_base)
+    inventory = inventory_experiment(str(exp_dir))
     if inventory["status"] != "success":
         return inventory
 
@@ -409,7 +397,7 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
         }
 
     # Delete originals (checkpoints + experiment dir, now archived)
-    delete_result = delete_originals(str(exp_dir), output_dir_base, inventory["runs"])
+    delete_result = delete_originals(str(exp_dir), inventory["runs"])
 
     return {
         "status": "success",

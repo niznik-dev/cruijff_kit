@@ -17,17 +17,16 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
     """
     Create a minimal experiment directory with expected structure.
 
-    Returns (experiment_dir, output_dir_base) as strings.
+    Returns the experiment directory as a string.
     """
     if run_names is None:
         run_names = ["run_rank4", "run_rank8"]
 
     exp_name = "test_experiment_2026-03-23"
-    # Under the unified ck-projects/ layout, experiment dir and output base
-    # point to the same location — outputs nest inside each run's dir.
+    # Under the unified ck-projects/ layout, checkpoints nest inside each run's
+    # dir within the experiment dir itself — there is no separate output base.
     exp_dir = tmp_path / "ck-projects" / "capitalization" / exp_name
     exp_dir.mkdir(parents=True)
-    out_base = exp_dir
 
     # experiment_summary.yaml
     config = {
@@ -97,7 +96,7 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
         if "findings" in extras:
             (exp_dir / "findings.md").write_text("# Findings\nWe learned stuff.")
 
-    return str(exp_dir), str(out_base)
+    return str(exp_dir)
 
 
 # --- inventory_experiment tests ---
@@ -105,8 +104,8 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
 
 def test_inventory_complete_experiment(tmp_path):
     """Complete experiment → all files categorized correctly."""
-    exp_dir, out_base = _make_experiment(tmp_path)
-    result = inventory_experiment(exp_dir, out_base)
+    exp_dir = _make_experiment(tmp_path)
+    result = inventory_experiment(exp_dir)
 
     assert result["status"] == "success"
     assert len(result["runs"]) == 2
@@ -129,8 +128,8 @@ def test_inventory_complete_experiment(tmp_path):
 
 def test_inventory_incomplete_experiment(tmp_path):
     """Missing eval logs → incomplete_runs populated."""
-    exp_dir, out_base = _make_experiment(tmp_path, include_eval=False)
-    result = inventory_experiment(exp_dir, out_base)
+    exp_dir = _make_experiment(tmp_path, include_eval=False)
+    result = inventory_experiment(exp_dir)
 
     assert result["status"] == "success"
     assert set(result["incomplete_runs"]) == {"run_rank4", "run_rank8"}
@@ -140,7 +139,7 @@ def test_inventory_missing_summary(tmp_path):
     """No experiment_summary.yaml → error."""
     exp_dir = tmp_path / "empty_experiment"
     exp_dir.mkdir()
-    result = inventory_experiment(str(exp_dir), str(tmp_path))
+    result = inventory_experiment(str(exp_dir))
 
     assert result["status"] == "error"
     assert "experiment_summary.yaml" in result["message"]
@@ -148,8 +147,8 @@ def test_inventory_missing_summary(tmp_path):
 
 def test_inventory_with_analysis(tmp_path):
     """Analysis directory → included in keep files."""
-    exp_dir, out_base = _make_experiment(tmp_path, extras=["exploration"])
-    result = inventory_experiment(exp_dir, out_base)
+    exp_dir = _make_experiment(tmp_path, extras=["exploration"])
+    result = inventory_experiment(exp_dir)
 
     archive_paths = [kf["archive_path"] for kf in result["keep_files"]]
     assert "exploration/report.md" in archive_paths
@@ -164,7 +163,7 @@ def test_inventory_skips_symlinks_under_artifacts(tmp_path):
     experiment dir slipped through and pulled external content into the
     archive.
     """
-    exp_dir_str, out_base = _make_experiment(tmp_path)
+    exp_dir_str = _make_experiment(tmp_path)
     exp_dir = Path(exp_dir_str)
 
     # External target outside the experiment dir
@@ -180,7 +179,7 @@ def test_inventory_skips_symlinks_under_artifacts(tmp_path):
     # And a symlink under eval/ to simulate a stray symlink outside artifacts/
     (exp_dir / "run_rank4" / "eval" / "stray.log").symlink_to(external)
 
-    result = inventory_experiment(str(exp_dir), out_base)
+    result = inventory_experiment(str(exp_dir))
     archive_paths = [kf["archive_path"] for kf in result["keep_files"]]
 
     assert "run_rank4/artifacts/logs/wandb/debug-core.log" not in archive_paths
@@ -192,8 +191,8 @@ def test_inventory_skips_symlinks_under_artifacts(tmp_path):
 
 def test_findings_from_explicit_file(tmp_path):
     """findings.md exists → use it directly."""
-    exp_dir, out_base = _make_experiment(tmp_path, extras=["findings"])
-    result = inventory_experiment(exp_dir, out_base)
+    exp_dir = _make_experiment(tmp_path, extras=["findings"])
+    result = inventory_experiment(exp_dir)
 
     assert result["findings_source"] == str(
         tmp_path
@@ -206,23 +205,23 @@ def test_findings_from_explicit_file(tmp_path):
 
 def test_findings_from_report(tmp_path):
     """No findings.md, but exploration/report.md exists → use report."""
-    exp_dir, out_base = _make_experiment(tmp_path, extras=["exploration"])
-    result = inventory_experiment(exp_dir, out_base)
+    exp_dir = _make_experiment(tmp_path, extras=["exploration"])
+    result = inventory_experiment(exp_dir)
 
     assert result["findings_source"].endswith("exploration/report.md")
 
 
 def test_findings_from_summary(tmp_path):
     """No findings.md or report.md → fall back to summary.md."""
-    exp_dir, out_base = _make_experiment(tmp_path)
-    result = inventory_experiment(exp_dir, out_base)
+    exp_dir = _make_experiment(tmp_path)
+    result = inventory_experiment(exp_dir)
 
     assert result["findings_source"].endswith("summary.md")
 
 
 def test_findings_none_when_nothing_exists(tmp_path):
     """No findings, report, or summary → None."""
-    exp_dir, out_base = _make_experiment(tmp_path)
+    exp_dir = _make_experiment(tmp_path)
     # Remove summary.md
     (
         tmp_path
@@ -231,7 +230,7 @@ def test_findings_none_when_nothing_exists(tmp_path):
         / "test_experiment_2026-03-23"
         / "summary.md"
     ).unlink()
-    result = inventory_experiment(exp_dir, out_base)
+    result = inventory_experiment(exp_dir)
 
     assert result["findings_source"] is None
 
@@ -241,8 +240,8 @@ def test_findings_none_when_nothing_exists(tmp_path):
 
 def test_create_archive(tmp_path):
     """All KEEP files land in correct archive structure."""
-    exp_dir, out_base = _make_experiment(tmp_path)
-    inventory = inventory_experiment(exp_dir, out_base)
+    exp_dir = _make_experiment(tmp_path)
+    inventory = inventory_experiment(exp_dir)
     archive_dir = str(tmp_path / "ck-archive" / "test_experiment")
 
     result = create_archive(archive_dir, inventory)
@@ -272,8 +271,8 @@ def test_create_archive(tmp_path):
 
 def test_create_archive_already_exists(tmp_path):
     """Archive dir already exists → error."""
-    exp_dir, out_base = _make_experiment(tmp_path)
-    inventory = inventory_experiment(exp_dir, out_base)
+    exp_dir = _make_experiment(tmp_path)
+    inventory = inventory_experiment(exp_dir)
     archive_dir = tmp_path / "ck-archive" / "test_experiment"
     archive_dir.mkdir(parents=True)
 
@@ -288,8 +287,8 @@ def test_create_archive_already_exists(tmp_path):
 
 def test_verify_archive(tmp_path):
     """Happy path verification succeeds."""
-    exp_dir, out_base = _make_experiment(tmp_path)
-    inventory = inventory_experiment(exp_dir, out_base)
+    exp_dir = _make_experiment(tmp_path)
+    inventory = inventory_experiment(exp_dir)
     archive_dir = str(tmp_path / "ck-archive" / "test_experiment")
     create_archive(archive_dir, inventory)
 
@@ -302,8 +301,8 @@ def test_verify_archive(tmp_path):
 
 def test_verify_archive_missing_file(tmp_path):
     """Missing file in archive → error."""
-    exp_dir, out_base = _make_experiment(tmp_path)
-    inventory = inventory_experiment(exp_dir, out_base)
+    exp_dir = _make_experiment(tmp_path)
+    inventory = inventory_experiment(exp_dir)
     archive_dir = tmp_path / "ck-archive" / "test_experiment"
     create_archive(str(archive_dir), inventory)
 
@@ -321,11 +320,11 @@ def test_verify_archive_missing_file(tmp_path):
 
 def test_delete_originals(tmp_path):
     """Cleanup removes experiment dir and checkpoint dirs."""
-    exp_dir, out_base = _make_experiment(tmp_path)
-    inventory = inventory_experiment(exp_dir, out_base)
+    exp_dir = _make_experiment(tmp_path)
+    inventory = inventory_experiment(exp_dir)
     run_names = inventory["runs"]
 
-    result = delete_originals(exp_dir, out_base, run_names)
+    result = delete_originals(exp_dir, run_names)
 
     assert result["status"] == "success"
     assert result["freed_bytes"] > 0
@@ -333,7 +332,7 @@ def test_delete_originals(tmp_path):
 
     # Verify the per-run artifact loop ran (not just the final rmtree)
     for rn in run_names:
-        assert str(Path(out_base) / rn / "artifacts") in result["deleted"]
+        assert str(Path(exp_dir) / rn / "artifacts") in result["deleted"]
     assert not Path(exp_dir).exists()
 
 
@@ -342,7 +341,7 @@ def test_delete_originals(tmp_path):
 
 def test_dry_run_no_side_effects(tmp_path):
     """Dry run reports plan without creating or deleting anything."""
-    exp_dir, out_base = _make_experiment(tmp_path)
+    exp_dir = _make_experiment(tmp_path)
     archive_base = str(tmp_path / "ck-archive")
 
     result = archive_experiment(exp_dir, archive_base, dry_run=True)
@@ -365,7 +364,7 @@ def test_dry_run_no_side_effects(tmp_path):
 
 def test_archive_full_workflow(tmp_path):
     """End-to-end: inventory → archive → verify → delete."""
-    exp_dir, out_base = _make_experiment(tmp_path, extras=["exploration"])
+    exp_dir = _make_experiment(tmp_path, extras=["exploration"])
     archive_base = str(tmp_path / "ck-archive")
 
     result = archive_experiment(exp_dir, archive_base)
@@ -390,7 +389,7 @@ def test_archive_full_workflow(tmp_path):
 
 def test_archive_incomplete_without_force(tmp_path):
     """Incomplete experiment without --force → error."""
-    exp_dir, out_base = _make_experiment(tmp_path, include_eval=False)
+    exp_dir = _make_experiment(tmp_path, include_eval=False)
     archive_base = str(tmp_path / "ck-archive")
 
     result = archive_experiment(exp_dir, archive_base)
@@ -402,7 +401,7 @@ def test_archive_incomplete_without_force(tmp_path):
 
 def test_archive_incomplete_with_force(tmp_path):
     """Incomplete experiment with --force → proceeds with warning."""
-    exp_dir, out_base = _make_experiment(tmp_path, include_eval=False)
+    exp_dir = _make_experiment(tmp_path, include_eval=False)
     archive_base = str(tmp_path / "ck-archive")
 
     result = archive_experiment(exp_dir, archive_base, force=True)
@@ -421,7 +420,7 @@ def test_archive_nonexistent_dir(tmp_path):
 
 def test_archive_path_includes_project(tmp_path):
     """Archive path is {archive_base}/{project}/{experiment_name}/."""
-    exp_dir, _ = _make_experiment(tmp_path)
+    exp_dir = _make_experiment(tmp_path)
     archive_base = str(tmp_path / "ck-archive")
 
     result = archive_experiment(exp_dir, archive_base, dry_run=True)
@@ -435,7 +434,7 @@ def test_archive_path_includes_project(tmp_path):
 
 def test_archive_missing_project_field(tmp_path):
     """experiment.project missing → error before any work happens."""
-    exp_dir, _ = _make_experiment(tmp_path)
+    exp_dir = _make_experiment(tmp_path)
     # Strip the project field from the yaml
     summary_path = Path(exp_dir) / "experiment_summary.yaml"
     config = yaml.safe_load(summary_path.read_text())
@@ -447,5 +446,23 @@ def test_archive_missing_project_field(tmp_path):
 
     assert result["status"] == "error"
     assert "project" in result["message"]
+    # Original experiment untouched
+    assert Path(exp_dir).exists()
+
+
+def test_archive_missing_directory_field(tmp_path):
+    """experiment.directory missing → error before any work happens."""
+    exp_dir = _make_experiment(tmp_path)
+    # Strip the directory field from the yaml
+    summary_path = Path(exp_dir) / "experiment_summary.yaml"
+    config = yaml.safe_load(summary_path.read_text())
+    del config["experiment"]["directory"]
+    summary_path.write_text(yaml.dump(config))
+
+    archive_base = str(tmp_path / "ck-archive")
+    result = archive_experiment(exp_dir, archive_base, dry_run=True)
+
+    assert result["status"] == "error"
+    assert "directory" in result["message"]
     # Original experiment untouched
     assert Path(exp_dir).exists()

@@ -2,7 +2,7 @@
 # Path placeholders: __SCRATCH__, __REPO__ (replaced at test time)
 
 torchtune_model_name: "Llama-3.2-1B-Instruct"
-output_dir_base: "__SCRATCH__/ck-projects/capitalization/workflow_test_2026-03-16"
+project_dir: "__SCRATCH__/ck-projects/capitalization/workflow_test_2026-03-16"
 input_dir_base: "__SCRATCH__/ck-projects/capitalization/workflow_test_2026-03-16/"
 models_dir: "__SCRATCH__/pretrained-llms"
 experiment_name: "workflow_test_2026-03-16"

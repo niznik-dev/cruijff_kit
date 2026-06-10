@@ -33,7 +33,7 @@ def test_setup_finetune(work_dir: Path):
             ".json",
             "--input_dir_base",
             "/fake/input/",
-            "--output_dir_base",
+            "--project_dir",
             "/fake/output/",
             "--experiment_name",
             "smoke_test",

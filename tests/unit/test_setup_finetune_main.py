@@ -19,7 +19,7 @@ def setup_yaml(tmp_path):
     """Write a minimal setup_finetune.yaml config."""
     config = {
         "torchtune_model_name": "Llama-3.2-1B-Instruct",
-        "output_dir_base": str(tmp_path / "outputs"),
+        "project_dir": str(tmp_path / "outputs"),
         "input_dir_base": str(tmp_path / "inputs") + "/",
         "models_dir": str(tmp_path / "models"),
         "experiment_name": "test_exp",

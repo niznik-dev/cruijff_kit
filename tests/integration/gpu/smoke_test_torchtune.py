@@ -57,7 +57,7 @@ def main():
                 str(REPO_ROOT / "tests" / "fixtures"),
                 "--input_formatting",
                 "",
-                "--output_dir_base",
+                "--project_dir",
                 str(output_dir),
                 "--experiment_name",
                 "smoke_test",
@@ -102,7 +102,7 @@ def main():
         print("PASS: torchtune training")
 
         # Step 3: Verify checkpoint exists and is non-empty
-        # setup_finetune.py creates output under output_dir_base/{experiment_name}/{run_name}/artifacts/
+        # setup_finetune.py creates output under project_dir/{experiment_name}/{run_name}/artifacts/
         artifacts_dirs = list(output_dir.glob("smoke_test/*/artifacts"))
         assert len(artifacts_dirs) > 0, (
             f"No */artifacts directory found in {output_dir}/smoke_test/"
