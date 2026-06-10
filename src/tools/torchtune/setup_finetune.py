@@ -207,16 +207,21 @@ def validate_dataset_type(dataset_type):
         )
 
 
-def construct_output_dir(output_dir_base, experiment_name, model_run_name):
-    """Construct the full output directory path.
+def construct_artifacts_dir(project_dir, experiment_name, model_run_name):
+    """Construct the full artifacts directory path for a run.
+
+    Builds {project_dir}/{experiment_name}/{model_run_name}/artifacts/. The
+    returned path becomes torchtune's `output_dir:` in the generated
+    finetune.yaml — that yaml key is torchtune's contract and must NOT be
+    renamed, even though our wrapper-side names here use `artifacts`.
 
     Args:
-        output_dir_base: Base directory for outputs
+        project_dir: Project directory (ck-projects/{project}/) holding experiment dirs
         experiment_name: Experiment name used to group outputs (required)
         model_run_name: Name of this specific model run
 
     Returns:
-        Full output directory path with trailing slash
+        Full artifacts directory path with trailing slash
 
     Raises:
         ValueError: if experiment_name is empty
@@ -224,12 +229,10 @@ def construct_output_dir(output_dir_base, experiment_name, model_run_name):
     if not experiment_name:
         raise ValueError("experiment_name is required")
 
-    if not output_dir_base.endswith("/"):
-        output_dir_base += "/"
+    if not project_dir.endswith("/"):
+        project_dir += "/"
 
-    return (
-        output_dir_base + experiment_name + "/" + model_run_name + f"/{ARTIFACTS_DIR}/"
-    )
+    return project_dir + experiment_name + "/" + model_run_name + f"/{ARTIFACTS_DIR}/"
 
 
 def configure_dataset_for_format(config, dataset_label, dataset_ext, dataset_type):
@@ -330,10 +333,10 @@ def create_parser():
         help="Name of the experiment (used to group outputs in ck-projects/{project}/{experiment_name}/).",
     )
     parser.add_argument(
-        "--output_dir_base",
+        "--project_dir",
         type=str,
         default=None,
-        help="Full path to the output file folders",
+        help="Full path to the project directory (ck-projects/{project}/) under which experiment dirs are created.",
     )
     parser.add_argument(
         "--input_dir_base",
@@ -627,7 +630,7 @@ def main():
     # config file, CLI, or scaffold agent via claude.local.md)
     missing = [
         name
-        for name in ("output_dir_base", "input_dir_base", "models_dir")
+        for name in ("project_dir", "input_dir_base", "models_dir")
         if getattr(args, name) is None
     ]
     if missing:
@@ -698,13 +701,13 @@ def main():
             config["input_dir"] = (
                 value + args.input_formatting + ("/" if args.input_formatting else "")
             )
-        elif key == "output_dir_base":
-            full_output_dir = construct_output_dir(
+        elif key == "project_dir":
+            full_artifacts_dir = construct_artifacts_dir(
                 value, args.experiment_name, model_run_name
             )
-            config["output_dir"] = full_output_dir
+            config["output_dir"] = full_artifacts_dir
         elif key == "experiment_name":
-            pass  # Handled in output_dir_base
+            pass  # Handled in project_dir
         elif key == "dataset_label":
             config = configure_dataset_for_format(
                 config, value, args.dataset_ext, args.dataset_type
@@ -995,7 +998,7 @@ def main():
             "module purge", "module purge" + module_string
         )
 
-    slurm_script = slurm_script.replace("<OUTPUT_DIR>", full_output_dir)
+    slurm_script = slurm_script.replace("<OUTPUT_DIR>", full_artifacts_dir)
     slurm_script = slurm_script.replace("$USER", username)
 
     with open("finetune.slurm", "w") as f:

@@ -26,7 +26,7 @@ When invoked:
 4. **Identify varying parameters** — Determine which parameters change across runs (for directory naming).
 5. **For each fine-tuning run, build `setup_finetune.yaml` in two passes (in this order):**
    1. **Call `propagate_train_fields(experiment_summary, setup_finetune)` first** to populate experiment-wide controls (see "Key Pattern: Propagate First" below).
-   2. **Then** layer in per-run judgment fields (paths, `model_checkpoint`, varying `lora_rank` / `lr`, `custom_recipe` choice, `output_dir_base`, etc.). Propagation is idempotent — your per-run overrides win.
+   2. **Then** layer in per-run judgment fields (paths, `model_checkpoint`, varying `lora_rank` / `lr`, `custom_recipe` choice, `project_dir`, etc.). Propagation is idempotent — your per-run overrides win.
    3. **Apply the `text_completion` exception**: if `dataset_type` is `text_completion`, `pop("system_prompt", None)` from `setup_finetune` (base models have no chat template — the propagated value has nowhere to go).
    4. Write `setup_finetune.yaml` to disk.
 6. **EXECUTE `setup_finetune.py` AUTOMATICALLY using conda run** for each run — this generates `finetune.yaml` and `finetune.slurm`. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.
@@ -178,7 +178,7 @@ The directory contains the full path: `{scratch_dir}/ck-projects/{project}/{expe
 - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/workflow_test_2025-11-28`
 
 Parse this into two components for setup_finetune.yaml:
-- `output_dir_base` = everything up to and including the last directory before experiment name
+- `project_dir` = everything up to and including the last directory before experiment name
   - Extract by splitting on `/` and taking all but the last component, then rejoining with `/` and adding trailing `/`
   - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/`
 - `experiment_name` = the final directory component
@@ -263,7 +263,7 @@ log_every_n_steps: {use template default, typically 1}
 run_val_every_n_steps: {50 if controls.validation_during_training else 0}
 
 # Output configuration
-output_dir_base: {parsed from experiment.directory}
+project_dir: {parsed from experiment.directory}
 experiment_name: {parsed from experiment.directory}
 conda_env: {from claude.local.md}
 
@@ -317,7 +317,7 @@ don't tabulate the propagated values per-field — they weren't decisions.
 - Use absolute paths for robustness (e.g., `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/...`) rather than relative paths
 - WandB project: Prefer using `my_wandb_project` from `claude.local.md` for consistency
 - Learning rate format: Keep scientific notation format from experiment summary (1e-5, 5e-5, etc.)
-- Output directory: Parse `experiment.directory` from experiment_summary.yaml to extract both `output_dir_base` and `experiment_name` components
+- Output directory: Parse `experiment.directory` from experiment_summary.yaml to extract both `project_dir` and `experiment_name` components
 
 ### Running setup_finetune.py
 
