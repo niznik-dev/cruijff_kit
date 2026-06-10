@@ -36,7 +36,9 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
             "project": "capitalization",
             "directory": str(exp_dir),
         },
-        "output": {"base_directory": str(out_base)},
+        "output": {
+            "wandb_project": "test",
+        },
         "runs": [
             {"name": rn, "type": "fine-tuned", "model": "test", "parameters": {}}
             for rn in run_names
@@ -329,9 +331,10 @@ def test_delete_originals(tmp_path):
     assert result["freed_bytes"] > 0
     from pathlib import Path
 
-    assert not Path(exp_dir).exists()
+    # Verify the per-run artifact loop ran (not just the final rmtree)
     for rn in run_names:
-        assert not (Path(out_base) / rn / "artifacts").exists()
+        assert str(Path(out_base) / rn / "artifacts") in result["deleted"]
+    assert not Path(exp_dir).exists()
 
 
 # --- dry run tests ---

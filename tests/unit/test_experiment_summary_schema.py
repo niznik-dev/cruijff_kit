@@ -39,6 +39,9 @@ class TestExperimentSection:
         assert isinstance(summary["experiment"]["project"], str)
         assert summary["experiment"]["project"], "project must be non-empty"
 
+    def test_directory_is_non_empty(self, summary):
+        assert summary["experiment"]["directory"], "directory must be non-empty"
+
     def test_type_field_absent(self, summary):
         # Schema no longer uses experiment.type; project is the namespace.
         assert "type" not in summary["experiment"]
@@ -109,14 +112,9 @@ class TestDataSection:
 
 class TestOutputSection:
     def test_has_required_keys(self, summary):
-        required = ["base_directory", "checkpoint_pattern", "wandb_project"]
+        required = ["wandb_project"]
         for key in required:
             assert key in summary["output"], f"Missing output.{key}"
-
-    def test_checkpoint_pattern_has_placeholders(self, summary):
-        pattern = summary["output"]["checkpoint_pattern"]
-        assert "{run_name}" in pattern
-        assert "{N}" in pattern
 
 
 class TestRunsSection:

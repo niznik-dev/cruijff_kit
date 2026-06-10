@@ -28,7 +28,7 @@ All should be:
 For each COMPLETED job, verify checkpoint created:
 
 ```bash
-ls {output_dir_base}/{run_name}/artifacts/epoch_{N}/
+ls {experiment_dir}/{run_name}/artifacts/epoch_{N}/
 ```
 
 Expected files:

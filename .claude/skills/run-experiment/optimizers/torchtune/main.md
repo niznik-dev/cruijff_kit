@@ -41,7 +41,7 @@ The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll iteratio
 
 - `logs/run-torchtune.log` — canonical submission + state-change records.
 - `logs/run-torchtune.state.json` — resume state file.
-- Model checkpoints under `{output_dir_base}/{run_name}/artifacts/epoch_{N}/`.
+- Model checkpoints under `{experiment_dir}/{run_name}/artifacts/epoch_{N}/`.
 
 ## Schemas
 

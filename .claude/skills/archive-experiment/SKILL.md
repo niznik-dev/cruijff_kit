@@ -35,7 +35,7 @@ Find the experiment directory:
 
 Read `experiment_summary.yaml` to determine:
 - `experiment.name` — the experiment name
-- `output.base_directory` — where model checkpoints live
+- `experiment.directory` — where model checkpoints live
 - `runs` — list of run names
 - `evaluation.matrix` — expected evaluations
 

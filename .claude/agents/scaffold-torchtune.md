@@ -114,7 +114,7 @@ Extract the following information from the YAML structure:
    - `models.base[0].path` - Full path to model directory
    - `data.training.path` - Full path to training dataset
    - `data.training.format` - "json"
-   - `output.base_directory` - Where checkpoints are saved
+   - `experiment.directory` - Where checkpoints are saved
    - `output.wandb_project` - Weights & Biases project name
 
 5. **Runs list:**
@@ -172,9 +172,9 @@ Extract environment-specific settings:
 
 ### Parsing Output Directory from experiment_summary.yaml
 
-**IMPORTANT:** Read `output.base_directory` from experiment_summary.yaml (NOT from claude.local.md).
+**IMPORTANT:** Read `experiment.directory` from experiment_summary.yaml (NOT from claude.local.md).
 
-The base_directory contains the full path: `{output_base}/ck-projects/{project}/{experiment_name}`
+The directory contains the full path: `{scratch_dir}/ck-projects/{project}/{experiment_name}`
 - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/workflow_test_2025-11-28`
 
 Parse this into two components for setup_finetune.yaml:
@@ -263,8 +263,8 @@ log_every_n_steps: {use template default, typically 1}
 run_val_every_n_steps: {50 if controls.validation_during_training else 0}
 
 # Output configuration
-output_dir_base: {parsed from output.base_directory}
-experiment_name: {parsed from output.base_directory}
+output_dir_base: {parsed from experiment.directory}
+experiment_name: {parsed from experiment.directory}
 conda_env: {from claude.local.md}
 
 # SLURM configuration (optional - only if specified in claude.local.md)
@@ -317,7 +317,7 @@ don't tabulate the propagated values per-field — they weren't decisions.
 - Use absolute paths for robustness (e.g., `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/...`) rather than relative paths
 - WandB project: Prefer using `my_wandb_project` from `claude.local.md` for consistency
 - Learning rate format: Keep scientific notation format from experiment summary (1e-5, 5e-5, etc.)
-- Output directory: Parse `output.base_directory` from experiment_summary.yaml to extract both `output_dir_base` and `experiment_name` components
+- Output directory: Parse `experiment.directory` from experiment_summary.yaml to extract both `output_dir_base` and `experiment_name` components
 
 ### Running setup_finetune.py
 
