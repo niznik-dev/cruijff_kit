@@ -448,3 +448,21 @@ def test_archive_missing_project_field(tmp_path):
     assert "project" in result["message"]
     # Original experiment untouched
     assert Path(exp_dir).exists()
+
+
+def test_archive_missing_directory_field(tmp_path):
+    """experiment.directory missing → error before any work happens."""
+    exp_dir = _make_experiment(tmp_path)
+    # Strip the directory field from the yaml
+    summary_path = Path(exp_dir) / "experiment_summary.yaml"
+    config = yaml.safe_load(summary_path.read_text())
+    del config["experiment"]["directory"]
+    summary_path.write_text(yaml.dump(config))
+
+    archive_base = str(tmp_path / "ck-archive")
+    result = archive_experiment(exp_dir, archive_base, dry_run=True)
+
+    assert result["status"] == "error"
+    assert "directory" in result["message"]
+    # Original experiment untouched
+    assert Path(exp_dir).exists()

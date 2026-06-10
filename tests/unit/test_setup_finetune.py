@@ -180,6 +180,26 @@ def test_construct_artifacts_dir_none_experiment_name_raises():
         )
 
 
+def test_construct_artifacts_dir_empty_project_dir_raises():
+    """Empty project_dir must raise, not silently root the path at '/'."""
+    with pytest.raises(ValueError, match="project_dir is required"):
+        construct_artifacts_dir(
+            project_dir="",
+            experiment_name="my_experiment",
+            model_run_name="run_123",
+        )
+
+
+def test_construct_artifacts_dir_none_project_dir_raises():
+    """None project_dir must raise ValueError, not AttributeError on .endswith."""
+    with pytest.raises(ValueError, match="project_dir is required"):
+        construct_artifacts_dir(
+            project_dir=None,
+            experiment_name="my_experiment",
+            model_run_name="run_123",
+        )
+
+
 # Tests for configure_dataset_for_format()
 
 

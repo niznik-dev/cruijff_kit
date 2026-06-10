@@ -322,7 +322,7 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
             "message": f"experiment_summary.yaml not found in {experiment_dir}",
         }
 
-    # Parse to get output directory
+    # Parse and validate required experiment fields
     try:
         with open(summary_path) as f:
             config = yaml.safe_load(f)

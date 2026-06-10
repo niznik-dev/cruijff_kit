@@ -224,8 +224,10 @@ def construct_artifacts_dir(project_dir, experiment_name, model_run_name):
         Full artifacts directory path with trailing slash
 
     Raises:
-        ValueError: if experiment_name is empty
+        ValueError: if project_dir or experiment_name is empty
     """
+    if not project_dir:
+        raise ValueError("project_dir is required")
     if not experiment_name:
         raise ValueError("experiment_name is required")
 
