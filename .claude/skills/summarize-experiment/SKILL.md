@@ -56,8 +56,8 @@ Read experiment_summary.yaml to identify runs:
 For each COMPLETED fine-tuning run:
 
 1. Find SLURM stdout in the **output directory**:
-   - Parse experiment_summary.yaml "Output" section for `output_dir_base`
-   - Look in: `{output_dir_base}/{run_name}/artifacts/slurm-*.out`
+   - Read `experiment.directory` from experiment_summary.yaml as `experiment_dir`
+   - Look in: `{experiment_dir}/{run_name}/artifacts/slurm-*.out`
    - If multiple files, use most recent by modification time
 2. Extract final loss using `cruijff_kit.tools.torchtune.extract_loss`:
    ```python

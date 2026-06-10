@@ -81,7 +81,9 @@ Training artifacts live at `{run_name}/artifacts/` inside the experiment directo
 
 ```
 {experiment.directory}/{run_name}/artifacts/epoch_{N}/
-``` See the tree above for the full contents of `{run_name}/artifacts/`.
+```
+
+See the tree above for the full contents of `{run_name}/artifacts/`.
 
 > **Note:** A few files (`gpu_metrics.csv`, `torchtune_config.yaml`, `slurm-*.out`) appear both at the top of `{run_name}/artifacts/` and inside `epoch_0/`. The top-level copies are the live job's record; the per-epoch copies are snapshotted alongside the checkpoint.
 

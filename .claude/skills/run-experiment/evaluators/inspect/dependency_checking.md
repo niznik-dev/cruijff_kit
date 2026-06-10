@@ -27,7 +27,7 @@ squeue -u $USER | grep finetune
 For each evaluation in the list, verify required model checkpoint exists:
 
 ```bash
-ls {output_dir_base}/{run_name}/artifacts/epoch_{N}/
+ls {experiment_dir}/{run_name}/artifacts/epoch_{N}/
 ```
 
 **Expected files in checkpoint directory:**

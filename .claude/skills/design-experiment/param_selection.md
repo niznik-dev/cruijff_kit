@@ -126,7 +126,7 @@ If the user chooses `context_placement: system_prompt`, the data_generation cont
 - **torchtune** (currently the only option)
   - Used by: `scaffold-experiment` and `run-experiment` skills
   - Generates: `finetune.yaml`, `finetune.slurm`
-  - Produces: Model checkpoints in `output_dir_base`
+  - Produces: Model checkpoints in `{experiment_dir}/{run_name}/artifacts/`
 - *Future:* Other fine-tuning frameworks may be supported
 
 **Evaluation (Evaluator):**

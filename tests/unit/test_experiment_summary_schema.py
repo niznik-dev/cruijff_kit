@@ -39,6 +39,9 @@ class TestExperimentSection:
         assert isinstance(summary["experiment"]["project"], str)
         assert summary["experiment"]["project"], "project must be non-empty"
 
+    def test_directory_is_non_empty(self, summary):
+        assert summary["experiment"]["directory"], "directory must be non-empty"
+
     def test_type_field_absent(self, summary):
         # Schema no longer uses experiment.type; project is the namespace.
         assert "type" not in summary["experiment"]
