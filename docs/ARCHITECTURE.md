@@ -43,7 +43,7 @@ cruijff_kit/
 │   │   ├── experiment/             # Experiment-level operations
 │   │   │   ├── archive_experiment.py    # Archive a completed experiment
 │   │   │   └── prepare_data.py          # Top-level dataset preparation entry point
-│   │   ├── slurm/                  # SLURM-side helpers
+│   │   ├── slurm/                  # Compute-estimation/metrics utils for the design-experiment skill (no production importers)
 │   │   │   └── compute_metrics.py       # GPU metrics aggregation
 │   │   └── model_organisms/        # Synthetic sequence-labeling framework
 │   │       ├── inputs.py                # Input-type registry (bits, digits, letters)
@@ -51,7 +51,7 @@ cruijff_kit/
 │   │       ├── formats.py               # Text-rendering registry (spaced, dense, …)
 │   │       ├── generate.py              # Dataset generator CLI
 │   │       └── inspect_task.py          # Unified inspect-ai evaluation task
-│   ├── utils/                      # Cross-cutting infra (imported across ≥2 domains, owned by none)
+│   ├── utils/                      # Generic, cross-cutting infra owned by no single domain
 │   │   ├── layout.py                    # Layout constants (e.g. ARTIFACTS_DIR)
 │   │   ├── run_names.py                 # Random name generation for runs
 │   │   └── logger.py                    # Structured logging utilities
@@ -376,9 +376,11 @@ At a high level: hand-write `setup_finetune.yaml` in each run directory under `c
 
 ### Using Utilities
 
-`src/utils/` holds cross-cutting infrastructure only — code imported across two or
-more tool domains and owned by none. Domain-specific scripts live in their domain
-package under `src/tools/` instead.
+`src/utils/` holds generic, cross-cutting infrastructure owned by no single domain —
+either imported across multiple tool domains (e.g. `logger`, `layout`) or generic
+enough that any domain could use it, even if only one wires it up today (e.g.
+`run_names`). Domain-specific scripts live in their domain package under `src/tools/`
+instead.
 
 - `layout.py` - Layout constants (e.g. `ARTIFACTS_DIR`)
 - `run_names.py` - Generate random experiment names
