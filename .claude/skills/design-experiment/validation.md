@@ -51,8 +51,6 @@ Run through this checklist before presenting the plan:
 - ✓ Format is "json"
 
 ### Output Configuration Validation
-- ✓ Base directory specified
-- ✓ Checkpoint pattern specified (contains {run_name} placeholder)
 - ✓ Wandb project name specified
 
 ### Evaluation Validation
