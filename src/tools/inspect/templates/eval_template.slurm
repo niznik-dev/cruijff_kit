@@ -40,6 +40,7 @@ cd <EVAL_DIR>
   --model <MODEL_HF_NAME> \
   -M model_path="<MODEL_PATH>" \
 <DOSAMPLE_ARGS><DEVICE_ARGS><TASK_ARGS><METADATA_ARGS>  --max-connections <MAX_CONNECTIONS> \
+  --seed <SEED> \
   --log-dir ./logs \
   --log-level info
 INSPECT_EXIT_CODE=$?

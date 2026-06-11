@@ -48,6 +48,10 @@ controls:
   batch_size: int                  # REQUIRED: Batch size per GPU (even if also in variables)
   gradient_accumulation_steps: int # REQUIRED: Effective batch = batch_size × this (default 1)
   validation_during_training: bool # Whether to run validation during training
+  seed: int                        # OPTIONAL: Training seed (default 14). Independent of the eval seed;
+                                   #   both default to 14, so they match unless you set them differently.
+                                   #   Set only when training must use a seed that differs from eval
+                                   #   (e.g. varying training stochasticity per run).
   # Additional parameters can be added as needed (lora_rank, lr, weight_decay, etc.)
 
 # =============================================================================
@@ -209,6 +213,11 @@ evaluation:
                                    # deterministic, bitwise-reproducible, no RNG. setup_inspect.py
                                    # emits `-M do_sample=false` on every eval script when absent.
                                    # Set true only for sampling-based evals (then temperature is required).
+  seed: int                        # OPTIONAL: Eval seed (default 14). Independent of the training seed;
+                                   # both default to 14, so they match unless you set them differently.
+                                   # Consumed only when do_sample: true — greedy decoding has no sampling
+                                   # RNG, so the seed is inert under the default. The resolved value is
+                                   # still recorded in eval_config.yaml for provenance.
   max_tokens: int                  # OPTIONAL: Cap on tokens generated per response.
                                    # If omitted, the @task function's per-task default applies
                                    # (5 for ACS / model_organism, 20 for capitalization).

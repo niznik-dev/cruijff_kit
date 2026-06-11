@@ -5,6 +5,7 @@ import textwrap
 
 import pytest
 
+from cruijff_kit.tools.experiment.propagate import DEFAULT_SEED
 from cruijff_kit.tools.inspect.setup_inspect import (
     _format_value,
     build_task_args,
@@ -368,6 +369,25 @@ class TestRenderTemplate:
         assert "inspect eval /path/to/task.py@my_task" in script
         assert "--model hf/run1_epoch_0" in script
         assert 'model_path="/outputs/run1/epoch_0"' in script
+
+    def test_seed_flag_rendered_from_config(self):
+        """A resolved seed in the config renders as the inspect --seed flag."""
+        config = make_config(seed=321)
+        script = render_template(make_cli_args(), config)
+        assert "--seed 321" in script
+
+    def test_seed_flag_defaults_when_absent(self):
+        """A config without seed still renders --seed at the default, so the
+        executed command (and its logs) always record a deterministic seed."""
+        config = make_config()  # no seed key
+        script = render_template(make_cli_args(), config)
+        assert f"--seed {DEFAULT_SEED}" in script
+
+    def test_seed_zero_renders(self):
+        """seed=0 is a valid value and must render, not collapse to default."""
+        config = make_config(seed=0)
+        script = render_template(make_cli_args(), config)
+        assert "--seed 0" in script
 
     def test_eval_dir_cd(self):
         """Script changes to eval_dir before running inspect."""

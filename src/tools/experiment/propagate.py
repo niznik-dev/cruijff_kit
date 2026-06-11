@@ -17,6 +17,12 @@ branching on dataset type) but no longer touch flat field copies.
 from typing import Any
 
 
+# Canonical run-time seed when neither a stage override nor experiment.seed is
+# set. 14 is Johan Cruijff's kit number and matches setup_finetune.py's
+# historical --seed default.
+DEFAULT_SEED = 14
+
+
 EVAL_FIELDS: dict[str, str] = {
     "evaluation.system_prompt": "system_prompt",
     "evaluation.temperature": "temperature",
@@ -76,14 +82,34 @@ def _propagate(source: dict, target: dict, fields: dict[str, str]) -> dict:
     return target
 
 
+def resolve_seed(experiment_summary: dict, seed_path: str) -> int:
+    """Resolve a stage's seed (its value, else DEFAULT_SEED); reject non-ints."""
+    seed = _get_dotted(experiment_summary, seed_path)
+    if seed is None:
+        return DEFAULT_SEED
+    # reject bool: True is an int subclass, but `seed: true` is a mistake
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError(
+            f"{seed_path} must be an integer, got {seed!r} "
+            f"({type(seed).__name__}). Unquote numbers in experiment_summary.yaml."
+        )
+    return seed
+
+
 def propagate_eval_fields(experiment_summary: dict, eval_config: dict) -> dict:
     """Copy EVAL_FIELDS from experiment_summary into eval_config in place.
 
     Idempotent: existing non-None values in eval_config take precedence so the
     agent's per-cell decisions (e.g. per-task system_prompt overrides) survive
     propagation.
+
+    The eval seed is resolved (override > experiment.seed > default) and written
+    unless the agent already set a per-cell seed, which wins.
     """
-    return _propagate(experiment_summary, eval_config, EVAL_FIELDS)
+    _propagate(experiment_summary, eval_config, EVAL_FIELDS)
+    if eval_config.get("seed") is None:
+        eval_config["seed"] = resolve_seed(experiment_summary, "evaluation.seed")
+    return eval_config
 
 
 def propagate_train_fields(experiment_summary: dict, setup_finetune: dict) -> dict:
@@ -95,5 +121,13 @@ def propagate_train_fields(experiment_summary: dict, setup_finetune: dict) -> di
     scaffold-torchtune agent is responsible for removing it after propagation
     when the run's `dataset_type` is `text_completion` (base / non-instruct
     models have no chat template to hold a system prompt).
+
+    The training seed is resolved (override > experiment.seed > default) and
+    written unless the agent already set a per-run seed, which wins. This is
+    what makes training deterministic by default — absent any seed, training
+    resolves to DEFAULT_SEED rather than the recipe's historical null.
     """
-    return _propagate(experiment_summary, setup_finetune, TRAIN_FIELDS)
+    _propagate(experiment_summary, setup_finetune, TRAIN_FIELDS)
+    if setup_finetune.get("seed") is None:
+        setup_finetune["seed"] = resolve_seed(experiment_summary, "controls.seed")
+    return setup_finetune

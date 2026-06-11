@@ -10,10 +10,12 @@ below so the test fails loudly if the field is forgotten.
 import pytest
 
 from cruijff_kit.tools.experiment.propagate import (
+    DEFAULT_SEED,
     EVAL_FIELDS,
     TRAIN_FIELDS,
     propagate_eval_fields,
     propagate_train_fields,
+    resolve_seed,
 )
 
 
@@ -165,16 +167,18 @@ def test_source_none_value_is_skipped():
 
 
 def test_source_missing_root_is_skipped():
+    # The flat EVAL_FIELDS copies skip when absent; only the always-resolved
+    # seed lands (default, since neither override nor experiment.seed is set).
     eval_config: dict = {}
     propagate_eval_fields({}, eval_config)
-    assert eval_config == {}
+    assert eval_config == {"seed": DEFAULT_SEED}
 
 
 def test_source_partial_missing_path_is_skipped():
     summary = {"evaluation": {}}  # no temperature key
     eval_config: dict = {}
     propagate_eval_fields(summary, eval_config)
-    assert eval_config == {}
+    assert eval_config == {"seed": DEFAULT_SEED}
 
 
 def test_malformed_section_is_skipped_not_crashed():
@@ -187,7 +191,8 @@ def test_malformed_section_is_skipped_not_crashed():
     summary = {"evaluation": "oops not a dict"}
     eval_config: dict = {}
     result = propagate_eval_fields(summary, eval_config)
-    assert result == {}
+    # Malformed section skips every flat copy; seed still resolves to default.
+    assert result == {"seed": DEFAULT_SEED}
 
 
 # -----------------------------------------------------------------------------
@@ -264,3 +269,73 @@ def test_eval_only_gets_prompt_and_dataset_type_from_summary():
     propagate_eval_fields(summary, eval_config)
     assert eval_config["prompt"] == "Capitalize: {input}\n"
     assert eval_config["dataset_type"] == "text_completion"
+
+
+# -----------------------------------------------------------------------------
+# Seed resolution: independent train + eval seeds, both defaulting to 14
+# -----------------------------------------------------------------------------
+
+
+def test_resolve_seed_uses_stage_value_when_set():
+    summary = {"evaluation": {"seed": 7}, "controls": {"seed": 9}}
+    assert resolve_seed(summary, "evaluation.seed") == 7
+    assert resolve_seed(summary, "controls.seed") == 9
+
+
+def test_resolve_seed_defaults_when_unset():
+    assert resolve_seed({}, "evaluation.seed") == DEFAULT_SEED
+    assert resolve_seed({}, "controls.seed") == DEFAULT_SEED
+
+
+def test_resolve_seed_zero_is_a_valid_distinct_value():
+    """0 is falsy but a legitimate seed — must not collapse to the default."""
+    summary = {"controls": {"seed": 0}}
+    assert resolve_seed(summary, "controls.seed") == 0
+
+
+@pytest.mark.parametrize(
+    "bad_seed",
+    ["14", "14abc", 3.7, [1, 2], True],
+    ids=["quoted-int", "garbage-str", "float", "list", "bool"],
+)
+def test_resolve_seed_rejects_non_int(bad_seed):
+    """A non-int seed must fail loudly at scaffold time, not late in a SLURM
+    job (or silently as a float reaching torchtune). bool is rejected too —
+    `seed: true` is a mistake, not the seed 1."""
+    summary = {"evaluation": {"seed": bad_seed}}
+    with pytest.raises(ValueError, match="evaluation.seed must be an integer"):
+        resolve_seed(summary, "evaluation.seed")
+
+
+def test_both_seeds_match_by_default():
+    """With nothing set, train and eval both resolve to DEFAULT_SEED — they
+    match for free, no shared knob required."""
+    eval_config: dict = {}
+    setup_finetune: dict = {}
+    propagate_eval_fields({}, eval_config)
+    propagate_train_fields({}, setup_finetune)
+    assert eval_config["seed"] == DEFAULT_SEED
+    assert setup_finetune["seed"] == DEFAULT_SEED
+
+
+def test_stage_seeds_are_independent():
+    """evaluation.seed moves only eval; controls.seed moves only train.
+    Neither leaks into the other — divergence is per-stage and deliberate."""
+    summary = {"evaluation": {"seed": 7}, "controls": {"seed": 9}}
+    eval_config: dict = {}
+    setup_finetune: dict = {}
+    propagate_eval_fields(summary, eval_config)
+    propagate_train_fields(summary, setup_finetune)
+    assert eval_config["seed"] == 7
+    assert setup_finetune["seed"] == 9
+
+
+def test_agent_per_run_seed_wins_over_resolution():
+    """A seed the scaffold agent already wrote (e.g. a per-run sweep value)
+    survives propagation — same idempotence rule as every other field."""
+    eval_config = {"seed": 4242}
+    setup_finetune = {"seed": 0}  # 0 is a real per-run value, not "unset"
+    propagate_eval_fields({}, eval_config)
+    propagate_train_fields({}, setup_finetune)
+    assert eval_config["seed"] == 4242
+    assert setup_finetune["seed"] == 0

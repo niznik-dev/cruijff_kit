@@ -19,6 +19,7 @@ import warnings
 import yaml
 from pathlib import Path
 
+from cruijff_kit.tools.experiment.propagate import DEFAULT_SEED
 from cruijff_kit.tools.torchtune.adapter_utils import (
     check_adapter_base_path,
 )
@@ -69,6 +70,7 @@ KNOWN_STRUCTURAL_KEYS = {
     "output_dir",
     "eval_dir",  # auto-derived in load_eval_config
     "max_connections",  # inspect CLI flag, not a -T arg
+    "seed",  # inspect --seed CLI flag, rendered by render_template
     "do_sample",  # -M model arg (greedy vs sampling), rendered by render_template
     # Read by the @task function at runtime, not by setup_inspect.py:
     "scorer",
@@ -349,6 +351,15 @@ def render_template(cli_args, config):
 
     max_connections = config.get("max_connections", DEFAULT_MAX_CONNECTIONS)
     script = script.replace("<MAX_CONNECTIONS>", str(max_connections))
+
+    # Emitted on every script for provenance. inspect-ai's --seed sets
+    # GenerateConfig.seed, which the HF provider applies via transformers.set_seed.
+    # Inert under greedy decoding (do_sample=false has no sampling RNG); makes
+    # sampling reproducible when do_sample=true. Normally resolved upstream by
+    # propagate_eval_fields; defaulted here so a hand-written eval_config is still
+    # deterministic.
+    seed = config.get("seed", DEFAULT_SEED)
+    script = script.replace("<SEED>", str(seed))
 
     # CPUs from model config
     script = script.replace(
