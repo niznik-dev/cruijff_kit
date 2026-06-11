@@ -168,7 +168,7 @@ def test_source_none_value_is_skipped():
 
 def test_source_missing_root_is_skipped():
     # The flat EVAL_FIELDS copies skip when absent; only the always-resolved
-    # seed lands (default, since neither override nor experiment.seed is set).
+    # seed lands (the default, since the stage seed is unset).
     eval_config: dict = {}
     propagate_eval_fields({}, eval_config)
     assert eval_config == {"seed": DEFAULT_SEED}
