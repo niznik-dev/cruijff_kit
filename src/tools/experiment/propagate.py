@@ -83,22 +83,12 @@ def _propagate(source: dict, target: dict, fields: dict[str, str]) -> dict:
 
 
 def resolve_seed(experiment_summary: dict, seed_path: str) -> int:
-    """Resolve a stage's run-time seed: its own value, else DEFAULT_SEED.
+    """Resolve a stage's seed (e.g. "evaluation.seed"): its value, else DEFAULT_SEED.
 
-    `seed_path` is the stage's seed (e.g. "evaluation.seed" or "controls.seed").
-    Training and eval seeds are independent; both default to DEFAULT_SEED, so
-    they match unless explicitly set differently. Always returns an int, so the
-    resolved value is recorded downstream for provenance and no stage ever
-    silently falls back to a random seed.
-
-    A seed of 0 is a valid, distinct value (checked with `is not None`, not
-    truthiness), so it survives every hop intact.
-
-    A non-integer seed (a quoted "14", a float, a list) is rejected here with a
-    loud error naming the field, rather than passing through to fail late in a
-    queued SLURM job (or, on the training path, silently reaching torchtune's
-    set_seed). `bool` is excluded too — `True` is an `int` subclass, but
-    `seed: true` is a mistake, not the seed 1.
+    Training and eval seeds are independent and both default to DEFAULT_SEED, so
+    they match unless set differently. A non-int seed raises here — a
+    scaffold-time error beats failing late in a queued job. `bool` is rejected
+    because `True` is an `int` but `seed: true` is a mistake, not the seed 1.
     """
     seed = _get_dotted(experiment_summary, seed_path)
     if seed is None:
