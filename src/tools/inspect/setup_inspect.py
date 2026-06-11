@@ -74,6 +74,9 @@ KNOWN_STRUCTURAL_KEYS = {
     "scorer",
     "system_prompt",
     "prompt",
+    # Propagated from data.training.dataset_type; the scaffold-inspect agent
+    # reads it to derive use_chat_template. Structural record, not arg-mapped.
+    "dataset_type",
 }
 
 

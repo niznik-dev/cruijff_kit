@@ -232,9 +232,9 @@ For each evaluation task in the experiment:
      runtime (see "Handling Different Evaluation Scenarios" below)
    - Check docstring/parameters if accessible
 
-## Handling Control Model Evaluation
+## Handling Control and Eval-only Model Evaluation
 
-Control runs don't undergo fine-tuning, so they won't have a `setup_finetune.yaml` file. For these runs, scaffold-inspect extracts values directly from experiment_summary.yaml and bakes them into the SLURM script.
+Control runs (base model, as-is) and eval-only runs (a pre-existing checkpoint, evaluated without retraining) don't undergo fine-tuning in this experiment, so neither has a `setup_finetune.yaml` file. For these runs, every value scaffold-inspect needs comes from `experiment_summary.yaml` — `propagate_eval_fields()` copies the flat fields (including `prompt` and `dataset_type`) into `eval_config.yaml`, and the agent composes the per-cell judgment fields (`model_path`, `data_path`, …). Nothing reads `setup_finetune.yaml`. The only difference between the two: a control run's `model_path` is the base model, while an eval-only run's `model_path` is its `parameters.checkpoint_path`.
 
 ### Detection Logic
 
@@ -252,7 +252,7 @@ value by hand** — that is the helper's job.
 
 The fields that *do* require agent judgment, per cell:
 
-- `model_path` — Fine-tuned: `{experiment_dir}/{run_name}/artifacts/epoch_{N}`. Control: `models.base[].path`.
+- `model_path` — Fine-tuned: `{experiment_dir}/{run_name}/artifacts/epoch_{N}`. Control: `models.base[].path`. Eval-only: `parameters.checkpoint_path` verbatim (a pre-existing checkpoint trained outside this experiment).
 - `data_path` — resolved per the precedence ladder in "Populating eval_config.yaml" below.
 - `model_hf_name`, `output_dir`, `vis_label`, `use_chat_template`, `epoch`, `finetuned`, `source_model` — composed per the rules in "Populating eval_config.yaml".
 - Per-task overrides (`system_prompt`, `assistant_prefix`) — when an `evaluation.tasks[]` entry sets these, write them *after* the propagation call so they take precedence over the experiment-wide defaults.
@@ -344,14 +344,14 @@ overrides take precedence when they set the same key (e.g. a per-task
 
 - `task_script`: From `evaluation.tasks[].script` + `@` + task name
 - `task_name`: From `evaluation.tasks[].name`
-- `model_path`: Fine-tuned: `{experiment_dir}/{run_name}/artifacts/epoch_{N}`. Control: original model path
-- `model_hf_name`: Fine-tuned: `hf/{run_name}_epoch_{N}`. Control: `hf/{run_name}_control`
+- `model_path`: Fine-tuned: `{experiment_dir}/{run_name}/artifacts/epoch_{N}`. Control: original model path. Eval-only: `parameters.checkpoint_path` verbatim (a pre-existing checkpoint; if it is somehow absent, fail loudly — do not silently fall back to the base model).
+- `model_hf_name`: Fine-tuned: `hf/{run_name}_epoch_{N}`. Control: `hf/{run_name}_control`. Eval-only: `hf/{run_name}`
 - `output_dir`: `{experiment_dir}/{run_name}/artifacts/`
 - `data_path`: resolve in this order, stopping at the first match:
   1. If the evaluation task has `eval_condition` set — call `cruijff_kit.tabular_to_text_gen.lib.config_hash.resolve_dataset_path(data["data_generation"], task["eval_condition"], "test", f"{scratch_dir}/ck-data/generated")` and use the returned path.
   2. Else if the evaluation task has `dataset` set — use it verbatim (literal-path escape hatch for externally produced files).
   3. Else if the run has `eval_dataset_path` or `dataset_path` in `parameters` — use that literal path.
-  4. Else — fall back to the dataset path in `setup_finetune.yaml` (fine-tuned runs) or `data.training.path` in `experiment_summary.yaml` (control runs).
+  4. Else — `data.training.path` in `experiment_summary.yaml`, for fine-tuned, control, AND eval-only runs alike. This is the single source of truth: a fine-tuned run's training path was copied from here in the first place, so there is no reason to re-read it out of `setup_finetune.yaml`. Never read `setup_finetune.yaml` here — eval-only runs do not have one.
 
   Log the resolved path into `logs/scaffold-inspect.log` so the audit trail captures exactly which file backed this evaluation.
 - `system_prompt` *(per-task override only)*: write this **only** if the
@@ -441,17 +441,15 @@ Each run's SLURM script will have its own `SYSTEM_PROMPT` variable set appropria
 
 ### Determining Chat Template Usage
 
-When generating inspect.slurm scripts, determine whether to use chat templates based on the model type and dataset type used during training.
+When generating inspect.slurm scripts, determine whether to use chat templates from `dataset_type`, which `propagate_eval_fields()` has already copied into `eval_config.yaml` from `data.training.dataset_type`. This is the single source of truth for **every** run type — fine-tuned, control, and eval-only alike.
 
 **Detection Logic:**
 
-1. **For fine-tuned models:** Read `dataset_type` from `setup_finetune.yaml`
-   - If `dataset_type: chat_completion` → `use_chat_template=true`
-   - If `dataset_type: text_completion` → `use_chat_template=false`
+1. Read `dataset_type` from the cell's `eval_config.yaml` (propagated, not read from `setup_finetune.yaml`):
+   - `chat_completion` → `use_chat_template=true`
+   - `text_completion` → `use_chat_template=false`
 
-2. **For control models:** Check if model name ends with "-Instruct"
-   - Instruct models (e.g., `Llama-3.2-1B-Instruct`) → `use_chat_template=true`
-   - Base models (e.g., `Llama-3.2-1B`) → `use_chat_template=false`
+2. **If `dataset_type` is absent, fail loudly.** It is a required field in `experiment_summary.yaml`; a missing value means the design is malformed. Do **not** guess from the model name (e.g. an "-Instruct" suffix) — a wrong chat/text choice silently corrupts the eval, and a filename is not a reliable signal. Report the error and stop scaffolding this cell.
 
 **In SLURM script generation:**
 
@@ -487,7 +485,9 @@ Organize evaluations within run directories — one cell directory per (task, ep
 {experiment_dir}/{run_dir}/
 ├── finetune.slurm
 ├── finetune.yaml
-├── setup_finetune.yaml
+├── setup_finetune.yaml          # written by scaffold-torchtune; private to torchtune.
+│                                #   scaffold-inspect never reads it (control and
+│                                #   eval-only runs have no setup_finetune.yaml at all).
 └── eval/
     ├── {task_name}_epoch0/
     │   ├── eval_config.yaml
@@ -591,7 +591,7 @@ If the entry had only one task, the vis_label would remain `"original"`.
 
 ### Scenario 1: Fine-tuned Model Evaluation
 
-Fine-tuned models use `eval_config.yaml` in the run's eval directory, which is generated by scaffold-inspect from `setup_finetune.yaml`:
+Fine-tuned models use `eval_config.yaml` in the run's eval directory, which scaffold-inspect builds from `experiment_summary.yaml` (via `propagate_eval_fields()` plus the per-cell judgment fields):
 ```bash
 OUTPUT_BASE="{experiment_dir}/{run_name}/artifacts"
 MODEL_PATH="$OUTPUT_BASE/epoch_0"
@@ -599,7 +599,7 @@ CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval_config.yaml"
 ```
 
 ```bash
-# Values from setup_finetune.yaml and eval_config.yaml:
+# Values from eval_config.yaml:
 OUTPUT_BASE="/absolute/path/to/{run_name}/artifacts"
 MODEL_PATH="$OUTPUT_BASE/epoch_0"
 CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval_config.yaml"
@@ -624,8 +624,8 @@ inspect eval inspect_task.py@capitalization \\
 - The `--model` argument uses a descriptive name (`hf/{run_name}_epoch_{N}`) that gets recorded in the `.eval` file for identification
 - Metadata flags (`--metadata epoch`, `--metadata finetuned`, `--metadata source_model`) are stored in `log.eval.metadata` for inspect-viz filtering/grouping
 - The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_rank4`) for visualization
-- `config_path` points to `eval_config.yaml`, which is generated from `setup_finetune.yaml` and includes prompt/system_prompt and scorer configuration
-- `use_chat_template` is determined from `dataset_type` in setup_finetune.yaml
+- `config_path` points to `eval_config.yaml`, which is built from `experiment_summary.yaml` and includes prompt/system_prompt and scorer configuration
+- `use_chat_template` is determined from the propagated `dataset_type` in `eval_config.yaml`
 - Ensures exact match between training and evaluation parameters
 
 ### Scenario 2: Control Model Evaluation
@@ -679,6 +679,35 @@ inspect eval inspect_task.py@capitalization \\
 - The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_1B_control`) for visualization
 - Control models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
 - `config_path` points to `eval_config.yaml` (generated from experiment_summary.yaml and stored in `{run_dir}/eval/`), which the task reads at runtime
+
+### Scenario 3: Eval-only Model Evaluation
+
+For eval-only runs — a checkpoint trained in a *different* experiment, evaluated here without retraining — `eval_config.yaml` is built from `experiment_summary.yaml` exactly as for control runs. The only differences: `model_path` is the run's `parameters.checkpoint_path` (used verbatim), and the model is a fine-tuned one, so `finetuned=true`. There is no training epoch in this experiment, so emit **no** `--metadata epoch` (the epoch, if any, is baked into the checkpoint path).
+
+```bash
+# Eval-only: evaluate a pre-existing checkpoint as-is
+MODEL_PATH="/scratch/.../prior_exp/income_rank8/artifacts/epoch_1"  # = parameters.checkpoint_path
+CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval_config.yaml"
+DATA_PATH="{ck_data_dir}/acs_income/income_5feat_test.json"
+USE_CHAT_TEMPLATE="true"  # from propagated dataset_type: chat_completion
+
+inspect eval inspect_task.py@acs_income \\
+  --model hf/{run_name} \\
+  -M model_path="$MODEL_PATH" \\
+  -M do_sample=false \\
+  --metadata finetuned=true \\
+  --metadata source_model="Llama-3.2-1B-Instruct" \\
+  -T data_path="$DATA_PATH" \\
+  -T config_path="$CONFIG_PATH" \\
+  -T use_chat_template="$USE_CHAT_TEMPLATE" \\
+  -T vis_label="income_rank8_epoch1" \\
+  --log-dir ./logs
+```
+
+**Key points:**
+- `model_path` is `parameters.checkpoint_path` verbatim — do not recompute it from `{experiment_dir}`. If `checkpoint_path` is missing on an eval-only run, fail loudly.
+- `finetuned=true` (the checkpoint *is* fine-tuned, just not by this experiment); no `--metadata epoch`.
+- Everything else (prompt, system_prompt, dataset_type, scorer) comes from `experiment_summary.yaml` via `propagate_eval_fields()` — no `setup_finetune.yaml` is read or required.
 
 ## Directory Structure Creation
 
