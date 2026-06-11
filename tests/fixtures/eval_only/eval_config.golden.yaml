@@ -1,0 +1,27 @@
+# Golden eval_config.yaml for an EVAL-ONLY run (type: eval-only), minted by a
+# real scaffold-experiment run on an experiment with no fine-tuned runs and no
+# setup_finetune.yaml (#478). Absolute paths are replaced with {PLACEHOLDERS}
+# so the fixture is portable; test_eval_only_scaffold.py asserts the invariants
+# that the eval/torchtune decoupling must preserve.
+data_path: "{CK_DATA}/capitalization/words_5L_80P_1000.json"
+dataset_type: chat_completion
+finetuned: true
+model_hf_name: hf/existing_ckpt_eval
+model_path: "{CHECKPOINT_DIR}"
+output_dir: "{EXPERIMENT_DIR}/existing_ckpt_eval/artifacts/"
+prompt: "Capitalize the given word: {input}\n"
+scorer:
+- name: match
+  params:
+    ignore_case: false
+    location: exact
+- name: includes
+  params:
+    ignore_case: false
+source_model: Llama-3.2-1B-Instruct
+system_prompt: You are a helpful assistant.
+task_name: capitalization
+task_script: "{REPO}/blueprints/capitalization/inspect_task.py@capitalization"
+temperature: 1.0e-07
+use_chat_template: true
+vis_label: existing_ckpt
