@@ -272,49 +272,42 @@ def test_eval_only_gets_prompt_and_dataset_type_from_summary():
 
 
 # -----------------------------------------------------------------------------
-# Seed resolution: one experiment.seed feeds train + eval, each overridable
+# Seed resolution: independent train + eval seeds, both defaulting to 14
 # -----------------------------------------------------------------------------
 
 
-def test_resolve_seed_stage_override_wins():
-    summary = {"experiment": {"seed": 100}, "evaluation": {"seed": 7}}
+def test_resolve_seed_uses_stage_value_when_set():
+    summary = {"evaluation": {"seed": 7}, "controls": {"seed": 9}}
     assert resolve_seed(summary, "evaluation.seed") == 7
+    assert resolve_seed(summary, "controls.seed") == 9
 
 
-def test_resolve_seed_falls_back_to_experiment_seed():
-    summary = {"experiment": {"seed": 100}}
-    assert resolve_seed(summary, "evaluation.seed") == 100
-    assert resolve_seed(summary, "controls.seed") == 100
-
-
-def test_resolve_seed_defaults_when_nothing_set():
+def test_resolve_seed_defaults_when_unset():
     assert resolve_seed({}, "evaluation.seed") == DEFAULT_SEED
+    assert resolve_seed({}, "controls.seed") == DEFAULT_SEED
 
 
 def test_resolve_seed_zero_is_a_valid_distinct_value():
     """0 is falsy but a legitimate seed — must not collapse to the default."""
-    summary = {"experiment": {"seed": 99}, "controls": {"seed": 0}}
+    summary = {"controls": {"seed": 0}}
     assert resolve_seed(summary, "controls.seed") == 0
 
 
-def test_experiment_seed_feeds_both_train_and_eval():
-    """A single experiment.seed reaches both stages — the unified-knob contract."""
-    summary = {"experiment": {"seed": 321}}
+def test_both_seeds_match_by_default():
+    """With nothing set, train and eval both resolve to DEFAULT_SEED — they
+    match for free, no shared knob required."""
     eval_config: dict = {}
     setup_finetune: dict = {}
-    propagate_eval_fields(summary, eval_config)
-    propagate_train_fields(summary, setup_finetune)
-    assert eval_config["seed"] == 321
-    assert setup_finetune["seed"] == 321
+    propagate_eval_fields({}, eval_config)
+    propagate_train_fields({}, setup_finetune)
+    assert eval_config["seed"] == DEFAULT_SEED
+    assert setup_finetune["seed"] == DEFAULT_SEED
 
 
-def test_stage_overrides_are_independent():
-    """evaluation.seed moves only eval; controls.seed moves only train."""
-    summary = {
-        "experiment": {"seed": 50},
-        "evaluation": {"seed": 7},
-        "controls": {"seed": 9},
-    }
+def test_stage_seeds_are_independent():
+    """evaluation.seed moves only eval; controls.seed moves only train.
+    Neither leaks into the other — divergence is per-stage and deliberate."""
+    summary = {"evaluation": {"seed": 7}, "controls": {"seed": 9}}
     eval_config: dict = {}
     setup_finetune: dict = {}
     propagate_eval_fields(summary, eval_config)
@@ -326,10 +319,9 @@ def test_stage_overrides_are_independent():
 def test_agent_per_run_seed_wins_over_resolution():
     """A seed the scaffold agent already wrote (e.g. a per-run sweep value)
     survives propagation — same idempotence rule as every other field."""
-    summary = {"experiment": {"seed": 50}}
     eval_config = {"seed": 4242}
     setup_finetune = {"seed": 0}  # 0 is a real per-run value, not "unset"
-    propagate_eval_fields(summary, eval_config)
-    propagate_train_fields(summary, setup_finetune)
+    propagate_eval_fields({}, eval_config)
+    propagate_train_fields({}, setup_finetune)
     assert eval_config["seed"] == 4242
     assert setup_finetune["seed"] == 0

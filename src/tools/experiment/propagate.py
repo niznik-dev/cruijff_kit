@@ -82,23 +82,21 @@ def _propagate(source: dict, target: dict, fields: dict[str, str]) -> dict:
     return target
 
 
-def resolve_seed(experiment_summary: dict, override_path: str) -> int:
-    """Resolve the run-time seed for a stage.
+def resolve_seed(experiment_summary: dict, seed_path: str) -> int:
+    """Resolve a stage's run-time seed: its own value, else DEFAULT_SEED.
 
-    Precedence: stage override (`override_path`, e.g. "evaluation.seed" or
-    "controls.seed") > shared `experiment.seed` > DEFAULT_SEED. Always returns
-    an int, so the resolved value can be recorded downstream for provenance and
-    no stage ever silently falls back to a random seed.
+    `seed_path` is the stage's seed (e.g. "evaluation.seed" or "controls.seed").
+    Training and eval seeds are independent; both default to DEFAULT_SEED, so
+    they match unless explicitly set differently. Always returns an int, so the
+    resolved value is recorded downstream for provenance and no stage ever
+    silently falls back to a random seed.
 
     A seed of 0 is a valid, distinct value (checked with `is not None`, not
     truthiness), so it survives every hop intact.
     """
-    override = _get_dotted(experiment_summary, override_path)
-    if override is not None:
-        return override
-    shared = _get_dotted(experiment_summary, "experiment.seed")
-    if shared is not None:
-        return shared
+    seed = _get_dotted(experiment_summary, seed_path)
+    if seed is not None:
+        return seed
     return DEFAULT_SEED
 
 
