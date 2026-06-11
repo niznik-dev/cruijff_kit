@@ -103,7 +103,7 @@ Extract the following information from the YAML structure:
 
 3. **Control hyperparameters — non-propagated only:**
    - `controls.validation_during_training` — Whether to run validation during training. Translates to `run_val_every_n_steps`: if `true`, set to `50` (the `finetune_template.yaml` default); if `false`, set to `0` (which causes `setup_finetune.py` to drop the validation dataset config). Do not emit `0` when the user requested validation — that silently disables it. **Not in `TRAIN_FIELDS`** because it's an agent transformation, not a copy.
-   - `controls.dataset_type` *(optional)* — If set, drives the `text_completion` exception below. If absent, infer from model name (`-Instruct` suffix → `chat_completion`; otherwise → `text_completion`).
+   - `controls.dataset_type` *(required)* — `chat_completion` | `text_completion`. Drives the `text_completion` exception below. It is a required field in `experiment_summary.yaml`; if absent, **fail loudly** — do not infer it from the model name. A wrong chat/text choice silently breaks train/eval parity.
 
    **All other `controls.*` fields** (`epochs`, `batch_size`, `batch_size_val`, `gradient_accumulation_steps`, `weight_decay`, `lora_dropout`, `prompt`, `system_prompt`) are populated by `propagate_train_fields()` (see "Key Pattern: Propagate First"). Don't extract them here — the helper reads them straight from `experiment_summary.yaml`.
 
@@ -297,11 +297,10 @@ custom_recipe: cruijff_kit.tools.torchtune.custom_recipes.lora_finetune_single_d
    propagation helper does not know about the dataset type, so this is the
    agent's call.
 
-   **Deriving `dataset_type`:** if `controls.dataset_type` is set in
-   `experiment_summary.yaml`, use it verbatim. Otherwise infer from the
-   model name — Instruct models (e.g. `Llama-3.2-1B-Instruct`) get
-   `chat_completion`; base models (e.g. `Llama-3.2-1B`) get
-   `text_completion`.
+   **Reading `dataset_type`:** use `controls.dataset_type` from
+   `experiment_summary.yaml` verbatim — it is a required field. If it is
+   absent, fail loudly; do not infer it from the model name. A wrong
+   chat/text choice silently breaks train/eval parity.
 
 ```python
 if dataset_type in ("text_completion", "text_completion_dataset"):
