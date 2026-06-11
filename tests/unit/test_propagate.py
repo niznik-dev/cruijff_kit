@@ -10,10 +10,12 @@ below so the test fails loudly if the field is forgotten.
 import pytest
 
 from cruijff_kit.tools.experiment.propagate import (
+    DEFAULT_SEED,
     EVAL_FIELDS,
     TRAIN_FIELDS,
     propagate_eval_fields,
     propagate_train_fields,
+    resolve_seed,
 )
 
 
@@ -165,16 +167,18 @@ def test_source_none_value_is_skipped():
 
 
 def test_source_missing_root_is_skipped():
+    # The flat EVAL_FIELDS copies skip when absent; only the always-resolved
+    # seed lands (default, since neither override nor experiment.seed is set).
     eval_config: dict = {}
     propagate_eval_fields({}, eval_config)
-    assert eval_config == {}
+    assert eval_config == {"seed": DEFAULT_SEED}
 
 
 def test_source_partial_missing_path_is_skipped():
     summary = {"evaluation": {}}  # no temperature key
     eval_config: dict = {}
     propagate_eval_fields(summary, eval_config)
-    assert eval_config == {}
+    assert eval_config == {"seed": DEFAULT_SEED}
 
 
 def test_malformed_section_is_skipped_not_crashed():
@@ -187,7 +191,8 @@ def test_malformed_section_is_skipped_not_crashed():
     summary = {"evaluation": "oops not a dict"}
     eval_config: dict = {}
     result = propagate_eval_fields(summary, eval_config)
-    assert result == {}
+    # Malformed section skips every flat copy; seed still resolves to default.
+    assert result == {"seed": DEFAULT_SEED}
 
 
 # -----------------------------------------------------------------------------
@@ -264,3 +269,67 @@ def test_eval_only_gets_prompt_and_dataset_type_from_summary():
     propagate_eval_fields(summary, eval_config)
     assert eval_config["prompt"] == "Capitalize: {input}\n"
     assert eval_config["dataset_type"] == "text_completion"
+
+
+# -----------------------------------------------------------------------------
+# Seed resolution: one experiment.seed feeds train + eval, each overridable
+# -----------------------------------------------------------------------------
+
+
+def test_resolve_seed_stage_override_wins():
+    summary = {"experiment": {"seed": 100}, "evaluation": {"seed": 7}}
+    assert resolve_seed(summary, "evaluation.seed") == 7
+
+
+def test_resolve_seed_falls_back_to_experiment_seed():
+    summary = {"experiment": {"seed": 100}}
+    assert resolve_seed(summary, "evaluation.seed") == 100
+    assert resolve_seed(summary, "controls.seed") == 100
+
+
+def test_resolve_seed_defaults_when_nothing_set():
+    assert resolve_seed({}, "evaluation.seed") == DEFAULT_SEED
+
+
+def test_resolve_seed_zero_is_a_valid_distinct_value():
+    """0 is falsy but a legitimate seed — must not collapse to the default."""
+    summary = {"experiment": {"seed": 99}, "controls": {"seed": 0}}
+    assert resolve_seed(summary, "controls.seed") == 0
+
+
+def test_experiment_seed_feeds_both_train_and_eval():
+    """A single experiment.seed reaches both stages — the unified-knob contract."""
+    summary = {"experiment": {"seed": 321}}
+    eval_config: dict = {}
+    setup_finetune: dict = {}
+    propagate_eval_fields(summary, eval_config)
+    propagate_train_fields(summary, setup_finetune)
+    assert eval_config["seed"] == 321
+    assert setup_finetune["seed"] == 321
+
+
+def test_stage_overrides_are_independent():
+    """evaluation.seed moves only eval; controls.seed moves only train."""
+    summary = {
+        "experiment": {"seed": 50},
+        "evaluation": {"seed": 7},
+        "controls": {"seed": 9},
+    }
+    eval_config: dict = {}
+    setup_finetune: dict = {}
+    propagate_eval_fields(summary, eval_config)
+    propagate_train_fields(summary, setup_finetune)
+    assert eval_config["seed"] == 7
+    assert setup_finetune["seed"] == 9
+
+
+def test_agent_per_run_seed_wins_over_resolution():
+    """A seed the scaffold agent already wrote (e.g. a per-run sweep value)
+    survives propagation — same idempotence rule as every other field."""
+    summary = {"experiment": {"seed": 50}}
+    eval_config = {"seed": 4242}
+    setup_finetune = {"seed": 0}  # 0 is a real per-run value, not "unset"
+    propagate_eval_fields(summary, eval_config)
+    propagate_train_fields(summary, setup_finetune)
+    assert eval_config["seed"] == 4242
+    assert setup_finetune["seed"] == 0
