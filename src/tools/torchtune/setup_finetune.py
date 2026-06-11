@@ -439,8 +439,11 @@ def create_parser():
     parser.add_argument(
         "--dataset_type",
         type=str,
-        default="chat_completion",
-        help="Dataset type: 'chat_completion' (default, uses HF chat templates for train/eval parity) or legacy 'instruct_dataset'/'chat_dataset'",
+        default=None,
+        help="Dataset type (REQUIRED): 'chat_completion' (HF chat templates for "
+        "train/eval parity) or 'text_completion'. Normally supplied via "
+        "setup_finetune.yaml from controls.dataset_type; pass explicitly only for "
+        "standalone runs. Absence is a hard error — there is no model-based default.",
     )
     parser.add_argument(
         "--packed",
@@ -654,11 +657,17 @@ def main():
         )
     model_config = MODEL_CONFIGS[args.torchtune_model_name]
 
-    # Default dataset_type from MODEL_CONFIGS if not explicitly set by user or config file
-    # Priority: CLI arg > config file > MODEL_CONFIGS > argparse default
-    if args.dataset_type == parser.get_default("dataset_type"):
-        # User didn't override via CLI or config file, use model's default
-        args.dataset_type = model_config.get("dataset_type", "chat_completion")
+    # dataset_type is required — it must arrive via controls.dataset_type
+    # (written into setup_finetune.yaml by scaffold-torchtune) or an explicit
+    # --dataset_type. There is no model-based default: silently guessing chat vs
+    # text from the model would break train/eval parity exactly when it matters.
+    if args.dataset_type is None:
+        raise ValueError(
+            "dataset_type is required but was not provided. Set "
+            "controls.dataset_type in experiment_summary.yaml (propagated into "
+            "setup_finetune.yaml), or pass --dataset_type "
+            "{chat_completion|text_completion}."
+        )
     validate_dataset_type(args.dataset_type)
 
     # First edit the yaml template

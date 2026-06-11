@@ -215,7 +215,6 @@ class TestModelConfigsStructure:
             "component",
             "checkpoint_files",
             "model_type",
-            "dataset_type",
             "tokenizer",
             "slurm",
         }

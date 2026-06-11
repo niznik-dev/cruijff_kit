@@ -233,6 +233,7 @@ If user says "yes" (default), add the constraint/partition values from `claude.l
 Create the runs list in experiment_summary.yaml:
 - For fine-tuned runs: Include `name`, `type: "fine-tuned"`, `model`, and `parameters` dict with varied values
 - For control runs: Include `name`, `type: "control"`, `model`, and empty `parameters: {}`
+- For eval-only runs (evaluate a pre-existing checkpoint without retraining): Include `name`, `type: "eval-only"`, `model` (the base model the checkpoint was finetuned from), and `parameters: {checkpoint_path: <absolute path to the existing checkpoint directory>}`. Use this when the user wants to throw new tasks/prompts at a model they already trained in an earlier experiment. An experiment may mix eval-only runs with control and/or fine-tuned runs.
 - Run names should include model and varying parameter values (e.g., `Llama-3.2-1B-Instruct_rank4`)
 - Parameters dict should only include values that vary across runs (e.g., `lora_rank: 4`)
 
@@ -417,7 +418,7 @@ If the user declines estimates or no prior data exists, omit `compute` blocks en
 
 See `references/scorers.md` for the full list of available scorers, their parameters, design-time considerations, and common combinations.
 
-**Important:** Base models evaluate once per task (no epoch suffix), fine-tuned models evaluate per epoch.
+**Important:** Base models and eval-only checkpoints evaluate once per task (no epoch suffix); fine-tuned models evaluate per epoch.
 
 ### Create Evaluation Matrix
 
@@ -425,6 +426,7 @@ Generate the evaluation matrix in experiment_summary.yaml:
 - For each run, specify which tasks to run and which epochs to evaluate
 - Fine-tuned runs: Use `epochs: [0, 1]` list for which epochs to evaluate
 - Control runs: Use `epochs: null` (no epoch suffix)
+- Eval-only runs: Use `epochs: null` (no training in this experiment; the checkpoint's epoch, if any, lives in `checkpoint_path`)
 - Tasks list should reference task names defined in `evaluation.tasks`
 
 ### Visualization Labels (vis_label)
@@ -522,6 +524,7 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 
 Record verified resources in experiment_summary.yaml:
 - `models.base`: List with `name`, `path`, `size_gb` for each model
+- `controls.dataset_type`: **REQUIRED** — set `"chat_completion"` for instruct/chat models or `"text_completion"` for base models. Read by torchtune at training time and propagated into every `eval_config.yaml`. If you cannot determine it, ask the user; do not omit it or guess from the model name.
 - `data.training`: Include `path`, `label`, `format`, `size_kb`, and `splits` with train/validation/test counts
 - `evaluation.tasks`: List with `name`, `script`, optional `dataset`, and `description` for each task
 

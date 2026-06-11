@@ -9,14 +9,34 @@ You help users automatically set up the complete experimental infrastructure - b
 
 ## Your Task
 
-Orchestrate the scaffolding process by reading tool specifications from experiment_summary.yaml and launching the appropriate subagents in parallel:
+Orchestrate the scaffolding process by reading tool specifications from experiment_summary.yaml and launching the appropriate subagents:
 
 1. Read experiment_summary.yaml to identify which tools are being used
-2. Launch the appropriate preparation subagent (currently only `scaffold-torchtune`)
-3. Launch the appropriate evaluation subagent (currently only `scaffold-inspect`)
-4. Wait for both subagents to complete and report their results
+2. Launch the preparation subagent (`scaffold-torchtune`) **only if at least one run has `type: "fine-tuned"`** (see "Deciding Which Subagents to Launch" below)
+3. Launch the evaluation subagent (`scaffold-inspect`)
+4. Wait for the launched subagent(s) to complete and report their results
 
-This ensures the entire experiment is ready to execute from training through evaluation. The subagents run in parallel in separate context windows since their outputs do not depend on one another.
+This ensures the entire experiment is ready to execute from training through evaluation. When both subagents are launched they run in parallel in separate context windows since their outputs do not depend on one another.
+
+## Deciding Which Subagents to Launch
+
+Preparation (training) is only needed for runs that train in *this* experiment. Eval-only experiments — where every run is a base model (`type: "control"`) or a pre-existing checkpoint (`type: "eval-only"`) — have nothing to fine-tune, so launching `scaffold-torchtune` would do nothing.
+
+**Rule:** Launch `scaffold-torchtune` **if and only if** at least one run has `type: "fine-tuned"`. Always launch `scaffold-inspect`.
+
+```python
+import yaml
+with open(f"{experiment_dir}/experiment_summary.yaml") as f:
+    config = yaml.safe_load(f)
+runs = config.get("runs", []) or []
+finetuned_runs = [r for r in runs if isinstance(r, dict) and r.get("type") == "fine-tuned"]
+needs_torchtune = len(finetuned_runs) > 0
+```
+
+- **`needs_torchtune` true:** launch both subagents in parallel (one message, two Task calls).
+- **`needs_torchtune` false:** launch `scaffold-inspect` alone. Note in the summary and log that torchtune was skipped because the experiment has no fine-tuned runs (it is eval-only).
+
+**Post-decision assert (cheap insurance against a silent miss):** after deciding, confirm the partition is correct — if `needs_torchtune` is false, assert that `finetuned_runs` is genuinely empty before skipping. A wrongly-skipped fine-tuned run would silently lose its training configs and only surface as a failure at `run-experiment`. If the assert ever trips, do **not** skip — launch `scaffold-torchtune`.
 
 **Current tool support:**
 - **Preparation:** torchtune only (via `scaffold-torchtune` subagent)
@@ -153,9 +173,11 @@ python -m cruijff_kit.tools.experiment.prepare_data {experiment_dir}
 **Currently supported generators:**
 - `model_organism` — cheap, deterministic sequence datasets (`src/tools/model_organisms/`). See template schema for parameters.
 
-### Step 1: Launch Preparation Subagent
+### Step 1: Launch Preparation Subagent (only if there are fine-tuned runs)
 
-Invoke the appropriate preparation subagent based on tool specification in experiment_summary.yaml.
+**First check `needs_torchtune`** (see "Deciding Which Subagents to Launch" above). If no run has `type: "fine-tuned"`, **skip this step entirely** — the experiment is eval-only — and proceed to Step 2 with `scaffold-inspect` alone.
+
+Otherwise, invoke the preparation subagent based on tool specification in experiment_summary.yaml.
 
 **For torchtune:** See [optimizers/torchtune_agent.md](optimizers/torchtune_agent.md) for:
 - Complete prompt template
@@ -316,12 +338,13 @@ Before reporting success, verify:
 
 ### Parallel Execution
 
-- Launch both subagents in a **single message** with multiple Task tool calls
+- **When both subagents are needed** (the experiment has fine-tuned runs), launch them in a **single message** with multiple Task tool calls
+- For an eval-only experiment (no fine-tuned runs), launch `scaffold-inspect` alone — there is no preparation subagent to parallelize with
 - Do NOT launch them sequentially in separate messages
 - **Do NOT use `run_in_background: true`** — background agents cannot surface permission prompts to the user, so all tool calls get auto-denied. Foreground parallel (multiple Task calls in one message) works correctly.
 - The subagents run independently in separate context windows
 - They can work simultaneously because their outputs don't depend on each other
-- Wait for both to complete before proceeding to create the orchestration log
+- Wait for the launched subagent(s) to complete before proceeding to create the orchestration log
 
 ### Subagent Communication
 

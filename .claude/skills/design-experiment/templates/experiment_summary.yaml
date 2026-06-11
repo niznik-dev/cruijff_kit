@@ -40,6 +40,9 @@ variables:
 controls:
   system_prompt: string            # Training system prompt ("" for blank)
   prompt: string                   # Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
+  dataset_type: string             # REQUIRED: "chat_completion" (instruct/chat models) |
+                                   # "text_completion" (base models). Read by torchtune (training)
+                                   # and propagated to eval (chat-template choice). Absence is an error at eval.
   # Common hyperparameters (see param_selection.md for full list)
   epochs: int                      # REQUIRED: Number of training epochs
   batch_size: int                  # REQUIRED: Batch size per GPU (even if also in variables)
@@ -145,17 +148,25 @@ output:
 # =============================================================================
 
 runs:
-  # REQUIRED: List of all runs (fine-tuned + control)
+  # REQUIRED: List of all runs (fine-tuned + control + eval-only)
   # Generated from cartesian product of variables + explicit controls
 
   # Example fine-tuned run:
   - name: string                   # REQUIRED: Run identifier (used for directory name)
-    type: string                   # REQUIRED: "fine-tuned" or "control"
+    type: string                   # REQUIRED: "fine-tuned" | "control" | "eval-only"
+                                   #   fine-tuned: trained in THIS experiment (needs torchtune)
+                                   #   control:    base model evaluated as-is (no training)
+                                   #   eval-only:  pre-existing checkpoint evaluated as-is
+                                   #               (no training; see checkpoint_path below)
     model: string                  # REQUIRED: Model name (matches models.base[].name)
     parameters:                    # REQUIRED: Parameter values for this run
       lora_rank: int               # Include all varied parameters
       lr: float
-      # Empty dict {} for control runs
+      # Empty dict {} for control and eval-only runs
+      # checkpoint_path: string    # OPTIONAL (eval-only): absolute path to a pre-existing
+                                   #   checkpoint dir (e.g. .../some_run/artifacts/epoch_0).
+                                   #   Used verbatim as model_path. If omitted, scaffold-inspect
+                                   #   computes {experiment_dir}/{run_name}/artifacts/epoch_{N}.
     # OPTIONAL (data-generation experiments): which condition provides this
     # run's training file.
     # training_condition: string
@@ -165,6 +176,13 @@ runs:
     type: "control"
     model: string
     parameters: {}                 # Empty for control runs
+
+  # Example eval-only run (evaluate an already-trained checkpoint, no retraining):
+  - name: string                   # e.g., "income_rank8_epoch1"
+    type: "eval-only"
+    model: string                  # base model the checkpoint was finetuned from
+    parameters:
+      checkpoint_path: string      # absolute path to the existing checkpoint directory
 
   # OPTIONAL: Compute estimates (from prior runs via compute_metrics.json)
   # Only present when design-experiment finds and uses prior compute data.
@@ -240,5 +258,6 @@ evaluation:
                                    # Used to set dynamic task name suffix (e.g., "rank4" -> "capitalization_rank4")
       tasks: [string]              # REQUIRED: List of task names
       epochs: [int]                # REQUIRED: List of epoch numbers (0-indexed)
-                                   # Use null for control runs (no epochs)
+                                   # Use null for control AND eval-only runs (no training epochs).
+                                   # An eval-only run pins its epoch via checkpoint_path, not here.
 

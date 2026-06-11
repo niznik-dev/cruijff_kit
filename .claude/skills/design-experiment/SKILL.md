@@ -124,7 +124,8 @@ Reference materials for output generation:
 - **Always verify resources** exist before finalizing plan (log all verification)
 - **System prompt consistency is critical** - must match between training and evaluation for inspect-ai
 - **Epochs are 0-indexed** - Use [0, 1, 2] in evaluation matrix
-- **Base models** use `epochs: null`, **fine-tuned models** use `epochs: [0, 1]`
+- **Base models and eval-only checkpoints** use `epochs: null`, **fine-tuned models** use `epochs: [0, 1]`
+- **`controls.dataset_type` is required** (`"chat_completion"` | `"text_completion"`) — read by torchtune at training time and propagated to drive chat-template choice at eval time for every run type, including eval-only
 - **Document tool choices** in YAML - torchtune for training, inspect-ai for evaluation
 - **Handle missing resources gracefully** - note as prerequisites, don't block the plan
 - **If inspect-ai task doesn't exist** - note that `create-inspect-task` skill should be run first

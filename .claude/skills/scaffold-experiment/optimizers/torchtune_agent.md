@@ -28,14 +28,14 @@ Set up torchtune fine-tuning configurations for all FINE-TUNED runs in the exper
 Your tasks:
 1. Read experiment_summary.yaml to extract run configurations
 2. Read claude.local.md for environment-specific settings
-3. Identify which runs are fine-tuned (type: "fine-tuned") vs control (type: "control")
-4. For ONLY the fine-tuned runs (skip control/base model runs):
+3. Identify which runs are fine-tuned (type: "fine-tuned"). Every other type — "control" (base model) and "eval-only" (pre-existing checkpoint) — does not train in this experiment.
+4. For ONLY the fine-tuned runs (skip control and eval-only runs):
    - Create run directory based on run name in experiment_summary.yaml
    - Generate setup_finetune.yaml from appropriate template
    - If runs[].compute block exists, include time/gpus/mem in setup_finetune.yaml and pass as --time/--gpus/--mem CLI args to setup_finetune.py
    - Execute setup_finetune.py to generate finetune.yaml and finetune.slurm (canonical invocation in `.claude/agents/scaffold-torchtune.md`)
    - Verify outputs were created successfully
-5. For control/base model runs: Create ONLY the run directory (no training configs needed)
+5. For control and eval-only runs: no training configs are needed. The eval subagent creates their directories, so scaffold-torchtune can skip them entirely. (Note: the orchestrator only launches scaffold-torchtune at all when at least one run is fine-tuned.)
 6. Create a detailed log at {experiment_dir}/logs/scaffold-torchtune.log
 7. Verify that parameters in generated finetune.yaml files match directory names
 

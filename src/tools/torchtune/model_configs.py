@@ -15,7 +15,6 @@ SUPPORTED_MODEL_FAMILIES = {"llama", "mistral", "qwen"}
 
 # Model-specific configurations
 # Keys are model directory names (e.g., "Llama-3.2-3B-Instruct")
-# Base/foundation models use "text_completion"; instruct models use "chat_completion"
 # SLURM resources follow RAM=VRAM rule to ensure checkpoint saving doesn't OOM
 # CPUs: 1 per GPU (single-threaded PyTorch dataloading; more wastes cluster CPU allocation)
 # min_gpu_vram_gb: minimum GPU VRAM required (for mapping to cluster-specific constraints)
@@ -27,7 +26,6 @@ MODEL_CONFIGS = {
         "component": "torchtune.models.llama3_2.lora_llama3_2_1b",
         "checkpoint_files": ["model.safetensors"],
         "model_type": "LLAMA3_2",
-        "dataset_type": "text_completion",
         "tokenizer": {
             "component": "torchtune.models.llama3.llama3_tokenizer",
             "model_family": "llama",
@@ -39,12 +37,10 @@ MODEL_CONFIGS = {
             "gpus": 1,
         },
     },
-    # Instruct models - use chat_completion
     "Llama-3.2-1B-Instruct": {
         "component": "torchtune.models.llama3_2.lora_llama3_2_1b",
         "checkpoint_files": ["model.safetensors"],
         "model_type": "LLAMA3_2",
-        "dataset_type": "chat_completion",
         "tokenizer": {
             "component": "torchtune.models.llama3.llama3_tokenizer",
             "model_family": "llama",
@@ -63,7 +59,6 @@ MODEL_CONFIGS = {
             "max_filename": "00002",
         },
         "model_type": "LLAMA3_2",
-        "dataset_type": "chat_completion",
         "tokenizer": {
             "component": "torchtune.models.llama3.llama3_tokenizer",
             "model_family": "llama",
@@ -82,7 +77,6 @@ MODEL_CONFIGS = {
             "max_filename": "00004",
         },
         "model_type": "LLAMA3",
-        "dataset_type": "chat_completion",
         "tokenizer": {
             "component": "torchtune.models.llama3.llama3_tokenizer",
             "model_family": "llama",
@@ -101,7 +95,6 @@ MODEL_CONFIGS = {
             "max_filename": "00030",
         },
         "model_type": "LLAMA3",
-        "dataset_type": "chat_completion",
         "tokenizer": {
             "component": "torchtune.models.llama3.llama3_tokenizer",
             "model_family": "llama",
@@ -123,7 +116,6 @@ MODEL_CONFIGS = {
             "max_filename": "00002",
         },
         "model_type": "MISTRAL",
-        "dataset_type": "text_completion",
         "tokenizer": {
             "component": "torchtune.models.mistral.mistral_tokenizer",
             "model_family": "mistral",
@@ -142,7 +134,6 @@ MODEL_CONFIGS = {
             "max_filename": "00002",
         },
         "model_type": "MISTRAL",
-        "dataset_type": "chat_completion",
         "tokenizer": {
             "component": "torchtune.models.mistral.mistral_tokenizer",
             "model_family": "mistral",
@@ -164,7 +155,6 @@ MODEL_CONFIGS = {
             "max_filename": "00002",
         },
         "model_type": "QWEN2",
-        "dataset_type": "text_completion",
         "tokenizer": {
             "component": "torchtune.models.qwen2_5.qwen2_5_tokenizer",
             "model_family": "qwen",
@@ -183,7 +173,6 @@ MODEL_CONFIGS = {
             "max_filename": "00002",
         },
         "model_type": "QWEN2",
-        "dataset_type": "chat_completion",
         "tokenizer": {
             "component": "torchtune.models.qwen2_5.qwen2_5_tokenizer",
             "model_family": "qwen",

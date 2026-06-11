@@ -23,6 +23,7 @@ variables:
 controls:
   system_prompt: "You are a helpful assistant."
   prompt: "Capitalize the given word: {input}\n"
+  dataset_type: "chat_completion"
   epochs: 1
   batch_size: 4
   validation_during_training: true

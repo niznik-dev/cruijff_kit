@@ -37,6 +37,7 @@ _SAMPLE_VALUES: dict = {
     "max_tokens": 5,
     "max_connections": 16,
     "scorer": [{"name": "match"}],
+    "dataset_type": "chat_completion",
     # train
     "epochs": 3,
     "batch_size": 4,
@@ -88,6 +89,7 @@ def representative_summary() -> dict:
             "scorer": _SAMPLE_VALUES["scorer"],
         },
         "controls": {
+            "dataset_type": _SAMPLE_VALUES["dataset_type"],
             "epochs": _SAMPLE_VALUES["epochs"],
             "batch_size": _SAMPLE_VALUES["batch_size"],
             "batch_size_val": _SAMPLE_VALUES["batch_size_val"],
@@ -237,3 +239,28 @@ def test_propagate_train_returns_same_dict():
     setup_finetune: dict = {}
     result = propagate_train_fields({"controls": {"epochs": 3}}, setup_finetune)
     assert result is setup_finetune
+
+
+# -----------------------------------------------------------------------------
+# Eval-only decoupling: prompt + dataset_type reach eval_config WITHOUT
+# setup_finetune.yaml (#478)
+# -----------------------------------------------------------------------------
+
+
+def test_eval_only_gets_prompt_and_dataset_type_from_summary():
+    """An eval-only experiment has no setup_finetune.yaml, so the inspect task's
+    `prompt` and the chat-template-driving `dataset_type` must reach eval_config
+    straight from experiment_summary (#478). Before they joined EVAL_FIELDS,
+    `prompt` silently fell back to the bare "{input}" default at eval time and
+    `dataset_type` was guessed from the model name — both corrupting evals.
+    """
+    summary = {
+        "controls": {
+            "prompt": "Capitalize: {input}\n",
+            "dataset_type": "text_completion",
+        },
+    }
+    eval_config: dict = {}
+    propagate_eval_fields(summary, eval_config)
+    assert eval_config["prompt"] == "Capitalize: {input}\n"
+    assert eval_config["dataset_type"] == "text_completion"

@@ -4,6 +4,15 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Evaluation-only experiments**: `experiment_summary.yaml` now supports a third run type, `eval-only`, for evaluating a pre-existing checkpoint (via `parameters.checkpoint_path`) without retraining it. `scaffold-experiment` skips `scaffold-torchtune` entirely when no run is `fine-tuned`, so an experiment can be made up of base models and/or pre-existing checkpoints. (#478)
+
+### Changed
+
+- Evaluation scaffolding (`scaffold-inspect`) no longer reads `setup_finetune.yaml` — `prompt` and `dataset_type` are propagated into `eval_config.yaml` from `experiment_summary.yaml`, decoupling evaluation from the training artifact. (#478)
+- **`controls.dataset_type` is now required** and used uniformly by training and evaluation. It is no longer inferred from the model name or a per-model `MODEL_CONFIGS` default; an absent value is a hard error at every layer (design validation, both scaffold agents, and `setup_finetune.py`), preventing a silent chat-vs-text mismatch from corrupting train/eval parity. **Migration:** existing `experiment_summary.yaml` files must add `controls.dataset_type` (`chat_completion` | `text_completion`). (#478)
+
 ## [0.3.3] - 2026-06-04
 
 ### Added

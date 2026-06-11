@@ -35,10 +35,13 @@ Run through this checklist before presenting the plan:
 - ✓ All run names follow established convention
 - ✓ Names include model and varying parameters
 - ✓ Control runs clearly marked with "base" in name
+- ✓ Every run's `type` is one of `"fine-tuned"`, `"control"`, or `"eval-only"`
 - ✓ All fine-tuned runs have `type: "fine-tuned"`
 - ✓ All control runs have `type: "control"`
+- ✓ All eval-only runs have `type: "eval-only"` and a `parameters.checkpoint_path` pointing at a pre-existing checkpoint directory
 - ✓ Fine-tuned runs have parameters dict with varied values
 - ✓ Control runs have empty parameters dict `{}`
+- ✓ Eval-only and control runs use `epochs: null` in the evaluation matrix (no training epochs)
 - ✓ All runs specify correct model name (matches models.base[].name)
 - ✓ Control runs included if requested
 
@@ -46,6 +49,7 @@ Run through this checklist before presenting the plan:
 - ✓ All models have name, path, and size_gb
 - ✓ Model paths exist (verified and logged)
 - ✓ Training data has path, label, format, size_kb
+- ✓ `controls.dataset_type` is present and is exactly `"chat_completion"` or `"text_completion"` (REQUIRED — read by torchtune and drives eval's chat-template choice; a missing or wrong value silently corrupts evaluation, so treat absence as a hard validation failure, not a default-and-continue)
 - ✓ Dataset file exists (verified and logged)
 - ✓ Splits section has train, validation, test counts
 - ✓ Format is "json"
