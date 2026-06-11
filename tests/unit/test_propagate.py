@@ -293,6 +293,20 @@ def test_resolve_seed_zero_is_a_valid_distinct_value():
     assert resolve_seed(summary, "controls.seed") == 0
 
 
+@pytest.mark.parametrize(
+    "bad_seed",
+    ["14", "14abc", 3.7, [1, 2], True],
+    ids=["quoted-int", "garbage-str", "float", "list", "bool"],
+)
+def test_resolve_seed_rejects_non_int(bad_seed):
+    """A non-int seed must fail loudly at scaffold time, not late in a SLURM
+    job (or silently as a float reaching torchtune). bool is rejected too —
+    `seed: true` is a mistake, not the seed 1."""
+    summary = {"evaluation": {"seed": bad_seed}}
+    with pytest.raises(ValueError, match="evaluation.seed must be an integer"):
+        resolve_seed(summary, "evaluation.seed")
+
+
 def test_both_seeds_match_by_default():
     """With nothing set, train and eval both resolve to DEFAULT_SEED — they
     match for free, no shared knob required."""

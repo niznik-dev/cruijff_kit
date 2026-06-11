@@ -93,11 +93,22 @@ def resolve_seed(experiment_summary: dict, seed_path: str) -> int:
 
     A seed of 0 is a valid, distinct value (checked with `is not None`, not
     truthiness), so it survives every hop intact.
+
+    A non-integer seed (a quoted "14", a float, a list) is rejected here with a
+    loud error naming the field, rather than passing through to fail late in a
+    queued SLURM job (or, on the training path, silently reaching torchtune's
+    set_seed). `bool` is excluded too — `True` is an `int` subclass, but
+    `seed: true` is a mistake, not the seed 1.
     """
     seed = _get_dotted(experiment_summary, seed_path)
-    if seed is not None:
-        return seed
-    return DEFAULT_SEED
+    if seed is None:
+        return DEFAULT_SEED
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError(
+            f"{seed_path} must be an integer, got {seed!r} "
+            f"({type(seed).__name__}). Unquote numbers in experiment_summary.yaml."
+        )
+    return seed
 
 
 def propagate_eval_fields(experiment_summary: dict, eval_config: dict) -> dict:
