@@ -17,9 +17,8 @@ branching on dataset type) but no longer touch flat field copies.
 from typing import Any
 
 
-# Canonical run-time seed when neither a stage override nor experiment.seed is
-# set. 14 is Johan Cruijff's kit number and matches setup_finetune.py's
-# historical --seed default.
+# Run-time seed a stage falls back to when it doesn't set its own. 14 is Johan
+# Cruijff's kit number and matches setup_finetune.py's historical --seed default.
 DEFAULT_SEED = 14
 
 
@@ -103,7 +102,7 @@ def propagate_eval_fields(experiment_summary: dict, eval_config: dict) -> dict:
     agent's per-cell decisions (e.g. per-task system_prompt overrides) survive
     propagation.
 
-    The eval seed is resolved (override > experiment.seed > default) and written
+    The eval seed is resolved (evaluation.seed, else DEFAULT_SEED) and written
     unless the agent already set a per-cell seed, which wins.
     """
     _propagate(experiment_summary, eval_config, EVAL_FIELDS)
@@ -122,10 +121,8 @@ def propagate_train_fields(experiment_summary: dict, setup_finetune: dict) -> di
     when the run's `dataset_type` is `text_completion` (base / non-instruct
     models have no chat template to hold a system prompt).
 
-    The training seed is resolved (override > experiment.seed > default) and
-    written unless the agent already set a per-run seed, which wins. This is
-    what makes training deterministic by default — absent any seed, training
-    resolves to DEFAULT_SEED rather than the recipe's historical null.
+    The training seed is resolved (controls.seed, else DEFAULT_SEED) and
+    written unless the agent already set a per-run seed, which wins.
     """
     _propagate(experiment_summary, setup_finetune, TRAIN_FIELDS)
     if setup_finetune.get("seed") is None:
