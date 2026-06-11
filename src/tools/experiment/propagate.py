@@ -83,16 +83,11 @@ def _propagate(source: dict, target: dict, fields: dict[str, str]) -> dict:
 
 
 def resolve_seed(experiment_summary: dict, seed_path: str) -> int:
-    """Resolve a stage's seed (e.g. "evaluation.seed"): its value, else DEFAULT_SEED.
-
-    Training and eval seeds are independent and both default to DEFAULT_SEED, so
-    they match unless set differently. A non-int seed raises here — a
-    scaffold-time error beats failing late in a queued job. `bool` is rejected
-    because `True` is an `int` but `seed: true` is a mistake, not the seed 1.
-    """
+    """Resolve a stage's seed (its value, else DEFAULT_SEED); reject non-ints."""
     seed = _get_dotted(experiment_summary, seed_path)
     if seed is None:
         return DEFAULT_SEED
+    # reject bool: True is an int subclass, but `seed: true` is a mistake
     if isinstance(seed, bool) or not isinstance(seed, int):
         raise ValueError(
             f"{seed_path} must be an integer, got {seed!r} "
