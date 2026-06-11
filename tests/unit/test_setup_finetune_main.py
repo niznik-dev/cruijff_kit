@@ -25,6 +25,7 @@ def setup_yaml(tmp_path):
         "experiment_name": "test_exp",
         "dataset_label": "test_data",
         "dataset_ext": ".json",
+        "dataset_type": "chat_completion",
         "my_wandb_project": "test_project",
         "batch_size": 2,
         "epochs": 1,
@@ -60,6 +61,39 @@ def run_main(tmp_path, setup_yaml, monkeypatch):
         return config, slurm
 
     return _run
+
+
+def test_missing_dataset_type_raises(tmp_path, monkeypatch):
+    """dataset_type is required (#478): absent from both CLI and config_file, it
+    is a hard error — no silent model-based default that could pick the wrong
+    chat/text format and break train/eval parity."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("USER", "testuser")
+    config = {
+        "torchtune_model_name": "Llama-3.2-1B-Instruct",
+        "project_dir": str(tmp_path / "outputs"),
+        "input_dir_base": str(tmp_path / "inputs") + "/",
+        "models_dir": str(tmp_path / "models"),
+        "experiment_name": "test_exp",
+        "dataset_label": "test_data",
+        "dataset_ext": ".json",
+        # dataset_type intentionally omitted
+        "my_wandb_project": "test_project",
+        "batch_size": 2,
+        "epochs": 1,
+        "lora_rank": 8,
+        "lr": 2e-4,
+        "time": "01:00:00",
+        "gpus": 1,
+        "conda_env": "test_env",
+    }
+    config_path = tmp_path / "setup_finetune.yaml"
+    with open(config_path, "w") as f:
+        yaml.dump(config, f)
+    argv = ["setup_finetune.py", "--config_file", str(config_path)]
+    with patch.object(sys, "argv", argv):
+        with pytest.raises(ValueError, match="dataset_type is required"):
+            main()
 
 
 class TestMainYamlGeneration:
