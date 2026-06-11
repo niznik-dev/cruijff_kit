@@ -16,7 +16,7 @@ For an end-to-end walkthrough using the Claude Code skills (recommended), see [A
 For experiments with multiple runs (e.g., parameter sweeps):
 
 1. Create an experiment directory with a subdirectory for each run. Experiments typically live outside the repo (e.g. under `{ck_data_dir}/ck-projects/{project}/{experiment_name}/`); the canonical layout is described in [ARTIFACT_LOCATIONS.md](ARTIFACT_LOCATIONS.md).
-2. Copy and customize `setup_finetune.yaml` for each run.
+2. Copy and customize `setup_finetune.yaml` for each run. It **must** include `dataset_type` (`chat_completion` for instruct/chat models, `text_completion` for base models) — it is required, and `setup_finetune.py` errors if it is missing rather than guessing.
 3. Generate fine-tuning configs for all runs. After `make install` the package is importable from anywhere, so `python -m` works regardless of where the experiment dir lives:
    ```bash
    for dir in run_*/; do

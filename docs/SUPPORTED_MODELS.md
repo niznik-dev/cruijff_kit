@@ -18,7 +18,7 @@ This page lists all models currently supported by cruijff_kit. The canonical sou
 
 ## Notes
 
-- **Base vs Instruct**: Base models use `text_completion` dataset format; instruct models use `chat_completion`. The scaffolding tools handle this automatically based on the model config.
+- **Base vs Instruct**: Base models use the `text_completion` dataset format; instruct models use `chat_completion`. This is **not** inferred from the model — you set it explicitly per experiment via `controls.dataset_type` in `experiment_summary.yaml` (a required field). Choose `text_completion` for base models and `chat_completion` for instruct/chat models; a wrong choice silently breaks train/eval parity.
 - **HuggingFace access**: Meta Llama models require requesting access on HuggingFace before downloading. Navigate to the model page, agree to the license, and wait for confirmation before running the download command.
 - **HuggingFace token**: Llama downloads require `--hf-token`. Qwen models are openly available and do not require a token. **Never commit your HuggingFace token to a repository.**
 
@@ -28,8 +28,9 @@ To add support for a new model, add an entry to the `MODEL_CONFIGS` dictionary i
 
 1. A torchtune model component (e.g., `torchtune.models.llama3_2.lora_llama3_2_1b`)
 2. Checkpoint file layout (single file or multi-file pattern)
-3. Dataset type (`text_completion` for base, `chat_completion` for instruct)
-4. Tokenizer configuration with a supported `model_family` (`llama`, `mistral`, or `qwen`)
-5. SLURM resource requirements (memory, GPUs, CPUs, partition/constraint)
+3. Tokenizer configuration with a supported `model_family` (`llama`, `mistral`, or `qwen`)
+4. SLURM resource requirements (memory, GPUs, CPUs, partition/constraint)
+
+Dataset type is **not** a model-config field — it is chosen per experiment via `controls.dataset_type` in `experiment_summary.yaml`, so the same model can be fine-tuned with either format.
 
 If the new model uses a tokenizer format not yet supported, also add a handler in `configure_tokenizer()` and update `SUPPORTED_MODEL_FAMILIES`.
