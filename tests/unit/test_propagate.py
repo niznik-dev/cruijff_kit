@@ -88,12 +88,8 @@ def representative_summary() -> dict:
             "max_connections": _SAMPLE_VALUES["max_connections"],
             "scorer": _SAMPLE_VALUES["scorer"],
         },
-        "data": {
-            "training": {
-                "dataset_type": _SAMPLE_VALUES["dataset_type"],
-            },
-        },
         "controls": {
+            "dataset_type": _SAMPLE_VALUES["dataset_type"],
             "epochs": _SAMPLE_VALUES["epochs"],
             "batch_size": _SAMPLE_VALUES["batch_size"],
             "batch_size_val": _SAMPLE_VALUES["batch_size_val"],
@@ -259,8 +255,10 @@ def test_eval_only_gets_prompt_and_dataset_type_from_summary():
     `dataset_type` was guessed from the model name — both corrupting evals.
     """
     summary = {
-        "controls": {"prompt": "Capitalize: {input}\n"},
-        "data": {"training": {"dataset_type": "text_completion"}},
+        "controls": {
+            "prompt": "Capitalize: {input}\n",
+            "dataset_type": "text_completion",
+        },
     }
     eval_config: dict = {}
     propagate_eval_fields(summary, eval_config)

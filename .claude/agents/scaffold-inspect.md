@@ -441,7 +441,7 @@ Each run's SLURM script will have its own `SYSTEM_PROMPT` variable set appropria
 
 ### Determining Chat Template Usage
 
-When generating inspect.slurm scripts, determine whether to use chat templates from `dataset_type`, which `propagate_eval_fields()` has already copied into `eval_config.yaml` from `data.training.dataset_type`. This is the single source of truth for **every** run type — fine-tuned, control, and eval-only alike.
+When generating inspect.slurm scripts, determine whether to use chat templates from `dataset_type`, which `propagate_eval_fields()` has already copied into `eval_config.yaml` from `controls.dataset_type`. This is the single source of truth for **every** run type — fine-tuned, control, and eval-only alike.
 
 **Detection Logic:**
 

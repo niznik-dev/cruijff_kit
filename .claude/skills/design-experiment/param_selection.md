@@ -524,7 +524,8 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 
 Record verified resources in experiment_summary.yaml:
 - `models.base`: List with `name`, `path`, `size_gb` for each model
-- `data.training`: Include `path`, `label`, `format`, `dataset_type`, `size_kb`, and `splits` with train/validation/test counts. **`dataset_type` is REQUIRED** — set `"chat_completion"` for instruct/chat models or `"text_completion"` for base models. If you cannot determine it, ask the user; do not omit it or guess from the model name.
+- `controls.dataset_type`: **REQUIRED** — set `"chat_completion"` for instruct/chat models or `"text_completion"` for base models. Read by torchtune at training time and propagated into every `eval_config.yaml`. If you cannot determine it, ask the user; do not omit it or guess from the model name.
+- `data.training`: Include `path`, `label`, `format`, `size_kb`, and `splits` with train/validation/test counts
 - `evaluation.tasks`: List with `name`, `script`, optional `dataset`, and `description` for each task
 
 ### Log All Verification Steps

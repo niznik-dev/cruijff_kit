@@ -49,7 +49,7 @@ Run through this checklist before presenting the plan:
 - ✓ All models have name, path, and size_gb
 - ✓ Model paths exist (verified and logged)
 - ✓ Training data has path, label, format, size_kb
-- ✓ `data.training.dataset_type` is present and is exactly `"chat_completion"` or `"text_completion"` (REQUIRED — it drives eval's chat-template choice; a missing or wrong value silently corrupts evaluation, so treat absence as a hard validation failure, not a default-and-continue)
+- ✓ `controls.dataset_type` is present and is exactly `"chat_completion"` or `"text_completion"` (REQUIRED — read by torchtune and drives eval's chat-template choice; a missing or wrong value silently corrupts evaluation, so treat absence as a hard validation failure, not a default-and-continue)
 - ✓ Dataset file exists (verified and logged)
 - ✓ Splits section has train, validation, test counts
 - ✓ Format is "json"

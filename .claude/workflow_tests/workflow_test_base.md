@@ -31,6 +31,7 @@ Does fine-tuning improve capitalization accuracy over the base model? Again, the
 - `lr: 1e-4`
 - 1 GPU
 - System prompt: `You are a helpful assistant.`
+- `dataset_type: chat_completion` (Llama-3.2-1B-Instruct is a chat model; required field under `controls`)
 - Prompt template: `Capitalize the given word: {input}\n`
 - `validation_during_training: true`
 

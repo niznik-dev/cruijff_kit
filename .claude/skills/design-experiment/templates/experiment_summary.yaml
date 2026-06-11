@@ -40,6 +40,9 @@ variables:
 controls:
   system_prompt: string            # Training system prompt ("" for blank)
   prompt: string                   # Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
+  dataset_type: string             # REQUIRED: "chat_completion" (instruct/chat models) |
+                                   # "text_completion" (base models). Read by torchtune (training)
+                                   # and propagated to eval (chat-template choice). Absence is an error at eval.
   # Common hyperparameters (see param_selection.md for full list)
   epochs: int                      # REQUIRED: Number of training epochs
   batch_size: int                  # REQUIRED: Batch size per GPU (even if also in variables)
@@ -63,8 +66,6 @@ data:
     path: string                   # REQUIRED: Full path to training dataset
     label: string                  # REQUIRED: Filename without extension
     format: string                 # REQUIRED: "json"
-    dataset_type: string           # REQUIRED: "chat_completion" (instruct/chat models) |
-                                   # "text_completion" (base models). Drives eval chat-template; absence is an error.
     size_kb: int                   # REQUIRED: Dataset size in KB
     splits:                        # REQUIRED: Sample counts per split
       train: int

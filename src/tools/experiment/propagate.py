@@ -30,7 +30,7 @@ EVAL_FIELDS: dict[str, str] = {
     # run (no fine-tuning, no setup_finetune.yaml) source them from the
     # experiment_summary single source of truth instead of silently defaulting.
     "controls.prompt": "prompt",
-    "data.training.dataset_type": "dataset_type",
+    "controls.dataset_type": "dataset_type",
 }
 
 
