@@ -94,7 +94,7 @@ Extract the following information from the YAML structure:
    - `evaluation.tasks[]` — List of evaluation tasks (see Parsing Evaluation Tasks below)
    - `evaluation.matrix[]` — Which runs evaluate on which tasks/epochs (see Parsing Evaluation Matrix below)
 
-   **All other `evaluation.*` fields** (`system_prompt`, `temperature`, `do_sample`, `max_tokens`, `max_connections`, `scorer`) are populated by `propagate_eval_fields()` (see "Key Pattern: Propagate First"). Don't extract them here — the helper reads them straight from `experiment_summary.yaml`. The helper also resolves and writes `seed` (`evaluation.seed`, else default `14`); `setup_inspect.py` renders it as the `--seed` CLI flag.
+   **All other `evaluation.*` fields** (`system_prompt`, `temperature`, `do_sample`, `max_tokens`, `max_connections`, `scorer`, `seed`) are populated by `propagate_eval_fields()` (see "Key Pattern: Propagate First"). Don't extract them here — the helper reads them straight from `experiment_summary.yaml`.
 
 7. **Compute estimates (optional):**
    - `evaluation.compute.time` - Estimated SLURM time limit for eval jobs
@@ -314,15 +314,13 @@ finetuned: true
 source_model: Llama-3.2-1B-Instruct
 ```
 
-**Propagated keys** — populated by `propagate_eval_fields()`. The current
-`EVAL_FIELDS` map covers `system_prompt`, `temperature`, `do_sample`,
-`max_tokens`, `max_connections`, `scorer`. The helper additionally resolves
-and writes `seed` (not a flat `EVAL_FIELDS` copy — `evaluation.seed`, else
-the default `14`). You do not write these by
-hand. The downstream tooling tolerates missing/extra values: `do_sample`
-defaults to `false` at the SLURM-render layer when absent;
-`max_connections` defaults to 32; `seed` defaults to 14. The agent's only
-responsibility is to call the helper.
+**Propagated keys** — populated by `propagate_eval_fields()`: the
+`EVAL_FIELDS` map (`system_prompt`, `temperature`, `do_sample`,
+`max_tokens`, `max_connections`, `scorer`) plus a resolved `seed`
+(default 14). You do not write these by hand. The downstream tooling
+tolerates missing/extra values: `do_sample` defaults to `false` at the
+SLURM-render layer when absent; `max_connections` defaults to 32. The
+agent's only responsibility is to call the helper.
 
 Note: `config_path` and `eval_dir` are **auto-derived** from the location of the YAML file — do not include them in eval_config.yaml.
 
