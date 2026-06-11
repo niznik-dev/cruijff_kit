@@ -63,13 +63,8 @@ data:
     path: string                   # REQUIRED: Full path to training dataset
     label: string                  # REQUIRED: Filename without extension
     format: string                 # REQUIRED: "json"
-    dataset_type: string           # REQUIRED: "chat_completion" | "text_completion".
-                                   # Drives use_chat_template at eval time. Must match how
-                                   # the model was (or would be) trained: chat_completion for
-                                   # instruct/chat models, text_completion for base models.
-                                   # Propagated into every eval_config.yaml — eval-only runs
-                                   # rely on it since they have no setup_finetune.yaml. No
-                                   # "-Instruct"-name guessing; absence is a hard error.
+    dataset_type: string           # REQUIRED: "chat_completion" (instruct/chat models) |
+                                   # "text_completion" (base models). Drives eval chat-template; absence is an error.
     size_kb: int                   # REQUIRED: Dataset size in KB
     splits:                        # REQUIRED: Sample counts per split
       train: int
