@@ -37,7 +37,7 @@ data:
     k: 8                      # sequence length
     N: 1000                   # number of samples
     design: in_distribution   # memorization | in_distribution | ood
-    split: 0.8                # train fraction (for in_distribution / ood)
+    split_ratio: 0.8          # train fraction (for in_distribution / ood)
     output_path: dataset.json
     # optional:
     fmt: spaced               # defaults to spaced
