@@ -447,7 +447,7 @@ Note: `risk_scorer` accuracy is exact-string-match (`completion == target`), not
 These names are not arbitrary. `setup_inspect.py` maps a fixed `TASK_ARG_KEYS` set onto `-T` flags — commonly the likes of:
 
 ```
-data_path, config_path, vis_label, use_chat_template, split, logprobs, …
+data_path, config_path, vis_label, split, temperature, max_tokens, …
 ```
 
 `TASK_ARG_KEYS` in `setup_inspect.py` is the source of truth for the full set — read it there rather than trusting this list to stay complete. A parameter outside that set will **not** receive a value from `eval_config.yaml` (you'd get a startup warning from `load_eval_config` about an unconsumed key); add genuinely new task args to `TASK_ARG_KEYS` if the task needs them.
@@ -924,7 +924,7 @@ def my_task(
     )
 ```
 
-For a **standalone** task with no experiment context, drop the `config_path`/`build_scorers`/logprobs machinery and hard-code a built-in scorer (e.g. `scorer=match(...)`) — but keep `vis_label` if the eval logs will feed the viz pipeline:
+For a **standalone** task with no experiment context, drop the `config_path`/`build_scorers`/logprobs machinery and hard-code a built-in scorer (e.g. `scorer=match(...)`) — but keep `vis_label` (and pass it yourself via `-T vis_label=…`, since there's no `eval_config.yaml` to auto-map it) if the eval logs will feed the viz pipeline:
 
 ```python
 from inspect_ai import Task, task
