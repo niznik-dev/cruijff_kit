@@ -463,6 +463,30 @@ def test_archive_missing_dir_field(tmp_path):
     result = archive_experiment(exp_dir, archive_base, dry_run=True)
 
     assert result["status"] == "error"
-    assert "dir" in result["message"]
+    # "dir" alone is a substring of "directory"; pin the post-rename wording so
+    # this can't silently pass against the old "No experiment.directory" message.
+    assert "experiment.dir" in result["message"]
+    assert "experiment.directory" not in result["message"]
+    # Original experiment untouched
+    assert Path(exp_dir).exists()
+
+
+def test_archive_legacy_directory_key_rejected(tmp_path):
+    """Regression: clean break — a stale 'directory:' key is NOT accepted as a
+    fallback for 'dir:' (#372). Guards against a silent compat shim.
+    """
+    exp_dir = _make_experiment(tmp_path)
+    summary_path = Path(exp_dir) / "experiment_summary.yaml"
+    config = yaml.safe_load(summary_path.read_text())
+    # Simulate an un-migrated file: old key present, new key absent.
+    config["experiment"]["directory"] = config["experiment"].pop("dir")
+    summary_path.write_text(yaml.dump(config))
+
+    archive_base = str(tmp_path / "ck-archive")
+    result = archive_experiment(exp_dir, archive_base, dry_run=True)
+
+    assert result["status"] == "error"
+    # The diagnostic hint names the legacy key so the user knows what to rename.
+    assert "directory" in result["message"]
     # Original experiment untouched
     assert Path(exp_dir).exists()
