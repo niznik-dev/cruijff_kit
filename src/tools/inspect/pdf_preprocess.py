@@ -5,7 +5,7 @@ Exploration reports (``report.md``) are authored directly by the
 explore-experiment skill — Claude reads ``summary.md`` and the evaluation logs
 and writes the narrative, tables, and figures itself. This module no longer
 assembles reports; it only holds the small, reusable transforms that prepare an
-authored ``report.md`` for ``pandoc`` (see the analyze-to-pdf skill).
+authored ``report.md`` for ``pandoc`` (see the md-to-pdf skill).
 
 Example usage:
     from cruijff_kit.tools.inspect.pdf_preprocess import expand_details_for_pdf
