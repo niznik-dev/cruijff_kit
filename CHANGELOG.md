@@ -6,27 +6,46 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ### Added
 
-- **Evaluation-only experiments**: `experiment_summary.yaml` now supports a third run type, `eval-only`, for evaluating a pre-existing checkpoint (via `parameters.checkpoint_path`) without retraining it. `scaffold-experiment` skips `scaffold-torchtune` entirely when no run is `fine-tuned`, so an experiment can be made up of base models and/or pre-existing checkpoints. (#478)
+- **Evaluation-only experiments**: `experiment_summary.yaml` gains a third run type, `eval-only`, for evaluating a pre-existing checkpoint (via `parameters.checkpoint_path`) without retraining. `scaffold-experiment` skips `scaffold-torchtune` entirely when no run is `fine-tuned`, so an experiment can be made up of base models and/or pre-existing checkpoints. (#478)
 
 ### Changed
 
-- **`finetuned` eval-config metadata key renamed to `is_finetuned`.** It was a lone adjective where our other booleans are verb/`is_`-style (`use_chat_template`, `emit_source_parquet`); `is_finetuned` reads as the yes/no it is. The rename flows through `setup_inspect.py` (the `--metadata is_finetuned=...` arg) and `viz_helpers.py` (the parsed `is_finetuned` column). **Migration:** rename `finetuned:` to `is_finetuned:` in existing `eval_config.yaml` files; eval logs produced before this change carry `finetuned` in their metadata and the `is_finetuned` column will be null for them. (#372)
-- **Model-organism `data_generation.split` renamed to `split_ratio`** (a float train fraction). It now matches the tabular generator's `split_ratio`, and frees `split` to consistently mean a *split name* (`train`/`validation`/`test`) across the codebase. End to end: schema, `prepare_data.py` dispatch, `model_organisms.generate` (`--split` CLI → `--split-ratio`, `split` param, the `metadata["split"]` field), docs, and tests. **Migration:** rename `split:` to `split_ratio:` under `data.data_generation` (model_organism) in existing `experiment_summary.yaml` files. A leftover `split:` is **ignored** (the train fraction falls back to 0.8); `prepare_data.py` now logs a warning when it sees the stale key, so watch for it when migrating. (#372)
-- **`data.training.label` renamed to `data.training.dataset_label`** in `experiment_summary.yaml`. The training-input schema called it `label` while everything downstream (`setup_finetune.yaml`, `setup_finetune.py`, the finetune template) already called it `dataset_label`; the schema now matches, and `label` alone was ambiguous (reads as a class label). **Migration:** rename `label:` to `dataset_label:` under `data.training` in existing `experiment_summary.yaml` files. (#372)
-- **`src/tools/slurm/compute_metrics.py` renamed to `compute_gpu_metrics.py`.** The module aggregates GPU/`seff` *hardware* metrics; the bare `compute_metrics` name collided conceptually with the eval-accuracy `compute_metrics()` functions (`summary_binary`, `summary_continuous`), and the rename disambiguates hardware metrics from model metrics. Module-only rename — no functions changed, and the `compute_metrics.json` artifact (written by `compute_summary.py`) is unaffected. (#372)
-- **`analyze-to-pdf` skill renamed to `md-to-pdf`.** It is a generic markdown→PDF pandoc wrapper that does no "analysis" and converts whatever markdown it's given (explorations, summaries, reports), so the name now matches what it does. **Migration:** invoke `/md-to-pdf` instead of `/analyze-to-pdf`. (#372)
-- **`evaluation.scorer` renamed to `evaluation.scorers`** in `experiment_summary.yaml` (and the propagated `scorers` key in `eval_config.yaml`). The key holds a *list*, so the plural matches its sibling `tasks:` and stops misleading readers. **Migration:** rename `scorer:` to `scorers:` in existing `experiment_summary.yaml` and `eval_config.yaml` files. A leftover singular `scorer:` is **silently ignored** at runtime (the eval falls back to the default `match` + `includes` scorers); `setup_inspect.py` does warn about the unknown key at scaffold time, so watch for that warning when migrating. (#372)
-- Evaluation scaffolding (`scaffold-inspect`) no longer reads `setup_finetune.yaml` — `prompt` and `dataset_type` are propagated into `eval_config.yaml` from `experiment_summary.yaml`, decoupling evaluation from the training artifact. (#478)
-- **`experiment.directory` renamed to `experiment.dir`** in `experiment_summary.yaml`. It was the lone spelled-out `directory` in a codebase that otherwise uses `dir`/`_dir` everywhere (and beside the external `output_dir`/`checkpoint_dir` keys); `dir` makes the schema key match the `experiment_dir` variable that reads it. The handful of `*_directory` local identifiers (`run_directory`, `task_directory`, `parent_directory`) collapse to `*_dir` too. **Migration:** rename `directory:` to `dir:` under `experiment` in existing `experiment_summary.yaml` files; `archive_experiment` fails loudly and names the legacy key if it sees an un-migrated file. (#372)
-- **`controls.dataset_type` is now required** and used uniformly by training and evaluation. It is no longer inferred from the model name or a per-model `MODEL_CONFIGS` default; an absent value is a hard error at every layer (design validation, both scaffold agents, and `setup_finetune.py`), preventing a silent chat-vs-text mismatch from corrupting train/eval parity. **Migration:** existing `experiment_summary.yaml` files must add `controls.dataset_type` (`chat_completion` | `text_completion`). (#478)
+#### Schema-key renames (`experiment_summary.yaml` / `eval_config.yaml`)
+
+Each requires migrating existing config files; see the migration note per item.
+
+- **`experiment.directory` → `experiment.dir`** — the lone spelled-out `directory` in a codebase that otherwise uses `dir`/`_dir` (and sits beside torchtune's `output_dir`/`checkpoint_dir`). Local `*_directory` identifiers collapse to `*_dir` too. **Migration:** rename `directory:` to `dir:` under `experiment`; `archive_experiment` fails loudly and names the legacy key on an un-migrated file. (#372)
+- **`evaluation.scorer` → `evaluation.scorers`** — the key holds a list, so the plural matches its sibling `tasks:`. **Migration:** rename `scorer:` to `scorers:`. A leftover singular is silently ignored at runtime (falls back to default `match` + `includes`); `setup_inspect.py` warns about the unknown key at scaffold time. (#372)
+- **`finetuned` → `is_finetuned`** (eval-config metadata) — aligns with our other `is_`-style booleans (`use_chat_template`, `emit_source_parquet`). **Migration:** rename in `eval_config.yaml`; eval logs written before this change leave the `is_finetuned` column null. (#372)
+- **`data_generation.split` → `split_ratio`** (model-organism; a float train fraction) — matches the tabular generator and frees `split` to mean a *split name* everywhere. **Migration:** rename under `data.data_generation`. A stale `split:` is ignored (falls back to 0.8) but `prepare_data.py` warns when it sees it. (#372)
+- **`data.training.label` → `dataset_label`** — the schema now matches the downstream name; bare `label` read as a class label. **Migration:** rename under `data.training`. (#372)
+- **`controls.dataset_type` is now required** and used uniformly by training and eval — no longer inferred from the model name or a `MODEL_CONFIGS` default. An absent value is a hard error at every layer, preventing a silent chat-vs-text mismatch from corrupting train/eval parity. **Migration:** add `controls.dataset_type` (`chat_completion` | `text_completion`). (#478)
+- **`output.base_directory` retired; `experiment.dir` is the single experiment root.** The unused `output.checkpoint_pattern` is dropped too. **Migration:** remove `output.base_directory` from existing files. (#442)
+- **`experiment.seed` dropped** — training and eval each resolve an independent run-time seed via `resolve_seed`, which rejects non-integer seeds at scaffold time. **Migration:** remove `experiment.seed`. (#500)
+
+#### Renames (modules / skills)
+
+- **`compute_metrics.py` → `compute_gpu_metrics.py`** — disambiguates GPU/`seff` *hardware* metrics from the eval-accuracy `compute_metrics()` functions. Module-only; the `compute_metrics.json` artifact is unchanged. (#372)
+- **`analyze-to-pdf` skill → `md-to-pdf`** — it's a generic markdown→PDF pandoc wrapper, not an "analysis" step. **Migration:** invoke `/md-to-pdf`. (#372)
+- **`output_*` path variables renamed to match the `artifacts/` layout** (and archive dedup). (#443)
+
+#### Structure & workflow
+
+- **Post-run flow restructured**: `summarize-experiment` is now the required post-run step, and the optional `analyze-experiment` skill is renamed `explore-experiment` (output dir `analysis/` → `exploration/`). `report_generator.py` is retired (renamed `pdf_preprocess.py`) — `explore-experiment` authors `report.md` directly. (#539)
+- **Deterministic `experiment_summary.yaml` propagation** — `propagate_*_fields()` is a mandatory propagate-first step in scaffolding, so generated `eval_config.yaml` / `setup_finetune.yaml` derive from one verified source. (#502)
+- Evaluation scaffolding (`scaffold-inspect`) no longer reads `setup_finetune.yaml` — `prompt` and `dataset_type` are propagated from `experiment_summary.yaml`, decoupling eval from the training artifact. (#478)
+- **`utils/` namespace audit** — single-domain scripts moved out of `src/utils/` into their domain folders; the `utils/` charter is documented in `docs/ARCHITECTURE.md`. (#535)
+- **`create-inspect-task` skill** updated to the current `eval_config.yaml` / per-cell architecture. (#566)
+
+### Fixed
+
+- `summary_binary` reads eval logs via inspect-ai's `read_eval_log()` API instead of hand-unzipping `.eval` archives. (#317)
+- Nightly GPU smoke-test scaffolding now receives the required `dataset_type`. (#570)
 
 ### Documentation
 
-- **Naming conventions written down** (no renames). New `CLAUDE.md` "Naming Conventions" subsection records the `dir`-over-`directory` preference for names we own — the short idiom is already dominant here and matches the external `output_dir`/`checkpoint_dir`/`log_dir` keys we sit beside — plus the `dir`-vs-`path` (folder-vs-file) distinction. (#372)
-- **External-contract naming boundary** added to the "Wrapper-only" principle (`CLAUDE.md`): the names off-limits to our renames because they belong to an external contract — torchtune recipe keys (`lr`, `seed`, `batch_size`, `epochs`, `max_seq_len`, `output_dir`) and inspect-ai's `@task`/`@scorer`/`@metric` registry names. We rename only what we own. (#372)
-- **`ck-setup` prefix rationale** documented (`CLAUDE.md` skills list + `ck-setup/SKILL.md`): the `ck-` prefix is deliberate — a bare `setup` would collide with a built-in skill — so a future audit shouldn't "fix" it. (#372)
-- **Tool-domain folder convention + `inspect/`-shadows-stdlib hazard** (`docs/ARCHITECTURE.md`): how `src/tools/<domain>/` folders are named, and the hazard that `src/tools/inspect/` shadows Python's stdlib `inspect`. The hazard is also noted in `src/tools/inspect/__init__.py` and now locked by a guard test (`tests/unit/test_inspect_no_stdlib_shadow.py`) that fails if any module in the subtree imports the stdlib `inspect` by name. (#372)
-- **Stale `ck-experiments/` path fixed** (storage dir is now `ck-projects/<project>/<experiment>/`): corrected in the `create-quiz` skill docs and a `summarize` test fixture. (#372)
+- **Naming conventions + external-contract boundary written down** (`CLAUDE.md`, no renames): the `dir`-over-`directory` preference and the `dir`-vs-`path` (folder-vs-file) distinction, plus the names off-limits to renames because they belong to an external contract — torchtune recipe keys and inspect-ai's `@task`/`@scorer`/`@metric` registry names. Also records why `ck-setup` keeps its prefix (a bare `setup` would collide with a built-in skill). (#372)
+- **Tool-domain folder convention + `inspect/`-shadows-stdlib hazard** documented (`docs/ARCHITECTURE.md`, `src/tools/inspect/__init__.py`) and locked by a guard test (`tests/unit/test_inspect_no_stdlib_shadow.py`). Stale `ck-experiments/` paths fixed in the `create-quiz` docs and a `summarize` test fixture. (#372)
 
 ## [0.3.3] - 2026-06-04
 
