@@ -241,6 +241,20 @@ class TestRegistry:
         """An explicit empty list also falls back to DEFAULT_SCORERS."""
         assert len(build_scorers({"scorers": []})) == 2
 
+    def test_build_scorers_ignores_legacy_singular_scorer_key(self):
+        """Regression (#372): build_scorers reads `scorers` (plural) only.
+
+        `evaluation.scorer` was renamed to `scorers` (#567), so a pre-rename
+        singular `scorer:` block is now ignored and silently falls back to
+        DEFAULT_SCORERS rather than the user's chosen scorer (e.g. `risk_scorer`
+        -> default match/includes, wrong calibration, no crash). This pins that
+        soft-fail as deliberate, giving a baseline to flip the day a stale
+        `scorer:` should instead hard-error.
+        """
+        legacy = build_scorers({"scorer": [{"name": "risk_scorer"}]})
+        assert legacy == build_scorers({})  # identical to the no-key case
+        assert len(legacy) == 2  # match + includes, NOT the requested risk_scorer
+
     def test_build_scorers_ignores_legacy_singular_key(self):
         """Regression: a pre-rename `scorer:` (singular) is NOT honored (#372).
 
