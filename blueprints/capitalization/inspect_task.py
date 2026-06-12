@@ -2,19 +2,19 @@
 Eval task for capitalization.
 
 Supports both instruct models (chat_completion) and base models (text_completion).
-Reads prompt and system_prompt from setup_finetune.yaml to ensure train/eval parity.
+Reads prompt and system_prompt from eval_config.yaml to ensure train/eval parity.
 
 Usage:
     # For instruct models (chat_completion, default):
     inspect eval inspect_task.py --model hf/local \
         -M model_path=/path/to/checkpoint \
-        -T config_path=/path/to/setup_finetune.yaml \
+        -T config_path=/path/to/eval_config.yaml \
         -T data_path=/path/to/words_5L_80P_1000.json
 
     # For base models (text_completion):
     inspect eval inspect_task.py --model hf/local \
         -M model_path=/path/to/checkpoint \
-        -T config_path=/path/to/setup_finetune.yaml \
+        -T config_path=/path/to/eval_config.yaml \
         -T data_path=/path/to/words_5L_80P_1000.json \
         -T use_chat_template=false
 """
@@ -41,7 +41,7 @@ def capitalization(
 
     Args:
         data_path: Path to JSON file with {"train": [...], "validation": [...], "test": [...]}
-        config_path: Path to setup_finetune.yaml (reads prompt/system_prompt from it)
+        config_path: Path to eval_config.yaml (reads prompt/system_prompt from it)
         split: Which split to evaluate on (default: test)
         temperature: Generation temperature
         max_tokens: Max tokens to generate
