@@ -21,12 +21,12 @@ CLI::
     python -m cruijff_kit.tools.model_organisms.generate \\
         --input_type bits --rule coin --k 8 \\
         --rule_kwargs '{"p": 0.7}' \\
-        --N 200 --seed 1729 --design in_distribution --split 0.8 \\
+        --N 200 --seed 1729 --design in_distribution --split-ratio 0.8 \\
         --output bits_coin_p70_k8_indist.json
 
     python -m cruijff_kit.tools.model_organisms.generate \\
         --input_type bits --rule parity --k 8 \\
-        --N 200 --seed 1729 --design ood --split 0.8 \\
+        --N 200 --seed 1729 --design ood --split-ratio 0.8 \\
         --ood_tests '[{"k": 12, "N": 50}, {"k": 16, "N": 50}]' \\
         --output bits_parity_k8_ood.json
 """
@@ -86,14 +86,14 @@ def _build_rows(sequences, rule_fn, rule_kwargs, formatter) -> list[dict]:
     ]
 
 
-def _split_indices(N: int, split: float) -> tuple[int, int]:
-    if not 0 < split < 1:
-        raise ValueError(f"split must be in (0, 1); got {split}")
-    n_train = int(round(N * split))
+def _split_indices(N: int, split_ratio: float) -> tuple[int, int]:
+    if not 0 < split_ratio < 1:
+        raise ValueError(f"split_ratio must be in (0, 1); got {split_ratio}")
+    n_train = int(round(N * split_ratio))
     if n_train == 0 or n_train == N:
         raise ValueError(
-            f"split={split} with N={N} yields an empty train or validation "
-            "set; pick a split that keeps both sides non-empty."
+            f"split_ratio={split_ratio} with N={N} yields an empty train or "
+            "validation set; pick a split_ratio that keeps both sides non-empty."
         )
     return n_train, N - n_train
 
@@ -122,14 +122,14 @@ def generate(
     design: str,
     fmt: str = "spaced",
     rule_kwargs: dict | None = None,
-    split: float = 0.8,
+    split_ratio: float = 0.8,
     ood_tests: list[dict] | None = None,
 ) -> dict:
     """Generate a model-organism dataset and return it as a dict.
 
     - ``memorization``: train and validation contain the same rows.
     - ``in_distribution``: N unique sequences sampled from one distribution
-      and split ``split`` / ``1 - split`` into train and validation.
+      and split ``split_ratio`` / ``1 - split_ratio`` into train and validation.
     - ``ood``: primary train/val (as in_distribution) plus one
       ``validation_ood_{i}`` per entry in ``ood_tests``. Each OOD entry
       may override ``input_type``, ``k``, ``format``, and ``rule_kwargs``
@@ -204,8 +204,8 @@ def generate(
         return {"train": rows, "validation": rows, "metadata": metadata}
 
     # Both in_distribution and ood start with a primary train/val split.
-    n_train, _ = _split_indices(N, split)
-    metadata["split"] = split
+    n_train, _ = _split_indices(N, split_ratio)
+    metadata["split_ratio"] = split_ratio
     train_rows = _build_rows(sequences[:n_train], rule_def.fn, fn_kwargs, formatter)
     val_rows = _build_rows(sequences[n_train:], rule_def.fn, fn_kwargs, formatter)
     result: dict = {"train": train_rows, "validation": val_rows}
@@ -273,7 +273,7 @@ def main():
         '\'{"v": "A"}\'. Default: "{}".',
     )
     parser.add_argument(
-        "--split",
+        "--split-ratio",
         type=float,
         default=0.8,
         help="Train fraction for design=in_distribution or design=ood "
@@ -322,7 +322,7 @@ def main():
         design=args.design,
         fmt=args.fmt,
         rule_kwargs=parsed_rule_kwargs,
-        split=args.split,
+        split_ratio=args.split_ratio,
         ood_tests=parsed_ood_tests or None,
     )
 

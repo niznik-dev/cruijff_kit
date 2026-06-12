@@ -68,7 +68,7 @@ models:
 data:
   training:
     path: string                   # REQUIRED: Full path to training dataset
-    label: string                  # REQUIRED: Filename without extension
+    dataset_label: string          # REQUIRED: Filename without extension
     format: string                 # REQUIRED: "json"
     size_kb: int                   # REQUIRED: Dataset size in KB
     splits:                        # REQUIRED: Sample counts per split
@@ -98,7 +98,7 @@ data:
     output_path: string            # REQUIRED: Relative to experiment_dir, or absolute
     fmt: string                    # OPTIONAL: "spaced" (default) | "dense" | "comma" | "tab" | "pipe"
     rule_kwargs: dict              # OPTIONAL: Extra rule params (e.g. {p: 0.7} for coin)
-    split: float                   # OPTIONAL: Train fraction for in_distribution/ood (default 0.8)
+    split_ratio: float             # OPTIONAL: Train fraction for in_distribution/ood (default 0.8)
     ood_tests: list                # REQUIRED when design="ood": list of OOD specs
 
     # ---- tabular_to_text_gen fields (when tool == "tabular_to_text_gen") ----
