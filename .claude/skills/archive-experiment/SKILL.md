@@ -73,7 +73,7 @@ Present the plan clearly:
 
 ```
 Archive plan for: {experiment_name}
-  Archive: {N} files ({X} MB) → {archive_path}
+  Archive: {N} files ({X} MB) → {archive_dir}
   Delete:  {M} checkpoint dirs ({Y} MB)
 
 Proceed? (y/n)

@@ -418,8 +418,8 @@ def test_archive_nonexistent_dir(tmp_path):
     assert "not found" in result["message"]
 
 
-def test_archive_path_includes_project(tmp_path):
-    """Archive path is {archive_base}/{project}/{experiment_name}/."""
+def test_archive_dir_includes_project(tmp_path):
+    """Archive dir is {archive_base}/{project}/{experiment_name}/."""
     exp_dir = _make_experiment(tmp_path)
     archive_base = str(tmp_path / "ck-archive")
 
@@ -429,7 +429,7 @@ def test_archive_path_includes_project(tmp_path):
     expected = str(
         tmp_path / "ck-archive" / "capitalization" / "test_experiment_2026-03-23"
     )
-    assert result["archive_path"] == expected
+    assert result["archive_dir"] == expected
 
 
 def test_archive_missing_project_field(tmp_path):

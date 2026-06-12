@@ -381,7 +381,7 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
                 "checkpoint_dirs": len(inventory["delete_paths"]),
                 "size_mb": _bytes_to_mb(inventory["delete_total_bytes"]),
             },
-            "archive_path": archive_dir,
+            "archive_dir": archive_dir,
             "incomplete_runs": inventory["incomplete_runs"],
             "findings_source": inventory["findings_source"],
         }
