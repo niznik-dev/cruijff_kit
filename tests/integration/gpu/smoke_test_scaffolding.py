@@ -31,6 +31,8 @@ def test_setup_finetune(work_dir: Path):
             "test_dataset",
             "--dataset_ext",
             ".json",
+            "--dataset_type",
+            "chat_completion",
             "--input_dir_base",
             "/fake/input/",
             "--project_dir",
