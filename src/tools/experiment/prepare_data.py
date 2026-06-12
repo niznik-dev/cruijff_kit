@@ -70,6 +70,17 @@ def generate_model_organism(
             f"data.data_generation (tool=model_organism) missing required fields: {missing}"
         )
 
+    # Migration tripwire: `split` was renamed to `split_ratio`. A stale `split`
+    # would otherwise be silently ignored (split_ratio falls back to 0.8),
+    # quietly changing the train/validation split. Warn loudly instead.
+    if "split" in spec:
+        logger.warning(
+            "data.data_generation key 'split' was renamed to 'split_ratio'; "
+            "the 'split' key is ignored. Using "
+            f"split_ratio={spec.get('split_ratio', 0.8)}. Rename 'split' to "
+            "'split_ratio' to honor your intended train fraction."
+        )
+
     out_path = _resolve_output(spec["output_path"], experiment_dir)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 

@@ -88,6 +88,35 @@ class TestSingleDataset:
         assert len(ds["train"]) == 15
         assert len(ds["validation"]) == 5
 
+    def test_legacy_split_key_ignored_and_warns(self, experiment_dir):
+        """Regression: the pre-rename `split` key is ignored (the train fraction
+        falls back to the 0.8 default, NOT the stale value) and prepare_data
+        logs a migration warning rather than silently changing the split (#372).
+        """
+        _write_yaml(
+            experiment_dir,
+            _model_organism(
+                name="legacy_split",
+                input_type="digits",
+                rule="length",
+                k=5,
+                N=20,
+                seed=2,
+                split=0.5,  # pre-rename key — must NOT be honored
+                design="in_distribution",
+                output_path="data/ls.json",
+            ),
+        )
+        assert prepare(experiment_dir) == 0
+        ds = json.loads((experiment_dir / "data" / "ls.json").read_text())
+        # Stale split=0.5 ignored -> default split_ratio=0.8 -> 16/4, not 10/10.
+        assert len(ds["train"]) == 16
+        assert len(ds["validation"]) == 4
+        assert ds["metadata"]["split_ratio"] == 0.8
+        # And the migration tripwire fired.
+        log_text = (experiment_dir / "logs" / "scaffold-prepare-data.log").read_text()
+        assert "'split' was renamed to 'split_ratio'" in log_text
+
 
 class TestLogging:
     def test_log_file_created_with_provenance(self, experiment_dir):

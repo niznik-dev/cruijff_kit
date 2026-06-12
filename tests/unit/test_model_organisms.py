@@ -4,6 +4,8 @@ Run with:
     pytest tests/unit/test_model_organisms.py -v
 """
 
+import json
+
 import pytest
 
 from cruijff_kit.tools.model_organisms import formats
@@ -14,6 +16,7 @@ from cruijff_kit.tools.model_organisms.formats import (
 from cruijff_kit.tools.model_organisms.generate import (
     _sample_sequences_unique,
     generate,
+    main,
 )
 from cruijff_kit.tools.model_organisms.inputs import (
     InputType,
@@ -373,6 +376,43 @@ class TestGenerate:
                 design="in_distribution",
                 split_ratio=1.5,
             )
+
+    def test_cli_split_ratio_flag_honored(self, tmp_path, monkeypatch):
+        """The --split-ratio CLI flag drives the train fraction end to end.
+
+        Covers the argparse path (generate.main()), which the in-process
+        generate() tests don't exercise — guards the --split -> --split-ratio
+        flag rename from a silent regression (#372).
+        """
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "generate",
+                "--input_type",
+                "digits",
+                "--rule",
+                "length",
+                "--k",
+                "5",
+                "--N",
+                "20",
+                "--seed",
+                "2",
+                "--design",
+                "in_distribution",
+                "--split-ratio",
+                "0.75",
+                "--output",
+                "cli.json",
+                "--output_dir",
+                str(tmp_path),
+            ],
+        )
+        main()
+        ds = json.loads((tmp_path / "cli.json").read_text())
+        assert len(ds["train"]) == 15  # round(20 * 0.75)
+        assert len(ds["validation"]) == 5
+        assert ds["metadata"]["split_ratio"] == 0.75
 
     def test_applicability_error_parity_on_digits(self):
         with pytest.raises(ValueError, match="not applicable"):
