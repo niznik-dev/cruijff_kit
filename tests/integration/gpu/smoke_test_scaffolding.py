@@ -71,7 +71,7 @@ def test_setup_inspect(work_dir: Path):
         "vis_label": "smoke_test",
         "use_chat_template": True,
         "epoch": 0,
-        "finetuned": True,
+        "is_finetuned": True,
         "source_model": "Llama-3.2-1B-Instruct",
     }
     config_path = work_dir / "eval_config.yaml"

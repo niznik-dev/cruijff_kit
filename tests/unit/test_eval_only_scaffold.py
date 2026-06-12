@@ -55,7 +55,7 @@ def test_eval_only_model_path_is_checkpoint_verbatim():
     not a path computed under this experiment's own directory."""
     cfg = _load()
     assert cfg["model_path"] == "{CHECKPOINT_DIR}"
-    assert cfg["finetuned"] is True  # the checkpoint IS fine-tuned, just elsewhere
+    assert cfg["is_finetuned"] is True  # the checkpoint IS fine-tuned, just elsewhere
 
 
 def test_no_setup_finetune_dependency():

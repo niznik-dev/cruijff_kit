@@ -114,7 +114,7 @@ def deduplicate_eval_files(eval_files: list[str]) -> tuple[list[str], list[str]]
 
 def parse_eval_metadata(logs_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Parse JSON metadata column into separate columns for epoch, finetuned, source_model.
+    Parse JSON metadata column into separate columns for epoch, is_finetuned, source_model.
 
     Extracts structured metadata from the 'metadata' column (which contains JSON strings)
     and adds them as proper DataFrame columns. Also uses task_arg_vis_label for task_name.
@@ -125,7 +125,7 @@ def parse_eval_metadata(logs_df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         DataFrame with additional columns:
         - epoch: Training epoch number (from metadata)
-        - finetuned: Boolean indicating if model was fine-tuned (from metadata)
+        - is_finetuned: Boolean indicating if model was fine-tuned (from metadata)
         - source_model: Original model name before fine-tuning (from metadata)
         - task_name: Visualization label for the task (from task_arg_vis_label)
 
@@ -154,8 +154,8 @@ def parse_eval_metadata(logs_df: pd.DataFrame) -> pd.DataFrame:
         logs_df["epoch"] = logs_df["metadata"].apply(
             lambda x: _parse_metadata(x).get("epoch", None)
         )
-        logs_df["finetuned"] = logs_df["metadata"].apply(
-            lambda x: _parse_metadata(x).get("finetuned", None)
+        logs_df["is_finetuned"] = logs_df["metadata"].apply(
+            lambda x: _parse_metadata(x).get("is_finetuned", None)
         )
         logs_df["source_model"] = logs_df["metadata"].apply(
             lambda x: _parse_metadata(x).get("source_model", None)

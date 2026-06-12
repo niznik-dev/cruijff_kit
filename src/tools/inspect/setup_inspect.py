@@ -57,7 +57,7 @@ TASK_ARG_KEYS = [
 YAML_PROTECTED_TASK_ARG_KEYS = {"assistant_prefix"}
 
 # Keys in eval_config.yaml that become --metadata args in the inspect command
-METADATA_ARG_KEYS = ["epoch", "finetuned", "source_model"]
+METADATA_ARG_KEYS = ["epoch", "is_finetuned", "source_model"]
 
 # Structural keys consumed by the SLURM renderer and the inspect task at runtime
 # (auto-derived or read directly, not arg-mapped). Anything outside the union of

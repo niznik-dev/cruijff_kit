@@ -78,7 +78,7 @@ FULL_EVAL_CONFIG = textwrap.dedent("""\
     use_chat_template: "true"
     split: validation
     epoch: 0
-    finetuned: true
+    is_finetuned: true
     source_model: Llama-3.2-1B-Instruct
     scorers:
       - name: match
@@ -143,7 +143,7 @@ class TestLoadEvalConfig:
         config = load_eval_config(str(config_file))
         assert config["vis_label"] == "1B_ft"
         assert config["epoch"] == 0
-        assert config["finetuned"] is True
+        assert config["is_finetuned"] is True
         assert config["source_model"] == "Llama-3.2-1B-Instruct"
         # Scorer config is loaded but not used by setup_inspect
         assert len(config["scorers"]) == 2
@@ -308,11 +308,11 @@ class TestBuildMetadataArgs:
     def test_all_metadata_args(self):
         """All three metadata params produce --metadata lines."""
         config = make_config(
-            epoch=0, finetuned="true", source_model="Llama-3.2-1B-Instruct"
+            epoch=0, is_finetuned="true", source_model="Llama-3.2-1B-Instruct"
         )
         result = build_metadata_args(config)
         assert '--metadata epoch="0"' in result
-        assert '--metadata finetuned="true"' in result
+        assert '--metadata is_finetuned="true"' in result
         assert '--metadata source_model="Llama-3.2-1B-Instruct"' in result
 
     def test_partial_metadata_args(self):
@@ -320,14 +320,14 @@ class TestBuildMetadataArgs:
         config = make_config(epoch=2)
         result = build_metadata_args(config)
         assert '--metadata epoch="2"' in result
-        assert "finetuned" not in result
+        assert "is_finetuned" not in result
         assert "source_model" not in result
 
-    def test_boolean_finetuned_lowercased(self):
-        """YAML boolean finetuned: true renders as lowercase 'true'."""
-        config = make_config(finetuned=True)
+    def test_boolean_is_finetuned_lowercased(self):
+        """YAML boolean is_finetuned: true renders as lowercase 'true'."""
+        config = make_config(is_finetuned=True)
         result = build_metadata_args(config)
-        assert '--metadata finetuned="true"' in result
+        assert '--metadata is_finetuned="true"' in result
 
 
 # ---------------------------------------------------------------------------
@@ -348,7 +348,7 @@ class TestRenderTemplate:
             vis_label="test",
             use_chat_template="true",
             epoch=0,
-            finetuned="true",
+            is_finetuned="true",
             source_model="Llama-3.2-1B-Instruct",
         )
         script = render_template(cli, config)
@@ -464,14 +464,14 @@ class TestRenderTemplate:
             data_path="/data/test.json",
             vis_label="1B_ft",
             epoch=0,
-            finetuned=True,
+            is_finetuned=True,
         )
         script = render_template(make_cli_args(), config)
         # Both blocks present
         assert '-T data_path="/data/test.json"' in script
         assert '-T vis_label="1B_ft"' in script
         assert '--metadata epoch="0"' in script
-        assert '--metadata finetuned="true"' in script
+        assert '--metadata is_finetuned="true"' in script
         # Proper ordering: task args before metadata, both before --log-dir
         task_pos = script.index("-T data_path=")
         meta_pos = script.index("--metadata epoch=")
@@ -618,7 +618,7 @@ class TestMaxConnections:
 
     def test_position_before_log_dir(self):
         """max-connections appears after metadata args and before --log-dir."""
-        config = make_config(epoch=0, finetuned=True, max_connections=256)
+        config = make_config(epoch=0, is_finetuned=True, max_connections=256)
         script = render_template(make_cli_args(), config)
         meta_pos = script.index('--metadata epoch="0"')
         mc_pos = script.index("--max-connections 256")
