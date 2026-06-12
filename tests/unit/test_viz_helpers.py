@@ -9,6 +9,7 @@ from cruijff_kit.tools.inspect.viz_helpers import (
     deduplicate_eval_files,
     detect_metrics,
     display_name,
+    parse_eval_metadata,
     sanitize_columns_for_viz,
 )
 
@@ -298,3 +299,35 @@ class TestRiskDetectionPipeline:
             }
         )
         assert detect_metrics(df).has_risk_scorer is False
+
+
+# =============================================================================
+# parse_eval_metadata()
+# =============================================================================
+
+
+class TestParseEvalMetadata:
+    def test_legacy_finetuned_key_yields_null(self):
+        """Regression: the metadata key finetuned was renamed to is_finetuned (#372).
+
+        Clean break, no dual-read: eval logs written before the rename carry the
+        legacy `finetuned` key, so the parsed `is_finetuned` column must be null
+        for those rows while new-format rows populate normally. Pins the
+        mixed-vintage behavior the CHANGELOG promises and gives parse_eval_metadata
+        its first coverage.
+        """
+        logs_df = pd.DataFrame(
+            {
+                "metadata": [
+                    '{"finetuned": true, "source_model": "old"}',  # pre-rename log
+                    '{"is_finetuned": true, "source_model": "new"}',  # post-rename log
+                ]
+            }
+        )
+        result = parse_eval_metadata(logs_df)
+        # Old log: legacy key is ignored, new column reads null.
+        assert result["is_finetuned"].iloc[0] is None
+        # New log: key is read normally.
+        assert result["is_finetuned"].iloc[1] is True
+        # The other metadata fields are unaffected by the rename.
+        assert list(result["source_model"]) == ["old", "new"]
