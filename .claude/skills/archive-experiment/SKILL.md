@@ -35,7 +35,7 @@ Find the experiment directory:
 
 Read `experiment_summary.yaml` to determine:
 - `experiment.name` — the experiment name
-- `experiment.directory` — where model checkpoints live
+- `experiment.dir` — where model checkpoints live
 - `runs` — list of run names
 - `evaluation.matrix` — expected evaluations
 
@@ -73,7 +73,7 @@ Present the plan clearly:
 
 ```
 Archive plan for: {experiment_name}
-  Archive: {N} files ({X} MB) → {archive_path}
+  Archive: {N} files ({X} MB) → {archive_dir}
   Delete:  {M} checkpoint dirs ({Y} MB)
 
 Proceed? (y/n)

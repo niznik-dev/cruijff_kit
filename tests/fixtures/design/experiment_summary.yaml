@@ -11,7 +11,7 @@ experiment:
   date: "2026-03-16"
   hypothesis: "Both LoRA ranks produce functional fine-tuned models."
   purpose: "Integration test to validate skills are working after architecture changes."
-  directory: "__SCRATCH__/ck-projects/capitalization/workflow_test_2026-03-16"
+  dir: "__SCRATCH__/ck-projects/capitalization/workflow_test_2026-03-16"
 
 tools:
   preparation: "torchtune"

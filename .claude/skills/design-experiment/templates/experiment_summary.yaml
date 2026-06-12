@@ -14,7 +14,7 @@ experiment:
   date: string                     # REQUIRED: YYYY-MM-DD format
   hypothesis: string               # OPTIONAL: Expected outcome
   purpose: string                  # OPTIONAL: Why this experiment matters
-  directory: string                # REQUIRED: Full path; convention is {scratch}/ck-projects/{project}/{name}/
+  dir: string                      # REQUIRED: Full path; convention is {scratch}/ck-projects/{project}/{name}/
 
 # =============================================================================
 # TOOL CONFIGURATION

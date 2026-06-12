@@ -77,10 +77,10 @@ For a multi-run experiment (e.g. comparing two models), each run gets its own se
 
 ## Training Artifact Directory
 
-Training artifacts live at `{run_name}/artifacts/` inside the experiment directory — they are *not* written to a separate base path. The experiment root is `experiment.directory` in `experiment_summary.yaml`, and the checkpoint path for a given run and epoch is:
+Training artifacts live at `{run_name}/artifacts/` inside the experiment directory — they are *not* written to a separate base path. The experiment root is `experiment.dir` in `experiment_summary.yaml`, and the checkpoint path for a given run and epoch is:
 
 ```
-{experiment.directory}/{run_name}/artifacts/epoch_{N}/
+{experiment.dir}/{run_name}/artifacts/epoch_{N}/
 ```
 
 See the tree above for the full contents of `{run_name}/artifacts/`.

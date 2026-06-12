@@ -332,10 +332,16 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
             "message": f"Failed to parse experiment_summary.yaml: {e}",
         }
 
-    if not config.get("experiment", {}).get("directory", ""):
+    experiment = config.get("experiment", {})
+    if not experiment.get("dir", ""):
+        hint = (
+            " Found a legacy 'directory:' key — rename it to 'dir:'."
+            if experiment.get("directory")
+            else ""
+        )
         return {
             "status": "error",
-            "message": "No experiment.directory found in experiment_summary.yaml",
+            "message": f"No experiment.dir found in experiment_summary.yaml.{hint}",
         }
 
     project = config.get("experiment", {}).get("project", "")
@@ -375,7 +381,7 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
                 "checkpoint_dirs": len(inventory["delete_paths"]),
                 "size_mb": _bytes_to_mb(inventory["delete_total_bytes"]),
             },
-            "archive_path": archive_dir,
+            "archive_dir": archive_dir,
             "incomplete_runs": inventory["incomplete_runs"],
             "findings_source": inventory["findings_source"],
         }

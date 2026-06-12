@@ -33,7 +33,7 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
         "experiment": {
             "name": exp_name,
             "project": "capitalization",
-            "directory": str(exp_dir),
+            "dir": str(exp_dir),
         },
         "output": {
             "wandb_project": "test",
@@ -418,8 +418,8 @@ def test_archive_nonexistent_dir(tmp_path):
     assert "not found" in result["message"]
 
 
-def test_archive_path_includes_project(tmp_path):
-    """Archive path is {archive_base}/{project}/{experiment_name}/."""
+def test_archive_dir_includes_project(tmp_path):
+    """Archive dir is {archive_base}/{project}/{experiment_name}/."""
     exp_dir = _make_experiment(tmp_path)
     archive_base = str(tmp_path / "ck-archive")
 
@@ -429,7 +429,7 @@ def test_archive_path_includes_project(tmp_path):
     expected = str(
         tmp_path / "ck-archive" / "capitalization" / "test_experiment_2026-03-23"
     )
-    assert result["archive_path"] == expected
+    assert result["archive_dir"] == expected
 
 
 def test_archive_missing_project_field(tmp_path):
@@ -450,19 +450,43 @@ def test_archive_missing_project_field(tmp_path):
     assert Path(exp_dir).exists()
 
 
-def test_archive_missing_directory_field(tmp_path):
-    """experiment.directory missing → error before any work happens."""
+def test_archive_missing_dir_field(tmp_path):
+    """experiment.dir missing → error before any work happens."""
     exp_dir = _make_experiment(tmp_path)
     # Strip the directory field from the yaml
     summary_path = Path(exp_dir) / "experiment_summary.yaml"
     config = yaml.safe_load(summary_path.read_text())
-    del config["experiment"]["directory"]
+    del config["experiment"]["dir"]
     summary_path.write_text(yaml.dump(config))
 
     archive_base = str(tmp_path / "ck-archive")
     result = archive_experiment(exp_dir, archive_base, dry_run=True)
 
     assert result["status"] == "error"
+    # "dir" alone is a substring of "directory"; pin the post-rename wording so
+    # this can't silently pass against the old "No experiment.directory" message.
+    assert "experiment.dir" in result["message"]
+    assert "experiment.directory" not in result["message"]
+    # Original experiment untouched
+    assert Path(exp_dir).exists()
+
+
+def test_archive_legacy_directory_key_rejected(tmp_path):
+    """Regression: clean break — a stale 'directory:' key is NOT accepted as a
+    fallback for 'dir:' (#372). Guards against a silent compat shim.
+    """
+    exp_dir = _make_experiment(tmp_path)
+    summary_path = Path(exp_dir) / "experiment_summary.yaml"
+    config = yaml.safe_load(summary_path.read_text())
+    # Simulate an un-migrated file: old key present, new key absent.
+    config["experiment"]["directory"] = config["experiment"].pop("dir")
+    summary_path.write_text(yaml.dump(config))
+
+    archive_base = str(tmp_path / "ck-archive")
+    result = archive_experiment(exp_dir, archive_base, dry_run=True)
+
+    assert result["status"] == "error"
+    # The diagnostic hint names the legacy key so the user knows what to rename.
     assert "directory" in result["message"]
     # Original experiment untouched
     assert Path(exp_dir).exists()

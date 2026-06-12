@@ -11,7 +11,7 @@ After user approves the plan, create the output files and suggest next steps.
 Create structured configuration in `{experiment_dir}/experiment_summary.yaml` using the template structure from `templates/experiment_summary.yaml`.
 
 **Required sections:**
-- `experiment`: name, question, date, hypothesis (optional), purpose (optional), directory
+- `experiment`: name, question, date, hypothesis (optional), purpose (optional), dir
 - `tools`: preparation, evaluation (for scaffold routing)
 - `variables`: parameters that vary across runs (optional if only controls)
 - `controls`: parameters held constant across all runs, including `dataset_type` (`"chat_completion"` | `"text_completion"`, required)

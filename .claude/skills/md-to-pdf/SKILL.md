@@ -97,7 +97,7 @@ header_path.write_text(PDF_LATEX_HEADER)
 **Critical:** Change to the markdown file's parent directory before running pandoc. This ensures relative image paths (e.g., `![](scores_by_task.png)`) resolve correctly.
 
 ```bash
-cd {parent_directory}
+cd {parent_dir}
 pandoc {tmp_filename} -o {stem}.pdf --pdf-engine={engine} \
   --from markdown-implicit_figures \
   -V geometry:margin=1in \
