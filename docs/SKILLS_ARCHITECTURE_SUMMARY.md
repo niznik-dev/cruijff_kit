@@ -31,7 +31,7 @@ RUN        →  run-experiment
 SUMMARIZE  →  summarize-experiment   (required post-run step)
 
 EXPLORE    →  explore-experiment      (optional; any time after run)
-              (optional: analyze-to-pdf)
+              (optional: md-to-pdf)
 
 CLEANUP    →  archive-experiment
 ```
@@ -60,7 +60,7 @@ CLEANUP    →  archive-experiment
 
 | Skill | Purpose |
 |---|---|
-| `analyze-to-pdf` | Convert a markdown report → PDF via pandoc |
+| `md-to-pdf` | Convert a markdown file → PDF via pandoc |
 | `create-inspect-task` | Guided creation of custom inspect-ai eval tasks (experiment-guided or standalone) |
 | `check-release` | Weekly release check; review changes since last tag |
 | `create-meeting-agenda` | Auto-generate weekly software meeting agenda in the wiki |

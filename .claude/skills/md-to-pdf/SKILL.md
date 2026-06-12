@@ -1,11 +1,11 @@
 ---
-name: analyze-to-pdf
-description: Convert experiment analysis reports (report.md) to PDF using pandoc. Use after explore-experiment to create shareable PDF reports.
+name: md-to-pdf
+description: Convert a markdown file to PDF using pandoc. Works with any markdown; commonly used for experiment artifacts (explorations, summaries, reports), e.g. after explore-experiment to create a shareable PDF.
 ---
 
-# Analyze to PDF
+# Markdown to PDF
 
-Convert a markdown file to PDF using pandoc. Designed for experiment analysis reports but works with any markdown file.
+Convert a markdown file to PDF using pandoc. Works with any markdown file; commonly used for experiment artifacts (explorations, summaries, reports).
 
 ## Your Task
 
