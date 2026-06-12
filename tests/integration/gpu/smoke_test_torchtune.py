@@ -53,6 +53,8 @@ def main():
                 "words_5L_80P_50",
                 "--dataset_ext",
                 ".json",
+                "--dataset_type",
+                "chat_completion",
                 "--input_dir_base",
                 str(REPO_ROOT / "tests" / "fixtures"),
                 "--input_formatting",
