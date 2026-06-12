@@ -254,7 +254,7 @@ The fields that *do* require agent judgment, per cell:
 
 - `model_path` — Fine-tuned: `{experiment_dir}/{run_name}/artifacts/epoch_{N}`. Control: `models.base[].path`. Eval-only: `parameters.checkpoint_path` verbatim (a pre-existing checkpoint trained outside this experiment).
 - `data_path` — resolved per the precedence ladder in "Populating eval_config.yaml" below.
-- `model_hf_name`, `output_dir`, `vis_label`, `use_chat_template`, `epoch`, `finetuned`, `source_model` — composed per the rules in "Populating eval_config.yaml".
+- `model_hf_name`, `output_dir`, `vis_label`, `use_chat_template`, `epoch`, `is_finetuned`, `source_model` — composed per the rules in "Populating eval_config.yaml".
 - Per-task overrides (`system_prompt`, `assistant_prefix`) — when an `evaluation.tasks[]` entry sets these, write them *after* the propagation call so they take precedence over the experiment-wide defaults.
 
 1. **Create the cell directory + logs dir for every (task, epoch) pair:**
@@ -310,7 +310,7 @@ use_chat_template: "true"
 
 # Metadata (--metadata key=value) — agent writes these per cell
 epoch: 0
-finetuned: true
+is_finetuned: true
 source_model: Llama-3.2-1B-Instruct
 ```
 
@@ -550,13 +550,13 @@ For fine-tuned models:
 | Flag | Value | Source |
 |------|-------|--------|
 | `--metadata epoch` | `{N}` | From matrix epochs list |
-| `--metadata finetuned` | `true` | Literal |
+| `--metadata is_finetuned` | `true` | Literal |
 | `--metadata source_model` | `"{model_name}"` | From `models.base[].name` |
 
 For control models:
 | Flag | Value | Source |
 |------|-------|--------|
-| `--metadata finetuned` | `false` | Literal |
+| `--metadata is_finetuned` | `false` | Literal |
 | `--metadata source_model` | `"{model_name}"` | From `models.base[].name` |
 
 **Task args (`-T`) - passed to task function:**
@@ -611,7 +611,7 @@ inspect eval inspect_task.py@capitalization \\
   -M model_path="$MODEL_PATH" \\
   -M do_sample=false \\
   --metadata epoch=0 \\
-  --metadata finetuned=true \\
+  --metadata is_finetuned=true \\
   --metadata source_model="Llama-3.2-1B-Instruct" \\
   -T data_path="$DATA_PATH" \\
   -T config_path="$CONFIG_PATH" \\
@@ -622,7 +622,7 @@ inspect eval inspect_task.py@capitalization \\
 
 **Key points:**
 - The `--model` argument uses a descriptive name (`hf/{run_name}_epoch_{N}`) that gets recorded in the `.eval` file for identification
-- Metadata flags (`--metadata epoch`, `--metadata finetuned`, `--metadata source_model`) are stored in `log.eval.metadata` for inspect-viz filtering/grouping
+- Metadata flags (`--metadata epoch`, `--metadata is_finetuned`, `--metadata source_model`) are stored in `log.eval.metadata` for inspect-viz filtering/grouping
 - The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_rank4`) for visualization
 - `config_path` points to `eval_config.yaml`, which is built from `experiment_summary.yaml` and includes prompt/system_prompt and scorer configuration
 - `use_chat_template` is determined from the propagated `dataset_type` in `eval_config.yaml`
@@ -644,7 +644,7 @@ inspect eval inspect_task.py@capitalization \\
   --model hf/{run_name}_base \\
   -M model_path="$MODEL_PATH" \\
   -M do_sample=false \\
-  --metadata finetuned=false \\
+  --metadata is_finetuned=false \\
   --metadata source_model="Llama-3.2-1B-Instruct" \\
   -T data_path="$DATA_PATH" \\
   -T config_path="$CONFIG_PATH" \\
@@ -665,7 +665,7 @@ inspect eval inspect_task.py@capitalization \\
   --model hf/{run_name}_base \\
   -M model_path="$MODEL_PATH" \\
   -M do_sample=false \\
-  --metadata finetuned=false \\
+  --metadata is_finetuned=false \\
   --metadata source_model="Llama-3.2-1B" \\
   -T data_path="$DATA_PATH" \\
   -T config_path="$CONFIG_PATH" \\
@@ -682,7 +682,7 @@ inspect eval inspect_task.py@capitalization \\
 
 ### Scenario 3: Eval-only Model Evaluation
 
-For eval-only runs — a checkpoint trained in a *different* experiment, evaluated here without retraining — `eval_config.yaml` is built from `experiment_summary.yaml` exactly as for control runs. The only differences: `model_path` is the run's `parameters.checkpoint_path` (used verbatim), and the model is a fine-tuned one, so `finetuned=true`. There is no training epoch in this experiment, so emit **no** `--metadata epoch` (the epoch, if any, is baked into the checkpoint path).
+For eval-only runs — a checkpoint trained in a *different* experiment, evaluated here without retraining — `eval_config.yaml` is built from `experiment_summary.yaml` exactly as for control runs. The only differences: `model_path` is the run's `parameters.checkpoint_path` (used verbatim), and the model is a fine-tuned one, so `is_finetuned=true`. There is no training epoch in this experiment, so emit **no** `--metadata epoch` (the epoch, if any, is baked into the checkpoint path).
 
 ```bash
 # Eval-only: evaluate a pre-existing checkpoint as-is
@@ -695,7 +695,7 @@ inspect eval inspect_task.py@acs_income \\
   --model hf/{run_name} \\
   -M model_path="$MODEL_PATH" \\
   -M do_sample=false \\
-  --metadata finetuned=true \\
+  --metadata is_finetuned=true \\
   --metadata source_model="Llama-3.2-1B-Instruct" \\
   -T data_path="$DATA_PATH" \\
   -T config_path="$CONFIG_PATH" \\
@@ -706,7 +706,7 @@ inspect eval inspect_task.py@acs_income \\
 
 **Key points:**
 - `model_path` is `parameters.checkpoint_path` verbatim — do not recompute it from `{experiment_dir}`. If `checkpoint_path` is missing on an eval-only run, fail loudly.
-- `finetuned=true` (the checkpoint *is* fine-tuned, just not by this experiment); no `--metadata epoch`.
+- `is_finetuned=true` (the checkpoint *is* fine-tuned, just not by this experiment); no `--metadata epoch`.
 - Everything else (prompt, system_prompt, dataset_type, scorer) comes from `experiment_summary.yaml` via `propagate_eval_fields()` — no `setup_finetune.yaml` is read or required.
 
 ## Directory Structure Creation
@@ -877,8 +877,8 @@ Before reporting success, verify:
 - ✓ Scripts reference correct task scripts
 - ✓ System prompts match training configuration
 - ✓ Log directory paths are correct
-- ✓ Fine-tuned scripts include `--metadata epoch={N}` and `--metadata finetuned=true`
-- ✓ Control model scripts include `--metadata finetuned=false` (no epoch)
+- ✓ Fine-tuned scripts include `--metadata epoch={N}` and `--metadata is_finetuned=true`
+- ✓ Control model scripts include `--metadata is_finetuned=false` (no epoch)
 - ✓ All scripts include `--metadata source_model="{model_name}"`
 - ✓ All scripts include `-T vis_label="{label}"`
 - ✓ vis_labels are unique across all eval configs within a run (auto-composed for multi-task entries)

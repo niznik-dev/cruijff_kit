@@ -10,7 +10,7 @@ data_path: "__REPO__/tests/fixtures/data/words_5L_80P_10.json"
 vis_label: "rank8"
 use_chat_template: true
 epoch: 0
-finetuned: true
+is_finetuned: true
 source_model: "Llama-3.2-1B-Instruct"
 scorers:
   - name: "match"

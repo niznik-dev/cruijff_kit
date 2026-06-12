@@ -46,7 +46,7 @@ logs_df = parse_eval_metadata(logs_df)
 # Now available:
 # - logs_df['task_name']    (from task_arg_vis_label)
 # - logs_df['epoch']        (from JSON metadata)
-# - logs_df['finetuned']    (from JSON metadata)
+# - logs_df['is_finetuned']    (from JSON metadata)
 # - logs_df['source_model'] (from JSON metadata)
 ```
 

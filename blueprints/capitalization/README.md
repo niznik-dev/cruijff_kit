@@ -94,7 +94,7 @@ Did your finetuning and/or choice of prompt help?
 
 ### Part 5 - Test the base model
 
-To evaluate the base model, create an `eval_config.yaml` pointing to the base model path (with `finetuned: false` in metadata) and run [setup_inspect.py](../../src/tools/inspect/setup_inspect.py) the same way:
+To evaluate the base model, create an `eval_config.yaml` pointing to the base model path (with `is_finetuned: false` in metadata) and run [setup_inspect.py](../../src/tools/inspect/setup_inspect.py) the same way:
 
 ```bash
 cd /path/to/experiment/base_run/eval

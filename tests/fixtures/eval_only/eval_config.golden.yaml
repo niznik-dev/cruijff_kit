@@ -5,7 +5,7 @@
 # that the eval/torchtune decoupling must preserve.
 data_path: "{CK_DATA}/capitalization/words_5L_80P_1000.json"
 dataset_type: chat_completion
-finetuned: true
+is_finetuned: true
 model_hf_name: hf/existing_ckpt_eval
 model_path: "{CHECKPOINT_DIR}"
 output_dir: "{EXPERIMENT_DIR}/existing_ckpt_eval/artifacts/"

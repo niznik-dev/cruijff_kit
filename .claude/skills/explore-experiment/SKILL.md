@@ -62,7 +62,7 @@ Find experiment directory and parse experiment_summary.yaml for:
 Use helper functions from `src/tools/inspect/viz_helpers.py`:
 - `deduplicate_eval_files()` - Remove duplicate evals (keeps most recent per model+epoch)
 - `evals_df_prep()` - Prepare eval-level dataframes
-- `parse_eval_metadata()` - Extract epoch/finetuned/source_model from JSON metadata
+- `parse_eval_metadata()` - Extract epoch/is_finetuned/source_model from JSON metadata
 - `detect_metrics()` - Dynamically detect available score columns
 
 **See `data_loading.md` for:**
