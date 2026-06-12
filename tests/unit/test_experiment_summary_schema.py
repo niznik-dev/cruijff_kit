@@ -23,7 +23,7 @@ def summary():
 
 class TestExperimentSection:
     def test_has_required_keys(self, summary):
-        required = ["name", "project", "question", "date", "directory"]
+        required = ["name", "project", "question", "date", "dir"]
         for key in required:
             assert key in summary["experiment"], f"Missing experiment.{key}"
 
@@ -39,8 +39,8 @@ class TestExperimentSection:
         assert isinstance(summary["experiment"]["project"], str)
         assert summary["experiment"]["project"], "project must be non-empty"
 
-    def test_directory_is_non_empty(self, summary):
-        assert summary["experiment"]["directory"], "directory must be non-empty"
+    def test_dir_is_non_empty(self, summary):
+        assert summary["experiment"]["dir"], "dir must be non-empty"
 
     def test_type_field_absent(self, summary):
         # Schema no longer uses experiment.type; project is the namespace.

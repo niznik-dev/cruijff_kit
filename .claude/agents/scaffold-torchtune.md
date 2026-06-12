@@ -94,7 +94,7 @@ Extract the following information from the YAML structure:
 
 1. **Experiment metadata:**
    - `experiment.name` - Experiment identifier
-   - `experiment.directory` - Full path to experiment directory
+   - `experiment.dir` - Full path to experiment directory
    - `experiment.date` - Experiment date
 
 2. **Tool configuration:**
@@ -114,7 +114,7 @@ Extract the following information from the YAML structure:
    - `models.base[0].path` - Full path to model directory
    - `data.training.path` - Full path to training dataset
    - `data.training.format` - "json"
-   - `experiment.directory` - Where checkpoints are saved
+   - `experiment.dir` - Where checkpoints are saved
    - `output.wandb_project` - Weights & Biases project name
 
 5. **Runs list:**
@@ -172,7 +172,7 @@ Extract environment-specific settings:
 
 ### Parsing Output Directory from experiment_summary.yaml
 
-**IMPORTANT:** Read `experiment.directory` from experiment_summary.yaml (NOT from claude.local.md).
+**IMPORTANT:** Read `experiment.dir` from experiment_summary.yaml (NOT from claude.local.md).
 
 The directory contains the full path: `{scratch_dir}/ck-projects/{project}/{experiment_name}`
 - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/workflow_test_2025-11-28`
@@ -263,8 +263,8 @@ log_every_n_steps: {use template default, typically 1}
 run_val_every_n_steps: {50 if controls.validation_during_training else 0}
 
 # Output configuration
-project_dir: {parsed from experiment.directory}
-experiment_name: {parsed from experiment.directory}
+project_dir: {parsed from experiment.dir}
+experiment_name: {parsed from experiment.dir}
 conda_env: {from claude.local.md}
 
 # SLURM configuration (optional - only if specified in claude.local.md)
@@ -307,7 +307,7 @@ if dataset_type in ("text_completion", "text_completion_dataset"):
     setup_finetune.pop("system_prompt", None)
 ```
 
-5. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
+5. **Write file** to `{experiment_dir}/{run_dir_name}/setup_finetune.yaml`
 
 **Reporting:** name the `propagate_train_fields()` call and the field count;
 don't tabulate the propagated values per-field — they weren't decisions.
@@ -316,7 +316,7 @@ don't tabulate the propagated values per-field — they weren't decisions.
 - Use absolute paths for robustness (e.g., `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/...`) rather than relative paths
 - WandB project: Prefer using `my_wandb_project` from `claude.local.md` for consistency
 - Learning rate format: Keep scientific notation format from experiment summary (1e-5, 5e-5, etc.)
-- Output directory: Parse `experiment.directory` from experiment_summary.yaml to extract both `project_dir` and `experiment_name` components
+- Output directory: Parse `experiment.dir` from experiment_summary.yaml to extract both `project_dir` and `experiment_name` components
 
 ### Running setup_finetune.py
 
@@ -337,7 +337,7 @@ For each run directory:
 
    Instead, use `bash -c` with a single compound command:
    ```bash
-   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {training_samples}"
+   bash -c "cd {experiment_dir}/{run_dir_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {training_samples}"
    ```
 
    The `--training_samples` flag enables the training step guard, which computes total training steps and warns if they are dangerously low (e.g., warmup never completes, or fewer than 50 steps total).
@@ -348,7 +348,7 @@ For each run directory:
 
    **With compute estimates** (when `runs[].compute` block exists):
    ```bash
-   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train} --time {compute.time} --gpus {compute.gpus} --mem {compute.mem} --cpus_per_task {compute.cpus_per_task}"
+   bash -c "cd {experiment_dir}/{run_dir_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train} --time {compute.time} --gpus {compute.gpus} --mem {compute.mem} --cpus_per_task {compute.cpus_per_task}"
    ```
 
    **Example (without compute estimates):**

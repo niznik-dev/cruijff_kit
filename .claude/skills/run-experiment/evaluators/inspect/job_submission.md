@@ -9,7 +9,7 @@ For each evaluation in "evaluations to submit" list:
 ### 1. Navigate to Eval Directory
 
 ```bash
-cd {experiment_dir}/{run_directory}/eval/{cell_name}
+cd {experiment_dir}/{run_dir}/eval/{cell_name}
 ```
 
 ### 2. Submit Job and Capture ID

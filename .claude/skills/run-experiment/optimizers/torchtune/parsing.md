@@ -9,7 +9,7 @@ Extract experiment information and identify fine-tuning runs to execute.
 Load the YAML file and extract:
 
 1. **Experiment name** - `experiment.name`
-2. **Experiment directory** - `experiment.directory` (where checkpoints are saved)
+2. **Experiment directory** - `experiment.dir` (where checkpoints are saved)
 3. **Fine-tuning runs** - Filter `runs[]` where `type == "fine-tuned"`
 4. **Run directories** - Use `runs[].name` as directory name
 
@@ -22,7 +22,7 @@ with open('experiment_summary.yaml', 'r') as f:
     config = yaml.safe_load(f)
 
 experiment_name = config['experiment']['name']
-experiment_dir = config['experiment']['directory']
+experiment_dir = config['experiment']['dir']
 finetune_runs = [run for run in config['runs'] if run['type'] == 'fine-tuned']
 
 for run in finetune_runs:

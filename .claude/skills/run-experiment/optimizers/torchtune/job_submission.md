@@ -9,7 +9,7 @@ For each run in "runs to submit" list:
 ### 1. Navigate to Run Directory
 
 ```bash
-cd {experiment_dir}/{run_directory}
+cd {experiment_dir}/{run_dir}
 ```
 
 ### 2. Submit Job and Capture ID

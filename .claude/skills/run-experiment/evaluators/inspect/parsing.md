@@ -10,7 +10,7 @@ Load the YAML file and extract:
 
 1. **Experiment name** - `experiment.name`
 2. **Evaluation matrix** - `evaluation.matrix[]` (run/task/epoch combinations)
-3. **Output directory** - `experiment.directory` (where checkpoints are saved)
+3. **Output directory** - `experiment.dir` (where checkpoints are saved)
 
 ### Example YAML Parsing
 
@@ -22,7 +22,7 @@ with open('experiment_summary.yaml', 'r') as f:
 
 experiment_name = config['experiment']['name']
 eval_matrix = config['evaluation']['matrix']
-output_base = config['experiment']['directory']
+output_base = config['experiment']['dir']
 
 for entry in eval_matrix:
     run_name = entry['run']

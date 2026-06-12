@@ -332,10 +332,10 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
             "message": f"Failed to parse experiment_summary.yaml: {e}",
         }
 
-    if not config.get("experiment", {}).get("directory", ""):
+    if not config.get("experiment", {}).get("dir", ""):
         return {
             "status": "error",
-            "message": "No experiment.directory found in experiment_summary.yaml",
+            "message": "No experiment.dir found in experiment_summary.yaml",
         }
 
     project = config.get("experiment", {}).get("project", "")

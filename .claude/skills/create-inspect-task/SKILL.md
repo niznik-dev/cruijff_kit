@@ -214,7 +214,7 @@ If validation fails:
 
 ## Logging
 
-**IMPORTANT:** Create a detailed log file at `{task_directory}/logs/create-inspect-task.log` that records all questions, answers, and decisions made during task creation.
+**IMPORTANT:** Create a detailed log file at `{task_dir}/logs/create-inspect-task.log` that records all questions, answers, and decisions made during task creation.
 
 ### Log Format
 

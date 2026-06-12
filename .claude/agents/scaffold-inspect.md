@@ -71,7 +71,7 @@ Extract the following information from the YAML structure:
 
 1. **Experiment metadata:**
    - `experiment.name` - Experiment identifier
-   - `experiment.directory` - Full path to experiment directory
+   - `experiment.dir` - Full path to experiment directory
 
 2. **Models:**
    - `models.base[0].name` - Model identifier
@@ -83,7 +83,7 @@ Extract the following information from the YAML structure:
    - `data.training.format` - "json"
 
 4. **Output configuration:**
-   - `experiment.directory` - Where checkpoints are saved
+   - `experiment.dir` - Where checkpoints are saved
    - `controls.system_prompt` - System prompt (must match training)
 
 5. **Runs:**
@@ -182,13 +182,13 @@ Extract environment-specific settings:
 
 ### Parsing Output Directory from experiment_summary.yaml
 
-**IMPORTANT:** Read `experiment.directory` from experiment_summary.yaml to construct model paths.
+**IMPORTANT:** Read `experiment.dir` from experiment_summary.yaml to construct model paths.
 
 The directory contains the full path: `{scratch_dir}/ck-projects/{project}/{experiment_name}`
 - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/workflow_test_2025-11-28`
 
 For generating inspect.slurm scripts:
-- Use `experiment.directory` directly to construct OUTPUT_BASE paths
+- Use `experiment.dir` directly to construct OUTPUT_BASE paths
 - Fine-tuned model path: `{experiment_dir}/{run_name}/artifacts/epoch_{N}`
 - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/workflow_test_2025-11-28/rank4/artifacts/epoch_0`
 
