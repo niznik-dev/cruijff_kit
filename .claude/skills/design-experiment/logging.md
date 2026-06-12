@@ -48,7 +48,7 @@ Created during the planning workflow to record all verification steps, calculati
 ## When to Log
 
 ### During Parameter Selection
-- Experiment start (name, type, directory)
+- Experiment start (name, dir)
 - Prior experiment consultations and documentation review
 - All resource verifications (models, datasets, eval tasks)
 - Prior run searches and training speed extraction
