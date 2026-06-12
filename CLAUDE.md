@@ -113,16 +113,14 @@ All use Llama-3.2-1B-Instruct with `{ck_data_dir}/capitalization/words_5L_80P_10
 
 ### Naming Conventions
 
-- **`directory` over `dir` for names we own.** When we choose a name (a YAML key, a
-  CLI flag, a documented folder or constant), prefer the spelled-out `directory` —
-  readability beats the saved keystrokes. Use the abbreviated `dir` / `_dir` only when
-  an external tool's convention dictates it (e.g. torchtune's `output_dir`, inspect-ai
-  keys); see the "Wrapper-only" principle on external-contract names. This is
-  forward-looking guidance for new names — the codebase still uses `_dir` widely, and
-  those existing identifiers are not flagged for renaming here.
-- **`directory` vs `path` — keep them true to their meanings.** `directory` (or `_dir`)
-  names a folder; `path` (or `_path`) names a file. Don't label a folder `path` or a
-  file `directory`.
+- **`dir` over `directory` for names we own.** When we choose a name (a YAML key, a
+  CLI flag, a variable, a documented folder or constant), use the short `dir` / `_dir`
+  form. It's the popular idiom, it's already dominant throughout this codebase, and it
+  matches the external tools we wrap (torchtune's `output_dir`, `checkpoint_dir`,
+  `log_dir`), so our names sit consistently beside theirs instead of clashing. Keep the
+  spelled-out `directory` for prose; avoid it in identifiers and keys.
+- **`dir` vs `path` — keep them true to their meanings.** `dir` (or `_dir`) names a
+  folder; `path` (or `_path`) names a file. Don't label a folder `path` or a file `dir`.
 
 ### Code Comments
 
