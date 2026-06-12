@@ -80,7 +80,7 @@ FULL_EVAL_CONFIG = textwrap.dedent("""\
     epoch: 0
     finetuned: true
     source_model: Llama-3.2-1B-Instruct
-    scorer:
+    scorers:
       - name: match
       - name: risk_scorer
         params:
@@ -146,7 +146,7 @@ class TestLoadEvalConfig:
         assert config["finetuned"] is True
         assert config["source_model"] == "Llama-3.2-1B-Instruct"
         # Scorer config is loaded but not used by setup_inspect
-        assert len(config["scorer"]) == 2
+        assert len(config["scorers"]) == 2
 
     def test_extra_keys_preserved(self, tmp_path):
         """Unknown keys in config are preserved (forward compatibility)."""
@@ -178,6 +178,15 @@ class TestLoadEvalConfig:
         assert unknown_warnings == [], (
             f"assistant_prefix should not be warned as unknown; got: {unknown_warnings}"
         )
+
+    def test_legacy_singular_scorer_key_warns(self, tmp_path):
+        """A pre-rename `scorer:` (singular) is no longer a known key, so it
+        trips the unknown-key warning at scaffold time — the migration tripwire
+        for the scorer -> scorers rename (#372)."""
+        config_file = tmp_path / "eval_config.yaml"
+        config_file.write_text(MINIMAL_EVAL_CONFIG + "scorer:\n  - name: match\n")
+        with pytest.warns(UserWarning, match="scorer"):
+            load_eval_config(str(config_file))
 
 
 # ---------------------------------------------------------------------------

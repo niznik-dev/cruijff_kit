@@ -64,7 +64,7 @@ runs:
 evaluation:
   system_prompt: "You are a helpful assistant."
   temperature: 0.0
-  scorer:
+  scorers:
     - name: "match"
 
   tasks:

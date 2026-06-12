@@ -160,7 +160,7 @@ class TestRunsSection:
 
 class TestEvaluationSection:
     def test_has_required_keys(self, summary):
-        required = ["system_prompt", "temperature", "scorer", "tasks", "matrix"]
+        required = ["system_prompt", "temperature", "scorers", "tasks", "matrix"]
         for key in required:
             assert key in summary["evaluation"], f"Missing evaluation.{key}"
 
@@ -192,8 +192,8 @@ class TestEvaluationSection:
         for entry in summary["evaluation"]["matrix"]:
             assert "epochs" in entry
 
-    def test_scorer_is_list(self, summary):
-        assert isinstance(summary["evaluation"]["scorer"], list)
-        assert len(summary["evaluation"]["scorer"]) > 0
-        for scorer in summary["evaluation"]["scorer"]:
+    def test_scorers_is_list(self, summary):
+        assert isinstance(summary["evaluation"]["scorers"], list)
+        assert len(summary["evaluation"]["scorers"]) > 0
+        for scorer in summary["evaluation"]["scorers"]:
             assert "name" in scorer

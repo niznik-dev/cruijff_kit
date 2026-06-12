@@ -83,6 +83,9 @@ def parse_eval_log(eval_path: str) -> dict:
         if log.results and log.results.scores:
             # Get the first scorer (primary)
             primary_score = log.results.scores[0]
+            # Output key: the NAME of the scorer that ran, read back from the
+            # eval log. Singular and distinct from the input `scorers` list in
+            # eval_config.yaml — do not unify the two spellings.
             result["scorer"] = primary_score.name
 
             # Extract all metrics from the primary scorer

@@ -44,7 +44,7 @@ def _write_config(tmp_path, *, scorers=None):
     config_path = tmp_path / "eval_config.yaml"
     lines = ["prompt: '{input}'", "system_prompt: ''"]
     if scorers is not None:
-        lines.append("scorer:")
+        lines.append("scorers:")
         for name in scorers:
             lines.append(f"  - name: {name}")
     config_path.write_text("\n".join(lines) + "\n")

@@ -28,7 +28,7 @@ EVAL_FIELDS: dict[str, str] = {
     "evaluation.do_sample": "do_sample",
     "evaluation.max_tokens": "max_tokens",
     "evaluation.max_connections": "max_connections",
-    "evaluation.scorer": "scorer",
+    "evaluation.scorers": "scorers",
     # The @task reads `prompt` from config_path at runtime (default "{input}")
     # and the agent derives `use_chat_template` from `dataset_type`. Both lived
     # only in setup_finetune.yaml before; carrying them here lets an eval-only

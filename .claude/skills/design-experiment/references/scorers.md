@@ -157,7 +157,7 @@ When a user selects scorers during experiment design, follow these guidelines:
 
 ### Binary classification with risk analysis
 ```yaml
-scorer:
+scorers:
   - name: "match"
     params:
       location: "exact"
@@ -172,12 +172,12 @@ scorer:
 
 ### Simple exact match
 ```yaml
-scorer:
+scorers:
   - name: "match"
 ```
 
 ### Regression / continuous target
 ```yaml
-scorer:
+scorers:
   - name: "continuous_scorer"
 ```
