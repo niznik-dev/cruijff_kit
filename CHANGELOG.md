@@ -21,7 +21,11 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ### Documentation
 
-- **Naming conventions written down** (no renames — doc-only). `CLAUDE.md` now records the `dir`-over-`directory` preference for names we own (short idiom, already dominant here, matches the external `output_dir`/`checkpoint_dir`/`log_dir` keys we sit beside), the `dir`-vs-`path` (folder-vs-file) distinction, and — on the "Wrapper-only" principle — the external-contract names that are off-limits to our renames (torchtune recipe keys, inspect-ai `@task`/`@scorer`/`@metric` registry names). Also documented: the deliberate `ck-setup` prefix (avoids a built-in `setup` clash), the `src/tools/<domain>/` folder-naming convention and the `inspect/`-shadows-stdlib hazard (`docs/ARCHITECTURE.md` + `src/tools/inspect/__init__.py`), and a fixed stale `ck-experiments/` path in the `create-quiz` skill docs and a test fixture. (#372)
+- **Naming conventions written down** (no renames). New `CLAUDE.md` "Naming Conventions" subsection records the `dir`-over-`directory` preference for names we own — the short idiom is already dominant here and matches the external `output_dir`/`checkpoint_dir`/`log_dir` keys we sit beside — plus the `dir`-vs-`path` (folder-vs-file) distinction. (#372)
+- **External-contract naming boundary** added to the "Wrapper-only" principle (`CLAUDE.md`): the names off-limits to our renames because they belong to an external contract — torchtune recipe keys (`lr`, `seed`, `batch_size`, `epochs`, `max_seq_len`, `output_dir`) and inspect-ai's `@task`/`@scorer`/`@metric` registry names. We rename only what we own. (#372)
+- **`ck-setup` prefix rationale** documented (`CLAUDE.md` skills list + `ck-setup/SKILL.md`): the `ck-` prefix is deliberate — a bare `setup` would collide with a built-in skill — so a future audit shouldn't "fix" it. (#372)
+- **Tool-domain folder convention + `inspect/`-shadows-stdlib hazard** (`docs/ARCHITECTURE.md`): how `src/tools/<domain>/` folders are named, and the hazard that `src/tools/inspect/` shadows Python's stdlib `inspect`. The hazard is also noted in `src/tools/inspect/__init__.py` and now locked by a guard test (`tests/unit/test_inspect_no_stdlib_shadow.py`) that fails if any module in the subtree imports the stdlib `inspect` by name. (#372)
+- **Stale `ck-experiments/` path fixed** (storage dir is now `ck-projects/<project>/<experiment>/`): corrected in the `create-quiz` skill docs and a `summarize` test fixture. (#372)
 
 ## [0.3.3] - 2026-06-04
 
