@@ -141,7 +141,7 @@ Regression metrics via `continuous_scorer` (registered in `src/tools/inspect/sco
 Enable it in the eval config YAML:
 
 ```yaml
-scorer:
+scorers:
   - name: continuous_scorer
 ```
 

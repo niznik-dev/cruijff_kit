@@ -14,7 +14,7 @@ Usage::
 
 Logprob capture is enabled in two ways:
 
-1. Implicitly — list a scorer in the YAML ``scorer:`` block whose factory sets
+1. Implicitly — list a scorer in the YAML ``scorers:`` block whose factory sets
    ``requires_logprobs = True`` (e.g., ``risk_scorer``). The task auto-enables
    logprobs because the scorer needs them.
 2. Explicitly — pass ``-T logprobs=true`` to capture logprobs for downstream
@@ -113,7 +113,7 @@ def model_organism(
     if logprobs is False and scorer_needs_logprobs:
         required = [
             entry["name"]
-            for entry in config.get("scorer", []) or []
+            for entry in config.get("scorers", []) or []
             if getattr(
                 SCORER_FACTORIES.get(entry.get("name")), "requires_logprobs", False
             )

@@ -49,7 +49,7 @@ propagate_eval_fields(experiment_summary, eval_config)
 
 This fills every `EVAL_FIELDS` value (`src/tools/experiment/propagate.py`:
 `system_prompt`, `temperature`, `do_sample`, `max_tokens`, `max_connections`,
-`scorer`) straight from `experiment_summary.yaml`. **Don't hand-copy these** —
+`scorers`) straight from `experiment_summary.yaml`. **Don't hand-copy these** —
 `EVAL_FIELDS` is the single source of truth (add new propagated fields there,
 not in this doc). The helper is idempotent, so per-cell judgment fields you
 write afterward win (e.g. a per-task `system_prompt` override).
@@ -94,7 +94,7 @@ Extract the following information from the YAML structure:
    - `evaluation.tasks[]` — List of evaluation tasks (see Parsing Evaluation Tasks below)
    - `evaluation.matrix[]` — Which runs evaluate on which tasks/epochs (see Parsing Evaluation Matrix below)
 
-   **All other `evaluation.*` fields** (`system_prompt`, `temperature`, `do_sample`, `max_tokens`, `max_connections`, `scorer`, `seed`) are populated by `propagate_eval_fields()` (see "Key Pattern: Propagate First"). Don't extract them here — the helper reads them straight from `experiment_summary.yaml`.
+   **All other `evaluation.*` fields** (`system_prompt`, `temperature`, `do_sample`, `max_tokens`, `max_connections`, `scorers`, `seed`) are populated by `propagate_eval_fields()` (see "Key Pattern: Propagate First"). Don't extract them here — the helper reads them straight from `experiment_summary.yaml`.
 
 7. **Compute estimates (optional):**
    - `evaluation.compute.time` - Estimated SLURM time limit for eval jobs
@@ -156,9 +156,9 @@ Determine for each run:
 
 #### Parsing Scorer Configuration
 
-From `evaluation.scorer[]` in YAML:
+From `evaluation.scorers[]` in YAML:
 ```yaml
-scorer:
+scorers:
   - name: "match"
   - name: "includes"
   - name: "risk_scorer"
@@ -170,7 +170,7 @@ Extract for each scorer:
 - `name` - Scorer identifier (e.g., "match", "includes", "risk_scorer" for binary/classification tasks; "continuous_scorer" for continuous/regression tasks)
 - `params` - Optional dict of parameters to pass to the scorer (e.g., `{option_tokens: ["0", "1"]}`)
 
-**Backward compatibility:** If `evaluation.scorer` is a plain string (e.g., `"match"`), treat it as a single scorer with no params: `[{name: "match"}]`.
+**Backward compatibility:** If `evaluation.scorers` is a plain string (e.g., `"match"`), treat it as a single scorer with no params: `[{name: "match"}]`.
 
 The scorer configuration is written into `eval_config.yaml` so that task files can read it at runtime and instantiate scorers dynamically.
 
@@ -316,7 +316,7 @@ source_model: Llama-3.2-1B-Instruct
 
 **Propagated keys** — populated by `propagate_eval_fields()`: the
 `EVAL_FIELDS` map (`system_prompt`, `temperature`, `do_sample`,
-`max_tokens`, `max_connections`, `scorer`) plus a resolved `seed`
+`max_tokens`, `max_connections`, `scorers`) plus a resolved `seed`
 (default 14). You do not write these by hand. The downstream tooling
 tolerates missing/extra values: `do_sample` defaults to `false` at the
 SLURM-render layer when absent; `max_connections` defaults to 32. The

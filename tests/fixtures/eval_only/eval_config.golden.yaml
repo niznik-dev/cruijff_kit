@@ -10,7 +10,7 @@ model_hf_name: hf/existing_ckpt_eval
 model_path: "{CHECKPOINT_DIR}"
 output_dir: "{EXPERIMENT_DIR}/existing_ckpt_eval/artifacts/"
 prompt: "Capitalize the given word: {input}\n"
-scorer:
+scorers:
 - name: match
   params:
     ignore_case: false

@@ -222,13 +222,32 @@ class TestMetrics:
 
 class TestRegistry:
     def test_build_scorers_continuous(self):
-        scorers = build_scorers({"scorer": [{"name": "continuous_scorer"}]})
+        scorers = build_scorers({"scorers": [{"name": "continuous_scorer"}]})
         assert len(scorers) == 1
         # Smoke-check that it returns something callable-like (an inspect Scorer)
         assert scorers[0] is not None
 
     def test_build_scorers_continuous_with_empty_params(self):
         scorers = build_scorers(
-            {"scorer": [{"name": "continuous_scorer", "params": {}}]}
+            {"scorers": [{"name": "continuous_scorer", "params": {}}]}
         )
         assert len(scorers) == 1
+
+    def test_build_scorers_defaults_when_key_absent(self):
+        """No `scorers` key (the common base-model case) -> DEFAULT_SCORERS."""
+        assert len(build_scorers({})) == 2  # match + includes
+
+    def test_build_scorers_defaults_when_list_empty(self):
+        """An explicit empty list also falls back to DEFAULT_SCORERS."""
+        assert len(build_scorers({"scorers": []})) == 2
+
+    def test_build_scorers_ignores_legacy_singular_key(self):
+        """Regression: a pre-rename `scorer:` (singular) is NOT honored (#372).
+
+        The eval falls back to DEFAULT_SCORERS rather than picking up the stale
+        key, so a config that wasn't migrated silently loses its configured
+        scorer instead of, say, crashing. `setup_inspect.py` warns about the
+        unknown key at scaffold time; this locks the runtime fallback behavior.
+        """
+        scorers = build_scorers({"scorer": [{"name": "continuous_scorer"}]})
+        assert len(scorers) == 2  # defaults, not the continuous_scorer above

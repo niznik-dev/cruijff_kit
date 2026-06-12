@@ -38,7 +38,7 @@ _SAMPLE_VALUES: dict = {
     "do_sample": True,
     "max_tokens": 5,
     "max_connections": 16,
-    "scorer": [{"name": "match"}],
+    "scorers": [{"name": "match"}],
     "dataset_type": "chat_completion",
     # train
     "epochs": 3,
@@ -88,7 +88,7 @@ def representative_summary() -> dict:
             "do_sample": _SAMPLE_VALUES["do_sample"],
             "max_tokens": _SAMPLE_VALUES["max_tokens"],
             "max_connections": _SAMPLE_VALUES["max_connections"],
-            "scorer": _SAMPLE_VALUES["scorer"],
+            "scorers": _SAMPLE_VALUES["scorers"],
         },
         "controls": {
             "dataset_type": _SAMPLE_VALUES["dataset_type"],

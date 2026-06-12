@@ -73,7 +73,7 @@ KNOWN_STRUCTURAL_KEYS = {
     "seed",  # inspect --seed CLI flag, rendered by render_template
     "do_sample",  # -M model arg (greedy vs sampling), rendered by render_template
     # Read by the @task function at runtime, not by setup_inspect.py:
-    "scorer",
+    "scorers",
     "system_prompt",
     "prompt",
     # Propagated from controls.dataset_type; the scaffold-inspect agent
