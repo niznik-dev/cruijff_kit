@@ -9,7 +9,7 @@ This document covers explore-experiment-specific logging practices.
 ## Log File Location
 
 ```
-{experiment_dir}/logs/explore-experiment.log
+{experiment_directory}/logs/explore-experiment.log
 ```
 
 Created during analysis to record data loading, visualization selection, and generation.

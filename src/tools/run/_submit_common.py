@@ -69,7 +69,7 @@ def _now() -> str:
 #
 # - SIGINT  (Ctrl+C, human at a terminal)
 # - SIGTERM (parent process killing the subprocess)
-# - touch <exp_dir>/logs/.detach  (anyone, including agents that no longer
+# - touch <exp_directory>/logs/.detach  (anyone, including agents that no longer
 #   hold the process handle; the sentinel persists across invocations so
 #   re-attach via --resume-monitor will also exit until removed)
 
@@ -132,19 +132,19 @@ def _interruptible_sleep(
     return False
 
 
-def _reattach_hint(experiment_dir: Path, action_type: str, reason: str) -> str:
+def _reattach_hint(experiment_directory: Path, action_type: str, reason: str) -> str:
     """Loud banner shown after detach so the agent re-reading later sees how to resume."""
     submitter = "submit_torchtune" if action_type == "SUBMIT_JOB" else "submit_inspect"
     sentinel_note = ""
     if reason == "sentinel":
         sentinel_note = (
             f"\n   NOTE: sentinel is sticky — remove it before re-attaching:\n"
-            f"         rm {experiment_dir}/logs/{SENTINEL_NAME}"
+            f"         rm {experiment_directory}/logs/{SENTINEL_NAME}"
         )
     return (
         f"\n⏸  Monitor detached (reason={reason}). Jobs continue running.{sentinel_note}\n"
-        f"   Check status:  python -m cruijff_kit.tools.run.status {experiment_dir}\n"
-        f"   Re-attach:     python -m cruijff_kit.tools.run.{submitter} {experiment_dir} --resume-monitor\n"
+        f"   Check status:  python -m cruijff_kit.tools.run.status {experiment_directory}\n"
+        f"   Re-attach:     python -m cruijff_kit.tools.run.{submitter} {experiment_directory} --resume-monitor\n"
     )
 
 
@@ -153,14 +153,14 @@ def _reattach_hint(experiment_dir: Path, action_type: str, reason: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def state_key(work_dir: Path, slurm_name: str, experiment_dir: Path) -> str:
+def state_key(work_directory: Path, slurm_name: str, experiment_directory: Path) -> str:
     """Stable per-job key for the resume state file.
 
-    Using `work_dir.name` collapses all eval entries onto a single key
-    because every run's eval workdir is `<run_dir>/eval`.
+    Using `work_directory.name` collapses all eval entries onto a single key
+    because every run's eval workdir is `<run_directory>/eval`.
     Including the relative path keeps each entry unique.
     """
-    rel = work_dir.relative_to(experiment_dir)
+    rel = work_directory.relative_to(experiment_directory)
     return f"{rel}/{slurm_name}"
 
 
@@ -394,7 +394,7 @@ def log_oom_resubmit_failure(
 
 # ---------------------------------------------------------------------------
 # Monitor-knob configuration: user config (<repo>/.config/config.json) and
-# live overrides (<exp_dir>/logs/monitor.json)
+# live overrides (<exp_directory>/logs/monitor.json)
 # ---------------------------------------------------------------------------
 #
 # Two filesystem-as-control-plane files share the same JSON schema and the
@@ -404,7 +404,7 @@ def log_oom_resubmit_failure(
 #                                   per process. Power-user territory; ships
 #                                   with the built-in defaults visible.
 #
-#   <exp_dir>/logs/monitor.json   — live overrides for a single run. The
+#   <exp_directory>/logs/monitor.json   — live overrides for a single run. The
 #                                   watcher re-reads this on every poll
 #                                   iteration so cadence can be tuned mid-run
 #                                   without detach + re-attach. Removing the
@@ -572,14 +572,14 @@ def queue_depth(user: str) -> int:
     return sum(1 for line in r.stdout.splitlines() if line.strip())
 
 
-def sbatch_submit(work_dir: Path, slurm_name: str) -> str:
+def sbatch_submit(work_directory: Path, slurm_name: str) -> str:
     """Submit one slurm script, return the job ID as a string.
 
     Raises CalledProcessError on submission failure so the caller can log it.
     """
     r = subprocess.run(
         ["sbatch", "--parsable", slurm_name],
-        cwd=str(work_dir),
+        cwd=str(work_directory),
         capture_output=True,
         text=True,
         check=True,
@@ -621,7 +621,7 @@ def current_state(jid: str) -> str | None:
 
 @dataclass
 class TodoItem:
-    work_dir: Path
+    work_directory: Path
     slurm_name: str
     name: str  # SUBMIT_JOB / SUBMIT_EVAL identifier (e.g. run name)
 
@@ -632,7 +632,7 @@ class _SubmitConfig:
     state_path: Path
     action_type: str
     user: str
-    experiment_dir: Path
+    experiment_directory: Path
     max_submit: int = DEFAULT_MAX_SUBMIT
     stagger_sec: float = DEFAULT_STAGGER_SEC
     poll_sec: float = DEFAULT_POLL_SEC
@@ -652,7 +652,7 @@ def submit_and_monitor(
     state_path: Path,
     action_type: str,
     user: str,
-    experiment_dir: Path,
+    experiment_directory: Path,
     max_submit: int = DEFAULT_MAX_SUBMIT,
     stagger_sec: float = DEFAULT_STAGGER_SEC,
     poll_sec: float = DEFAULT_POLL_SEC,
@@ -676,7 +676,7 @@ def submit_and_monitor(
       Pass `no_retry=True` to disable; that gate will
       also cover future non-OOM retry strategies.
 
-    The first three can be overridden mid-run via `<exp_dir>/logs/monitor.json`.
+    The first three can be overridden mid-run via `<exp_directory>/logs/monitor.json`.
     Static defaults read from `<repo>/.config/config.json`; see the
     resolve_* helpers and the run-experiment SKILL for the precedence chain.
     """
@@ -685,7 +685,7 @@ def submit_and_monitor(
         state_path=state_path,
         action_type=action_type,
         user=user,
-        experiment_dir=experiment_dir,
+        experiment_directory=experiment_directory,
         max_submit=max_submit,
         stagger_sec=stagger_sec,
         poll_sec=poll_sec,
@@ -698,7 +698,7 @@ def submit_and_monitor(
     state = _refresh_in_flight_state(state, log_path)
     write_state_atomic(state_path, state)
 
-    pending = _filter_pending(todo, state, experiment_dir)
+    pending = _filter_pending(todo, state, experiment_directory)
     state = _drip_feed_submit(pending, state, cfg)
     if _finalize_if_detached(state, cfg) is not None:
         return _summarize(state)
@@ -724,7 +724,7 @@ def submit_only(
     state_path: Path,
     action_type: str,
     user: str,
-    experiment_dir: Path,
+    experiment_directory: Path,
     max_submit: int = DEFAULT_MAX_SUBMIT,
     stagger_sec: float = DEFAULT_STAGGER_SEC,
     poll_sec: float = DEFAULT_POLL_SEC,
@@ -741,7 +741,7 @@ def submit_only(
         state_path=state_path,
         action_type=action_type,
         user=user,
-        experiment_dir=experiment_dir,
+        experiment_directory=experiment_directory,
         max_submit=max_submit,
         stagger_sec=stagger_sec,
         poll_sec=poll_sec,
@@ -753,7 +753,7 @@ def submit_only(
     state = _refresh_in_flight_state(state, log_path)
     write_state_atomic(state_path, state)
 
-    pending = _filter_pending(todo, state, experiment_dir)
+    pending = _filter_pending(todo, state, experiment_directory)
     state = _drip_feed_submit(pending, state, cfg)
     _finalize_if_detached(state, cfg)
     return _summarize(state)
@@ -764,7 +764,7 @@ def monitor_only(
     state_path: Path,
     action_type: str,
     user: str,
-    experiment_dir: Path,
+    experiment_directory: Path,
     max_submit: int = DEFAULT_MAX_SUBMIT,
     stagger_sec: float = DEFAULT_STAGGER_SEC,
     poll_sec: float = DEFAULT_POLL_SEC,
@@ -784,7 +784,7 @@ def monitor_only(
         state_path=state_path,
         action_type=action_type,
         user=user,
-        experiment_dir=experiment_dir,
+        experiment_directory=experiment_directory,
         max_submit=max_submit,
         stagger_sec=stagger_sec,
         poll_sec=poll_sec,
@@ -828,20 +828,20 @@ def _finalize_if_detached(state: dict, cfg: _SubmitConfig) -> str | None:
         return None
     summary = _summarize(state)
     log_monitor_detached(cfg.log_path, reason, summary)
-    sys.stderr.write(_reattach_hint(cfg.experiment_dir, cfg.action_type, reason))
+    sys.stderr.write(_reattach_hint(cfg.experiment_directory, cfg.action_type, reason))
     return reason
 
 
 def _filter_pending(
     todo: Iterable[TodoItem],
     state: dict,
-    experiment_dir: Path,
+    experiment_directory: Path,
 ) -> list[TodoItem]:
     """Drop items already submitted (by state-key match)."""
     submitted = set(state.keys())
     pending: list[TodoItem] = []
     for item in todo:
-        key = state_key(item.work_dir, item.slurm_name, experiment_dir)
+        key = state_key(item.work_directory, item.slurm_name, experiment_directory)
         if key not in submitted:
             pending.append(item)
     return pending
@@ -899,9 +899,11 @@ def _drip_feed_submit(
                 return state
 
             item = todo.pop(0)
-            key = state_key(item.work_dir, item.slurm_name, cfg.experiment_dir)
+            key = state_key(
+                item.work_directory, item.slurm_name, cfg.experiment_directory
+            )
             try:
-                jid = sbatch_submit(item.work_dir, item.slurm_name)
+                jid = sbatch_submit(item.work_directory, item.slurm_name)
             except subprocess.CalledProcessError as e:
                 err = (e.stderr or "").strip() or f"exit {e.returncode}"
                 log_submit_failure(
@@ -993,11 +995,11 @@ _CUDA_OOM_PATTERN = re.compile(
 _SLURM_LOG_TAIL_BYTES = 64 * 1024
 
 
-def _slurm_log_for_job(work_dir: Path, job_id: str | int | None) -> Path | None:
+def _slurm_log_for_job(work_directory: Path, job_id: str | int | None) -> Path | None:
     """Return the path to the run's slurm-<jid>.out (or .err fallback) if it exists."""
     if not job_id:
         return None
-    artifacts = work_dir / "artifacts"
+    artifacts = work_directory / "artifacts"
     out = artifacts / f"slurm-{job_id}.out"
     if out.exists():
         return out
@@ -1007,7 +1009,7 @@ def _slurm_log_for_job(work_dir: Path, job_id: str | int | None) -> Path | None:
     return None
 
 
-def _failed_due_to_cuda_oom(work_dir: Path, job_id: str | int | None) -> bool:
+def _failed_due_to_cuda_oom(work_directory: Path, job_id: str | int | None) -> bool:
     """True iff the run's slurm log tail contains a CUDA OOM marker.
 
     Reads only the last `_SLURM_LOG_TAIL_BYTES` of the file for speed —
@@ -1015,7 +1017,7 @@ def _failed_due_to_cuda_oom(work_dir: Path, job_id: str | int | None) -> bool:
     end. Returns False on missing log / read errors so a forensic gap can
     never falsely trigger a retry.
     """
-    log = _slurm_log_for_job(work_dir, job_id)
+    log = _slurm_log_for_job(work_directory, job_id)
     if log is None:
         return False
     try:
@@ -1078,7 +1080,7 @@ def _read_batch_size(yaml_path: Path) -> int:
     return int(match.group(2))
 
 
-def _detect_oom(work_dir: Path, entry: dict) -> str | None:
+def _detect_oom(work_directory: Path, entry: dict) -> str | None:
     """Classify whether `entry` is OOM-equivalent.
 
     Returns one of:
@@ -1092,7 +1094,9 @@ def _detect_oom(work_dir: Path, entry: dict) -> str | None:
     state_val = entry.get("state")
     if state_val == "OUT_OF_MEMORY":
         return "slurm_state"
-    if state_val == "FAILED" and _failed_due_to_cuda_oom(work_dir, entry.get("job_id")):
+    if state_val == "FAILED" and _failed_due_to_cuda_oom(
+        work_directory, entry.get("job_id")
+    ):
         return "cuda_log"
     return None
 
@@ -1121,12 +1125,12 @@ def _handle_oom_retries(state: dict, cfg: _SubmitConfig) -> bool:
     any_resubmitted = False
     for key, entry in state.items():
         # Resolve the run dir from the state key once up front. state_key()
-        # encodes as "<rel_work_dir>/<slurm_name>"; rel_work itself can
+        # encodes as "<rel_work_directory>/<slurm_name>"; rel_work itself can
         # contain slashes (e.g. eval workdirs), so split on the last separator.
         rel_work, slurm_name = key.rsplit("/", 1)
-        work_dir = cfg.experiment_dir / rel_work
+        work_directory = cfg.experiment_directory / rel_work
 
-        detected_via = _detect_oom(work_dir, entry)
+        detected_via = _detect_oom(work_directory, entry)
         if detected_via is None:
             continue
 
@@ -1139,7 +1143,7 @@ def _handle_oom_retries(state: dict, cfg: _SubmitConfig) -> bool:
                 write_state_atomic(cfg.state_path, state)
             continue
 
-        yaml_path = work_dir / "finetune.yaml"
+        yaml_path = work_directory / "finetune.yaml"
         if not yaml_path.exists():
             # Eval runs don't have a finetune.yaml; only training jobs are
             # retried by this strategy. Skip silently — these would be picked
@@ -1155,7 +1159,7 @@ def _handle_oom_retries(state: dict, cfg: _SubmitConfig) -> bool:
             continue
 
         try:
-            new_jid = sbatch_submit(work_dir, slurm_name)
+            new_jid = sbatch_submit(work_directory, slurm_name)
         except subprocess.CalledProcessError as e:
             err = (e.stderr or "").strip() or f"exit {e.returncode}"
             log_oom_resubmit_failure(cfg.log_path, name, len(history) + 1, err)

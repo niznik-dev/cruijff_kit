@@ -44,7 +44,7 @@ Read `experiment_summary.yaml` to determine:
 Run the archive script in dry-run mode:
 
 ```bash
-python src/tools/experiment/archive_experiment.py <experiment_dir> --dry-run --pretty
+python src/tools/experiment/archive_experiment.py <experiment_directory> --dry-run --pretty
 ```
 
 If the default archive location is wrong, the user can specify `--archive-base <path>`.
@@ -64,7 +64,7 @@ Check the dry-run output for `findings_source`:
 1. **If a source was found** — tell the user which file will be copied as `findings.md`
 2. **If no source was found** (`findings_source: null`) — ask the user:
    - "Would you like to write a brief findings.md before archiving? This captures what you learned from the experiment."
-   - If yes: create `{experiment_dir}/findings.md` with user's content, then re-run dry-run
+   - If yes: create `{experiment_directory}/findings.md` with user's content, then re-run dry-run
    - If no: proceed without findings.md
 
 ### 4. Confirm with User
@@ -86,7 +86,7 @@ Use AskUserQuestion to get explicit confirmation before proceeding.
 Run the archive script without dry-run:
 
 ```bash
-python src/tools/experiment/archive_experiment.py <experiment_dir> [--force] [--archive-base <path>] --pretty
+python src/tools/experiment/archive_experiment.py <experiment_directory> [--force] [--archive-base <path>] --pretty
 ```
 
 The script will:
@@ -108,7 +108,7 @@ Show the user:
 Write `archive-experiment.log` to the **archive directory**:
 
 ```
-{archive_dir}/archive.log
+{archive_directory}/archive.log
 ```
 
 See [logging.md](logging.md) for action types and format.

@@ -36,9 +36,9 @@ def read_run_config(cfg_path) -> tuple[Path, str, bool]:
     """Read finetune.yaml via OmegaConf so ${...} interpolations resolve.
 
     Load with OmegaConf, not yaml.safe_load: finetune.yaml uses ${...}
-    interpolation (e.g. checkpoint_dir: ${models_dir}/...) that torchtune
+    interpolation (e.g. checkpoint_dir: ${models_directory}/...) that torchtune
     resolves at training time. Reading the raw yaml leaves the literal
-    "${models_dir}" string, which abspath() then roots under the cwd. Accessing
+    "${models_directory}" string, which abspath() then roots under the cwd. Accessing
     individual nodes resolves only the interpolations they need.
 
     Returns (output_dir, base_model_path, save_adapter_weights_only).

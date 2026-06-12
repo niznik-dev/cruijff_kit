@@ -129,7 +129,7 @@ See `generation.md` → "Report Generation" for the full shape and rationale.
 
 ### 6b. Compute Utilization Report → `generation.md`
 
-Add a compute-utilization appendix. Call `harvest_jids_from_run_logs(experiment_dir)` (from `src/tools/slurm/compute_gpu_metrics.py`) — it returns `(jids_dict, warnings)`:
+Add a compute-utilization appendix. Call `harvest_jids_from_run_logs(experiment_directory)` (from `src/tools/slurm/compute_gpu_metrics.py`) — it returns `(jids_dict, warnings)`:
 
 - **If `warnings` is non-empty**, surface a visible "**Compute Utilization unavailable:** ..." note in `report.md` (one line per warning) — never silently skip the section (issue #451). The warning text tells the operator how to recover (re-run `run-experiment`, or rebuild the log via `src/tools/run/submit_*.py`).
 - **If JIDs are present**, gather per-job metrics (`seff`, `summarize_gpu_metrics()`), format with `format_compute_table()`, save `exploration/compute_metrics.json`, and write the table into `report.md` yourself as a demoted appendix.
@@ -138,7 +138,7 @@ Full recipe (paths, helpers, dual-source GPU util) in `generation.md` → "Compu
 
 ### 7. Logging → `logging.md`
 
-Document the process in `{experiment_dir}/logs/explore-experiment.log`. This log is what keeps a deliberately non-deterministic step auditable (Principle #1): record which data you read, which figures you chose to make and **why**, and what you concluded.
+Document the process in `{experiment_directory}/logs/explore-experiment.log`. This log is what keeps a deliberately non-deterministic step auditable (Principle #1): record which data you read, which figures you chose to make and **why**, and what you concluded.
 
 **See `logging.md` for:**
 - Plain text format specification
@@ -189,7 +189,7 @@ If user chooses option 2, delete contents of `exploration/` before generating ne
 After running, the experiment directory will contain:
 
 ```
-{experiment_dir}/
+{experiment_directory}/
 ├── exploration/
 │   ├── report.md             # Claude's Exploration (you author this)
 │   ├── <your figures>.png    # whichever figures you chose to make
@@ -227,7 +227,7 @@ Before reporting success, confirm `report.md` and `logs/explore-experiment.log` 
 When done, briefly tell the user what you examined and concluded, which figures you made (by their *actual* filenames), and where the audit log is. **End with the full absolute path to `report.md` on its own line** so they can command-click it:
 
 ```
-Full report: {experiment_dir}/exploration/report.md
+Full report: {experiment_directory}/exploration/report.md
 ```
 
 ## Relationship to Other Skills

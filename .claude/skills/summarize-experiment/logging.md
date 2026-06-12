@@ -7,7 +7,7 @@
 ## Log File Location
 
 ```
-{experiment_dir}/logs/summarize-experiment.log
+{experiment_directory}/logs/summarize-experiment.log
 ```
 
 ---

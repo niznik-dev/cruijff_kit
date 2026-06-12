@@ -5,7 +5,7 @@ Convert verbose ACS data to condensed formats.
 Supports all 5 ACS tasks - auto-detects task from filename or use --task flag.
 
 Usage:
-    python convert_to_condensed.py --input INPUT.json --output-dir OUTPUT_DIR [--task TASK]
+    python convert_to_condensed.py --input INPUT.json --output-dir OUTPUT_DIRECTORY [--task TASK]
 
 Examples:
     # Auto-detect task from filename

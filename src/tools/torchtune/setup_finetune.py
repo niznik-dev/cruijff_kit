@@ -6,12 +6,12 @@ import yaml
 from pathlib import Path
 
 from cruijff_kit.utils import run_names
-from cruijff_kit.utils.layout import ARTIFACTS_DIR
+from cruijff_kit.utils.layout import ARTIFACTS_DIRECTORY
 from cruijff_kit.tools.torchtune import config_recipe_loader
 from cruijff_kit.tools.torchtune.model_configs import MODEL_CONFIGS, configure_tokenizer
 
 # Calculate paths relative to this script
-script_dir = Path(__file__).parent
+script_directory = Path(__file__).parent
 
 # Skip these when writing the yaml file
 SLURM_ONLY = [
@@ -207,16 +207,16 @@ def validate_dataset_type(dataset_type):
         )
 
 
-def construct_artifacts_dir(project_dir, experiment_name, model_run_name):
+def construct_artifacts_directory(project_directory, experiment_name, model_run_name):
     """Construct the full artifacts directory path for a run.
 
-    Builds {project_dir}/{experiment_name}/{model_run_name}/artifacts/. The
+    Builds {project_directory}/{experiment_name}/{model_run_name}/artifacts/. The
     returned path becomes torchtune's `output_dir:` in the generated
     finetune.yaml — that yaml key is torchtune's contract and must NOT be
     renamed, even though our wrapper-side names here use `artifacts`.
 
     Args:
-        project_dir: Project directory (ck-projects/{project}/) holding experiment dirs
+        project_directory: Project directory (ck-projects/{project}/) holding experiment dirs
         experiment_name: Experiment name used to group outputs (required)
         model_run_name: Name of this specific model run
 
@@ -224,17 +224,23 @@ def construct_artifacts_dir(project_dir, experiment_name, model_run_name):
         Full artifacts directory path with trailing slash
 
     Raises:
-        ValueError: if project_dir or experiment_name is empty
+        ValueError: if project_directory or experiment_name is empty
     """
-    if not project_dir:
-        raise ValueError("project_dir is required")
+    if not project_directory:
+        raise ValueError("project_directory is required")
     if not experiment_name:
         raise ValueError("experiment_name is required")
 
-    if not project_dir.endswith("/"):
-        project_dir += "/"
+    if not project_directory.endswith("/"):
+        project_directory += "/"
 
-    return project_dir + experiment_name + "/" + model_run_name + f"/{ARTIFACTS_DIR}/"
+    return (
+        project_directory
+        + experiment_name
+        + "/"
+        + model_run_name
+        + f"/{ARTIFACTS_DIRECTORY}/"
+    )
 
 
 def configure_dataset_for_format(config, dataset_label, dataset_ext, dataset_type):
@@ -254,17 +260,19 @@ def configure_dataset_for_format(config, dataset_label, dataset_ext, dataset_typ
     if dataset_type in ("chat_completion", "text_completion"):
         # Uses data_files directly (already in template)
         # Just need to ensure the path includes the dataset_label
-        # Template has: "${input_dir}/${dataset_label}.json"
+        # Template has: "${input_directory}/${dataset_label}.json"
         # This gets substituted by the config values, so no changes needed here
         pass
 
     elif dataset_ext == ".json":
-        # Change source and rename data_dir to data_files
+        # Change source and rename data_directory to data_files
         config["dataset"]["source"] = "json"
-        config["dataset"]["data_files"] = config["dataset"].pop("data_dir")
+        config["dataset"]["data_files"] = config["dataset"].pop("data_directory")
         if "dataset_val" in config:
             config["dataset_val"]["source"] = "json"
-            config["dataset_val"]["data_files"] = config["dataset_val"].pop("data_dir")
+            config["dataset_val"]["data_files"] = config["dataset_val"].pop(
+                "data_directory"
+            )
 
         if dataset_type == "instruct_dataset":
             # For instruct, use a single file and change split to field
@@ -312,14 +320,14 @@ def create_parser():
         "--input_formatting",
         type=str,
         default="raw",
-        help="Name of the folder where your input files are stored within input_dir; useful for multiple formatting styles (e.g. difference vs raw values). If same directory, set to empty string.",
+        help="Name of the folder where your input files are stored within input_directory; useful for multiple formatting styles (e.g. difference vs raw values). If same directory, set to empty string.",
     )
 
     parser.add_argument(
         "--dataset_label",
         type=str,
         default="tune_dataset",
-        help="Name of the dataset file (without extension) or folder (either should be in input_dir)",
+        help="Name of the dataset file (without extension) or folder (either should be in input_directory)",
     )
     parser.add_argument(
         "--dataset_ext",
@@ -335,7 +343,7 @@ def create_parser():
         help="Name of the experiment (used to group outputs in ck-projects/{project}/{experiment_name}/).",
     )
     parser.add_argument(
-        "--project_dir",
+        "--project_directory",
         type=str,
         default=None,
         help="Full path to the project directory (ck-projects/{project}/) under which experiment dirs are created.",
@@ -347,7 +355,7 @@ def create_parser():
         help="Full path to the input file folders",
     )
     parser.add_argument(
-        "--models_dir",
+        "--models_directory",
         type=str,
         default=None,
         help="Full path to the model file folders",
@@ -546,7 +554,7 @@ def create_parser():
         "--model_checkpoint",
         type=str,
         default=None,
-        help="Model directory name within models_dir (defaults to torchtune_model_name if not provided)",
+        help="Model directory name within models_directory (defaults to torchtune_model_name if not provided)",
     )
 
     return parser
@@ -635,7 +643,7 @@ def main():
     # config file, CLI, or scaffold agent via claude.local.md)
     missing = [
         name
-        for name in ("project_dir", "input_dir_base", "models_dir")
+        for name in ("project_directory", "input_dir_base", "models_directory")
         if getattr(args, name) is None
     ]
     if missing:
@@ -671,13 +679,13 @@ def main():
     validate_dataset_type(args.dataset_type)
 
     # First edit the yaml template
-    with open(f"{script_dir}/templates/finetune_template.yaml", "r") as f:
+    with open(f"{script_directory}/templates/finetune_template.yaml", "r") as f:
         config = yaml.safe_load(f)
 
-    # Derive model_dir early (needed for chat_completion's model_path)
+    # Derive model_directory early (needed for chat_completion's model_path)
     # Extract basename in case model_checkpoint is an absolute path
     raw_checkpoint = args.model_checkpoint or args.torchtune_model_name
-    model_dir = os.path.basename(raw_checkpoint.rstrip("/"))
+    model_directory = os.path.basename(raw_checkpoint.rstrip("/"))
 
     for key, value in vars(args).items():
         if key in SLURM_ONLY or key in META_ARGS:
@@ -687,18 +695,20 @@ def main():
             # Model directory: use model_checkpoint if provided, otherwise torchtune_model_name
             # Extract basename in case it's an absolute path
             raw_checkpoint = args.model_checkpoint or value
-            model_dir = os.path.basename(raw_checkpoint.rstrip("/"))
+            model_directory = os.path.basename(raw_checkpoint.rstrip("/"))
 
             # Set model component
             config["model"]["_component_"] = model_config["component"]
 
             # Set tokenizer path based on model family
             configure_tokenizer(
-                config, model_config, model_dir, args.torchtune_model_name
+                config, model_config, model_directory, args.torchtune_model_name
             )
 
             # Set checkpointer config
-            config["checkpointer"]["checkpoint_dir"] = f"${{models_dir}}/{model_dir}/"
+            config["checkpointer"]["checkpoint_dir"] = (
+                f"${{models_directory}}/{model_directory}/"
+            )
             config["checkpointer"]["model_type"] = model_config["model_type"]
             config["checkpointer"]["checkpoint_files"] = model_config[
                 "checkpoint_files"
@@ -709,16 +719,16 @@ def main():
         elif key == "my_wandb_run_name":
             config["my_wandb_run_name"] = model_run_name
         elif key == "input_dir_base":
-            config["input_dir"] = (
+            config["input_directory"] = (
                 value + args.input_formatting + ("/" if args.input_formatting else "")
             )
-        elif key == "project_dir":
-            full_artifacts_dir = construct_artifacts_dir(
+        elif key == "project_directory":
+            full_artifacts_directory = construct_artifacts_directory(
                 value, args.experiment_name, model_run_name
             )
-            config["output_dir"] = full_artifacts_dir
+            config["output_dir"] = full_artifacts_directory
         elif key == "experiment_name":
-            pass  # Handled in project_dir
+            pass  # Handled in project_directory
         elif key == "dataset_label":
             config = configure_dataset_for_format(
                 config, value, args.dataset_ext, args.dataset_type
@@ -771,14 +781,18 @@ def main():
             if value == "chat_completion":
                 # Template already has chat_completion config
                 # Just override the user-specified values and set model_path
-                config["dataset"]["model_path"] = f"${{models_dir}}/{model_dir}"
+                config["dataset"]["model_path"] = (
+                    f"${{models_directory}}/{model_directory}"
+                )
                 config["dataset"]["prompt"] = args.prompt
                 config["dataset"]["system_prompt"] = args.system_prompt
                 config["dataset"]["input_key"] = args.input_key
                 config["dataset"]["output_key"] = args.output_key
                 config["dataset"]["train_on_input"] = args.train_on_input
                 if "dataset_val" in config:
-                    config["dataset_val"]["model_path"] = f"${{models_dir}}/{model_dir}"
+                    config["dataset_val"]["model_path"] = (
+                        f"${{models_directory}}/{model_directory}"
+                    )
                     config["dataset_val"]["prompt"] = args.prompt
                     config["dataset_val"]["system_prompt"] = args.system_prompt
                     config["dataset_val"]["input_key"] = args.input_key
@@ -789,7 +803,9 @@ def main():
                 config["dataset"]["_component_"] = (
                     "cruijff_kit.tools.torchtune.datasets.text_completion.text_completion_dataset"
                 )
-                config["dataset"]["model_path"] = f"${{models_dir}}/{model_dir}"
+                config["dataset"]["model_path"] = (
+                    f"${{models_directory}}/{model_directory}"
+                )
                 config["dataset"]["prompt"] = args.prompt
                 config["dataset"]["input_key"] = args.input_key
                 config["dataset"]["output_key"] = args.output_key
@@ -800,7 +816,9 @@ def main():
                     config["dataset_val"]["_component_"] = (
                         "cruijff_kit.tools.torchtune.datasets.text_completion.text_completion_dataset"
                     )
-                    config["dataset_val"]["model_path"] = f"${{models_dir}}/{model_dir}"
+                    config["dataset_val"]["model_path"] = (
+                        f"${{models_directory}}/{model_directory}"
+                    )
                     config["dataset_val"]["prompt"] = args.prompt
                     config["dataset_val"]["input_key"] = args.input_key
                     config["dataset_val"]["output_key"] = args.output_key
@@ -819,7 +837,7 @@ def main():
                 ]:
                     config["dataset"].pop(key_to_remove, None)
                 # Add back keys needed for legacy types
-                config["dataset"]["data_dir"] = (
+                config["dataset"]["data_directory"] = (
                     config["dataset"].pop("data_files").replace(".json", "")
                 )
                 config["dataset"]["split"] = config["dataset"].pop("field")
@@ -836,7 +854,7 @@ def main():
                         "system_prompt",
                     ]:
                         config["dataset_val"].pop(key_to_remove, None)
-                    config["dataset_val"]["data_dir"] = (
+                    config["dataset_val"]["data_directory"] = (
                         config["dataset_val"].pop("data_files").replace(".json", "")
                     )
                     config["dataset_val"]["split"] = config["dataset_val"].pop("field")
@@ -869,14 +887,14 @@ def main():
         config.pop("dataset_val", None)
         config.pop("run_val_every_n_steps", None)
 
-    for key in ["input_dir", "output_dir", "models_dir"]:
+    for key in ["input_directory", "output_dir", "models_directory"]:
         config[key] = config[key].replace("$USER", username)
 
     with open("finetune.yaml", "w") as f:
         yaml.dump(config, f, sort_keys=False)
 
     # Now create the slurm script
-    with open(f"{script_dir}/templates/finetune_template.slurm", "r") as f:
+    with open(f"{script_directory}/templates/finetune_template.slurm", "r") as f:
         slurm_script = f.read()
 
     slurm_script = slurm_script.replace("<JOBNAME>", model_run_name)
@@ -1009,7 +1027,7 @@ def main():
             "module purge", "module purge" + module_string
         )
 
-    slurm_script = slurm_script.replace("<OUTPUT_DIR>", full_artifacts_dir)
+    slurm_script = slurm_script.replace("<OUTPUT_DIRECTORY>", full_artifacts_directory)
     slurm_script = slurm_script.replace("$USER", username)
 
     with open("finetune.slurm", "w") as f:

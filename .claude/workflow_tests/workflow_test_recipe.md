@@ -16,7 +16,7 @@ Does `lora_rank` matter when other hyperparameters come from a stock recipe? Aga
 - **Experiment name:** `workflow_test_recipe_{date}` (skill fills in the date)
 - **Tools:** torchtune for fine-tuning, inspect-ai for evaluation
 - **Model:** `Llama-3.2-1B-Instruct`
-- **Dataset:** `{ck_data_dir}/capitalization/words_5L_80P_1000.json` — 1000 5-letter words, 800 train / 100 val / 100 test
+- **Dataset:** `{ck_data_directory}/capitalization/words_5L_80P_1000.json` — 1000 5-letter words, 800 train / 100 val / 100 test
 - **Runs:** two fine-tuned runs varying only LoRA rank; everything else flows from the recipe or controls
   - `Llama-3.2-1B-Instruct_rank4` — `lora_rank: 4` (overrides recipe default of 64)
   - `Llama-3.2-1B-Instruct_rank16` — `lora_rank: 16` (overrides recipe default of 64)

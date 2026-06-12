@@ -9,7 +9,7 @@ For each run in "runs to submit" list:
 ### 1. Navigate to Run Directory
 
 ```bash
-cd {experiment_dir}/{run_directory}
+cd {experiment_directory}/{run_directory}
 ```
 
 ### 2. Submit Job and Capture ID
@@ -56,7 +56,7 @@ Log each submission:
 
 ```
 [YYYY-MM-DD HH:MM:SS] SUBMIT_JOB: {run_name}
-Details: cd {run_dir} && sbatch finetune.slurm
+Details: cd {run_directory} && sbatch finetune.slurm
 Result: Job ID {job_id} submitted at {timestamp}
 ```
 

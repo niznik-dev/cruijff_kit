@@ -92,7 +92,7 @@ Then ask about next steps (scaffold-experiment?).
 
 ### Logging → `logging.md`
 
-**IMPORTANT:** Throughout param_selection and generation, create detailed log at `{experiment_dir}/logs/design-experiment.log`.
+**IMPORTANT:** Throughout param_selection and generation, create detailed log at `{experiment_directory}/logs/design-experiment.log`.
 
 **What to log:**
 - ✓ Resource verification (ls, du, df commands and results)

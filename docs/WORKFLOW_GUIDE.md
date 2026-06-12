@@ -15,25 +15,25 @@ For an end-to-end walkthrough using the Claude Code skills (recommended), see [A
 
 For experiments with multiple runs (e.g., parameter sweeps):
 
-1. Create an experiment directory with a subdirectory for each run. Experiments typically live outside the repo (e.g. under `{ck_data_dir}/ck-projects/{project}/{experiment_name}/`); the canonical layout is described in [ARTIFACT_LOCATIONS.md](ARTIFACT_LOCATIONS.md).
+1. Create an experiment directory with a subdirectory for each run. Experiments typically live outside the repo (e.g. under `{ck_data_directory}/ck-projects/{project}/{experiment_name}/`); the canonical layout is described in [ARTIFACT_LOCATIONS.md](ARTIFACT_LOCATIONS.md).
 2. Copy and customize `setup_finetune.yaml` for each run. It **must** include `dataset_type` (`chat_completion` for instruct/chat models, `text_completion` for base models) — it is required, and `setup_finetune.py` errors if it is missing rather than guessing.
 3. Generate fine-tuning configs for all runs. After `make install` the package is importable from anywhere, so `python -m` works regardless of where the experiment dir lives:
    ```bash
-   for dir in run_*/; do
-     (cd "$dir" && python -m cruijff_kit.tools.torchtune.setup_finetune)
+   for directory in run_*/; do
+     (cd "$directory" && python -m cruijff_kit.tools.torchtune.setup_finetune)
    done
    ```
 4. Submit all fine-tuning jobs with a stagger delay to prevent HuggingFace cache race conditions:
    ```bash
-   for dir in run_*/; do
-     (cd "$dir" && sbatch finetune.slurm)
+   for directory in run_*/; do
+     (cd "$directory" && sbatch finetune.slurm)
      sleep 5
    done
    ```
 5. Once fine-tuning completes, set up evaluation. Each run gets an `eval/` subdirectory holding one **cell directory per (task, epoch)** pair (per-cell layout, issue #498). Each cell directory contains its own `eval_config.yaml`. Render the per-cell SLURM script (`cell.slurm`) from inside each cell dir:
    ```bash
-   for dir in run_*/eval/*/; do
-     (cd "$dir" && python -m cruijff_kit.tools.inspect.setup_inspect \
+   for directory in run_*/eval/*/; do
+     (cd "$directory" && python -m cruijff_kit.tools.inspect.setup_inspect \
        --config eval_config.yaml \
        --model_name Llama-3.2-1B-Instruct)
    done

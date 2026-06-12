@@ -180,7 +180,7 @@ After extraction, show the user what was found:
 I found the following configuration in your experiment:
 
 **Dataset:**
-- Path: `{ck_data_dir}/capitalization/words_4L_80P_300.json`
+- Path: `{ck_data_directory}/capitalization/words_4L_80P_300.json`
 - Format: JSON
 - Splits: train (240), test (60)
 
@@ -249,7 +249,7 @@ Details: Parsing YAML structure: experiment, data, models, evaluation sections
 Result: Successfully extracted configuration
 
 [2025-10-24 14:30:10] EXTRACTED_DATASET: Dataset configuration
-Details: Path: {ck_data_dir}/capitalization/words_4L_80P_300.json
+Details: Path: {ck_data_directory}/capitalization/words_4L_80P_300.json
 Format: JSON, Splits: train (240), test (60)
 Result: Verified dataset exists (43KB)
 
@@ -398,7 +398,7 @@ Result: Will use hf_dataset with json format and custom record_to_sample functio
 - `temperature` - Enable temperature tuning
 - `dataset_path` - Support different datasets
 - `grader_model` - For model-graded scoring
-- `config_dir` - (legacy) For runtime config reading; scaffold-inspect uses direct params instead
+- `config_directory` - (legacy) For runtime config reading; scaffold-inspect uses direct params instead
 
 **Benefits of parameters:**
 - Run variations without code changes
@@ -421,7 +421,7 @@ inspect eval task.py -T param_name=value
 
 **Option 2: Integration with fine-tuning config (legacy)**
 - Like existing `inspect_task` example
-- Reads from `setup_finetune.yaml` at runtime via `config_dir` parameter
+- Reads from `setup_finetune.yaml` at runtime via `config_directory` parameter
 - Note: scaffold-inspect now bakes values into SLURM instead of using this pattern
 
 **Option 3: Hard-coded in task**
@@ -594,7 +594,7 @@ inspect eval {task_name}_task.py --model hf/local -M model_path=/path/to/model -
 **Evaluating fine-tuned model:** {if applicable}
 ```bash
 cd /path/to/experiment/run/epoch_0
-inspect eval {task_name}_task.py --model hf/local -M model_path=$PWD -T config_dir=$PWD
+inspect eval {task_name}_task.py --model hf/local -M model_path=$PWD -T config_directory=$PWD
 ```
 
 ## Output Files
@@ -771,7 +771,7 @@ When creating tasks for an experiment:
 
 3. **Task parameter modes:**
    - **Direct parameters (preferred)**: `data_path`, `prompt`, `system_prompt` passed via `-T` flags. scaffold-inspect bakes these into SLURM scripts at scaffolding time.
-   - **config_dir mode (legacy)**: Reads from `setup_finetune.yaml` at runtime. Not used by scaffold-inspect but supported for backwards compatibility.
+   - **config_directory mode (legacy)**: Reads from `setup_finetune.yaml` at runtime. Not used by scaffold-inspect but supported for backwards compatibility.
 
 ### Generated Task Pattern
 
@@ -783,7 +783,7 @@ from pathlib import Path
 
 @task
 def my_task(
-    config_dir: Optional[str] = None,
+    config_directory: Optional[str] = None,
     dataset_path: Optional[str] = None,
     system_prompt: str = "",
     temperature: float = 0.0,
@@ -793,9 +793,9 @@ def my_task(
     Evaluate model using configuration from fine-tuning setup or direct paths.
 
     Args:
-        config_dir: Path to epoch directory (contains ../setup_finetune.yaml).
+        config_directory: Path to epoch directory (contains ../setup_finetune.yaml).
                    If provided, reads dataset path and system prompt from config.
-        dataset_path: Direct path to dataset JSON file. Used if config_dir not provided.
+        dataset_path: Direct path to dataset JSON file. Used if config_directory not provided.
         system_prompt: System message for the model. Overrides config if both provided.
         temperature: Generation temperature (default: 0.0 for deterministic output).
         split: Which data split to use (default: "test").
@@ -805,9 +805,9 @@ def my_task(
     """
 
     # Determine configuration source
-    if config_dir:
+    if config_directory:
         # Mode 1: Read from fine-tuning configuration
-        config_path = Path(config_dir).parent / "setup_finetune.yaml"
+        config_path = Path(config_directory).parent / "setup_finetune.yaml"
 
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
@@ -824,7 +824,7 @@ def my_task(
         # system_prompt and other params used as provided
         pass
     else:
-        raise ValueError("Must provide either config_dir or dataset_path")
+        raise ValueError("Must provide either config_directory or dataset_path")
 
     # Load dataset
     dataset = ...  # Load using dataset_path
@@ -844,8 +844,8 @@ def my_task(
 
 **Evaluating fine-tuned model from experiment:**
 ```bash
-cd /path/to/experiment/run_dir/epoch_0
-inspect eval /path/to/my_task.py --model hf/local -M model_path=$PWD -T config_dir=$PWD
+cd /path/to/experiment/run_directory/epoch_0
+inspect eval /path/to/my_task.py --model hf/local -M model_path=$PWD -T config_directory=$PWD
 ```
 
 **Evaluating base model (control run):**
@@ -886,7 +886,7 @@ Additional checks for experiment-guided mode:
 - ✓ experiment_summary.yaml was successfully parsed
 - ✓ Extracted dataset path exists and format matches
 - ✓ System prompt matches training configuration
-- ✓ Task supports both `config_dir` and `dataset_path` parameters
+- ✓ Task supports both `config_directory` and `dataset_path` parameters
 - ✓ Documentation includes experiment context (research question, runs)
 - ✓ Usage examples show both fine-tuned and base model evaluation
 - ✓ Log includes extraction details and validation results
@@ -942,7 +942,7 @@ After creating the task, guide user:
 - **System prompt consistency is critical** - eval must match training
 - Generated tasks should work for both fine-tuned and base models
 - Include experiment context in documentation (research question, runs)
-- Use `config_dir` parameter pattern for experiment integration
+- Use `config_directory` parameter pattern for experiment integration
 - Log all extraction and validation steps for reproducibility
 
 ## Error Handling

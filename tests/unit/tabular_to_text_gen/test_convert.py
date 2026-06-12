@@ -771,8 +771,8 @@ class TestExperimentSummaryInvocation:
         es = _write_experiment_summary(tmp_path, sample_csv, schema_yaml)
 
         # Run via --experiment-summary
-        yaml_dir = tmp_path / "yaml_out"
-        yaml_dir.mkdir()
+        yaml_directory = tmp_path / "yaml_out"
+        yaml_directory.mkdir()
         main(
             [
                 "--experiment-summary",
@@ -782,14 +782,14 @@ class TestExperimentSummaryInvocation:
                 "--split",
                 "train",
                 "--output-dir",
-                str(yaml_dir),
+                str(yaml_directory),
             ]
         )
-        yaml_output = _find_output(yaml_dir, "c_full", "train")
+        yaml_output = _find_output(yaml_directory, "c_full", "train")
 
         # Run via direct CLI args matching the YAML content
-        cli_dir = tmp_path / "cli_out"
-        cli_dir.mkdir()
+        cli_directory = tmp_path / "cli_out"
+        cli_directory.mkdir()
         main(
             [
                 "--source",
@@ -821,10 +821,10 @@ class TestExperimentSummaryInvocation:
                 "--missing-value-handling",
                 "skip",
                 "--output-dir",
-                str(cli_dir),
+                str(cli_directory),
             ]
         )
-        cli_output = _find_output(cli_dir, "c_full", "train")
+        cli_output = _find_output(cli_directory, "c_full", "train")
 
         # Same hash8 in filenames (split is not part of the hash either)
         yaml_hash = yaml_output.rsplit("_", 1)[-1]
@@ -869,8 +869,8 @@ class TestExperimentSummaryInvocation:
             tmp_path, sample_csv, schema_yaml, threshold=50000
         )
 
-        yaml_dir = tmp_path / "y"
-        yaml_dir.mkdir()
+        yaml_directory = tmp_path / "y"
+        yaml_directory.mkdir()
         main(
             [
                 "--experiment-summary",
@@ -880,13 +880,13 @@ class TestExperimentSummaryInvocation:
                 "--split",
                 "train",
                 "--output-dir",
-                str(yaml_dir),
+                str(yaml_directory),
             ]
         )
-        yaml_hash = _find_output(yaml_dir, "c_small", "train").rsplit("_", 1)[-1]
+        yaml_hash = _find_output(yaml_directory, "c_small", "train").rsplit("_", 1)[-1]
 
-        cli_dir = tmp_path / "c"
-        cli_dir.mkdir()
+        cli_directory = tmp_path / "c"
+        cli_directory.mkdir()
         main(
             [
                 "--source",
@@ -918,10 +918,10 @@ class TestExperimentSummaryInvocation:
                 "--missing-value-handling",
                 "skip",
                 "--output-dir",
-                str(cli_dir),
+                str(cli_directory),
             ]
         )
-        cli_hash = _find_output(cli_dir, "c_small", "train").rsplit("_", 1)[-1]
+        cli_hash = _find_output(cli_directory, "c_small", "train").rsplit("_", 1)[-1]
         assert yaml_hash == cli_hash
 
     def test_cli_overrides_ignored_with_warning(
@@ -937,8 +937,8 @@ class TestExperimentSummaryInvocation:
         )
 
         # Run once via YAML only
-        yaml_dir = tmp_path / "y"
-        yaml_dir.mkdir()
+        yaml_directory = tmp_path / "y"
+        yaml_directory.mkdir()
         main(
             [
                 "--experiment-summary",
@@ -948,15 +948,15 @@ class TestExperimentSummaryInvocation:
                 "--split",
                 "train",
                 "--output-dir",
-                str(yaml_dir),
+                str(yaml_directory),
             ]
         )
-        yaml_hash = _find_output(yaml_dir, "c_small", "train").rsplit("_", 1)[-1]
+        yaml_hash = _find_output(yaml_directory, "c_small", "train").rsplit("_", 1)[-1]
 
         # Run again with a conflicting --question; expect it to be ignored
         # and a warning emitted. Hash must be identical.
-        override_dir = tmp_path / "o"
-        override_dir.mkdir()
+        override_directory = tmp_path / "o"
+        override_directory.mkdir()
         with caplog.at_level(logging.WARNING, logger="tabular_to_text_gen"):
             main(
                 [
@@ -967,14 +967,14 @@ class TestExperimentSummaryInvocation:
                     "--split",
                     "train",
                     "--output-dir",
-                    str(override_dir),
+                    str(override_directory),
                     "--question",
                     "TOTALLY DIFFERENT QUESTION",
                 ]
             )
-        override_hash = _find_output(override_dir, "c_small", "train").rsplit("_", 1)[
-            -1
-        ]
+        override_hash = _find_output(override_directory, "c_small", "train").rsplit(
+            "_", 1
+        )[-1]
 
         assert override_hash == yaml_hash
         assert any("YAML is authoritative" in r.getMessage() for r in caplog.records), (

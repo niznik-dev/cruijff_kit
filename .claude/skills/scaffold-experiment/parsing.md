@@ -18,7 +18,7 @@ tools:
 **Parsing logic:**
 ```python
 import yaml
-with open(f"{experiment_dir}/experiment_summary.yaml", 'r') as f:
+with open(f"{experiment_directory}/experiment_summary.yaml", 'r') as f:
     config = yaml.safe_load(f)
 
 prep_tool = config['tools']['preparation']  # e.g., "torchtune"

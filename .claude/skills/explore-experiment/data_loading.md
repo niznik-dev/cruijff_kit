@@ -12,8 +12,8 @@ from cruijff_kit.tools.inspect.viz_helpers import deduplicate_eval_files
 
 # Collect all .eval files across cell dirs (per-cell layout from issue #498):
 # logs live at {run}/eval/{cell}/logs/*.eval — glob across cells.
-exp_dir = Path(experiment_path)
-eval_files = [str(p) for p in exp_dir.glob(f"{subdir}/eval/*/logs/*.eval")]
+exp_directory = Path(experiment_path)
+eval_files = [str(p) for p in exp_directory.glob(f"{subdir}/eval/*/logs/*.eval")]
 
 # Deduplicate (keeps most recent per model+epoch)
 kept, skipped = deduplicate_eval_files(eval_files)

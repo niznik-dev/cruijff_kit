@@ -36,7 +36,7 @@ parser.add_argument(
     "--output_dir",
     type=Path,
     required=True,
-    help="Output directory (e.g. {ck_data_dir}/capitalization/).",
+    help="Output directory (e.g. {ck_data_directory}/capitalization/).",
 )
 parser.add_argument(
     "--input_file",
@@ -65,8 +65,8 @@ args.output_dir.mkdir(parents=True, exist_ok=True)
 # Set default input file if not provided
 if args.input_file is None:
     # Default to the input file in blueprints/capitalization/input/
-    script_dir = Path(__file__).parent
-    args.input_file = script_dir / "input" / "words_alpha.txt"
+    script_directory = Path(__file__).parent
+    args.input_file = script_directory / "input" / "words_alpha.txt"
 
 OUTFOLDER = f"words_{WORD_LEN}L_{TRAIN_PERCENT}P_{NUMBER_OF_WORDS}{'_c' if USE_CHAT_TEMPLATE else ''}"
 OUTFILE = f"{OUTFOLDER}.json"

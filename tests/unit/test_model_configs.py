@@ -45,7 +45,7 @@ class TestConfigureTokenizerByFamily:
         )
         assert (
             result["tokenizer"]["path"]
-            == "${models_dir}/Llama-3.2-1B-Instruct/original/tokenizer.model"
+            == "${models_directory}/Llama-3.2-1B-Instruct/original/tokenizer.model"
         )
         assert "merges_file" not in result["tokenizer"]
 
@@ -69,7 +69,7 @@ class TestConfigureTokenizerByFamily:
         )
         assert (
             result["tokenizer"]["path"]
-            == "${models_dir}/Mistral-7B-v0.1/tokenizer.model"
+            == "${models_directory}/Mistral-7B-v0.1/tokenizer.model"
         )
         assert "merges_file" not in result["tokenizer"]
 
@@ -93,11 +93,11 @@ class TestConfigureTokenizerByFamily:
         )
         assert (
             result["tokenizer"]["path"]
-            == "${models_dir}/Qwen2.5-3B-Instruct/vocab.json"
+            == "${models_directory}/Qwen2.5-3B-Instruct/vocab.json"
         )
         assert (
             result["tokenizer"]["merges_file"]
-            == "${models_dir}/Qwen2.5-3B-Instruct/merges.txt"
+            == "${models_directory}/Qwen2.5-3B-Instruct/merges.txt"
         )
 
 
@@ -175,7 +175,7 @@ class TestConfigureTokenizerBehavior:
         )
         assert (
             result["tokenizer"]["path"]
-            == "${models_dir}/Llama-3.2-1B/original/tokenizer.model"
+            == "${models_directory}/Llama-3.2-1B/original/tokenizer.model"
         )
 
 

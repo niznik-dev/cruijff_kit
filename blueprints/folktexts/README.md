@@ -19,7 +19,7 @@ All tasks use the same 10 demographic features but predict different outcomes:
 ## Dataset
 
 - **Format**: Condensed key:value pairs (most efficient for fine-tuning)
-- **Location**: `{ck_data_dir}/folktexts/acs_income_condensed_50000_80P.json` (and similar for other tasks)
+- **Location**: `{ck_data_directory}/folktexts/acs_income_condensed_50000_80P.json` (and similar for other tasks)
 - **Splits**: 80% train / 10% validation / 10% test
 - **Source**: American Community Survey (ACS) PUMS 2018 via [folktexts](https://huggingface.co/datasets/acruz/folktexts)
 - **Pinned revision**: `ad89c177` (2024-11-28) — see `FOLKTEXTS_REVISION` in `generate_data.py`
@@ -218,7 +218,7 @@ Converts verbose datasets to condensed and terse formats. Auto-detects task from
 # Convert to condensed + terse formats
 python blueprints/folktexts/modifiers/convert_formats.py \
     --input acs_employment_verbose_50000_80P.json \
-    --output-dir {ck_data_dir}/folktexts/
+    --output-dir {ck_data_directory}/folktexts/
 ```
 
 Outputs: `acs_{task}_condensed_*.json` and `acs_{task}_terse_*.json`

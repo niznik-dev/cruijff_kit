@@ -23,7 +23,7 @@ Launch this subagent when:
 ## Prompt Template
 
 ```
-Set up torchtune fine-tuning configurations for all FINE-TUNED runs in the experiment located at {experiment_dir}.
+Set up torchtune fine-tuning configurations for all FINE-TUNED runs in the experiment located at {experiment_directory}.
 
 Your tasks:
 1. Read experiment_summary.yaml to extract run configurations
@@ -36,7 +36,7 @@ Your tasks:
    - Execute setup_finetune.py to generate finetune.yaml and finetune.slurm (canonical invocation in `.claude/agents/scaffold-torchtune.md`)
    - Verify outputs were created successfully
 5. For control and eval-only runs: no training configs are needed. The eval subagent creates their directories, so scaffold-torchtune can skip them entirely. (Note: the orchestrator only launches scaffold-torchtune at all when at least one run is fine-tuned.)
-6. Create a detailed log at {experiment_dir}/logs/scaffold-torchtune.log
+6. Create a detailed log at {experiment_directory}/logs/scaffold-torchtune.log
 7. Verify that parameters in generated finetune.yaml files match directory names
 
 Report back:
@@ -69,7 +69,7 @@ The subagent performs these operations autonomously:
 After scaffold-torchtune completes, the experiment directory will contain:
 
 ```
-{experiment_dir}/
+{experiment_directory}/
 ├── Llama-3.2-1B-Instruct_base/    # Control run (directory only)
 │   └── (no training configs)
 ├── Llama-3.2-1B-Instruct_rank4/   # Fine-tuned run

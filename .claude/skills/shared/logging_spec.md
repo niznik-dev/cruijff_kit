@@ -122,7 +122,7 @@ See:
 Logs are always created within the experiment directory's `logs/` subdirectory:
 
 ```
-{experiment_dir}/
+{experiment_directory}/
 └── logs/
     ├── design-experiment.log            # Planning decisions
     ├── scaffold-experiment.log          # Scaffolding orchestration

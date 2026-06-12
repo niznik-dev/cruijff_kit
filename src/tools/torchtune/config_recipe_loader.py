@@ -124,11 +124,11 @@ def extract_recipe_config(recipe_name: str, output_path: Optional[str] = None) -
         if output_path is None:
             # Create cache directory in project root (.claude/cache/recipes)
             project_root = Path(__file__).parent.parent.parent
-            cache_dir = project_root / ".claude" / "cache" / "recipes"
-            cache_dir.mkdir(parents=True, exist_ok=True)
+            cache_directory = project_root / ".claude" / "cache" / "recipes"
+            cache_directory.mkdir(parents=True, exist_ok=True)
             # Use recipe name as filename (replace / with _)
             safe_name = recipe_name.replace("/", "_")
-            output_path = str(cache_dir / f"{safe_name}.yaml")
+            output_path = str(cache_directory / f"{safe_name}.yaml")
 
         output_file = Path(output_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -225,11 +225,11 @@ def get_custom_recipe_path(recipe_name: str) -> Optional[str]:
         return None
 
     # Look for custom recipe in our custom_recipes directory
-    script_dir = Path(__file__).parent
-    custom_recipes_dir = script_dir / "custom_recipes"
+    script_directory = Path(__file__).parent
+    custom_recipes_directory = script_directory / "custom_recipes"
 
     # Check for Python file
-    recipe_file = custom_recipes_dir / f"{recipe_name}.py"
+    recipe_file = custom_recipes_directory / f"{recipe_name}.py"
 
     if recipe_file.exists():
         # Return the full module path
@@ -268,14 +268,14 @@ def validate_recipe_exists(recipe_name: str) -> bool:
 
 
 def get_recipe_config(
-    recipe_name: str, cache_dir: Optional[str] = None
+    recipe_name: str, cache_directory: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Get recipe configuration (convenience function combining extract + load).
 
     Args:
         recipe_name: Name of the recipe
-        cache_dir: Optional directory to cache extracted configs
+        cache_directory: Optional directory to cache extracted configs
 
     Returns:
         Recipe configuration dictionary
@@ -285,8 +285,8 @@ def get_recipe_config(
         RecipeExtractionError: If extraction or loading fails
     """
     # Determine output path
-    if cache_dir:
-        cache_path = Path(cache_dir)
+    if cache_directory:
+        cache_path = Path(cache_directory)
         cache_path.mkdir(parents=True, exist_ok=True)
         safe_name = recipe_name.replace("/", "_")
         output_path = str(cache_path / f"{safe_name}.yaml")

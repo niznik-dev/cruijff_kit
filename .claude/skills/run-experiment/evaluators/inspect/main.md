@@ -3,7 +3,7 @@
 Executes inspect-ai evaluation jobs for all runs in an experiment by invoking the canonical submitter:
 
 ```
-python -m cruijff_kit.tools.run.submit_inspect <experiment_dir>
+python -m cruijff_kit.tools.run.submit_inspect <experiment_directory>
 ```
 
 **CRITICAL:** Must run AFTER fine-tuning completes — evaluations require model checkpoints.
@@ -20,17 +20,17 @@ The three knobs (`max_submit`, `stagger_sec`, `poll_sec`) resolve in this order:
 
 ## Detach and resume
 
-The submitter exits cleanly on `SIGINT`, `SIGTERM`, or when `<experiment_dir>/logs/.detach` is present. State is flushed and a `MONITOR_DETACHED` block is appended to the log; SLURM jobs are untouched. To re-attach the monitor without resubmitting:
+The submitter exits cleanly on `SIGINT`, `SIGTERM`, or when `<experiment_directory>/logs/.detach` is present. State is flushed and a `MONITOR_DETACHED` block is appended to the log; SLURM jobs are untouched. To re-attach the monitor without resubmitting:
 
 ```
-python -m cruijff_kit.tools.run.submit_inspect <experiment_dir> --resume-monitor
+python -m cruijff_kit.tools.run.submit_inspect <experiment_directory> --resume-monitor
 ```
 
-Or for a one-shot read across both submitters: `python -m cruijff_kit.tools.run.status <experiment_dir>`.
+Or for a one-shot read across both submitters: `python -m cruijff_kit.tools.run.status <experiment_directory>`.
 
 ## Live monitor settings
 
-The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll iteration. Any of `poll_sec`, `stagger_sec`, `max_submit` listed there take effect on the next poll, overriding the CLI and user-config values. Changes are recorded as `MONITOR_CONFIG` blocks in the per-tool log. See [the run-experiment skill](../../SKILL.md#tuning-watcher-cadence-monitorjson--repo-defaults) for the full precedence chain.
+The watcher re-reads `<experiment_directory>/logs/monitor.json` on every poll iteration. Any of `poll_sec`, `stagger_sec`, `max_submit` listed there take effect on the next poll, overriding the CLI and user-config values. Changes are recorded as `MONITOR_CONFIG` blocks in the per-tool log. See [the run-experiment skill](../../SKILL.md#tuning-watcher-cadence-monitorjson--repo-defaults) for the full precedence chain.
 
 ## Prerequisites
 
@@ -43,7 +43,7 @@ The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll iteratio
 
 - `logs/run-inspect.log` — canonical submission + state-change records.
 - `logs/run-inspect.state.json` — resume state file.
-- Evaluation logs in `{run_dir}/eval/{cell_name}/logs/*.eval` — one logs/ per cell.
+- Evaluation logs in `{run_directory}/eval/{cell_name}/logs/*.eval` — one logs/ per cell.
 
 ## Schemas
 

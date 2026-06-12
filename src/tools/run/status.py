@@ -20,12 +20,12 @@ Note: this snapshot is one-shot and doesn't poll, so it doesn't read
 for details.
 
 Usage:
-    python -m cruijff_kit.tools.run.status <experiment_dir>
-    python -m cruijff_kit.tools.run.status <experiment_dir> --json
+    python -m cruijff_kit.tools.run.status <experiment_directory>
+    python -m cruijff_kit.tools.run.status <experiment_directory> --json
 
 Reads:
-    {experiment_dir}/logs/run-torchtune.state.json
-    {experiment_dir}/logs/run-inspect.state.json
+    {experiment_directory}/logs/run-torchtune.state.json
+    {experiment_directory}/logs/run-inspect.state.json
 
 Writes (refreshed, idempotent):
     same paths, plus STATE_CHANGE entries appended to the matching .log
@@ -58,7 +58,7 @@ TOOLS = [
 ]
 
 
-def snapshot(experiment_dir: Path) -> dict[str, dict]:
+def snapshot(experiment_directory: Path) -> dict[str, dict]:
     """Refresh state for every known tool. Returns {tool_name: state_dict}.
 
     Skips tools whose state file is missing (i.e. that submitter was never
@@ -67,8 +67,8 @@ def snapshot(experiment_dir: Path) -> dict[str, dict]:
     """
     out: dict[str, dict] = {}
     for tool_name, log_name, state_name in TOOLS:
-        state_path = experiment_dir / "logs" / state_name
-        log_path = experiment_dir / "logs" / log_name
+        state_path = experiment_directory / "logs" / state_name
+        log_path = experiment_directory / "logs" / log_name
         if not state_path.exists():
             continue
         state = read_state(state_path)
@@ -137,7 +137,7 @@ def format_table(snapshots: dict[str, dict]) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("experiment_dir", type=Path)
+    parser.add_argument("experiment_directory", type=Path)
     parser.add_argument(
         "--json",
         action="store_true",
@@ -145,8 +145,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    experiment_dir = args.experiment_dir.resolve()
-    snapshots = snapshot(experiment_dir)
+    experiment_directory = args.experiment_directory.resolve()
+    snapshots = snapshot(experiment_directory)
 
     if args.json:
         print(json.dumps(snapshots, indent=2, sort_keys=True))

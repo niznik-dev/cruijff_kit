@@ -7,7 +7,7 @@ This document describes the canonical file layout for cruijff_kit experiments. U
 Each experiment lives in a single self-contained directory. The root contains the experiment plan, the generated dataset, results summary, and subdirectories for skill logs, per-run config, per-run training artifacts, and cross-run analysis.
 
 ```
-{experiment_dir}/
+{experiment_directory}/
 ├── experiment_summary.yaml      # Experiment design (from design-experiment)
 ├── summary.md                   # Post-run results summary (from summarize-experiment)
 ├── {dataset}.json               # Generated dataset (e.g. last_digits_k10_N2000.json)
@@ -135,8 +135,8 @@ Symlinks are not archived. Per-run `artifacts/` directories are not archived (th
 
 | Job Type | `.out` Location |
 |----------|-----------------|
-| Fine-tuning (training) | `{experiment_dir}/{run_name}/artifacts/slurm-*.out`, plus a per-epoch copy at `{run_name}/artifacts/epoch_N/slurm-*.out` |
-| Evaluation (fine-tuned cell) | `{run_dir}/artifacts/epoch_N/slurm-*.out` (eval GPU metrics land alongside the checkpoint) |
-| Evaluation (base/control cell) | `{run_dir}/artifacts/slurm-*.out` |
+| Fine-tuning (training) | `{experiment_directory}/{run_name}/artifacts/slurm-*.out`, plus a per-epoch copy at `{run_name}/artifacts/epoch_N/slurm-*.out` |
+| Evaluation (fine-tuned cell) | `{run_directory}/artifacts/epoch_N/slurm-*.out` (eval GPU metrics land alongside the checkpoint) |
+| Evaluation (base/control cell) | `{run_directory}/artifacts/slurm-*.out` |
 
 Training jobs write `.out` files into the run's `artifacts/` directory. Eval `.out` files follow the GPU-metrics destination — for fine-tuned cells that's the per-epoch checkpoint directory, so the eval's `gpu_metrics.csv` lands next to the checkpoint it was measured against. The cell directory itself (`{run}/eval/{task}_epoch{N}/`) holds the configs, the slurm script, and the inspect-ai `.eval` logs, but not the SLURM stdout.

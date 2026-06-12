@@ -54,7 +54,7 @@ def test_eval_only_model_path_is_checkpoint_verbatim():
     """An eval-only run points at its pre-existing checkpoint, used verbatim —
     not a path computed under this experiment's own directory."""
     cfg = _load()
-    assert cfg["model_path"] == "{CHECKPOINT_DIR}"
+    assert cfg["model_path"] == "{CHECKPOINT_DIRECTORY}"
     assert cfg["is_finetuned"] is True  # the checkpoint IS fine-tuned, just elsewhere
 
 

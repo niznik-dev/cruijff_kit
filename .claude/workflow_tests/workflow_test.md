@@ -16,7 +16,7 @@ Does varying LoRA rank affect downstream capitalization accuracy on a small data
 - **Experiment name:** `workflow_test_{date}` (skill fills in the date)
 - **Tools:** torchtune for fine-tuning, inspect-ai for evaluation
 - **Model:** `Llama-3.2-1B-Instruct` (small enough for fast iteration)
-- **Dataset:** `{ck_data_dir}/capitalization/words_5L_80P_1000.json` — 1000 5-letter words, 800 train / 100 val / 100 test
+- **Dataset:** `{ck_data_directory}/capitalization/words_5L_80P_1000.json` — 1000 5-letter words, 800 train / 100 val / 100 test
 - **Runs:** two fine-tuned runs that differ only in LoRA rank
   - `Llama-3.2-1B-Instruct_rank4` — `lora_rank: 4`
   - `Llama-3.2-1B-Instruct_rank8` — `lora_rank: 8`

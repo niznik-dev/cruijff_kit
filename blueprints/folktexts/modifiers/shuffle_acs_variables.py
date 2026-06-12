@@ -8,8 +8,8 @@ regardless of the number of variables.
 
 Usage:
     python blueprints/folktexts/modifiers/shuffle_acs_variables.py \
-        --input  {ck_data_dir}/folktexts/acs_income_verbose_50000_80P.json \
-        --output {ck_data_dir}/folktexts/acs_income_verbose_50000_80P_shuffled_s14.json \
+        --input  {ck_data_directory}/folktexts/acs_income_verbose_50000_80P.json \
+        --output {ck_data_directory}/folktexts/acs_income_verbose_50000_80P_shuffled_s14.json \
         --seed 14
 """
 

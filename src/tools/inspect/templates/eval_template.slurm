@@ -9,7 +9,7 @@
 #SBATCH --mail-type=end # Email when job ends
 #SBATCH --mail-user=<NETID>@princeton.edu
 #SBATCH --gres=gpu:1 # Request 1 GPU
-#SBATCH --output=<GPU_METRICS_DIR>/slurm-%j.out
+#SBATCH --output=<GPU_METRICS_DIRECTORY>/slurm-%j.out
 ##SBATCH --account=<ACT>
 ##SBATCH --partition=<PART>
 ##SBATCH --constraint=<CONST>
@@ -20,10 +20,10 @@ conda activate <CONDA_ENV>
 
 # Start GPU monitoring in background
 # SLURM cgroup isolation scopes nvidia-smi to the allocated GPU(s)
-GPU_METRICS_DIR="<GPU_METRICS_DIR>"
-mkdir -p "$GPU_METRICS_DIR"
+GPU_METRICS_DIRECTORY="<GPU_METRICS_DIRECTORY>"
+mkdir -p "$GPU_METRICS_DIRECTORY"
 nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu \
-    --format=csv -l 30 > "${GPU_METRICS_DIR}/gpu_metrics.csv" 2>/dev/null &
+    --format=csv -l 30 > "${GPU_METRICS_DIRECTORY}/gpu_metrics.csv" 2>/dev/null &
 GPU_MONITOR_PID=$!
 
 # Prevent HF Hub lookups on offline compute nodes (inspect-ai >= 0.3.180)
@@ -34,7 +34,7 @@ export HF_HUB_OFFLINE=1
 # inspect-ai's own footer 'total time:' is the primary parse target, but
 # /usr/bin/time -p output ('real <seconds>') is a redundant fallback that
 # survives any upstream footer format change.
-cd <EVAL_DIR>
+cd <EVAL_DIRECTORY>
 
 /usr/bin/time -p inspect eval <TASK_SCRIPT> \
   --model <MODEL_HF_NAME> \

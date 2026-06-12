@@ -9,15 +9,15 @@ the HF datasets cache race that hits fine-tunes also hits evals when many
 jobs land on `datasets.load_dataset` at once.
 
 Usage:
-    python -m cruijff_kit.tools.run.submit_inspect <experiment_dir>
+    python -m cruijff_kit.tools.run.submit_inspect <experiment_directory>
 
 Reads:
-    {experiment_dir}/<run>/eval/<cell>/cell.slurm
-    {experiment_dir}/<run>/eval/<cell>/eval_config.yaml
+    {experiment_directory}/<run>/eval/<cell>/cell.slurm
+    {experiment_directory}/<run>/eval/<cell>/eval_config.yaml
 
 Writes:
-    {experiment_dir}/logs/run-inspect.log
-    {experiment_dir}/logs/run-inspect.state.json
+    {experiment_directory}/logs/run-inspect.log
+    {experiment_directory}/logs/run-inspect.state.json
 """
 
 from __future__ import annotations
@@ -60,29 +60,29 @@ def _eval_name(run_dir_name: str, cell_dir_name: str) -> str:
     return f"{run_dir_name}/{cell_dir_name}"
 
 
-def _build_todo(experiment_dir: Path) -> list[TodoItem]:
+def _build_todo(experiment_directory: Path) -> list[TodoItem]:
     """Return a TodoItem for each cell.slurm under any */eval/<cell>/ subdir."""
     todo: list[TodoItem] = []
-    for slurm_path in sorted(experiment_dir.glob("*/eval/*/cell.slurm")):
-        cell_dir = slurm_path.parent
-        run_dir = cell_dir.parent.parent
+    for slurm_path in sorted(experiment_directory.glob("*/eval/*/cell.slurm")):
+        cell_directory = slurm_path.parent
+        run_directory = cell_directory.parent.parent
         todo.append(
             TodoItem(
-                work_dir=cell_dir,
+                work_directory=cell_directory,
                 slurm_name=slurm_path.name,
-                name=_eval_name(run_dir.name, cell_dir.name),
+                name=_eval_name(run_directory.name, cell_directory.name),
             )
         )
     return todo
 
 
-def _preflight_adapter_base_paths(experiment_dir: Path) -> None:
+def _preflight_adapter_base_paths(experiment_directory: Path) -> None:
     """Refuse to submit if any eval points at an adapter dir whose baked-in
     base_model_name_or_path no longer resolves on disk. Catches the case
     where pretrained-llms/ has moved between fine-tune and eval.
     """
     problems: list[str] = []
-    for cfg_path in sorted(experiment_dir.glob("*/eval/*/eval_config.yaml")):
+    for cfg_path in sorted(experiment_directory.glob("*/eval/*/eval_config.yaml")):
         cfg = yaml.safe_load(cfg_path.read_text()) or {}
         model_path = cfg.get("model_path")
         if not model_path:
@@ -98,7 +98,7 @@ def _preflight_adapter_base_paths(experiment_dir: Path) -> None:
 
 
 def run(
-    experiment_dir: Path,
+    experiment_directory: Path,
     user: str | None = None,
     max_submit: int | None = None,
     poll_sec: float | None = None,
@@ -115,9 +115,9 @@ def run(
     Precedence for max_submit / poll_sec / stagger_sec: logs/monitor.json
     > CLI flag > <repo>/.config/config.json > built-in default.
     """
-    experiment_dir = experiment_dir.resolve()
-    log_path = experiment_dir / "logs" / LOG_NAME
-    state_path = experiment_dir / "logs" / STATE_NAME
+    experiment_directory = experiment_directory.resolve()
+    log_path = experiment_directory / "logs" / LOG_NAME
+    state_path = experiment_directory / "logs" / STATE_NAME
 
     if resume_monitor:
         return monitor_only(
@@ -125,22 +125,22 @@ def run(
             state_path=state_path,
             action_type="SUBMIT_EVAL",
             user=resolve_user(user),
-            experiment_dir=experiment_dir,
+            experiment_directory=experiment_directory,
             max_submit=resolve_max_submit(max_submit),
             poll_sec=resolve_poll_sec(poll_sec),
             stagger_sec=resolve_stagger_sec(stagger_sec),
             no_retry=no_retry,
         )
 
-    _preflight_adapter_base_paths(experiment_dir)
-    todo = _build_todo(experiment_dir)
+    _preflight_adapter_base_paths(experiment_directory)
+    todo = _build_todo(experiment_directory)
     return submit_and_monitor(
         todo=todo,
         log_path=log_path,
         state_path=state_path,
         action_type="SUBMIT_EVAL",
         user=resolve_user(user),
-        experiment_dir=experiment_dir,
+        experiment_directory=experiment_directory,
         max_submit=resolve_max_submit(max_submit),
         poll_sec=resolve_poll_sec(poll_sec),
         stagger_sec=resolve_stagger_sec(stagger_sec),
@@ -150,7 +150,7 @@ def run(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("experiment_dir", type=Path)
+    parser.add_argument("experiment_directory", type=Path)
     parser.add_argument(
         "--user",
         default=None,
@@ -162,7 +162,7 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Cap on concurrent submissions for this run only. Defaults are "
         "set in <repo>/.config/config.json (built-in: 25). Live mid-run "
-        "override via <exp_dir>/logs/monitor.json.",
+        "override via <exp_directory>/logs/monitor.json.",
     )
     parser.add_argument(
         "--poll-sec",
@@ -170,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Poll interval in seconds for this run only. Defaults are set "
         "in <repo>/.config/config.json (built-in: 60). Live mid-run "
-        "override via <exp_dir>/logs/monitor.json.",
+        "override via <exp_directory>/logs/monitor.json.",
     )
     parser.add_argument(
         "--stagger-sec",
@@ -178,7 +178,7 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Stagger between submissions in seconds for this run only. "
         "Defaults are set in <repo>/.config/config.json (built-in: 5). "
-        "Live mid-run override via <exp_dir>/logs/monitor.json.",
+        "Live mid-run override via <exp_directory>/logs/monitor.json.",
     )
     parser.add_argument(
         "--resume-monitor",
@@ -197,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     summary = run(
-        args.experiment_dir,
+        args.experiment_directory,
         user=args.user,
         max_submit=args.max_submit,
         poll_sec=args.poll_sec,

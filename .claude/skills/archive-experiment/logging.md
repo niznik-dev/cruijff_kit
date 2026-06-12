@@ -5,7 +5,7 @@ See [shared/logging_spec.md](../shared/logging_spec.md) for format and general g
 ## Log File Location
 
 ```
-{archive_dir}/archive.log
+{archive_directory}/archive.log
 ```
 
 Note: Unlike other skills, this log lives in the **archive** directory (not the experiment directory) because the experiment directory is deleted during archiving.

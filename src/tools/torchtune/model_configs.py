@@ -187,13 +187,13 @@ MODEL_CONFIGS = {
 }
 
 
-def configure_tokenizer(config, model_config, model_dir, model_name):
+def configure_tokenizer(config, model_config, model_directory, model_name):
     """Configure tokenizer settings based on model family.
 
     Args:
         config: The configuration dictionary to modify (must have 'tokenizer' key)
         model_config: Model-specific configuration from MODEL_CONFIGS
-        model_dir: Directory name of the model within models_dir
+        model_directory: Directory name of the model within models_directory
         model_name: Name of the model (for error messages)
 
     Returns:
@@ -209,17 +209,23 @@ def configure_tokenizer(config, model_config, model_dir, model_name):
         # Llama models use SentencePiece tokenizer
         config["tokenizer"]["_component_"] = tokenizer_config["component"]
         config["tokenizer"]["path"] = (
-            f"${{models_dir}}/{model_dir}/original/tokenizer.model"
+            f"${{models_directory}}/{model_directory}/original/tokenizer.model"
         )
     elif model_family == "mistral":
         # Mistral models use SentencePiece tokenizer (at model root, not in original/)
         config["tokenizer"]["_component_"] = tokenizer_config["component"]
-        config["tokenizer"]["path"] = f"${{models_dir}}/{model_dir}/tokenizer.model"
+        config["tokenizer"]["path"] = (
+            f"${{models_directory}}/{model_directory}/tokenizer.model"
+        )
     elif model_family == "qwen":
         # Qwen models use BPE tokenizer with vocab.json + merges.txt
         config["tokenizer"]["_component_"] = tokenizer_config["component"]
-        config["tokenizer"]["path"] = f"${{models_dir}}/{model_dir}/vocab.json"
-        config["tokenizer"]["merges_file"] = f"${{models_dir}}/{model_dir}/merges.txt"
+        config["tokenizer"]["path"] = (
+            f"${{models_directory}}/{model_directory}/vocab.json"
+        )
+        config["tokenizer"]["merges_file"] = (
+            f"${{models_directory}}/{model_directory}/merges.txt"
+        )
     else:
         raise ValueError(
             f"Unknown tokenizer model_family '{model_family}' for model '{model_name}'. "

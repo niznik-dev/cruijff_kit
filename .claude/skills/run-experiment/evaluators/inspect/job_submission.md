@@ -9,7 +9,7 @@ For each evaluation in "evaluations to submit" list:
 ### 1. Navigate to Eval Directory
 
 ```bash
-cd {experiment_dir}/{run_directory}/eval/{cell_name}
+cd {experiment_directory}/{run_directory}/eval/{cell_name}
 ```
 
 ### 2. Submit Job and Capture ID
@@ -49,7 +49,7 @@ Log each submission:
 
 ```
 [YYYY-MM-DD HH:MM:SS] SUBMIT_EVAL: {run_name}/{task}/epoch{N}
-Details: cd {run_dir}/eval/{cell_name} && sbatch cell.slurm
+Details: cd {run_directory}/eval/{cell_name} && sbatch cell.slurm
 Result: Job ID {job_id} submitted at {timestamp}
 ```
 

@@ -6,15 +6,15 @@ persists resume state. See `_submit_common.py` for shared logic and
 the canonical log shape.
 
 Usage:
-    python -m cruijff_kit.tools.run.submit_torchtune <experiment_dir>
+    python -m cruijff_kit.tools.run.submit_torchtune <experiment_directory>
 
 Reads:
-    {experiment_dir}/experiment_summary.yaml
-    {experiment_dir}/<run>/finetune.slurm
+    {experiment_directory}/experiment_summary.yaml
+    {experiment_directory}/<run>/finetune.slurm
 
 Writes:
-    {experiment_dir}/logs/run-torchtune.log
-    {experiment_dir}/logs/run-torchtune.state.json
+    {experiment_directory}/logs/run-torchtune.log
+    {experiment_directory}/logs/run-torchtune.state.json
 """
 
 from __future__ import annotations
@@ -39,9 +39,9 @@ LOG_NAME = "run-torchtune.log"
 STATE_NAME = "run-torchtune.state.json"
 
 
-def _build_todo(experiment_dir: Path) -> list[TodoItem]:
+def _build_todo(experiment_directory: Path) -> list[TodoItem]:
     """Return a TodoItem for each fine-tuned run that has a finetune.slurm."""
-    summary_path = experiment_dir / "experiment_summary.yaml"
+    summary_path = experiment_directory / "experiment_summary.yaml"
     if not summary_path.exists():
         raise FileNotFoundError(
             f"experiment_summary.yaml not found at {summary_path}. "
@@ -58,8 +58,8 @@ def _build_todo(experiment_dir: Path) -> list[TodoItem]:
         run_name = run.get("name")
         if not run_name:
             continue
-        work_dir = experiment_dir / run_name
-        slurm = work_dir / "finetune.slurm"
+        work_directory = experiment_directory / run_name
+        slurm = work_directory / "finetune.slurm"
         if not slurm.exists():
             print(
                 f"WARNING: skipping {run_name!r}: {slurm} not found "
@@ -68,13 +68,17 @@ def _build_todo(experiment_dir: Path) -> list[TodoItem]:
             )
             continue
         todo.append(
-            TodoItem(work_dir=work_dir, slurm_name="finetune.slurm", name=run_name)
+            TodoItem(
+                work_directory=work_directory,
+                slurm_name="finetune.slurm",
+                name=run_name,
+            )
         )
     return todo
 
 
 def run(
-    experiment_dir: Path,
+    experiment_directory: Path,
     user: str | None = None,
     max_submit: int | None = None,
     poll_sec: float | None = None,
@@ -91,9 +95,9 @@ def run(
     Precedence for max_submit / poll_sec / stagger_sec: logs/monitor.json
     > CLI flag > <repo>/.config/config.json > built-in default.
     """
-    experiment_dir = experiment_dir.resolve()
-    log_path = experiment_dir / "logs" / LOG_NAME
-    state_path = experiment_dir / "logs" / STATE_NAME
+    experiment_directory = experiment_directory.resolve()
+    log_path = experiment_directory / "logs" / LOG_NAME
+    state_path = experiment_directory / "logs" / STATE_NAME
 
     if resume_monitor:
         return monitor_only(
@@ -101,21 +105,21 @@ def run(
             state_path=state_path,
             action_type="SUBMIT_JOB",
             user=resolve_user(user),
-            experiment_dir=experiment_dir,
+            experiment_directory=experiment_directory,
             max_submit=resolve_max_submit(max_submit),
             poll_sec=resolve_poll_sec(poll_sec),
             stagger_sec=resolve_stagger_sec(stagger_sec),
             no_retry=no_retry,
         )
 
-    todo = _build_todo(experiment_dir)
+    todo = _build_todo(experiment_directory)
     return submit_and_monitor(
         todo=todo,
         log_path=log_path,
         state_path=state_path,
         action_type="SUBMIT_JOB",
         user=resolve_user(user),
-        experiment_dir=experiment_dir,
+        experiment_directory=experiment_directory,
         max_submit=resolve_max_submit(max_submit),
         poll_sec=resolve_poll_sec(poll_sec),
         stagger_sec=resolve_stagger_sec(stagger_sec),
@@ -125,7 +129,7 @@ def run(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("experiment_dir", type=Path)
+    parser.add_argument("experiment_directory", type=Path)
     parser.add_argument(
         "--user",
         default=None,
@@ -137,7 +141,7 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Cap on concurrent submissions for this run only. Defaults are "
         "set in <repo>/.config/config.json (built-in: 25). Live mid-run "
-        "override via <exp_dir>/logs/monitor.json.",
+        "override via <exp_directory>/logs/monitor.json.",
     )
     parser.add_argument(
         "--poll-sec",
@@ -145,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Poll interval in seconds for this run only. Defaults are set "
         "in <repo>/.config/config.json (built-in: 60). Live mid-run "
-        "override via <exp_dir>/logs/monitor.json.",
+        "override via <exp_directory>/logs/monitor.json.",
     )
     parser.add_argument(
         "--stagger-sec",
@@ -153,7 +157,7 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Stagger between submissions in seconds for this run only. "
         "Defaults are set in <repo>/.config/config.json (built-in: 5). "
-        "Live mid-run override via <exp_dir>/logs/monitor.json.",
+        "Live mid-run override via <exp_directory>/logs/monitor.json.",
     )
     parser.add_argument(
         "--resume-monitor",
@@ -172,7 +176,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     summary = run(
-        args.experiment_dir,
+        args.experiment_directory,
         user=args.user,
         max_submit=args.max_submit,
         poll_sec=args.poll_sec,

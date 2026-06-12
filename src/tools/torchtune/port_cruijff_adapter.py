@@ -11,8 +11,8 @@ model was HF-downloaded with that marker present). If that file is missing,
 supply the value explicitly with `--repo-id`.
 
 Usage:
-    python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <epoch_dir>
-    python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <run_dir>  # recurses over epoch_*
+    python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <epoch_directory>
+    python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <run_directory>  # recurses over epoch_*
     python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <dir> --repo-id meta-llama/Llama-3.2-1B-Instruct
 
 After running, `AutoModelForCausalLM.from_pretrained(<dir>)` will resolve the
@@ -25,29 +25,29 @@ import sys
 from pathlib import Path
 
 
-def _resolve_repo_id(epoch_dir: Path, repo_id_override: str | None) -> str | None:
+def _resolve_repo_id(epoch_directory: Path, repo_id_override: str | None) -> str | None:
     if repo_id_override:
         return repo_id_override
-    repo_id_file = epoch_dir / "original_repo_id.json"
+    repo_id_file = epoch_directory / "original_repo_id.json"
     if repo_id_file.exists():
         return json.loads(repo_id_file.read_text())["repo_id"]
     return None
 
 
-def restore_one(epoch_dir: Path, repo_id_override: str | None = None) -> bool:
+def restore_one(epoch_directory: Path, repo_id_override: str | None = None) -> bool:
     """Restore adapter_config.json's base_model_name_or_path to a portable value.
 
     Returns True if the file was rewritten, False if skipped.
     """
-    adapter_cfg = epoch_dir / "adapter_config.json"
+    adapter_cfg = epoch_directory / "adapter_config.json"
     if not adapter_cfg.exists():
-        print(f"  [skip] {epoch_dir}: no adapter_config.json")
+        print(f"  [skip] {epoch_directory}: no adapter_config.json")
         return False
 
-    repo_id = _resolve_repo_id(epoch_dir, repo_id_override)
+    repo_id = _resolve_repo_id(epoch_directory, repo_id_override)
     if repo_id is None:
         print(
-            f"  [skip] {epoch_dir}: no original_repo_id.json — pass --repo-id to override"
+            f"  [skip] {epoch_directory}: no original_repo_id.json — pass --repo-id to override"
         )
         return False
 
@@ -55,12 +55,12 @@ def restore_one(epoch_dir: Path, repo_id_override: str | None = None) -> bool:
     before = cfg.get("base_model_name_or_path")
 
     if before == repo_id:
-        print(f"  [ok]   {epoch_dir}: already {repo_id}")
+        print(f"  [ok]   {epoch_directory}: already {repo_id}")
         return False
 
     cfg["base_model_name_or_path"] = repo_id
     adapter_cfg.write_text(json.dumps(cfg, indent=2))
-    print(f"  [done] {epoch_dir}: {before} -> {repo_id}")
+    print(f"  [done] {epoch_directory}: {before} -> {repo_id}")
     return True
 
 

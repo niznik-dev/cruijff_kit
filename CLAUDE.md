@@ -105,7 +105,7 @@ To validate that the complete workflow (design, scaffold, run) is functioning co
 | **Base vs Fine-tuned** | `.claude/workflow_tests/workflow_test_base.md` | 1 base + 1 fine-tuned (rank4) | ~12 min | Base model evaluation |
 | **Recipe Defaults** | `.claude/workflow_tests/workflow_test_recipe.md` | 2 fine-tuned (rank4, rank16) | ~12 min | base_recipe inheritance |
 
-All use Llama-3.2-1B-Instruct with `{ck_data_dir}/capitalization/words_5L_80P_1000.json` as input data
+All use Llama-3.2-1B-Instruct with `{ck_data_directory}/capitalization/words_5L_80P_1000.json` as input data
 
 **Purpose:** Catch regressions in skills, ensure documentation changes don't break workflows, validate end-to-end integration.
 
@@ -115,12 +115,12 @@ All use Llama-3.2-1B-Instruct with `{ck_data_dir}/capitalization/words_5L_80P_10
 
 - **`directory` over `dir` for names we own.** When we choose a name (a YAML key, a
   CLI flag, a documented folder or constant), prefer the spelled-out `directory` —
-  readability beats the saved keystrokes. Use the abbreviated `dir` / `_dir` only when
+  readability beats the saved keystrokes. Use the abbreviated `dir` / `_directory` only when
   an external tool's convention dictates it (e.g. torchtune's `output_dir`, inspect-ai
   keys); see the "Wrapper-only" principle on external-contract names. This is
-  forward-looking guidance for new names — the codebase still uses `_dir` widely, and
+  forward-looking guidance for new names — the codebase still uses `_directory` widely, and
   those existing identifiers are not flagged for renaming here.
-- **`directory` vs `path` — keep them true to their meanings.** `directory` (or `_dir`)
+- **`directory` vs `path` — keep them true to their meanings.** `directory` (or `_directory`)
   names a folder; `path` (or `_path`) names a file. Don't label a folder `path` or a
   file `directory`.
 
@@ -198,7 +198,7 @@ Fix any errors before committing. CI runs these checks and will fail the build o
 
 ## Data Location
 
-All input data lives outside the repo at `{ck_data_dir}` (configured in `claude.local.md`), organized as `{ck_data_dir}/{project}/`. The repo no longer contains a `data/` directory — datasets are user-provisioned and not version-controlled.
+All input data lives outside the repo at `{ck_data_directory}` (configured in `claude.local.md`), organized as `{ck_data_directory}/{project}/`. The repo no longer contains a `data/` directory — datasets are user-provisioned and not version-controlled.
 
 ## Project Status
 

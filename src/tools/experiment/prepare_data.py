@@ -14,10 +14,10 @@ tracked follow-up.
 
 Usage::
 
-    python -m cruijff_kit.tools.experiment.prepare_data <experiment_dir>
+    python -m cruijff_kit.tools.experiment.prepare_data <experiment_directory>
 
 Exit code is 0 on success, 1 on any failure. Output is logged to
-``{experiment_dir}/logs/scaffold-prepare-data.log``.
+``{experiment_directory}/logs/scaffold-prepare-data.log``.
 """
 
 import argparse
@@ -34,9 +34,9 @@ from cruijff_kit.tools.model_organisms.generate import generate
 LOG_NAME = "scaffold-prepare-data.log"
 
 
-def _resolve_output(output_path: str, experiment_dir: Path) -> Path:
+def _resolve_output(output_path: str, experiment_directory: Path) -> Path:
     out = Path(output_path)
-    return out if out.is_absolute() else experiment_dir / out
+    return out if out.is_absolute() else experiment_directory / out
 
 
 def _equivalent_cli(params: dict, out_path: Path) -> str:
@@ -60,7 +60,7 @@ def _equivalent_cli(params: dict, out_path: Path) -> str:
 
 
 def generate_model_organism(
-    spec: dict, experiment_dir: Path, logger: logging.Logger
+    spec: dict, experiment_directory: Path, logger: logging.Logger
 ) -> Path:
     """Generate one model-organism dataset per ``spec``; return the output path."""
     required = ("input_type", "rule", "k", "N", "seed", "design", "output_path")
@@ -79,7 +79,7 @@ def generate_model_organism(
             "'split_ratio' to honor your intended train fraction."
         )
 
-    out_path = _resolve_output(spec["output_path"], experiment_dir)
+    out_path = _resolve_output(spec["output_path"], experiment_directory)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     params = {
@@ -134,13 +134,13 @@ def _setup_logger(log_path: Path) -> logging.Logger:
     return logger
 
 
-def prepare(experiment_dir: Path) -> int:
+def prepare(experiment_directory: Path) -> int:
     """Generate the dataset declared in experiment_summary.yaml, if any.
 
     Returns 0 on success (including the "no data_generation block" case),
     1 on any failure.
     """
-    yaml_path = experiment_dir / "experiment_summary.yaml"
+    yaml_path = experiment_directory / "experiment_summary.yaml"
     if not yaml_path.exists():
         print(
             f"ERROR: experiment_summary.yaml not found at {yaml_path}",
@@ -171,13 +171,13 @@ def prepare(experiment_dir: Path) -> int:
         )
         return 1
 
-    log_path = experiment_dir / "logs" / LOG_NAME
+    log_path = experiment_directory / "logs" / LOG_NAME
     log_path.parent.mkdir(parents=True, exist_ok=True)
     logger = _setup_logger(log_path)
-    logger.info(f"START: prepare_data for {experiment_dir}")
+    logger.info(f"START: prepare_data for {experiment_directory}")
 
     try:
-        _GENERATORS[tool](data_gen, experiment_dir, logger)
+        _GENERATORS[tool](data_gen, experiment_directory, logger)
     except Exception as exc:
         logger.error(
             f"FAILED: tool={tool} ({data_gen.get('name', '<unnamed>')}): {exc}"
@@ -194,12 +194,12 @@ def main() -> None:
         "data.data_generation block."
     )
     parser.add_argument(
-        "experiment_dir",
+        "experiment_directory",
         type=Path,
         help="Path to experiment directory containing experiment_summary.yaml",
     )
     args = parser.parse_args()
-    raise SystemExit(prepare(args.experiment_dir))
+    raise SystemExit(prepare(args.experiment_directory))
 
 
 if __name__ == "__main__":

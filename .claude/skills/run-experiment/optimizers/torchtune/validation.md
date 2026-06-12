@@ -28,7 +28,7 @@ All should be:
 For each COMPLETED job, verify checkpoint created:
 
 ```bash
-ls {experiment_dir}/{run_name}/artifacts/epoch_{N}/
+ls {experiment_directory}/{run_name}/artifacts/epoch_{N}/
 ```
 
 Expected files:
@@ -62,7 +62,7 @@ Verify `run-torchtune.log` exists with:
 
 **If any job FAILED:**
 - Note in validation output
-- Recommend checking SLURM log: `{run_dir}/slurm-{job_id}.out`
+- Recommend checking SLURM log: `{run_directory}/slurm-{job_id}.out`
 - Partial success is acceptable (some runs succeeded)
 
 **If checkpoints missing:**

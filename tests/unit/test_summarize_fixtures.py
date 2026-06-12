@@ -15,19 +15,19 @@ from cruijff_kit.tools.torchtune.extract_loss import (
     final_loss,
 )
 
-FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "summarize"
+FIXTURES_DIRECTORY = Path(__file__).parent.parent / "fixtures" / "summarize"
 
 
 @pytest.fixture
 def slurm_output():
     """Load the realistic SLURM training output."""
-    return (FIXTURES_DIR / "slurm_training_output.txt").read_text()
+    return (FIXTURES_DIRECTORY / "slurm_training_output.txt").read_text()
 
 
 @pytest.fixture
 def eval_result():
     """Load the synthetic eval result JSON."""
-    with open(FIXTURES_DIR / "eval_result.json") as f:
+    with open(FIXTURES_DIRECTORY / "eval_result.json") as f:
         return json.load(f)
 
 

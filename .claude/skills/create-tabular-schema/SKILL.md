@@ -20,7 +20,7 @@ Guide the user through inspecting their source data and building a schema file. 
 Check `ck-data/schemas/` for an existing schema that might match the user's source data:
 
 ```bash
-ls {scratch_dir}/ck-data/schemas/ 2>/dev/null
+ls {scratch_directory}/ck-data/schemas/ 2>/dev/null
 ```
 
 If a matching schema exists, load it and confirm with the user. If they want to use it as-is, done. If they want to modify it, proceed with it as a starting point.
@@ -92,10 +92,10 @@ Only finalize perturbation metadata after the user has approved or edited the su
 Save the final schema to `ck-data/schemas/`:
 
 ```bash
-mkdir -p {scratch_dir}/ck-data/schemas
+mkdir -p {scratch_directory}/ck-data/schemas
 ```
 
-Write the schema YAML file to `{scratch_dir}/ck-data/schemas/{dataset_name}.yaml`.
+Write the schema YAML file to `{scratch_directory}/ck-data/schemas/{dataset_name}.yaml`.
 
 Report the saved path to the user.
 

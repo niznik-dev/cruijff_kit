@@ -593,7 +593,7 @@ def format_compute_table(
 
 
 def harvest_jids_from_run_logs(
-    experiment_dir: Path,
+    experiment_directory: Path,
 ) -> tuple[dict[str, list[tuple[str, str]]], list[str]]:
     """Parse run-experiment execution logs into job IDs.
 
@@ -609,8 +609,8 @@ def harvest_jids_from_run_logs(
     Previously, explore-experiment's compute step "skipped silently if no run
     logs exist." This helper makes the absence loud.
     """
-    finetune_path = experiment_dir / "logs" / "run-torchtune.log"
-    eval_path = experiment_dir / "logs" / "run-inspect.log"
+    finetune_path = experiment_directory / "logs" / "run-torchtune.log"
+    eval_path = experiment_directory / "logs" / "run-inspect.log"
 
     finetune_pairs, finetune_warns = _harvest_one(finetune_path, SUBMIT_JOB_RE)
     eval_pairs, eval_warns = _harvest_one(eval_path, SUBMIT_EVAL_RE)

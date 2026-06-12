@@ -52,7 +52,7 @@ cruijff_kit/
 │   │       ├── generate.py              # Dataset generator CLI
 │   │       └── inspect_task.py          # Unified inspect-ai evaluation task
 │   ├── utils/                      # Generic, cross-cutting infra owned by no single domain
-│   │   ├── layout.py                    # Layout constants (e.g. ARTIFACTS_DIR)
+│   │   ├── layout.py                    # Layout constants (e.g. ARTIFACTS_DIRECTORY)
 │   │   ├── run_names.py                 # Random name generation for runs
 │   │   └── logger.py                    # Structured logging utilities
 │   └── tabular_to_text_gen/        # Tabular→text conversion pipeline (own ARCHITECTURE.md)
@@ -76,7 +76,7 @@ cruijff_kit/
 
 ## Data Organization
 
-cruijff_kit keeps datasets out of the repo. Input data lives at `{ck_data_dir}` on the user's filesystem (configured in `claude.local.md`), organized as `{ck_data_dir}/{project}/`. For example, capitalization data lives at `{ck_data_dir}/capitalization/words_5L_80P_1000.json` and folktexts data at `{ck_data_dir}/folktexts/acs_income_*.json`.
+cruijff_kit keeps datasets out of the repo. Input data lives at `{ck_data_directory}` on the user's filesystem (configured in `claude.local.md`), organized as `{ck_data_directory}/{project}/`. For example, capitalization data lives at `{ck_data_directory}/capitalization/words_5L_80P_1000.json` and folktexts data at `{ck_data_directory}/folktexts/acs_income_*.json`.
 
 This keeps the repo small and lets each user manage their own data governance — datasets are user-provisioned and not version-controlled.
 
@@ -270,7 +270,7 @@ After running finetune:
 
 - **LoRA alpha**: Automatically set to 2 × rank by `setup_finetune.py`
 - **Run names**: Auto-generated positive adjective-noun pairs (e.g., "happy-narwhal") via `src/utils/run_names.py`
-- **Output structure**: `{experiment_dir}/{run_name}/artifacts/epoch_N/`
+- **Output structure**: `{experiment_directory}/{run_name}/artifacts/epoch_N/`
 
 ### Checkpoint Management
 
@@ -281,7 +281,7 @@ After running finetune:
   - When referencing epochs in evaluation scripts, use the 0-indexed value
   - Example: After 1 epoch of training, evaluate using `epoch_0`
 
-- **save_adapter_weights_only**: `'true'`/`'false'` (default `'true'`) - Save only the LoRA adapter (~MB), skip the merged base+LoRA checkpoint (~GB). The saved `adapter_config.json` has its `base_model_name_or_path` rewritten to the local base-model path so the dir is self-loading on offline compute. Use `python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <epoch_dir>` to restore the HF Hub name when exporting.
+- **save_adapter_weights_only**: `'true'`/`'false'` (default `'true'`) - Save only the LoRA adapter (~MB), skip the merged base+LoRA checkpoint (~GB). The saved `adapter_config.json` has its `base_model_name_or_path` rewritten to the local base-model path so the dir is self-loading on offline compute. Use `python -m cruijff_kit.tools.torchtune.port_cruijff_adapter <epoch_directory>` to restore the HF Hub name when exporting.
 
 ### Custom Recipe Usage
 
@@ -328,8 +328,8 @@ Available custom recipes:
 Scripts use relative paths from their location:
 
 ```python
-script_dir = Path(__file__).parent
-template_path = script_dir / "templates" / "finetune_template.yaml"
+script_directory = Path(__file__).parent
+template_path = script_directory / "templates" / "finetune_template.yaml"
 ```
 
 User-provided paths are resolved relative to current working directory (the task folder).
@@ -397,7 +397,7 @@ enough that any domain could use it, even if only one wires it up today (e.g.
 `run_names`). Domain-specific scripts live in their domain package under `src/tools/`
 instead.
 
-- `layout.py` - Layout constants (e.g. `ARTIFACTS_DIR`)
+- `layout.py` - Layout constants (e.g. `ARTIFACTS_DIRECTORY`)
 - `run_names.py` - Generate random experiment names
 - `logger.py` - Structured logging helpers
 

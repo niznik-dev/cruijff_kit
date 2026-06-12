@@ -43,7 +43,7 @@ def make_cli_args(**overrides):
 def make_config(**overrides):
     """Create a config dict mimicking load_eval_config output.
 
-    Only includes the required keys plus eval_dir (auto-derived).
+    Only includes the required keys plus eval_directory (auto-derived).
     Add optional keys (data_path, vis_label, epoch, etc.) via overrides.
     """
     defaults = dict(
@@ -52,7 +52,7 @@ def make_config(**overrides):
         model_path="/outputs/run1/epoch_0",
         model_hf_name="hf/run1_epoch_0",
         output_dir="/outputs/run1/",
-        eval_dir="/experiments/run1/eval",
+        eval_directory="/experiments/run1/eval",
     )
     defaults.update(overrides)
     return defaults
@@ -106,13 +106,13 @@ class TestLoadEvalConfig:
         assert config["model_hf_name"] == "hf/run1_epoch_0"
         assert config["output_dir"] == "/outputs/run1/"
 
-    def test_auto_derives_eval_dir(self, tmp_path):
-        """eval_dir is auto-derived from config file location."""
+    def test_auto_derives_eval_directory(self, tmp_path):
+        """eval_directory is auto-derived from config file location."""
         config_file = tmp_path / "eval_config.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG)
 
         config = load_eval_config(str(config_file))
-        assert config["eval_dir"] == str(tmp_path)
+        assert config["eval_directory"] == str(tmp_path)
 
     def test_auto_derives_config_path(self, tmp_path):
         """config_path is auto-derived as absolute path to config file."""
@@ -399,8 +399,8 @@ class TestRenderTemplate:
         assert "--seed 0" in script
 
     def test_eval_dir_cd(self):
-        """Script changes to eval_dir before running inspect."""
-        config = make_config(eval_dir="/experiments/test/eval")
+        """Script changes to eval_directory before running inspect."""
+        config = make_config(eval_directory="/experiments/test/eval")
         script = render_template(make_cli_args(), config)
         assert "cd /experiments/test/eval" in script
 
@@ -421,18 +421,18 @@ class TestRenderTemplate:
         script = render_template(make_cli_args(), make_config())
         assert "INSPECT_EXIT_CODE=$?" in script
 
-    def test_gpu_metrics_epoch_specific_dir(self):
+    def test_gpu_metrics_epoch_specific_directory(self):
         """GPU metrics write to epoch-specific subdir when epoch is set."""
         config = make_config(output_dir="/outputs/run1/", epoch=2)
         script = render_template(make_cli_args(), config)
-        assert 'GPU_METRICS_DIR="/outputs/run1/epoch_2"' in script
+        assert 'GPU_METRICS_DIRECTORY="/outputs/run1/epoch_2"' in script
         assert "mkdir -p" in script
 
-    def test_gpu_metrics_no_epoch_uses_output_dir(self):
+    def test_gpu_metrics_no_epoch_uses_output_directory(self):
         """GPU metrics write to output_dir when no epoch is set."""
         config = make_config(output_dir="/outputs/run1/")
         script = render_template(make_cli_args(), config)
-        assert 'GPU_METRICS_DIR="/outputs/run1"' in script
+        assert 'GPU_METRICS_DIRECTORY="/outputs/run1"' in script
 
     def test_time_override(self):
         """Custom time limit appears in SLURM header."""
@@ -517,7 +517,7 @@ class TestDoSample:
         script = render_template(make_cli_args(), config)
         assert "-M do_sample=false" in script
 
-    def test_position_after_model_path_before_log_dir(self):
+    def test_position_after_model_path_before_log_directory(self):
         """do_sample -M arg sits after model_path and before --log-dir."""
         script = render_template(make_cli_args(), make_config())
         mp_pos = script.index("-M model_path=")
@@ -616,7 +616,7 @@ class TestMaxConnections:
         script = render_template(make_cli_args(), config)
         assert "--max-connections 512" in script
 
-    def test_position_before_log_dir(self):
+    def test_position_before_log_directory(self):
         """max-connections appears after metadata args and before --log-dir."""
         config = make_config(epoch=0, is_finetuned=True, max_connections=256)
         script = render_template(make_cli_args(), config)

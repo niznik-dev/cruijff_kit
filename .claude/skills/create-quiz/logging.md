@@ -5,7 +5,7 @@ See [shared/logging_spec.md](../shared/logging_spec.md) for the format and gener
 ## Log file location
 
 ```
-{experiment_dir}/logs/create-quiz.log
+{experiment_directory}/logs/create-quiz.log
 ```
 
 If `logs/` doesn't exist, create it. Append to the log on re-runs (don't truncate) so the audit trail across regeneration is preserved.

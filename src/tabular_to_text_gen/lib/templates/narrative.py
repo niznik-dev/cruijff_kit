@@ -17,7 +17,7 @@ from ..schema import ColumnSchema, Schema
 from ..segments import Segment
 from .base import BaseTemplate
 
-BUILTIN_DIR = Path(__file__).parent / "builtin_templates"
+BUILTIN_DIRECTORY = Path(__file__).parent / "builtin_templates"
 
 
 class NarrativeTemplate(BaseTemplate):
@@ -31,12 +31,12 @@ class NarrativeTemplate(BaseTemplate):
                 builtin_templates/. Defaults to default_narrative.j2.
         """
         if template_file is None:
-            template_path = BUILTIN_DIR / "default_narrative.j2"
+            template_path = BUILTIN_DIRECTORY / "default_narrative.j2"
         elif Path(template_file).is_absolute():
             template_path = Path(template_file)
         else:
             # Try builtin directory first, then treat as relative path
-            candidate = BUILTIN_DIR / template_file
+            candidate = BUILTIN_DIRECTORY / template_file
             template_path = candidate if candidate.exists() else Path(template_file)
 
         if not template_path.exists():

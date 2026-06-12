@@ -295,7 +295,7 @@ def main():
         "--output_dir",
         type=Path,
         required=True,
-        help="Output directory (e.g. {ck_data_dir}/model_organisms/).",
+        help="Output directory (e.g. {ck_data_directory}/model_organisms/).",
     )
     args = parser.parse_args()
 

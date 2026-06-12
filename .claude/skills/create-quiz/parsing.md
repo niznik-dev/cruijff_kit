@@ -20,7 +20,7 @@ For each directory provided, verify:
 import yaml
 from pathlib import Path
 
-with open(Path(experiment_dir) / "experiment_summary.yaml") as f:
+with open(Path(experiment_directory) / "experiment_summary.yaml") as f:
     config = yaml.safe_load(f)
 ```
 
@@ -55,7 +55,7 @@ Don't paraphrase numbers. Store them as strings exactly as they appear (`"0.987"
 
 ## Loading `summary.md` (optional)
 
-If present (`{experiment_dir}/summary.md` from `summarize-experiment`), use it for:
+If present (`{experiment_directory}/summary.md` from `summarize-experiment`), use it for:
 - Run status table (which runs completed)
 - Final training loss per run
 - Quick accuracy table
@@ -66,8 +66,8 @@ This data overlaps with `report.md` but is sometimes formatted more usefully (e.
 ## Discovering figures
 
 ```python
-exploration_dir = Path(experiment_dir) / "exploration"
-pngs = sorted(exploration_dir.glob("*.png"))
+exploration_directory = Path(experiment_directory) / "exploration"
+pngs = sorted(exploration_directory.glob("*.png"))
 ```
 
 Each PNG is a candidate for an image-read question. Skip the question type if no PNGs exist — don't try to synthesize one.

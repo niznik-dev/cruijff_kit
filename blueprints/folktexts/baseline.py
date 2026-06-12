@@ -12,7 +12,7 @@ Usage:
     python ml_baseline_verbose.py <data_path> --json          # Output JSON summary
 
 Examples:
-    python ml_baseline_verbose.py {ck_data_dir}/folktexts/acs_income_verbose_1000_80P.json
+    python ml_baseline_verbose.py {ck_data_directory}/folktexts/acs_income_verbose_1000_80P.json
 """
 
 import argparse
@@ -183,7 +183,7 @@ def prepare_xgboost_data(train_raw, test_raw, numeric_cols, categorical_cols):
     return X_train, X_test
 
 
-def train_catboost(X_train, y_train, cat_indices, train_dir):
+def train_catboost(X_train, y_train, cat_indices, train_directory):
     """Train CatBoost classifier."""
     from catboost import CatBoostClassifier
 
@@ -194,7 +194,7 @@ def train_catboost(X_train, y_train, cat_indices, train_dir):
         random_seed=42,
         cat_features=cat_indices,
         verbose=False,
-        train_dir=str(train_dir),
+        train_directory=str(train_directory),
     )
     model.fit(X_train, y_train)
     return model
@@ -300,7 +300,7 @@ def main():
             X_train_cb,
             y_train,
             cat_indices,
-            train_dir=Path(args.data_path).parent / "catboost_info",
+            train_directory=Path(args.data_path).parent / "catboost_info",
         )
         y_pred_cb = model_cb.predict(X_test_cb).flatten()
         results["CatBoost"] = compute_metrics(y_test, y_pred_cb)

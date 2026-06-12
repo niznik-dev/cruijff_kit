@@ -16,7 +16,7 @@ from pathlib import Path
 import jinja2
 import markdown as md
 
-TEMPLATE_DIR = Path(__file__).parent / "templates"
+TEMPLATE_DIRECTORY = Path(__file__).parent / "templates"
 TEMPLATE_FILE = "quiz.html.j2"
 
 EQUATION_RE = re.compile(r"(?<!\\)\$\$|(?<!\\)\$")
@@ -31,14 +31,14 @@ def _md_to_html(text: str | None) -> str:
     return md.markdown(text, extensions=MD_EXTENSIONS)
 
 
-def _embed_markdown_images(text: str, base_dir: Path | None) -> str:
+def _embed_markdown_images(text: str, base_directory: Path | None) -> str:
     """Replace ``![alt](relative.png)`` with base64 data URIs.
 
     Leaves external URLs and already-embedded data URIs untouched. Skips
     references that can't be resolved on disk (renders the original markdown
     so the broken-image marker is visible).
     """
-    if not text or base_dir is None:
+    if not text or base_directory is None:
         return text
 
     def replace(match: re.Match) -> str:
@@ -49,7 +49,7 @@ def _embed_markdown_images(text: str, base_dir: Path | None) -> str:
             return match.group(0)
         png_path = Path(path)
         if not png_path.is_absolute():
-            png_path = (base_dir / path).resolve()
+            png_path = (base_directory / path).resolve()
         if not png_path.exists():
             return match.group(0)
         return f"![{alt}]({_embed_png(png_path)})"
@@ -132,15 +132,15 @@ def render(spec_path: str | Path, out_path: str | Path) -> Path:
     intro_html = _md_to_html(spec.get("intro"))
 
     writeup_md = spec.get("full_writeup_md")
-    writeup_dir = spec.get("full_writeup_image_dir")
+    writeup_directory = spec.get("full_writeup_image_directory")
     if writeup_md:
-        base_dir = Path(writeup_dir) if writeup_dir else None
-        writeup_html = _md_to_html(_embed_markdown_images(writeup_md, base_dir))
+        base_directory = Path(writeup_directory) if writeup_directory else None
+        writeup_html = _md_to_html(_embed_markdown_images(writeup_md, base_directory))
     else:
         writeup_html = ""
 
     env = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(str(TEMPLATE_DIR)),
+        loader=jinja2.FileSystemLoader(str(TEMPLATE_DIRECTORY)),
         autoescape=jinja2.select_autoescape(["html", "xml"]),
         trim_blocks=True,
         lstrip_blocks=True,

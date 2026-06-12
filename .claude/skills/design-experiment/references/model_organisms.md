@@ -38,7 +38,7 @@ Required:
 | `N` | Number of samples | Must not exceed alphabet^k |
 | `seed` | Random seed | Any int |
 | `design` | `memorization` \| `in_distribution` \| `ood` | Controls train/val construction |
-| `output_path` | Where to write the JSON | Relative to experiment_dir, or absolute |
+| `output_path` | Where to write the JSON | Relative to experiment_directory, or absolute |
 
 Optional:
 
@@ -97,7 +97,7 @@ fit a specific label mapping without generalizing.
 ```yaml
 data:
   training:
-    path: /full/path/to/experiment_dir/data/bits_parity_k8_memo.json
+    path: /full/path/to/experiment_directory/data/bits_parity_k8_memo.json
     dataset_label: bits_parity_k8_memo
     format: json
     size_kb: 25
@@ -124,7 +124,7 @@ N unique sequences drawn from one distribution, split into train/val.
 ```yaml
 data:
   training:
-    path: /full/path/to/experiment_dir/data/digits_majority_k10.json
+    path: /full/path/to/experiment_directory/data/digits_majority_k10.json
     dataset_label: digits_majority_k10
     format: json
     size_kb: 60
@@ -154,7 +154,7 @@ Primary train/val as in_distribution; each `ood_tests` entry becomes a
 ```yaml
 data:
   training:
-    path: /full/path/to/experiment_dir/data/bits_parity_ood.json
+    path: /full/path/to/experiment_directory/data/bits_parity_ood.json
     dataset_label: bits_parity_indist8_ood
     format: json
     size_kb: 80

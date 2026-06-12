@@ -380,14 +380,16 @@ def test_get_recipe_config_success(mock_load, mock_extract):
 
 @patch("cruijff_kit.tools.torchtune.config_recipe_loader.extract_recipe_config")
 @patch("cruijff_kit.tools.torchtune.config_recipe_loader.load_recipe_defaults")
-def test_get_recipe_config_with_cache_dir(mock_load, mock_extract, tmp_path):
+def test_get_recipe_config_with_cache_directory(mock_load, mock_extract, tmp_path):
     """Test get_recipe_config with cache directory."""
-    cache_dir = tmp_path / "cache"
-    mock_extract.return_value = str(cache_dir / "llama3_2_1B_lora_single_device.yaml")
+    cache_directory = tmp_path / "cache"
+    mock_extract.return_value = str(
+        cache_directory / "llama3_2_1B_lora_single_device.yaml"
+    )
     mock_load.return_value = {"epochs": 2}
 
     result = get_recipe_config(
-        "llama3_2/1B_lora_single_device", cache_dir=str(cache_dir)
+        "llama3_2/1B_lora_single_device", cache_directory=str(cache_directory)
     )
 
     assert result["epochs"] == 2

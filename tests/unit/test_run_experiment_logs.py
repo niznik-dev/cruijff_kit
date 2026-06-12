@@ -139,9 +139,9 @@ def _write_finetune_experiment(
     summary_runs = []
     for name in run_names:
         summary_runs.append({"name": name, "type": "fine-tuned", "model": "x"})
-        run_dir = tmp_path / name
-        run_dir.mkdir(parents=True, exist_ok=True)
-        (run_dir / "finetune.slurm").write_text("#!/bin/bash\n")
+        run_directory = tmp_path / name
+        run_directory.mkdir(parents=True, exist_ok=True)
+        (run_directory / "finetune.slurm").write_text("#!/bin/bash\n")
     if include_control:
         ctrl_name = run_names[0] + "_base"
         summary_runs.append({"name": ctrl_name, "type": "control", "model": "x"})
@@ -156,15 +156,15 @@ def _write_eval_experiment(
     tmp_path: Path,
     runs_with_evals: dict[str, list[str]],
 ) -> Path:
-    """`runs_with_evals` maps run_dir name -> list of cell names (e.g.
+    """`runs_with_evals` maps run_directory name -> list of cell names (e.g.
     'capitalization', 'capitalization_epoch0'). Per-cell layout (#498):
     each cell gets its own directory containing cell.slurm.
     """
     for run_name, cell_names in runs_with_evals.items():
         for cell in cell_names:
-            cell_dir = tmp_path / run_name / "eval" / cell
-            cell_dir.mkdir(parents=True, exist_ok=True)
-            (cell_dir / "cell.slurm").write_text("#!/bin/bash\n")
+            cell_directory = tmp_path / run_name / "eval" / cell
+            cell_directory.mkdir(parents=True, exist_ok=True)
+            (cell_directory / "cell.slurm").write_text("#!/bin/bash\n")
     return tmp_path
 
 
@@ -239,7 +239,7 @@ class TestCanonicalLogShape:
 
 class TestStateFileShape:
     def test_state_key_distinguishes_eval_collisions(self, tmp_path):
-        """The bug from issue #451 comment #2: keying by work_dir.name
+        """The bug from issue #451 comment #2: keying by work_directory.name
         collapsed all eval entries onto 'eval'."""
         run_a = tmp_path / "run_a" / "eval"
         run_b = tmp_path / "run_b" / "eval"
@@ -395,7 +395,7 @@ class TestEvalCollisionRegression:
         self, tmp_path, fake_slurm, fast_sleep
     ):
         """Pre-#451 regression: when two runs each had `eval/capitalization.slurm`,
-        keying by `work_dir.name == 'eval'` collapsed both entries onto one
+        keying by `work_directory.name == 'eval'` collapsed both entries onto one
         state-file key. Resume after interruption then re-submitted everything
         as duplicates.
 
@@ -446,15 +446,15 @@ class TestDetach:
     ):
         """Sentinel created before submit_* runs → no sbatch happens."""
         _write_finetune_experiment(tmp_path, ["rank4", "rank8"], include_control=False)
-        logs_dir = tmp_path / "logs"
-        logs_dir.mkdir(parents=True, exist_ok=True)
-        (logs_dir / common.SENTINEL_NAME).touch()
+        logs_directory = tmp_path / "logs"
+        logs_directory.mkdir(parents=True, exist_ok=True)
+        (logs_directory / common.SENTINEL_NAME).touch()
 
         summary = submit_torchtune.run(tmp_path, user="testuser", max_submit=10)
 
         assert fake_slurm.submissions == []
         assert summary == {}  # nothing in state to summarize
-        log = (logs_dir / "run-torchtune.log").read_text()
+        log = (logs_directory / "run-torchtune.log").read_text()
         assert "MONITOR_DETACHED" in log
         assert "reason=sentinel" in log
 
@@ -466,14 +466,14 @@ class TestDetach:
             tmp_path, ["rank4", "rank8", "rank16"], include_control=False
         )
         original_sbatch = fake_slurm._sbatch
-        logs_dir = tmp_path / "logs"
+        logs_directory = tmp_path / "logs"
 
         def sbatch_then_sentinel(argv, kwargs):
             r = original_sbatch(argv, kwargs)
             # After the first submission, drop the sentinel.
             if len(fake_slurm.submissions) == 1:
-                logs_dir.mkdir(parents=True, exist_ok=True)
-                (logs_dir / common.SENTINEL_NAME).touch()
+                logs_directory.mkdir(parents=True, exist_ok=True)
+                (logs_directory / common.SENTINEL_NAME).touch()
             return r
 
         fake_slurm._sbatch = sbatch_then_sentinel
@@ -483,7 +483,7 @@ class TestDetach:
         # Exactly one job submitted — sentinel caught the stagger sleep.
         assert len(fake_slurm.submissions) == 1
         assert summary == {"PENDING": 1}
-        log = (logs_dir / "run-torchtune.log").read_text()
+        log = (logs_directory / "run-torchtune.log").read_text()
         assert "MONITOR_DETACHED" in log
 
     def test_sentinel_during_monitor_returns_without_terminal_states(
@@ -496,12 +496,12 @@ class TestDetach:
         racing the drip-feed.
         """
         _write_finetune_experiment(tmp_path, ["rank4"], include_control=False)
-        logs_dir = tmp_path / "logs"
-        logs_dir.mkdir(parents=True, exist_ok=True)
+        logs_directory = tmp_path / "logs"
+        logs_directory.mkdir(parents=True, exist_ok=True)
 
         # Pre-seed state as if a previous submitter dispatched and exited.
         fake_slurm.in_queue["1000"] = "RUNNING"
-        (logs_dir / "run-torchtune.state.json").write_text(
+        (logs_directory / "run-torchtune.state.json").write_text(
             json.dumps(
                 {
                     "rank4/finetune.slurm": {
@@ -513,14 +513,14 @@ class TestDetach:
             )
         )
         # Sentinel is present from the start — monitor bails on first sleep.
-        (logs_dir / common.SENTINEL_NAME).touch()
+        (logs_directory / common.SENTINEL_NAME).touch()
 
         summary = submit_torchtune.run(
             tmp_path, user="testuser", max_submit=10, resume_monitor=True
         )
 
         assert summary == {"RUNNING": 1}
-        log = (logs_dir / "run-torchtune.log").read_text()
+        log = (logs_directory / "run-torchtune.log").read_text()
         assert "MONITOR_DETACHED" in log
         assert "ALL_COMPLETE" not in log
 
@@ -585,8 +585,8 @@ class TestResumeMonitor:
     def test_resume_monitor_skips_submit_phase(self, tmp_path, fake_slurm, fast_sleep):
         """With existing state, --resume-monitor never calls sbatch."""
         _write_finetune_experiment(tmp_path, ["rank4"], include_control=False)
-        logs_dir = tmp_path / "logs"
-        logs_dir.mkdir(parents=True, exist_ok=True)
+        logs_directory = tmp_path / "logs"
+        logs_directory.mkdir(parents=True, exist_ok=True)
 
         # Pre-seed a state file as if the run was already submitted.
         fake_slurm.in_queue["1000"] = "RUNNING"
@@ -597,7 +597,9 @@ class TestResumeMonitor:
                 "state": "RUNNING",
             }
         }
-        (logs_dir / "run-torchtune.state.json").write_text(json.dumps(seeded_state))
+        (logs_directory / "run-torchtune.state.json").write_text(
+            json.dumps(seeded_state)
+        )
 
         # When monitor refreshes, the job transitions to COMPLETED.
         def transition_to_done():
@@ -620,7 +622,7 @@ class TestResumeMonitor:
 
         assert fake_slurm.submissions == [], "resume-monitor must not call sbatch"
         assert summary == {"COMPLETED": 1}
-        log = (logs_dir / "run-torchtune.log").read_text()
+        log = (logs_directory / "run-torchtune.log").read_text()
         assert "ALL_COMPLETE" in log
 
     def test_resume_monitor_with_no_state_warns_and_returns_empty(
@@ -648,10 +650,10 @@ class TestStatus:
     def test_snapshot_reads_both_state_files_when_present(
         self, tmp_path, fake_slurm, fast_sleep
     ):
-        logs_dir = tmp_path / "logs"
-        logs_dir.mkdir()
+        logs_directory = tmp_path / "logs"
+        logs_directory.mkdir()
 
-        (logs_dir / "run-torchtune.state.json").write_text(
+        (logs_directory / "run-torchtune.state.json").write_text(
             json.dumps(
                 {
                     "rank4/finetune.slurm": {
@@ -662,7 +664,7 @@ class TestStatus:
                 }
             )
         )
-        (logs_dir / "run-inspect.state.json").write_text(
+        (logs_directory / "run-inspect.state.json").write_text(
             json.dumps(
                 {
                     "rank4/eval/cap/cell.slurm": {
@@ -742,9 +744,9 @@ class TestStatus:
         self, tmp_path, fake_slurm
     ):
         """When status refresh sees all entries terminal, ALL_COMPLETE lands."""
-        logs_dir = tmp_path / "logs"
-        logs_dir.mkdir()
-        (logs_dir / "run-torchtune.state.json").write_text(
+        logs_directory = tmp_path / "logs"
+        logs_directory.mkdir()
+        (logs_directory / "run-torchtune.state.json").write_text(
             json.dumps(
                 {
                     "rank4/finetune.slurm": {
@@ -758,7 +760,7 @@ class TestStatus:
 
         run_status.snapshot(tmp_path)
 
-        log = (logs_dir / "run-torchtune.log").read_text()
+        log = (logs_directory / "run-torchtune.log").read_text()
         assert "ALL_COMPLETE" in log
         assert "COMPLETED=1" in log
 
@@ -766,10 +768,10 @@ class TestStatus:
         self, tmp_path, fake_slurm
     ):
         """Don't write ALL_COMPLETE while anything is still PENDING/RUNNING."""
-        logs_dir = tmp_path / "logs"
-        logs_dir.mkdir()
+        logs_directory = tmp_path / "logs"
+        logs_directory.mkdir()
         fake_slurm.in_queue["1000"] = "RUNNING"
-        (logs_dir / "run-torchtune.state.json").write_text(
+        (logs_directory / "run-torchtune.state.json").write_text(
             json.dumps(
                 {
                     "rank4/finetune.slurm": {
@@ -783,16 +785,16 @@ class TestStatus:
 
         run_status.snapshot(tmp_path)
 
-        log_path = logs_dir / "run-torchtune.log"
+        log_path = logs_directory / "run-torchtune.log"
         # Log may not even exist if no STATE_CHANGE blocks were written.
         if log_path.exists():
             assert "ALL_COMPLETE" not in log_path.read_text()
 
     def test_status_all_complete_emit_is_idempotent(self, tmp_path, fake_slurm):
         """Repeated status calls on a finished experiment never duplicate ALL_COMPLETE."""
-        logs_dir = tmp_path / "logs"
-        logs_dir.mkdir()
-        (logs_dir / "run-torchtune.state.json").write_text(
+        logs_directory = tmp_path / "logs"
+        logs_directory.mkdir()
+        (logs_directory / "run-torchtune.state.json").write_text(
             json.dumps(
                 {
                     "rank4/finetune.slurm": {
@@ -808,7 +810,7 @@ class TestStatus:
         run_status.snapshot(tmp_path)
         run_status.snapshot(tmp_path)
 
-        log = (logs_dir / "run-torchtune.log").read_text()
+        log = (logs_directory / "run-torchtune.log").read_text()
         assert log.count("ALL_COMPLETE") == 1
 
     def test_resume_monitor_after_status_emitted_all_complete_no_duplicate(
@@ -816,9 +818,9 @@ class TestStatus:
     ):
         """The guard inside log_all_complete also protects --resume-monitor."""
         _write_finetune_experiment(tmp_path, ["rank4"], include_control=False)
-        logs_dir = tmp_path / "logs"
-        logs_dir.mkdir(parents=True, exist_ok=True)
-        (logs_dir / "run-torchtune.state.json").write_text(
+        logs_directory = tmp_path / "logs"
+        logs_directory.mkdir(parents=True, exist_ok=True)
+        (logs_directory / "run-torchtune.state.json").write_text(
             json.dumps(
                 {
                     "rank4/finetune.slurm": {
@@ -837,7 +839,7 @@ class TestStatus:
             tmp_path, user="testuser", max_submit=10, resume_monitor=True
         )
 
-        log = (logs_dir / "run-torchtune.log").read_text()
+        log = (logs_directory / "run-torchtune.log").read_text()
         assert log.count("ALL_COMPLETE") == 1
 
 
@@ -848,14 +850,14 @@ class TestStatus:
 
 def _mk_cfg(tmp_path: Path, **overrides) -> "common._SubmitConfig":
     """Build a _SubmitConfig pointing at tmp_path's logs/ for refresh tests."""
-    logs_dir = tmp_path / "logs"
-    logs_dir.mkdir(parents=True, exist_ok=True)
+    logs_directory = tmp_path / "logs"
+    logs_directory.mkdir(parents=True, exist_ok=True)
     return common._SubmitConfig(
-        log_path=logs_dir / "run-torchtune.log",
-        state_path=logs_dir / "run-torchtune.state.json",
+        log_path=logs_directory / "run-torchtune.log",
+        state_path=logs_directory / "run-torchtune.state.json",
         action_type="SUBMIT_JOB",
         user="testuser",
-        experiment_dir=tmp_path,
+        experiment_directory=tmp_path,
         **overrides,
     )
 
@@ -1026,13 +1028,13 @@ class TestMonitorConfig:
     ):
         """End-to-end precedence: monitor.json > CLI > user config > default."""
         _write_finetune_experiment(tmp_path, ["rank4"], include_control=False)
-        logs_dir = tmp_path / "logs"
-        logs_dir.mkdir(parents=True, exist_ok=True)
+        logs_directory = tmp_path / "logs"
+        logs_directory.mkdir(parents=True, exist_ok=True)
 
         # User config: poll_sec=30. monitor.json: poll_sec=10. CLI: poll_sec=20.
         # Final effective value through the run = 10 (monitor.json wins).
         user_config_path.write_text(json.dumps({"poll_sec": 30}))
-        (logs_dir / "monitor.json").write_text(json.dumps({"poll_sec": 10}))
+        (logs_directory / "monitor.json").write_text(json.dumps({"poll_sec": 10}))
 
         original_sbatch = fake_slurm._sbatch
 
@@ -1045,7 +1047,7 @@ class TestMonitorConfig:
 
         submit_torchtune.run(tmp_path, user="testuser", max_submit=10, poll_sec=20)
 
-        log = (logs_dir / "run-torchtune.log").read_text()
+        log = (logs_directory / "run-torchtune.log").read_text()
         # CLI=20 wins over user-config=30 at startup; monitor.json=10 then
         # drops it from 20 on the first poll iteration.
         assert "poll_sec=10 (was 20)" in log
@@ -1173,10 +1175,10 @@ def _make_oom_run(tmp_path: Path, run_name: str, batch_size: int = 128) -> Path:
     can be exercised against realistic content (preservation of surrounding
     context, not just the target line).
     """
-    run_dir = tmp_path / run_name
-    run_dir.mkdir(parents=True, exist_ok=True)
-    (run_dir / "finetune.slurm").write_text("#!/bin/bash\n")
-    (run_dir / "finetune.yaml").write_text(
+    run_directory = tmp_path / run_name
+    run_directory.mkdir(parents=True, exist_ok=True)
+    (run_directory / "finetune.slurm").write_text("#!/bin/bash\n")
+    (run_directory / "finetune.yaml").write_text(
         f"""# Generated by setup_finetune.py
 my_wandb_project: ""
 batch_size: {batch_size}
@@ -1185,17 +1187,17 @@ model:
   _component_: torchtune.models.llama
 """
     )
-    return run_dir
+    return run_directory
 
 
 def _write_slurm_log(
-    run_dir: Path,
+    run_directory: Path,
     job_id: str,
     body: str,
     suffix: str = "out",
 ) -> Path:
-    """Scaffold a realistic <run_dir>/artifacts/slurm-<jid>.<suffix> file."""
-    artifacts = run_dir / "artifacts"
+    """Scaffold a realistic <run_directory>/artifacts/slurm-<jid>.<suffix> file."""
+    artifacts = run_directory / "artifacts"
     artifacts.mkdir(parents=True, exist_ok=True)
     path = artifacts / f"slurm-{job_id}.{suffix}"
     path.write_text(body)
@@ -1212,14 +1214,14 @@ _REAL_TORCH_OOM_TAIL = (
 
 
 def _mk_oom_cfg(tmp_path: Path, **overrides) -> "common._SubmitConfig":
-    logs_dir = tmp_path / "logs"
-    logs_dir.mkdir(parents=True, exist_ok=True)
+    logs_directory = tmp_path / "logs"
+    logs_directory.mkdir(parents=True, exist_ok=True)
     return common._SubmitConfig(
-        log_path=logs_dir / "run-torchtune.log",
-        state_path=logs_dir / "run-torchtune.state.json",
+        log_path=logs_directory / "run-torchtune.log",
+        state_path=logs_directory / "run-torchtune.state.json",
         action_type="SUBMIT_JOB",
         user="testuser",
-        experiment_dir=tmp_path,
+        experiment_directory=tmp_path,
         **overrides,
     )
 
@@ -1280,28 +1282,32 @@ class TestCudaOomDetection:
     """
 
     def test_detects_torch_oom_traceback(self, tmp_path):
-        run_dir = tmp_path / "run"
-        _write_slurm_log(run_dir, "12345", _REAL_TORCH_OOM_TAIL)
-        assert common._failed_due_to_cuda_oom(run_dir, "12345") is True
+        run_directory = tmp_path / "run"
+        _write_slurm_log(run_directory, "12345", _REAL_TORCH_OOM_TAIL)
+        assert common._failed_due_to_cuda_oom(run_directory, "12345") is True
 
     def test_detects_bare_cuda_out_of_memory_message(self, tmp_path):
-        run_dir = tmp_path / "run"
-        _write_slurm_log(run_dir, "12345", "...\nRuntimeError: CUDA out of memory\n")
-        assert common._failed_due_to_cuda_oom(run_dir, "12345") is True
+        run_directory = tmp_path / "run"
+        _write_slurm_log(
+            run_directory, "12345", "...\nRuntimeError: CUDA out of memory\n"
+        )
+        assert common._failed_due_to_cuda_oom(run_directory, "12345") is True
 
     def test_no_log_file_returns_false(self, tmp_path):
         # No artifacts/ at all.
         assert common._failed_due_to_cuda_oom(tmp_path / "run", "12345") is False
 
     def test_log_without_oom_marker_returns_false(self, tmp_path):
-        run_dir = tmp_path / "run"
-        _write_slurm_log(run_dir, "12345", "Training started...\nKeyError: 'foo'\n")
-        assert common._failed_due_to_cuda_oom(run_dir, "12345") is False
+        run_directory = tmp_path / "run"
+        _write_slurm_log(
+            run_directory, "12345", "Training started...\nKeyError: 'foo'\n"
+        )
+        assert common._failed_due_to_cuda_oom(run_directory, "12345") is False
 
     def test_falls_back_to_err_file_when_out_missing(self, tmp_path):
-        run_dir = tmp_path / "run"
-        _write_slurm_log(run_dir, "12345", _REAL_TORCH_OOM_TAIL, suffix="err")
-        assert common._failed_due_to_cuda_oom(run_dir, "12345") is True
+        run_directory = tmp_path / "run"
+        _write_slurm_log(run_directory, "12345", _REAL_TORCH_OOM_TAIL, suffix="err")
+        assert common._failed_due_to_cuda_oom(run_directory, "12345") is True
 
     def test_missing_job_id_returns_false(self, tmp_path):
         assert common._failed_due_to_cuda_oom(tmp_path / "run", None) is False
@@ -1313,19 +1319,19 @@ class TestOomRetryHandler:
 
     def _seed_state(
         self,
-        work_dir: Path,
-        experiment_dir: Path,
+        work_directory: Path,
+        experiment_directory: Path,
         state: str = "OUT_OF_MEMORY",
         **extra,
     ):
-        key = common.state_key(work_dir, "finetune.slurm", experiment_dir)
+        key = common.state_key(work_directory, "finetune.slurm", experiment_directory)
         entry = {"job_id": "999", "submitted_at": "t0", "state": state, **extra}
         return key, entry
 
     def test_oom_with_retries_left_resubmits_and_halves(self, tmp_path, fake_slurm):
-        run_dir = _make_oom_run(tmp_path, "Llama_rank4", batch_size=128)
+        run_directory = _make_oom_run(tmp_path, "Llama_rank4", batch_size=128)
         cfg = _mk_oom_cfg(tmp_path)
-        key, entry = self._seed_state(run_dir, tmp_path)
+        key, entry = self._seed_state(run_directory, tmp_path)
         state = {key: entry}
 
         result = common._handle_oom_retries(state, cfg)
@@ -1336,7 +1342,7 @@ class TestOomRetryHandler:
         assert state[key]["retry_history"] == [{"batch_size": 64}]
         assert state[key]["job_id"] != "999"
         # finetune.yaml was halved.
-        assert "batch_size: 64" in (run_dir / "finetune.yaml").read_text()
+        assert "batch_size: 64" in (run_directory / "finetune.yaml").read_text()
         # Log block shape.
         log = cfg.log_path.read_text()
         assert "OOM_RETRY: Llama_rank4" in log
@@ -1346,13 +1352,13 @@ class TestOomRetryHandler:
         assert len(fake_slurm.submissions) == 1
 
     def test_two_retries_grows_history_to_two(self, tmp_path, fake_slurm):
-        run_dir = _make_oom_run(tmp_path, "Llama_rank4", batch_size=128)
+        run_directory = _make_oom_run(tmp_path, "Llama_rank4", batch_size=128)
         cfg = _mk_oom_cfg(tmp_path)
         key, entry = self._seed_state(
-            run_dir, tmp_path, retry_history=[{"batch_size": 64}]
+            run_directory, tmp_path, retry_history=[{"batch_size": 64}]
         )
         # The on-disk yaml reflects the prior retry's state for realism.
-        (run_dir / "finetune.yaml").write_text("batch_size: 64\nepochs: 1\n")
+        (run_directory / "finetune.yaml").write_text("batch_size: 64\nepochs: 1\n")
         state = {key: entry}
 
         common._handle_oom_retries(state, cfg)
@@ -1361,18 +1367,18 @@ class TestOomRetryHandler:
             {"batch_size": 64},
             {"batch_size": 32},
         ]
-        assert "batch_size: 32" in (run_dir / "finetune.yaml").read_text()
+        assert "batch_size: 32" in (run_directory / "finetune.yaml").read_text()
         assert "(attempt 2/3)" in cfg.log_path.read_text()
 
     def test_max_retries_hit_logs_exhausted_once(self, tmp_path, fake_slurm):
-        run_dir = _make_oom_run(tmp_path, "Llama_rank4")
+        run_directory = _make_oom_run(tmp_path, "Llama_rank4")
         cfg = _mk_oom_cfg(tmp_path)
         history = [
             {"batch_size": 64},
             {"batch_size": 32},
             {"batch_size": 16},
         ]
-        key, entry = self._seed_state(run_dir, tmp_path, retry_history=history)
+        key, entry = self._seed_state(run_directory, tmp_path, retry_history=history)
         state = {key: entry}
 
         result1 = common._handle_oom_retries(state, cfg)
@@ -1388,9 +1394,9 @@ class TestOomRetryHandler:
         assert state[key].get("oom_exhausted_logged") is True
 
     def test_no_retry_flag_skips_resubmission(self, tmp_path, fake_slurm):
-        run_dir = _make_oom_run(tmp_path, "Llama_rank4")
+        run_directory = _make_oom_run(tmp_path, "Llama_rank4")
         cfg = _mk_oom_cfg(tmp_path, no_retry=True)
-        key, entry = self._seed_state(run_dir, tmp_path)
+        key, entry = self._seed_state(run_directory, tmp_path)
         state = {key: entry}
 
         result = common._handle_oom_retries(state, cfg)
@@ -1404,11 +1410,11 @@ class TestOomRetryHandler:
 
     def test_failed_without_cuda_oom_marker_is_skipped(self, tmp_path, fake_slurm):
         """FAILED + no CUDA OOM in slurm log → ordinary failure, not retried."""
-        run_dir = _make_oom_run(tmp_path, "Llama_rank4")
+        run_directory = _make_oom_run(tmp_path, "Llama_rank4")
         # Slurm log exists but shows an unrelated traceback.
-        _write_slurm_log(run_dir, "999", "KeyError: 'foo'\nExit 1\n")
+        _write_slurm_log(run_directory, "999", "KeyError: 'foo'\nExit 1\n")
         cfg = _mk_oom_cfg(tmp_path)
-        key, entry = self._seed_state(run_dir, tmp_path, state="FAILED")
+        key, entry = self._seed_state(run_directory, tmp_path, state="FAILED")
         state = {key: entry}
 
         result = common._handle_oom_retries(state, cfg)
@@ -1419,10 +1425,10 @@ class TestOomRetryHandler:
 
     def test_failed_with_cuda_oom_in_log_triggers_retry(self, tmp_path, fake_slurm):
         """FAILED + CUDA OOM in slurm log → treated as OOM, retried, oom_detected_via='cuda_log'."""
-        run_dir = _make_oom_run(tmp_path, "Llama_rank4", batch_size=1024)
-        _write_slurm_log(run_dir, "999", _REAL_TORCH_OOM_TAIL)
+        run_directory = _make_oom_run(tmp_path, "Llama_rank4", batch_size=1024)
+        _write_slurm_log(run_directory, "999", _REAL_TORCH_OOM_TAIL)
         cfg = _mk_oom_cfg(tmp_path)
-        key, entry = self._seed_state(run_dir, tmp_path, state="FAILED")
+        key, entry = self._seed_state(run_directory, tmp_path, state="FAILED")
         state = {key: entry}
 
         result = common._handle_oom_retries(state, cfg)
@@ -1432,7 +1438,7 @@ class TestOomRetryHandler:
         assert state[key]["retry_history"] == [{"batch_size": 512}]
         assert state[key]["oom_detected_via"] == "cuda_log"
         assert state[key]["job_id"] != "999"
-        assert "batch_size: 512" in (run_dir / "finetune.yaml").read_text()
+        assert "batch_size: 512" in (run_directory / "finetune.yaml").read_text()
         log = cfg.log_path.read_text()
         assert "OOM_RETRY: Llama_rank4" in log
         assert "batch_size 1024 -> 512" in log
@@ -1440,9 +1446,9 @@ class TestOomRetryHandler:
 
     def test_slurm_oom_state_sets_detection_to_slurm_state(self, tmp_path, fake_slurm):
         """OUT_OF_MEMORY retry tags the entry oom_detected_via='slurm_state'."""
-        run_dir = _make_oom_run(tmp_path, "Llama_rank4", batch_size=128)
+        run_directory = _make_oom_run(tmp_path, "Llama_rank4", batch_size=128)
         cfg = _mk_oom_cfg(tmp_path)
-        key, entry = self._seed_state(run_dir, tmp_path)  # default: OUT_OF_MEMORY
+        key, entry = self._seed_state(run_directory, tmp_path)  # default: OUT_OF_MEMORY
         state = {key: entry}
 
         common._handle_oom_retries(state, cfg)
@@ -1450,9 +1456,9 @@ class TestOomRetryHandler:
         assert state[key]["oom_detected_via"] == "slurm_state"
 
     def test_completed_entry_is_skipped(self, tmp_path, fake_slurm):
-        run_dir = _make_oom_run(tmp_path, "Llama_rank4")
+        run_directory = _make_oom_run(tmp_path, "Llama_rank4")
         cfg = _mk_oom_cfg(tmp_path)
-        key, entry = self._seed_state(run_dir, tmp_path, state="COMPLETED")
+        key, entry = self._seed_state(run_directory, tmp_path, state="COMPLETED")
         state = {key: entry}
 
         result = common._handle_oom_retries(state, cfg)
@@ -1463,12 +1469,12 @@ class TestOomRetryHandler:
     def test_eval_run_without_finetune_yaml_is_silently_skipped(
         self, tmp_path, fake_slurm
     ):
-        # Build an eval-style work_dir with no finetune.yaml — only eval slurm.
-        eval_dir = tmp_path / "Llama_rank4" / "eval"
-        eval_dir.mkdir(parents=True)
-        (eval_dir / "eval.slurm").write_text("#!/bin/bash\n")
+        # Build an eval-style work_directory with no finetune.yaml — only eval slurm.
+        eval_directory = tmp_path / "Llama_rank4" / "eval"
+        eval_directory.mkdir(parents=True)
+        (eval_directory / "eval.slurm").write_text("#!/bin/bash\n")
         cfg = _mk_oom_cfg(tmp_path)
-        key = common.state_key(eval_dir, "eval.slurm", tmp_path)
+        key = common.state_key(eval_directory, "eval.slurm", tmp_path)
         state = {key: {"job_id": "999", "submitted_at": "t0", "state": "OUT_OF_MEMORY"}}
 
         result = common._handle_oom_retries(state, cfg)
@@ -1478,10 +1484,10 @@ class TestOomRetryHandler:
         assert len(fake_slurm.submissions) == 0
 
     def test_sbatch_failure_during_retry_logs_loudly(self, tmp_path, fake_slurm):
-        run_dir = _make_oom_run(tmp_path, "Llama_rank4")
+        run_directory = _make_oom_run(tmp_path, "Llama_rank4")
         fake_slurm.sbatch_failures.append("finetune.slurm")
         cfg = _mk_oom_cfg(tmp_path)
-        key, entry = self._seed_state(run_dir, tmp_path)
+        key, entry = self._seed_state(run_directory, tmp_path)
         state = {key: entry}
 
         result = common._handle_oom_retries(state, cfg)

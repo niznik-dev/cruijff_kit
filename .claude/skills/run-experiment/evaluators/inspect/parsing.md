@@ -47,9 +47,9 @@ for entry in eval_matrix:
 Find all evaluation SLURM scripts:
 
 ```bash
-for run_dir in */; do
-  if [ -d "$run_dir/eval" ]; then
-    for eval_script in "$run_dir/eval"/*.slurm; do
+for run_directory in */; do
+  if [ -d "$run_directory/eval" ]; then
+    for eval_script in "$run_directory/eval"/*.slurm; do
       if [ -f "$eval_script" ]; then
         echo "Found evaluation: $eval_script"
       fi

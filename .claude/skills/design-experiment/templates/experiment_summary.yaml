@@ -95,7 +95,7 @@ data:
     # seed: int                    # REQUIRED: Random seed. Declared in tabular_to_text_gen
                                    #   section below and shared across generators.
     design: string                 # REQUIRED: "memorization" | "in_distribution" | "ood"
-    output_path: string            # REQUIRED: Relative to experiment_dir, or absolute
+    output_path: string            # REQUIRED: Relative to experiment_directory, or absolute
     fmt: string                    # OPTIONAL: "spaced" (default) | "dense" | "comma" | "tab" | "pipe"
     rule_kwargs: dict              # OPTIONAL: Extra rule params (e.g. {p: 0.7} for coin)
     split_ratio: float             # OPTIONAL: Train fraction for in_distribution/ood (default 0.8)
@@ -170,7 +170,7 @@ runs:
       # checkpoint_path: string    # OPTIONAL (eval-only): absolute path to a pre-existing
                                    #   checkpoint dir (e.g. .../some_run/artifacts/epoch_0).
                                    #   Used verbatim as model_path. If omitted, scaffold-inspect
-                                   #   computes {experiment_dir}/{run_name}/artifacts/epoch_{N}.
+                                   #   computes {experiment_directory}/{run_name}/artifacts/epoch_{N}.
     # OPTIONAL (data-generation experiments): which condition provides this
     # run's training file.
     # training_condition: string

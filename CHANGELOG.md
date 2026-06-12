@@ -99,9 +99,9 @@ All notable changes to cruijff_kit will be documented in this file.
 - **Callable `run-experiment` submitter platform** — replaces the prose-only execution path the skill used to rely on:
   - `src/tools/run/submit_torchtune.py` and `submit_inspect.py` — callable submitters with QoS-aware drip-feed, resume-safe state, and canonical `SUBMIT_JOB:` / `SUBMIT_EVAL:` logging (#451)
   - `src/tools/run/status.py` — read-only snapshot that refreshes in-flight entries from `squeue`/`sacct` and prints a table or `--json` (#479)
-  - Detach mechanisms — SIGINT, SIGTERM, and a sticky `<exp_dir>/logs/.detach` sentinel; all paths flush state and exit cleanly while SLURM jobs continue (#479)
+  - Detach mechanisms — SIGINT, SIGTERM, and a sticky `<exp_directory>/logs/.detach` sentinel; all paths flush state and exit cleanly while SLURM jobs continue (#479)
   - `--resume-monitor` flag on both submitters — re-attaches a watcher to an existing state file (#479)
-  - Two-layer submitter config for `poll_sec` / `stagger_sec` / `max_submit` — per-checkout defaults at `<repo>/.config/config.json`, live mid-run overrides at `<exp_dir>/logs/monitor.json`, plus matching CLI flags (#480)
+  - Two-layer submitter config for `poll_sec` / `stagger_sec` / `max_submit` — per-checkout defaults at `<repo>/.config/config.json`, live mid-run overrides at `<exp_directory>/logs/monitor.json`, plus matching CLI flags (#480)
   - OOM auto-retry — detected OOM fine-tunes resubmit with halved `batch_size`, up to 3 times per run; `--no-retry` to disable (#254)
 - `--batch_size_val` flag on `setup_finetune.py`, honored by `_single_device_nightly` for a larger validation DataLoader (#450)
 - `--cpus_per_task` flag on `setup_finetune.py`, overriding the per-model SLURM default (#449)
@@ -153,7 +153,7 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ### Changed
 
-- **Breaking:** Folder reorganization — flat `src/` layout, `projects/` → `blueprints/`, all artifacts unified under `ck-projects/{project}/{experiment_name}/`. The `experiments/`, `data/`, and `synthetic_twins/` directories are retired; input data is now user-provisioned via `{ck_data_dir}`. `experiment_summary.yaml` schema gains `experiment.project` and drops `type`. (#441)
+- **Breaking:** Folder reorganization — flat `src/` layout, `projects/` → `blueprints/`, all artifacts unified under `ck-projects/{project}/{experiment_name}/`. The `experiments/`, `data/`, and `synthetic_twins/` directories are retired; input data is now user-provisioned via `{ck_data_directory}`. `experiment_summary.yaml` schema gains `experiment.project` and drops `type`. (#441)
 - **Breaking:** `model_organism` inspect task replaces `calibration` flag with `logprobs` (capability switch) and `top_logprobs`. Logprobs auto-enable when a configured scorer declares `requires_logprobs`. Existing `-T calibration=true` configs must migrate to placing `risk_scorer` in `scorer:` (for calibration metrics) or `-T logprobs=true` (raw logprobs only). (#463, @msalganik)
 - **Breaking:** Renamed `blueprints/model_organism/` → `blueprints/model_organisms/` for consistency with the `src/tools/model_organisms/` module. Existing `experiment_summary.yaml` files with `experiment.project: model_organism` must update to `model_organisms`. (#462)
 - `design-experiment` defers `claude.local.md` validation to `/setup` (#458)

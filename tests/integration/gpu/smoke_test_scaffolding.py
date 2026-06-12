@@ -19,7 +19,7 @@ SETUP_FINETUNE = REPO_ROOT / "src" / "tools" / "torchtune" / "setup_finetune.py"
 SETUP_INSPECT = REPO_ROOT / "src" / "tools" / "inspect" / "setup_inspect.py"
 
 
-def test_setup_finetune(work_dir: Path):
+def test_setup_finetune(work_directory: Path):
     """Run setup_finetune.py with minimal args, verify outputs."""
     result = subprocess.run(
         [
@@ -35,16 +35,16 @@ def test_setup_finetune(work_dir: Path):
             "chat_completion",
             "--input_dir_base",
             "/fake/input/",
-            "--project_dir",
+            "--project_directory",
             "/fake/output/",
             "--experiment_name",
             "smoke_test",
-            "--models_dir",
+            "--models_directory",
             "/fake/models/",
             "--my_wandb_run_name",
             "smoke_test",
         ],
-        cwd=work_dir,
+        cwd=work_directory,
         capture_output=True,
         text=True,
     )
@@ -52,14 +52,14 @@ def test_setup_finetune(work_dir: Path):
         print(f"STDERR: {result.stderr}")
         raise RuntimeError(f"setup_finetune.py exited with code {result.returncode}")
 
-    slurm = work_dir / "finetune.slurm"
-    yaml_out = work_dir / "finetune.yaml"
+    slurm = work_directory / "finetune.slurm"
+    yaml_out = work_directory / "finetune.yaml"
     assert slurm.exists(), "finetune.slurm not generated"
     assert yaml_out.exists(), "finetune.yaml not generated"
     print("PASS: setup_finetune.py scaffolding")
 
 
-def test_setup_inspect(work_dir: Path):
+def test_setup_inspect(work_directory: Path):
     """Run setup_inspect.py with a minimal eval_config, verify outputs."""
     config = {
         "task_script": "blueprints/capitalization/inspect_task.py@capitalization",
@@ -74,7 +74,7 @@ def test_setup_inspect(work_dir: Path):
         "is_finetuned": True,
         "source_model": "Llama-3.2-1B-Instruct",
     }
-    config_path = work_dir / "eval_config.yaml"
+    config_path = work_directory / "eval_config.yaml"
     with open(config_path, "w") as f:
         yaml.dump(config, f)
 
@@ -87,7 +87,7 @@ def test_setup_inspect(work_dir: Path):
             "--model_name",
             "Llama-3.2-1B-Instruct",
         ],
-        cwd=work_dir,
+        cwd=work_directory,
         capture_output=True,
         text=True,
     )
@@ -95,20 +95,20 @@ def test_setup_inspect(work_dir: Path):
         print(f"STDERR: {result.stderr}")
         raise RuntimeError(f"setup_inspect.py exited with code {result.returncode}")
 
-    slurm = work_dir / "cell.slurm"
+    slurm = work_directory / "cell.slurm"
     assert slurm.exists(), "cell.slurm not generated"
     print("PASS: setup_inspect.py scaffolding")
 
 
 def main():
     with tempfile.TemporaryDirectory() as tmpdir:
-        finetune_dir = Path(tmpdir) / "finetune"
-        finetune_dir.mkdir()
-        test_setup_finetune(finetune_dir)
+        finetune_directory = Path(tmpdir) / "finetune"
+        finetune_directory.mkdir()
+        test_setup_finetune(finetune_directory)
 
-        inspect_dir = Path(tmpdir) / "inspect"
-        inspect_dir.mkdir()
-        test_setup_inspect(inspect_dir)
+        inspect_directory = Path(tmpdir) / "inspect"
+        inspect_directory.mkdir()
+        test_setup_inspect(inspect_directory)
 
 
 if __name__ == "__main__":

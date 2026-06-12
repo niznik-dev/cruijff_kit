@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-FIXTURES_DIR = Path(__file__).parent
+FIXTURES_DIRECTORY = Path(__file__).parent
 
 
 def resolve_placeholders(text: str, scratch: Path, repo: Path) -> str:
@@ -21,7 +21,7 @@ def resolve_placeholders(text: str, scratch: Path, repo: Path) -> str:
 
 
 @pytest.fixture
-def scratch_dir(tmp_path):
+def scratch_directory(tmp_path):
     """Create and return a scratch directory inside tmp_path."""
     d = tmp_path / "scratch"
     d.mkdir()
@@ -29,7 +29,7 @@ def scratch_dir(tmp_path):
 
 
 @pytest.fixture
-def repo_dir(tmp_path):
+def repo_directory(tmp_path):
     """Create and return a repo directory inside tmp_path."""
     d = tmp_path / "repo"
     d.mkdir()
@@ -37,7 +37,7 @@ def repo_dir(tmp_path):
 
 
 @pytest.fixture
-def resolved_fixture(tmp_path, scratch_dir, repo_dir):
+def resolved_fixture(tmp_path, scratch_directory, repo_directory):
     """Return a helper that copies a fixture file to tmp_path with placeholders resolved.
 
     Usage:
@@ -45,9 +45,9 @@ def resolved_fixture(tmp_path, scratch_dir, repo_dir):
     """
 
     def _resolve(relative_path: str, dest: Path | None = None) -> Path:
-        src = FIXTURES_DIR / relative_path
+        src = FIXTURES_DIRECTORY / relative_path
         content = src.read_text()
-        resolved = resolve_placeholders(content, scratch_dir, repo_dir)
+        resolved = resolve_placeholders(content, scratch_directory, repo_directory)
 
         if dest is None:
             dest = tmp_path / Path(relative_path).name

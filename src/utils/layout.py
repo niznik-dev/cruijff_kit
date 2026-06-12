@@ -6,4 +6,4 @@ Importing tools should never hardcode these strings.
 See `docs/ARTIFACT_LOCATIONS.md` for the full layout.
 """
 
-ARTIFACTS_DIR = "artifacts"
+ARTIFACTS_DIRECTORY = "artifacts"

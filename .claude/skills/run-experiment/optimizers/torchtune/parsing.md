@@ -22,7 +22,7 @@ with open('experiment_summary.yaml', 'r') as f:
     config = yaml.safe_load(f)
 
 experiment_name = config['experiment']['name']
-experiment_dir = config['experiment']['directory']
+experiment_directory = config['experiment']['directory']
 finetune_runs = [run for run in config['runs'] if run['type'] == 'fine-tuned']
 
 for run in finetune_runs:
@@ -35,9 +35,9 @@ for run in finetune_runs:
 Find all directories containing `finetune.slurm`:
 
 ```bash
-for dir in */; do
-  if [ -f "$dir/finetune.slurm" ]; then
-    echo "Found run: $dir"
+for directory in */; do
+  if [ -f "$directory/finetune.slurm" ]; then
+    echo "Found run: $directory"
   fi
 done
 ```

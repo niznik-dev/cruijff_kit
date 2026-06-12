@@ -8,7 +8,7 @@ Usage:
     python tests/integration/gpu/smoke_test_inspect.py
 
 Environment variables:
-    CK_MODELS_DIR: Path to pretrained models (default: /scratch/gpfs/MSALGANIK/pretrained-llms)
+    CK_MODELS_DIRECTORY: Path to pretrained models (default: /scratch/gpfs/MSALGANIK/pretrained-llms)
 """
 
 import os
@@ -20,9 +20,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
 TASK_SCRIPT = REPO_ROOT / "blueprints" / "capitalization" / "inspect_task.py"
 DATA_PATH = REPO_ROOT / "tests" / "fixtures" / "words_5L_80P_50.json"
-MODELS_DIR = os.environ.get("CK_MODELS_DIR", "/scratch/gpfs/MSALGANIK/pretrained-llms")
+MODELS_DIRECTORY = os.environ.get(
+    "CK_MODELS_DIRECTORY", "/scratch/gpfs/MSALGANIK/pretrained-llms"
+)
 MODEL_NAME = "Llama-3.2-1B-Instruct"
-MODEL_PATH = os.path.join(MODELS_DIR, MODEL_NAME)
+MODEL_PATH = os.path.join(MODELS_DIRECTORY, MODEL_NAME)
 SAMPLE_LIMIT = 20
 
 

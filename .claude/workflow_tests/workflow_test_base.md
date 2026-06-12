@@ -16,7 +16,7 @@ Does fine-tuning improve capitalization accuracy over the base model? Again, the
 - **Experiment name:** `workflow_test_base_{date}` (skill fills in the date)
 - **Tools:** torchtune for fine-tuning, inspect-ai for evaluation
 - **Model:** `Llama-3.2-1B-Instruct`
-- **Dataset:** `{ck_data_dir}/capitalization/words_5L_80P_1000.json` — 1000 5-letter words, 800 train / 100 val / 100 test
+- **Dataset:** `{ck_data_directory}/capitalization/words_5L_80P_1000.json` — 1000 5-letter words, 800 train / 100 val / 100 test
 - **Runs:** one control + one fine-tuned
   - `Llama-3.2-1B-Instruct_base` — control, no training (the base model evaluated as-is)
   - `Llama-3.2-1B-Instruct_rank4` — fine-tuned, `lora_rank: 4`

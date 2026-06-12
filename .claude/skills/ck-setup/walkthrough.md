@@ -71,7 +71,7 @@ Ask:
 These are *group-shared* paths — directories the whole HPC group reads from. Two fields in the template:
 
 - **Models directory** — almost always useful. Pretrained LLMs are large (10s–100s of GB), so groups download each one once and share. Default: `/scratch/gpfs/<group>/pretrained-llms`. If the user is solo on the cluster they may use their own path; if they don't have any models downloaded yet, `[skip]` is fine.
-- **Shared datasets** — rarely used. `[skip]` is normal here. Only fill in if the group is collaborating on a shared dataset stored at a group path. Most experimental work uses the per-user `{ck_data_dir}` instead (covered in Section 7).
+- **Shared datasets** — rarely used. `[skip]` is normal here. Only fill in if the group is collaborating on a shared dataset stored at a group path. Most experimental work uses the per-user `{ck_data_directory}` instead (covered in Section 7).
 
 ### 2. SLURM Defaults
 
@@ -134,7 +134,7 @@ Ask:
 
 ### 7. Common Paths
 
-**Why this matters:** input datasets and output projects need a stable home that other skills can find via tokens like `{ck_data_dir}` and the `Projects` root.
+**Why this matters:** input datasets and output projects need a stable home that other skills can find via tokens like `{ck_data_directory}` and the `Projects` root.
 
 #### Subsection: Pretrained Models
 
@@ -148,7 +148,7 @@ Auto-suggest based on group + username from earlier:
 #### Subsection: Data
 
 Auto-suggest:
-- `{ck_data_dir}` — `/scratch/gpfs/<group>/<username>/ck-data/`. Confirm or override. This is where input datasets live, organized as `{ck_data_dir}/{project}/`.
+- `{ck_data_directory}` — `/scratch/gpfs/<group>/<username>/ck-data/`. Confirm or override. This is where input datasets live, organized as `{ck_data_directory}/{project}/`.
 
 ### 8. Quick Commands
 

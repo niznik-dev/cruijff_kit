@@ -20,7 +20,7 @@ create-tabular-schema → design-experiment → convert-tabular-to-text → scaf
 
 Walk the user through generating text datasets from tabular source data. Each invocation of the underlying `convert.py` tool produces one output file for one (condition x split) pair. This skill orchestrates multiple calls to produce all the files an experiment needs.
 
-**IMPORTANT:** Throughout this workflow, create a detailed log at `{experiment_dir}/logs/convert-tabular-to-text.log` (or `{scratch_dir}/ck-data/generated/logs/convert-tabular-to-text.log` for standalone usage). Write entries incrementally as actions complete. See [logging.md](logging.md) for the complete format specification and action types.
+**IMPORTANT:** Throughout this workflow, create a detailed log at `{experiment_directory}/logs/convert-tabular-to-text.log` (or `{scratch_directory}/ck-data/generated/logs/convert-tabular-to-text.log` for standalone usage). Write entries incrementally as actions complete. See [logging.md](logging.md) for the complete format specification and action types.
 
 ## Step 1: Check for Existing Datasets
 
@@ -29,7 +29,7 @@ Ask: **"Do you have existing generated datasets, or do we need to create new one
 Check `ck-data/generated/` (under the user's scratch directory from `claude.local.md`) for any matching files:
 
 ```bash
-ls {scratch_dir}/ck-data/generated/*.json 2>/dev/null
+ls {scratch_directory}/ck-data/generated/*.json 2>/dev/null
 ```
 
 If the user has existing datasets, collect their paths and skip to Step 4.
@@ -39,7 +39,7 @@ If the user has existing datasets, collect their paths and skip to Step 4.
 Load the schema from `ck-data/schemas/`:
 
 ```bash
-ls {scratch_dir}/ck-data/schemas/ 2>/dev/null
+ls {scratch_directory}/ck-data/schemas/ 2>/dev/null
 ```
 
 **If a matching schema exists:** Load it and confirm with the user.
@@ -91,7 +91,7 @@ Agent: generate-jinja-template
 Prompt: Generate a Jinja2 narrative template for:
   - Schema: {schema_path}
   - Source data: {source_path}
-  - Output: {scratch_dir}/ck-data/templates/{dataset_name}.j2
+  - Output: {scratch_directory}/ck-data/templates/{dataset_name}.j2
   - Features: {feature_list} (if known from experiment_summary.yaml)
   - Intended use: {from style_guidance or user input}
   - Style preference: {from style_guidance or user input}
@@ -151,7 +151,7 @@ Files to generate (70% train / 10% validation / 20% test):
     4. narrative_reduced_test_9c8d7e6f.json {"test": ~2k rows}
 ```
 
-Note any files that already exist in `{scratch_dir}/ck-data/generated/` — these will be reused, not regenerated.
+Note any files that already exist in `{scratch_directory}/ck-data/generated/` — these will be reused, not regenerated.
 
 Get user confirmation before proceeding.
 
@@ -168,7 +168,7 @@ cd {cruijff_kit_path} && python -m cruijff_kit.tabular_to_text_gen.convert \
   --experiment-summary {path_to_experiment_summary.yaml} \
   --condition-name {condition_name} \
   --split {train|test} \
-  --output-dir {scratch_dir}/ck-data/generated
+  --output-dir {scratch_directory}/ck-data/generated
 ```
 
 Loop over all conditions × splits needed by the experiment:
@@ -179,7 +179,7 @@ for COND in dict_subset dict_full; do
     python -m cruijff_kit.tabular_to_text_gen.convert \
       --experiment-summary {path_to_experiment_summary.yaml} \
       --condition-name "$COND" --split "$SPLIT" \
-      --output-dir {scratch_dir}/ck-data/generated
+      --output-dir {scratch_directory}/ck-data/generated
   done
 done
 ```
@@ -217,14 +217,14 @@ cd {cruijff_kit_path} && python -m cruijff_kit.tabular_to_text_gen.convert \
   --seed {seed} \
   --subsampling-ratio {subsampling_ratio} \
   --missing-value-handling {missing_value_handling} \
-  --output-dir {scratch_dir}/ck-data/generated
+  --output-dir {scratch_directory}/ck-data/generated
 ```
 
 Additional CLI-only extras (also available via YAML fields of the same name):
 - **one-to-many:** `--one-to-many-copies N --one-to-many-perturbation <name>`
 - **custom narrative template:** `--template-file {path}`
 - **categorical target:** `--target-mapping '{json_string}'` instead of `--target-threshold`
-- **LLM narrative:** `--cache-path {scratch_dir}/ck-data/generated/.llm_cache/{condition_name}.json` and `--style-guidance '{instructions}'`
+- **LLM narrative:** `--cache-path {scratch_directory}/ck-data/generated/.llm_cache/{condition_name}.json` and `--style-guidance '{instructions}'`
 - **parquet sidecar:** `--emit-source-parquet` (flag). Only pass on one canonical condition per experiment to avoid redundant copies.
 
 ### Train/test pairs
@@ -245,10 +245,10 @@ Present the complete list of generated files with their paths:
 
 ```
 Generated datasets:
-  - {scratch_dir}/ck-data/generated/dict_full_train_a1b2c3d4.json (800 rows, 420 KB)
-  - {scratch_dir}/ck-data/generated/dict_full_test_a1b2c3d4.json (200 rows, 105 KB)
-  - {scratch_dir}/ck-data/generated/dict_synonym_test_e5f6a7b8.json (200 rows, 108 KB)
-  - {scratch_dir}/ck-data/generated/narrative_reduced_test_9c8d7e6f.json (200 rows, 95 KB)
+  - {scratch_directory}/ck-data/generated/dict_full_train_a1b2c3d4.json (800 rows, 420 KB)
+  - {scratch_directory}/ck-data/generated/dict_full_test_a1b2c3d4.json (200 rows, 105 KB)
+  - {scratch_directory}/ck-data/generated/dict_synonym_test_e5f6a7b8.json (200 rows, 108 KB)
+  - {scratch_directory}/ck-data/generated/narrative_reduced_test_9c8d7e6f.json (200 rows, 95 KB)
 
 These paths should be used in experiment_summary.yaml run parameters:
   - dataset_path: for training datasets

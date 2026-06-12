@@ -23,7 +23,7 @@ Launch this subagent when:
 ## Prompt Template
 
 ```
-Set up inspect-ai evaluation configurations for all runs in the experiment located at {experiment_dir}.
+Set up inspect-ai evaluation configurations for all runs in the experiment located at {experiment_directory}.
 
 Your tasks:
 1. Read experiment_summary.yaml to extract evaluation configurations
@@ -33,7 +33,7 @@ Your tasks:
    a. Create the cell directory {run}/eval/{cell_name}/ (with logs/ inside)
    b. Generate eval_config.yaml in the cell directory (see Step 4 below)
    c. Call setup_inspect.py from inside the cell directory to render cell.slurm (see Step 5 below)
-5. Create a detailed log at {experiment_dir}/logs/scaffold-inspect.log
+5. Create a detailed log at {experiment_directory}/logs/scaffold-inspect.log
 
 Report back:
 - Summary of all created cell directories (paths)
@@ -91,7 +91,7 @@ Use the same time limit for all eval jobs in the experiment. If the user doesn't
 After scaffold-inspect completes, the experiment directory will contain:
 
 ```
-{experiment_dir}/
+{experiment_directory}/
 ├── Llama-3.2-1B-Instruct_base/             # Control run
 │   └── eval/
 │       └── {task_name}/                    # Cell dir (no epoch suffix for base)

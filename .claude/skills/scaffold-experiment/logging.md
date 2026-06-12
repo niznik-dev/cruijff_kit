@@ -8,11 +8,11 @@ This document covers scaffold-experiment-specific logging practices for the orch
 
 Scaffold-experiment creates an orchestration log:
 
-- `{experiment_dir}/logs/scaffold-experiment.log`
+- `{experiment_directory}/logs/scaffold-experiment.log`
 
 This log records the high-level orchestration process. Individual subagents create their own detailed logs:
-- `{experiment_dir}/logs/scaffold-torchtune.log` (created by scaffold-torchtune subagent)
-- `{experiment_dir}/logs/scaffold-inspect.log` (created by scaffold-inspect subagent)
+- `{experiment_directory}/logs/scaffold-torchtune.log` (created by scaffold-torchtune subagent)
+- `{experiment_directory}/logs/scaffold-inspect.log` (created by scaffold-inspect subagent)
 
 **Note on log formats across skills:** All skills emit `.log` (plain text) — human-readable progress tracking with `[TIMESTAMP] ACTION` headers. See [shared/logging_spec.md](../shared/logging_spec.md) for the canonical format spec.
 
@@ -150,7 +150,7 @@ Outputs: Llama-3.2-1B-Instruct_rank4/, Llama-3.2-1B-Instruct_rank8/, Llama-3.2-1
 Details: 3 evaluation scripts created successfully (0 failures)
 Duration: 1m 25s
 Result: See scaffold-inspect.log for detailed process
-Outputs: {run_dir}/eval/ directories with SLURM scripts
+Outputs: {run_directory}/eval/ directories with SLURM scripts
 ```
 
 ### Overall Completion

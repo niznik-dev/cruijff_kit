@@ -10,9 +10,9 @@ This document covers run-experiment-specific logging practices.
 
 Run-experiment creates three logs:
 
-- **Orchestration:** `{experiment_dir}/logs/run-experiment.log` — high-level flow (which stages ran, when), kept short
-- **Torchtune execution:** `{experiment_dir}/logs/run-torchtune.log` — detailed per-job records (submissions, status changes, completion)
-- **Inspect-ai execution:** `{experiment_dir}/logs/run-inspect.log` — detailed per-job records (submissions, status changes, completion)
+- **Orchestration:** `{experiment_directory}/logs/run-experiment.log` — high-level flow (which stages ran, when), kept short
+- **Torchtune execution:** `{experiment_directory}/logs/run-torchtune.log` — detailed per-job records (submissions, status changes, completion)
+- **Inspect-ai execution:** `{experiment_directory}/logs/run-inspect.log` — detailed per-job records (submissions, status changes, completion)
 
 Detailed sub-logs are created during job execution. The orchestration log records skill-level transitions.
 
@@ -137,7 +137,7 @@ Duration: 45 minutes
 
 ### Live Monitor Settings (MONITOR_CONFIG)
 
-The watcher re-reads `<experiment_dir>/logs/monitor.json` on every poll
+The watcher re-reads `<experiment_directory>/logs/monitor.json` on every poll
 iteration. When at least one knob changes, a `MONITOR_CONFIG` block lands
 in the per-tool log. Unchanged knobs are still shown so the active
 picture is complete. The block contains no `Job ID:` line, so the

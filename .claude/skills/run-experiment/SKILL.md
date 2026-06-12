@@ -48,10 +48,10 @@ python scripts/check_env.py
 This skill invokes callable Python submitters that handle SLURM submission, drip-feed under the gpu-test QoS cap, monitoring to terminal state, and canonical log emission as a side-effect. The Python is the source of truth; the prose modules under `optimizers/` and `evaluators/` describe the schemas and flow for downstream readers.
 
 **Optimizer modules:** See [optimizers/](optimizers/) for the schema description.
-- torchtune (fine-tuning) → `python -m cruijff_kit.tools.run.submit_torchtune <experiment_dir>` (writes `logs/run-torchtune.log` + `logs/run-torchtune.state.json`)
+- torchtune (fine-tuning) → `python -m cruijff_kit.tools.run.submit_torchtune <experiment_directory>` (writes `logs/run-torchtune.log` + `logs/run-torchtune.state.json`)
 
 **Evaluator modules:** See [evaluators/](evaluators/) for the schema description.
-- inspect-ai → `python -m cruijff_kit.tools.run.submit_inspect <experiment_dir>` (writes `logs/run-inspect.log` + `logs/run-inspect.state.json`)
+- inspect-ai → `python -m cruijff_kit.tools.run.submit_inspect <experiment_directory>` (writes `logs/run-inspect.log` + `logs/run-inspect.state.json`)
 
 Both submitters are resume-safe: re-invoking after an interruption reads the JSON state file and skips already-submitted entries. Both emit canonical `SUBMIT_JOB:` / `SUBMIT_EVAL:` lines that `explore-experiment`'s compute-utilization step harvests. Future tools (DSPy, custom trainers, custom evaluators) plug in here as additional submitters.
 
@@ -79,8 +79,8 @@ tools:
 **Why?** Evaluation jobs need optimized model checkpoints.
 
 **Implementation:**
-1. Run `python -m cruijff_kit.tools.run.submit_torchtune <experiment_dir>` — submits, drip-feeds, monitors, writes `logs/run-torchtune.log` + `logs/run-torchtune.state.json`. Blocks until all jobs reach terminal state.
-2. Only after step 1 returns successfully, run `python -m cruijff_kit.tools.run.submit_inspect <experiment_dir>` — same pattern for evaluations, writes `logs/run-inspect.log` + `logs/run-inspect.state.json`. Blocks until terminal.
+1. Run `python -m cruijff_kit.tools.run.submit_torchtune <experiment_directory>` — submits, drip-feeds, monitors, writes `logs/run-torchtune.log` + `logs/run-torchtune.state.json`. Blocks until all jobs reach terminal state.
+2. Only after step 1 returns successfully, run `python -m cruijff_kit.tools.run.submit_inspect <experiment_directory>` — same pattern for evaluations, writes `logs/run-inspect.log` + `logs/run-inspect.state.json`. Blocks until terminal.
 3. Append a high-level summary to `logs/run-experiment.log` (the orchestration log). The detailed per-job records already live in the per-tool logs.
 
 ## Long-Running / Detachable Monitoring
@@ -89,7 +89,7 @@ The default flow above blocks until all jobs finish. For experiments that may ru
 
 | Mechanism | Who uses it |
 |---|---|
-| `touch <experiment_dir>/logs/.detach` | Anyone — humans, agents, `/loop`, cron. Sentinel is sticky: remove it before re-attaching. |
+| `touch <experiment_directory>/logs/.detach` | Anyone — humans, agents, `/loop`, cron. Sentinel is sticky: remove it before re-attaching. |
 | `SIGINT` (Ctrl+C) | A human at the terminal where the submitter is running |
 | `SIGTERM` | A parent process killing the submitter subprocess |
 
@@ -97,11 +97,11 @@ After a clean detach, **re-attaching** is one of:
 
 ```
 # One-shot snapshot (read-only; refreshes state from squeue/sacct):
-python -m cruijff_kit.tools.run.status <experiment_dir>
+python -m cruijff_kit.tools.run.status <experiment_directory>
 
 # Continuous re-monitor without resubmitting:
-python -m cruijff_kit.tools.run.submit_torchtune <experiment_dir> --resume-monitor
-python -m cruijff_kit.tools.run.submit_inspect   <experiment_dir> --resume-monitor
+python -m cruijff_kit.tools.run.submit_torchtune <experiment_directory> --resume-monitor
+python -m cruijff_kit.tools.run.submit_inspect   <experiment_directory> --resume-monitor
 ```
 
 `status` is composable with `/loop` (e.g. periodic check-ins from an agent or cron job). It never submits anything and never writes `MONITOR_DETACHED`; it refreshes state, appends `STATE_CHANGE` blocks when SLURM has moved a job since the last refresh, and emits a per-tool `ALL_COMPLETE` block the first time refresh observes all-terminal — so a finished experiment closes its log cleanly without needing a follow-up `--resume-monitor`. `ALL_COMPLETE` is idempotent: at most one block per per-tool log, no matter how many `status` or submitter calls observe completion.
@@ -120,7 +120,7 @@ Built-in defaults live in `<repo>/.config/config.json`, a tracked file. To chang
 
 For a single experiment, use the CLI flags (`--poll-sec`, `--stagger-sec`, `--max-submit`) at submitter invocation.
 
-For **live mid-run** tuning without detach + re-attach, edit `<experiment_dir>/logs/monitor.json` — the watcher re-reads it on every poll iteration. Same filesystem-as-control-plane shape as `.detach`: anyone with FS access (human, agent, `/loop`, cron) can edit. Recognized keys (all optional):
+For **live mid-run** tuning without detach + re-attach, edit `<experiment_directory>/logs/monitor.json` — the watcher re-reads it on every poll iteration. Same filesystem-as-control-plane shape as `.detach`: anyone with FS access (human, agent, `/loop`, cron) can edit. Recognized keys (all optional):
 
 ```json
 {"poll_sec": 30, "stagger_sec": 5, "max_submit": 25}
@@ -128,7 +128,7 @@ For **live mid-run** tuning without detach + re-attach, edit `<experiment_dir>/l
 
 **Precedence (high → low):** `monitor.json` > CLI flag > `<repo>/.config/config.json` > built-in default. Missing files are silent no-ops. Malformed JSON or out-of-range values emit a `WARNING:` to stderr and the watcher keeps the previous values. Every applied `monitor.json` change writes a canonical `MONITOR_CONFIG` block to the per-tool log.
 
-**Filesystem control channels under `<experiment_dir>/logs/`:**
+**Filesystem control channels under `<experiment_directory>/logs/`:**
 
 | File | Action | Effect |
 |---|---|---|
@@ -140,9 +140,9 @@ For **live mid-run** tuning without detach + re-attach, edit `<experiment_dir>/l
 
 Execution is logged in three files (see logging.md for details).
 All logs live under the `logs/` subdirectory per the canonical artifact layout:
-- `{experiment_dir}/logs/run-experiment.log` - Orchestration log (high-level flow, kept short)
-- `{experiment_dir}/logs/run-torchtune.log` - Fine-tuning execution (detailed)
-- `{experiment_dir}/logs/run-inspect.log` - Evaluation execution (detailed)
+- `{experiment_directory}/logs/run-experiment.log` - Orchestration log (high-level flow, kept short)
+- `{experiment_directory}/logs/run-torchtune.log` - Fine-tuning execution (detailed)
+- `{experiment_directory}/logs/run-inspect.log` - Evaluation execution (detailed)
 
 **Log format:**
 ```
@@ -164,7 +164,7 @@ Result: {outcome}
 
 After successful execution:
 
-**Logs created** (in `{experiment_dir}/logs/`):
+**Logs created** (in `{experiment_directory}/logs/`):
 - `run-experiment.log` - Orchestration log (high-level flow, kept short)
 - `run-torchtune.log` - Fine-tuning execution log (detailed)
 - `run-inspect.log` - Evaluation execution log (detailed)
@@ -204,9 +204,9 @@ After successful execution:
 - Watcher exits cleanly, writes `MONITOR_DETACHED` to the per-tool log
 - SLURM jobs continue running independently
 - To resume monitoring without resubmitting:
-  - `python -m cruijff_kit.tools.run.status <experiment_dir>` for a one-shot snapshot
-  - `python -m cruijff_kit.tools.run.submit_{torchtune,inspect} <experiment_dir> --resume-monitor` to watch until terminal
-- If detach was triggered by the sentinel file, `rm <experiment_dir>/logs/.detach` first (sticky)
+  - `python -m cruijff_kit.tools.run.status <experiment_directory>` for a one-shot snapshot
+  - `python -m cruijff_kit.tools.run.submit_{torchtune,inspect} <experiment_directory> --resume-monitor` to watch until terminal
+- If detach was triggered by the sentinel file, `rm <experiment_directory>/logs/.detach` first (sticky)
 
 ## Validation Checklist
 
@@ -227,7 +227,7 @@ Provide comprehensive summary after completion:
 ```markdown
 ## Run Experiment Complete
 
-Experiment: `{experiment_dir}`
+Experiment: `{experiment_directory}`
 
 ### Optimization Results
 
@@ -290,7 +290,7 @@ After completing the experiment, run `summarize-experiment` — this is the stan
 - Each submitter maintains its own detailed log (`logs/run-torchtune.log`, `logs/run-inspect.log`) AND a JSON resume state file alongside it.
 - Sequential execution is mandatory (evaluation requires optimization complete).
 - Partial success is acceptable (some runs succeed, others fail) — the state files capture which ones.
-- Each submitter can be invoked directly (CLI or `from cruijff_kit.tools.run import submit_torchtune; submit_torchtune.run(experiment_dir)`).
+- Each submitter can be invoked directly (CLI or `from cruijff_kit.tools.run import submit_torchtune; submit_torchtune.run(experiment_directory)`).
 
 **Relationship to other skills:**
 - **Before:** design-experiment, scaffold-experiment

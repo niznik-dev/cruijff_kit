@@ -100,7 +100,7 @@ Three classes of check:
 2. **Required-field check**: confirm a small set of must-have values are non-empty and non-placeholder: `Cluster`, `Username`, `Group`, `Scratch directory`, `Default conda environment`, `Account` (SLURM).
 3. **Env probes** (lightweight only — don't actually run jobs or hit external APIs):
    - Conda env exists: `conda env list | grep -q <env_name>`
-   - Scratch directory exists and is writable: `test -w <scratch_dir>`
+   - Scratch directory exists and is writable: `test -w <scratch_directory>`
    - `gh` is on PATH after activating the documented conda env: `which gh`
    - Module system available if the file mentions `module load`: `command -v module`
 

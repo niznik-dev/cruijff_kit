@@ -9,7 +9,7 @@
 #SBATCH --mail-type=end # Email when job ends
 #SBATCH --mail-user=<NETID>@princeton.edu
 #SBATCH --gres=gpu:1 # Request 1 GPU
-#SBATCH --output=<OUTPUT_DIR>slurm-%j.out
+#SBATCH --output=<OUTPUT_DIRECTORY>slurm-%j.out
 ##SBATCH --array=0-<ARRAY_MAX> # Uncomment if using job arrays
 ##SBATCH --account=<ACT>
 ##SBATCH --partition=<PART>
@@ -19,12 +19,12 @@ module purge
 module load anaconda3/2025.6
 conda activate <CONDA_ENV>
 
-mkdir -p <OUTPUT_DIR>logs/wandb  # wandb is picky about existing dirs
+mkdir -p <OUTPUT_DIRECTORY>logs/wandb  # wandb is picky about existing dirs
 
 # Start GPU monitoring in background
 # With --gres=gpu:1, SLURM cgroup isolation scopes nvidia-smi to the allocated GPU
 nvidia-smi --query-gpu=timestamp,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,temperature.gpu \
-    --format=csv -l 30 > <OUTPUT_DIR>/gpu_metrics.csv 2>/dev/null &
+    --format=csv -l 30 > <OUTPUT_DIRECTORY>/gpu_metrics.csv 2>/dev/null &
 GPU_MONITOR_PID=$!
 
 tune run lora_finetune_single_device \

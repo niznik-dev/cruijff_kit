@@ -15,7 +15,7 @@ This module describes how to find the experiment directory and extract relevant 
 
 ```bash
 # Check for experiment_summary.yaml
-ls {experiment_dir}/experiment_summary.yaml
+ls {experiment_directory}/experiment_summary.yaml
 ```
 
 ## Parsing experiment_summary.yaml
@@ -25,7 +25,7 @@ Load the YAML file and extract information needed for visualization:
 ```python
 import yaml
 
-with open(f"{experiment_dir}/experiment_summary.yaml") as f:
+with open(f"{experiment_directory}/experiment_summary.yaml") as f:
     config = yaml.safe_load(f)
 ```
 
@@ -120,7 +120,7 @@ def get_subdirs(config):
 
 **If experiment_summary.yaml is missing:**
 ```
-Error: experiment_summary.yaml not found in {experiment_dir}
+Error: experiment_summary.yaml not found in {experiment_directory}
 Please run design-experiment skill first to create the experiment configuration.
 ```
 

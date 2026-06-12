@@ -12,8 +12,8 @@ input_formatting: ""
 dataset_label: ""
 
 output_dir: ""  # Set by setup_finetune.py
-input_dir: ""  # Set by setup_finetune.py
-models_dir: ""  # Set by setup_finetune.py
+input_directory: ""  # Set by setup_finetune.py
+models_directory: ""  # Set by setup_finetune.py
 
 batch_size: 4
 
@@ -31,12 +31,12 @@ model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: ${models_dir}/Llama-3.2-1B-Instruct/original/tokenizer.model
+  path: ${models_directory}/Llama-3.2-1B-Instruct/original/tokenizer.model
   max_seq_len: 2048
 
 checkpointer:
   _component_: torchtune.training.FullModelHFCheckpointer
-  checkpoint_dir: ${models_dir}/Llama-3.2-1B-Instruct/
+  checkpoint_dir: ${models_directory}/Llama-3.2-1B-Instruct/
   checkpoint_files: [model.safetensors]
   recipe_checkpoint: null
   output_dir: ${output_dir}
@@ -66,10 +66,10 @@ compile: False
 dataset:
   _component_: cruijff_kit.tools.torchtune.datasets.chat_completion.chat_completion_dataset
   source: json
-  data_files: "${input_dir}/${dataset_label}.json"
+  data_files: "${input_directory}/${dataset_label}.json"
   split: train
   # model_path: Required for HF tokenizer (auto-set by setup_finetune.py)
-  model_path: "${models_dir}/Llama-3.2-1B-Instruct"
+  model_path: "${models_directory}/Llama-3.2-1B-Instruct"
   # prompt: Formats input for training. MUST include {input} placeholder.
   # This value should match what's in setup_finetune.yaml for train/eval parity.
   # Uses HuggingFace apply_chat_template() to match inspect-ai evaluation.
@@ -82,9 +82,9 @@ run_val_every_n_steps: 50
 dataset_val:
   _component_: cruijff_kit.tools.torchtune.datasets.chat_completion.chat_completion_dataset
   source: json
-  data_files: "${input_dir}/${dataset_label}.json"
+  data_files: "${input_directory}/${dataset_label}.json"
   split: validation
-  model_path: "${models_dir}/Llama-3.2-1B-Instruct"
+  model_path: "${models_directory}/Llama-3.2-1B-Instruct"
   prompt: "{input}\n"
   system_prompt: ""
   input_key: input

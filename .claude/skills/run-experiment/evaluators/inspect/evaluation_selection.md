@@ -28,9 +28,9 @@ Match job names to evaluation scripts to identify already-running evaluations.
 
 Look for inspect-ai log files (per-cell layout, issue #498):
 ```bash
-ls {run_dir}/eval/{cell_name}/logs/*.eval 2>/dev/null
+ls {run_directory}/eval/{cell_name}/logs/*.eval 2>/dev/null
 # Or across all cells in a run:
-ls {run_dir}/eval/*/logs/*.eval 2>/dev/null
+ls {run_directory}/eval/*/logs/*.eval 2>/dev/null
 ```
 
 **If .eval file exists:**

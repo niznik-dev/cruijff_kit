@@ -95,7 +95,7 @@ If `conda` itself is unavailable (no module to load, or load failed):
 ### Probe b: scratch directory exists and is writable
 
 ```bash
-test -d "<scratch_dir>" && test -w "<scratch_dir>"
+test -d "<scratch_directory>" && test -w "<scratch_directory>"
 ```
 
 If missing:

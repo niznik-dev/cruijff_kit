@@ -32,7 +32,7 @@ log = utils.get_logger("DEBUG")
 STALE_BASE_PATH_TAG = "STALE_LOCAL_BASE_PATH"
 
 
-def check_adapter_base_path(adapter_dir) -> str | None:
+def check_adapter_base_path(adapter_directory) -> str | None:
     """Verify the adapter dir's base_model_name_or_path is loadable here.
 
     Returns None if the adapter dir is fine, or if the dir has no
@@ -46,8 +46,8 @@ def check_adapter_base_path(adapter_dir) -> str | None:
     If the user is on offline compute without a populated cache, transformers
     will error at load time; that's a separate failure mode.
     """
-    adapter_dir = Path(adapter_dir)
-    cfg_path = adapter_dir / "adapter_config.json"
+    adapter_directory = Path(adapter_directory)
+    cfg_path = adapter_directory / "adapter_config.json"
     if not cfg_path.exists():
         return None
 
@@ -60,11 +60,11 @@ def check_adapter_base_path(adapter_dir) -> str | None:
     if base.startswith(os.sep) or (len(base) > 1 and base[1] == ":"):
         if not Path(base).exists():
             return (
-                f"{STALE_BASE_PATH_TAG}: adapter at {adapter_dir} expects base "
+                f"{STALE_BASE_PATH_TAG}: adapter at {adapter_directory} expects base "
                 f"model at {base}, but that path does not exist. The base "
                 "model has likely moved. Re-point with `python -m "
                 "cruijff_kit.tools.torchtune.port_cruijff_adapter "
-                f"{adapter_dir} --repo-id <new_path_or_hf_repo_id>`, or "
+                f"{adapter_directory} --repo-id <new_path_or_hf_repo_id>`, or "
                 "restore the base model to its original location."
             )
 
@@ -127,7 +127,7 @@ def stash_adapter_files(output_dir: str, epoch: int, logger=None) -> None:
     The stashed adapter dir is left in its portable PEFT form
     (base_model_name_or_path still the HF Hub repo name as torchtune wrote it)
     — anyone who wants to use the adapter directly can load it from
-    `<epoch_dir>/adapter_weights/`.
+    `<epoch_directory>/adapter_weights/`.
     """
     if logger is None:
         logger = log
@@ -137,8 +137,8 @@ def stash_adapter_files(output_dir: str, epoch: int, logger=None) -> None:
         logger.warning(f"Checkpoint directory not found: {checkpoint_dir}")
         return
 
-    adapter_stash_dir = os.path.join(checkpoint_dir, "adapter_weights")
-    os.makedirs(adapter_stash_dir, exist_ok=True)
+    adapter_stash_directory = os.path.join(checkpoint_dir, "adapter_weights")
+    os.makedirs(adapter_stash_directory, exist_ok=True)
 
     adapter_files = [
         "adapter_config.json",
@@ -149,7 +149,7 @@ def stash_adapter_files(output_dir: str, epoch: int, logger=None) -> None:
     for filename in adapter_files:
         src = os.path.join(checkpoint_dir, filename)
         if os.path.exists(src):
-            shutil.move(src, os.path.join(adapter_stash_dir, filename))
+            shutil.move(src, os.path.join(adapter_stash_directory, filename))
             logger.info(f"Stashed {filename} to adapter_weights/ subdirectory")
             stashed += 1
 

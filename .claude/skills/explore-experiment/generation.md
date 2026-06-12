@@ -19,7 +19,7 @@ from inspect_viz.view import (
 from cruijff_kit.tools.inspect.viz_helpers import sanitize_columns_for_viz
 
 # Create output directory
-output_dir = os.path.join(experiment_dir, "exploration")
+output_dir = os.path.join(experiment_directory, "exploration")
 os.makedirs(output_dir, exist_ok=True)
 
 # IMPORTANT: sanitize column names before passing to inspect-viz.
@@ -402,7 +402,7 @@ After generating visualizations and before the report, add compute metrics. This
 
 **Workflow:**
 
-1. Call `harvest_jids_from_run_logs(experiment_dir)` from `src/tools/slurm/compute_gpu_metrics.py`. It returns `(jids_dict, warnings)` where `jids_dict` is `{"finetune": [(name, jid), ...], "eval": [(name, jid), ...]}`. The helper already prints `WARNING:` lines to stderr for any missing or malformed log file, mirroring the canonical regexes in `run-experiment/logging.md`. **If `warnings` is non-empty, do not silently skip the section** — append a "**Compute Utilization unavailable:** ..." note to `report.md` listing each warning so the absence is visible to the operator.
+1. Call `harvest_jids_from_run_logs(experiment_directory)` from `src/tools/slurm/compute_gpu_metrics.py`. It returns `(jids_dict, warnings)` where `jids_dict` is `{"finetune": [(name, jid), ...], "eval": [(name, jid), ...]}`. The helper already prints `WARNING:` lines to stderr for any missing or malformed log file, mirroring the canonical regexes in `run-experiment/logging.md`. **If `warnings` is non-empty, do not silently skip the section** — append a "**Compute Utilization unavailable:** ..." note to `report.md` listing each warning so the absence is visible to the operator.
 2. Check if jobstats is available with `check_jobstats_available()`
 3. For each job:
    a. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
@@ -423,9 +423,9 @@ After generating visualizations and before the report, add compute metrics. This
 
    summary = build_summary(
        jobs=jobs,  # list of job metric dicts from steps 3-4
-       experiment_summary_path=os.path.join(experiment_dir, "experiment_summary.yaml"),
+       experiment_summary_path=os.path.join(experiment_directory, "experiment_summary.yaml"),
    )
-   save_summary(summary, os.path.join(experiment_dir, "exploration", "compute_metrics.json"))
+   save_summary(summary, os.path.join(experiment_directory, "exploration", "compute_metrics.json"))
    ```
    `build_summary()` reads `experiment_summary.yaml` to extract metadata (model, dataset_size, epochs, batch_size, date) and wraps the job list in the summary format. `save_summary()` writes the JSON file.
 7. Write the `format_compute_table` output into `report.md` yourself — as an

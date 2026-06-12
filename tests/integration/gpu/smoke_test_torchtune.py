@@ -8,7 +8,7 @@ Usage:
     python tests/integration/gpu/smoke_test_torchtune.py
 
 Environment variables:
-    CK_MODELS_DIR: Path to pretrained models (default: /scratch/gpfs/MSALGANIK/pretrained-llms)
+    CK_MODELS_DIRECTORY: Path to pretrained models (default: /scratch/gpfs/MSALGANIK/pretrained-llms)
 """
 
 import os
@@ -20,7 +20,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
 SETUP_FINETUNE = REPO_ROOT / "src" / "tools" / "torchtune" / "setup_finetune.py"
 DATA_PATH = REPO_ROOT / "tests" / "fixtures" / "words_5L_80P_50.json"
-MODELS_DIR = os.environ.get("CK_MODELS_DIR", "/scratch/gpfs/MSALGANIK/pretrained-llms")
+MODELS_DIRECTORY = os.environ.get(
+    "CK_MODELS_DIRECTORY", "/scratch/gpfs/MSALGANIK/pretrained-llms"
+)
 MODEL_NAME = "Llama-3.2-1B-Instruct"
 MAX_STEPS = 10
 
@@ -37,8 +39,8 @@ def run_command(cmd, cwd=None, label="command"):
 
 def main():
     with tempfile.TemporaryDirectory(prefix="ck-torchtune-smoke-") as tmpdir:
-        work_dir = Path(tmpdir)
-        output_dir = work_dir / "output"
+        work_directory = Path(tmpdir)
+        output_dir = work_directory / "output"
         output_dir.mkdir()
 
         # Step 1: Scaffold config
@@ -59,12 +61,12 @@ def main():
                 str(REPO_ROOT / "tests" / "fixtures"),
                 "--input_formatting",
                 "",
-                "--project_dir",
+                "--project_directory",
                 str(output_dir),
                 "--experiment_name",
                 "smoke_test",
-                "--models_dir",
-                MODELS_DIR,
+                "--models_directory",
+                MODELS_DIRECTORY,
                 "--my_wandb_run_name",
                 "torchtune_smoke_test",
                 "--batch_size",
@@ -80,11 +82,11 @@ def main():
                 "--system_prompt",
                 "You are a helpful assistant.",
             ],
-            cwd=work_dir,
+            cwd=work_directory,
             label="setup_finetune.py",
         )
 
-        finetune_yaml = work_dir / "finetune.yaml"
+        finetune_yaml = work_directory / "finetune.yaml"
         assert finetune_yaml.exists(), "finetune.yaml not generated"
         print("PASS: scaffolding")
 
@@ -98,13 +100,13 @@ def main():
                 "--config",
                 "finetune.yaml",
             ],
-            cwd=work_dir,
+            cwd=work_directory,
             label="tune run",
         )
         print("PASS: torchtune training")
 
         # Step 3: Verify checkpoint exists and is non-empty
-        # setup_finetune.py creates output under project_dir/{experiment_name}/{run_name}/artifacts/
+        # setup_finetune.py creates output under project_directory/{experiment_name}/{run_name}/artifacts/
         artifacts_dirs = list(output_dir.glob("smoke_test/*/artifacts"))
         assert len(artifacts_dirs) > 0, (
             f"No */artifacts directory found in {output_dir}/smoke_test/"

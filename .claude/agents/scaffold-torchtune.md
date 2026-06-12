@@ -26,7 +26,7 @@ When invoked:
 4. **Identify varying parameters** — Determine which parameters change across runs (for directory naming).
 5. **For each fine-tuning run, build `setup_finetune.yaml` in two passes (in this order):**
    1. **Call `propagate_train_fields(experiment_summary, setup_finetune)` first** to populate experiment-wide controls (see "Key Pattern: Propagate First" below).
-   2. **Then** layer in per-run judgment fields (paths, `model_checkpoint`, varying `lora_rank` / `lr`, `custom_recipe` choice, `project_dir`, etc.). Propagation is idempotent — your per-run overrides win.
+   2. **Then** layer in per-run judgment fields (paths, `model_checkpoint`, varying `lora_rank` / `lr`, `custom_recipe` choice, `project_directory`, etc.). Propagation is idempotent — your per-run overrides win.
    3. **Apply the `text_completion` exception**: if `dataset_type` is `text_completion`, `pop("system_prompt", None)` from `setup_finetune` (base models have no chat template — the propagated value has nowhere to go).
    4. Write `setup_finetune.yaml` to disk.
 6. **EXECUTE `setup_finetune.py` AUTOMATICALLY using conda run** for each run — this generates `finetune.yaml` and `finetune.slurm`. Do NOT create helper scripts for the user to run manually. The scaffolding is INCOMPLETE without finetune.yaml and finetune.slurm files.
@@ -174,11 +174,11 @@ Extract environment-specific settings:
 
 **IMPORTANT:** Read `experiment.directory` from experiment_summary.yaml (NOT from claude.local.md).
 
-The directory contains the full path: `{scratch_dir}/ck-projects/{project}/{experiment_name}`
+The directory contains the full path: `{scratch_directory}/ck-projects/{project}/{experiment_name}`
 - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/workflow_test_2025-11-28`
 
 Parse this into two components for setup_finetune.yaml:
-- `project_dir` = everything up to and including the last directory before experiment name
+- `project_directory` = everything up to and including the last directory before experiment name
   - Extract by splitting on `/` and taking all but the last component, then rejoining with `/` and adding trailing `/`
   - Example: `/scratch/gpfs/MSALGANIK/sarahep/ck-projects/{project}/`
 - `experiment_name` = the final directory component
@@ -202,10 +202,10 @@ For each run, create a `setup_finetune.yaml` file by:
          experiment["data"]["data_generation"],
          run["training_condition"],
          "train",
-         f"{scratch_dir}/ck-data/generated",   # same directory convert.py writes to
+         f"{scratch_directory}/ck-data/generated",   # same directory convert.py writes to
      )
      ```
-   - This returns `{scratch_dir}/ck-data/generated/{condition}_train_{hash8}.json` — the exact file convert.py produces for the same `data_generation` block.
+   - This returns `{scratch_directory}/ck-data/generated/{condition}_train_{hash8}.json` — the exact file convert.py produces for the same `data_generation` block.
    - Extract `dataset_label` from the filename stem, `dataset_ext` from the extension, and `input_dir_base` from the parent directory as for the literal-path case below.
    - Set `input_formatting: ''`.
    - Log the resolved path into `logs/scaffold-torchtune.log` so the audit trail captures exactly which file backed this run.
@@ -263,7 +263,7 @@ log_every_n_steps: {use template default, typically 1}
 run_val_every_n_steps: {50 if controls.validation_during_training else 0}
 
 # Output configuration
-project_dir: {parsed from experiment.directory}
+project_directory: {parsed from experiment.directory}
 experiment_name: {parsed from experiment.directory}
 conda_env: {from claude.local.md}
 
@@ -307,7 +307,7 @@ if dataset_type in ("text_completion", "text_completion_dataset"):
     setup_finetune.pop("system_prompt", None)
 ```
 
-5. **Write file** to `{experiment_dir}/{run_directory_name}/setup_finetune.yaml`
+5. **Write file** to `{experiment_directory}/{run_directory_name}/setup_finetune.yaml`
 
 **Reporting:** name the `propagate_train_fields()` call and the field count;
 don't tabulate the propagated values per-field — they weren't decisions.
@@ -316,7 +316,7 @@ don't tabulate the propagated values per-field — they weren't decisions.
 - Use absolute paths for robustness (e.g., `/scratch/gpfs/MSALGANIK/niznik/GitHub/cruijff_kit/...`) rather than relative paths
 - WandB project: Prefer using `my_wandb_project` from `claude.local.md` for consistency
 - Learning rate format: Keep scientific notation format from experiment summary (1e-5, 5e-5, etc.)
-- Output directory: Parse `experiment.directory` from experiment_summary.yaml to extract both `project_dir` and `experiment_name` components
+- Output directory: Parse `experiment.directory` from experiment_summary.yaml to extract both `project_directory` and `experiment_name` components
 
 ### Running setup_finetune.py
 
@@ -328,7 +328,7 @@ For each run directory:
 
 1. **Find cruijff_kit location:**
    - Read claude.local.md to find "Working directory" (typically `/home/{username}/cruijff_kit`)
-   - The setup script is at: `{working_dir}/src/tools/torchtune/setup_finetune.py`
+   - The setup script is at: `{working_directory}/src/tools/torchtune/setup_finetune.py`
    - If not found, check current working directory with `pwd` - you're likely already in cruijff_kit
 
 2. **Execute setup script with conda environment:**
@@ -337,7 +337,7 @@ For each run directory:
 
    Instead, use `bash -c` with a single compound command:
    ```bash
-   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {training_samples}"
+   bash -c "cd {experiment_directory}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {training_samples}"
    ```
 
    The `--training_samples` flag enables the training step guard, which computes total training steps and warns if they are dangerously low (e.g., warmup never completes, or fewer than 50 steps total).
@@ -348,7 +348,7 @@ For each run directory:
 
    **With compute estimates** (when `runs[].compute` block exists):
    ```bash
-   bash -c "cd {experiment_dir}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train} --time {compute.time} --gpus {compute.gpus} --mem {compute.mem} --cpus_per_task {compute.cpus_per_task}"
+   bash -c "cd {experiment_directory}/{run_directory_name} && conda run -n cruijff python {cruijff_kit_path}/src/tools/torchtune/setup_finetune.py --training_samples {data.training.splits.train} --time {compute.time} --gpus {compute.gpus} --mem {compute.mem} --cpus_per_task {compute.cpus_per_task}"
    ```
 
    **Example (without compute estimates):**
@@ -390,7 +390,7 @@ For each run directory:
 
 **Common locations:**
 - `/home/{username}/cruijff_kit/` (typical user setup)
-- `{scratch_dir}/GitHub/cruijff_kit/` (some users)
+- `{scratch_directory}/GitHub/cruijff_kit/` (some users)
 
 **If script fails with path issues:**
 - Try: `python src/tools/torchtune/setup_finetune.py` (relative path if you're in the right place)
@@ -443,7 +443,7 @@ You MUST:
 
 ## Logging
 
-Create a detailed log file at `{experiment_dir}/logs/scaffold-torchtune.log`:
+Create a detailed log file at `{experiment_directory}/logs/scaffold-torchtune.log`:
 
 ### Log Format
 
@@ -478,7 +478,7 @@ Details: Read experiment_summary.yaml structure
 Result: Found 8 fine-tuned runs, 1 control run
 Configuration: epochs=1, batch_size=4, system_prompt=""
 
-[2025-10-24 16:30:10] CREATE_RUN_DIR: rank8_lr1e-5
+[2025-10-24 16:30:10] CREATE_RUN_DIRECTORY: rank8_lr1e-5
 Details: mkdir /scratch/gpfs/MSALGANIK/niznik/cap_4L_lora_lr_sweep_2025-10-22/rank8_lr1e-5
 Result: Directory created successfully
 
@@ -558,7 +558,7 @@ Know where to find parameters in finetune.yaml:
 For each run directory, extract and compare parameters:
 
 ```bash
-for dir in rank*/; do
+for directory in rank*/; do
   dir_clean=${dir%/}
 
   # Extract expected values from directory name

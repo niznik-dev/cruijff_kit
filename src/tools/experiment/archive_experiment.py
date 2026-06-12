@@ -4,7 +4,7 @@ Archive a completed experiment, preserving all experiment files and deleting
 only bulk checkpoint artifacts.
 
 Usage:
-    python archive_experiment.py <experiment_dir> [--dry-run] [--force] [--archive-base <path>]
+    python archive_experiment.py <experiment_directory> [--dry-run] [--force] [--archive-base <path>]
 
 Keeps: entire experiment directory (configs, SLURM scripts, eval logs, exploration, etc.)
 Deletes: model checkpoint directories ({run_name}/artifacts/)
@@ -19,7 +19,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from cruijff_kit.utils.layout import ARTIFACTS_DIR
+from cruijff_kit.utils.layout import ARTIFACTS_DIRECTORY
 
 try:
     import yaml
@@ -52,12 +52,12 @@ def _bytes_to_mb(b):
     return round(b / (1024 * 1024), 1)
 
 
-def inventory_experiment(experiment_dir):
+def inventory_experiment(experiment_directory):
     """
     Categorize all experiment files as KEEP or DELETE.
 
     Args:
-        experiment_dir: Path to the experiment directory (contains {run_name}/artifacts/ dirs).
+        experiment_directory: Path to the experiment directory (contains {run_name}/artifacts/ dirs).
 
     Returns:
         Dictionary with:
@@ -70,13 +70,13 @@ def inventory_experiment(experiment_dir):
         - incomplete_runs: list of run names missing eval logs
         - findings_source: str or None (path to best findings source)
     """
-    exp_dir = Path(experiment_dir)
-    summary_path = exp_dir / "experiment_summary.yaml"
+    exp_directory = Path(experiment_directory)
+    summary_path = exp_directory / "experiment_summary.yaml"
 
     if not summary_path.exists():
         return {
             "status": "error",
-            "message": f"experiment_summary.yaml not found in {experiment_dir}",
+            "message": f"experiment_summary.yaml not found in {experiment_directory}",
         }
 
     try:
@@ -88,7 +88,7 @@ def inventory_experiment(experiment_dir):
             "message": f"Failed to parse experiment_summary.yaml: {e}",
         }
 
-    experiment_name = config.get("experiment", {}).get("name", exp_dir.name)
+    experiment_name = config.get("experiment", {}).get("name", exp_directory.name)
     runs = config.get("runs", [])
     run_names = [r["name"] for r in runs]
     eval_matrix = config.get("evaluation", {}).get("matrix", [])
@@ -100,12 +100,16 @@ def inventory_experiment(experiment_dir):
     # ~/.cache that we never want to dereference into the archive.
     run_name_set = set(run_names)
     keep_files = []
-    for f in sorted(exp_dir.rglob("*")):
+    for f in sorted(exp_directory.rglob("*")):
         if f.is_symlink() or not f.is_file():
             continue
-        rel = f.relative_to(exp_dir)
+        rel = f.relative_to(exp_directory)
         parts = rel.parts
-        if len(parts) >= 2 and parts[0] in run_name_set and parts[1] == ARTIFACTS_DIR:
+        if (
+            len(parts) >= 2
+            and parts[0] in run_name_set
+            and parts[1] == ARTIFACTS_DIRECTORY
+        ):
             continue
         keep_files.append(
             {
@@ -117,22 +121,22 @@ def inventory_experiment(experiment_dir):
 
     # Resolve findings.md source (for reporting which file serves as findings)
     findings_source = None
-    if (exp_dir / "findings.md").exists():
-        findings_source = str(exp_dir / "findings.md")
-    elif (exp_dir / "exploration" / "report.md").exists():
-        findings_source = str(exp_dir / "exploration" / "report.md")
-    elif (exp_dir / "summary.md").exists():
-        findings_source = str(exp_dir / "summary.md")
+    if (exp_directory / "findings.md").exists():
+        findings_source = str(exp_directory / "findings.md")
+    elif (exp_directory / "exploration" / "report.md").exists():
+        findings_source = str(exp_directory / "exploration" / "report.md")
+    elif (exp_directory / "summary.md").exists():
+        findings_source = str(exp_directory / "summary.md")
 
     # --- DELETE paths: only checkpoint directories ---
     delete_paths = []
     for run_name in run_names:
-        out_dir = exp_dir / run_name / ARTIFACTS_DIR
-        if out_dir.exists():
+        out_directory = exp_directory / run_name / ARTIFACTS_DIRECTORY
+        if out_directory.exists():
             delete_paths.append(
                 {
-                    "path": str(out_dir),
-                    "size_bytes": _dir_size_bytes(out_dir),
+                    "path": str(out_directory),
+                    "size_bytes": _dir_size_bytes(out_directory),
                     "description": f"Model checkpoints for {run_name}",
                 }
             )
@@ -143,8 +147,10 @@ def inventory_experiment(experiment_dir):
     incomplete_runs = []
     for entry in eval_matrix:
         run_name = entry.get("run")
-        eval_dir = exp_dir / run_name / "eval"
-        if not eval_dir.exists() or not list(eval_dir.glob("*/logs/*.eval")):
+        eval_directory = exp_directory / run_name / "eval"
+        if not eval_directory.exists() or not list(
+            eval_directory.glob("*/logs/*.eval")
+        ):
             incomplete_runs.append(run_name)
 
     keep_total = sum(kf["size_bytes"] for kf in keep_files)
@@ -163,23 +169,23 @@ def inventory_experiment(experiment_dir):
     }
 
 
-def create_archive(archive_dir, inventory):
+def create_archive(archive_directory, inventory):
     """
     Copy KEEP files to the archive directory.
 
     Args:
-        archive_dir: Destination archive directory path.
+        archive_directory: Destination archive directory path.
         inventory: Result from inventory_experiment().
 
     Returns:
         Dictionary with copy results.
     """
-    archive = Path(archive_dir)
+    archive = Path(archive_directory)
 
     if archive.exists():
         return {
             "status": "error",
-            "message": f"Archive directory already exists: {archive_dir}",
+            "message": f"Archive directory already exists: {archive_directory}",
         }
 
     copied = []
@@ -200,22 +206,22 @@ def create_archive(archive_dir, inventory):
         "status": "success" if not errors else "partial",
         "copied": copied,
         "errors": errors,
-        "archive_dir": str(archive),
+        "archive_directory": str(archive),
     }
 
 
-def verify_archive(archive_dir, inventory):
+def verify_archive(archive_directory, inventory):
     """
     Verify all expected files exist in the archive with correct sizes.
 
     Args:
-        archive_dir: Path to the archive directory.
+        archive_directory: Path to the archive directory.
         inventory: Result from inventory_experiment().
 
     Returns:
         Dictionary with verification results.
     """
-    archive = Path(archive_dir)
+    archive = Path(archive_directory)
     missing = []
     size_mismatches = []
 
@@ -240,12 +246,12 @@ def verify_archive(archive_dir, inventory):
     }
 
 
-def delete_originals(experiment_dir, run_names):
+def delete_originals(experiment_directory, run_names):
     """
     Remove the experiment directory and its checkpoint directories.
 
     Args:
-        experiment_dir: Path to the experiment directory.
+        experiment_directory: Path to the experiment directory.
         run_names: List of run names.
 
     Returns:
@@ -255,29 +261,29 @@ def delete_originals(experiment_dir, run_names):
     errors = []
     freed_bytes = 0
 
-    exp_dir = Path(experiment_dir)
+    exp_directory = Path(experiment_directory)
 
     # Delete checkpoint directories (the big ones)
     for run_name in run_names:
-        out_dir = exp_dir / run_name / ARTIFACTS_DIR
-        if out_dir.exists():
-            size = _dir_size_bytes(out_dir)
+        out_directory = exp_directory / run_name / ARTIFACTS_DIRECTORY
+        if out_directory.exists():
+            size = _dir_size_bytes(out_directory)
             try:
-                shutil.rmtree(str(out_dir))
-                deleted.append(str(out_dir))
+                shutil.rmtree(str(out_directory))
+                deleted.append(str(out_directory))
                 freed_bytes += size
             except Exception as e:
-                errors.append({"path": str(out_dir), "error": str(e)})
+                errors.append({"path": str(out_directory), "error": str(e)})
 
     # Delete experiment directory (now archived)
-    if exp_dir.exists():
-        size = _dir_size_bytes(exp_dir)
+    if exp_directory.exists():
+        size = _dir_size_bytes(exp_directory)
         try:
-            shutil.rmtree(str(exp_dir))
-            deleted.append(str(exp_dir))
+            shutil.rmtree(str(exp_directory))
+            deleted.append(str(exp_directory))
             freed_bytes += size
         except Exception as e:
-            errors.append({"path": str(exp_dir), "error": str(e)})
+            errors.append({"path": str(exp_directory), "error": str(e)})
 
     return {
         "status": "success" if not errors else "partial",
@@ -287,12 +293,12 @@ def delete_originals(experiment_dir, run_names):
     }
 
 
-def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False):
+def archive_experiment(experiment_directory, archive_base, dry_run=False, force=False):
     """
     Main orchestrator: inventory, archive, verify, delete.
 
     Args:
-        experiment_dir: Path to the experiment directory.
+        experiment_directory: Path to the experiment directory.
         archive_base: Base path for archives. The archive lands at
             {archive_base}/{project}/{experiment_name}/, where project is
             read from experiment.project in experiment_summary.yaml.
@@ -308,18 +314,18 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
             "message": "PyYAML not installed. Run: pip install pyyaml",
         }
 
-    exp_dir = Path(experiment_dir)
-    if not exp_dir.exists():
+    exp_directory = Path(experiment_directory)
+    if not exp_directory.exists():
         return {
             "status": "error",
-            "message": f"Experiment directory not found: {experiment_dir}",
+            "message": f"Experiment directory not found: {experiment_directory}",
         }
 
-    summary_path = exp_dir / "experiment_summary.yaml"
+    summary_path = exp_directory / "experiment_summary.yaml"
     if not summary_path.exists():
         return {
             "status": "error",
-            "message": f"experiment_summary.yaml not found in {experiment_dir}",
+            "message": f"experiment_summary.yaml not found in {experiment_directory}",
         }
 
     # Parse and validate required experiment fields
@@ -347,7 +353,7 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
         }
 
     # Inventory
-    inventory = inventory_experiment(str(exp_dir))
+    inventory = inventory_experiment(str(exp_directory))
     if inventory["status"] != "success":
         return inventory
 
@@ -360,7 +366,7 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
         }
 
     experiment_name = inventory["experiment_name"]
-    archive_dir = str(Path(archive_base) / project / experiment_name)
+    archive_directory = str(Path(archive_base) / project / experiment_name)
 
     if dry_run:
         return {
@@ -375,35 +381,35 @@ def archive_experiment(experiment_dir, archive_base, dry_run=False, force=False)
                 "checkpoint_dirs": len(inventory["delete_paths"]),
                 "size_mb": _bytes_to_mb(inventory["delete_total_bytes"]),
             },
-            "archive_path": archive_dir,
+            "archive_path": archive_directory,
             "incomplete_runs": inventory["incomplete_runs"],
             "findings_source": inventory["findings_source"],
         }
 
     # Create archive
-    copy_result = create_archive(archive_dir, inventory)
+    copy_result = create_archive(archive_directory, inventory)
     if copy_result["status"] == "error":
         return copy_result
 
     # Verify
-    verify_result = verify_archive(archive_dir, inventory)
+    verify_result = verify_archive(archive_directory, inventory)
     if verify_result["status"] != "success":
         return {
             "status": "error",
             "message": "Archive verification failed. Originals NOT deleted.",
             "missing": verify_result["missing"],
             "size_mismatches": verify_result["size_mismatches"],
-            "archive_dir": archive_dir,
+            "archive_directory": archive_directory,
         }
 
     # Delete originals (checkpoints + experiment dir, now archived)
-    delete_result = delete_originals(str(exp_dir), inventory["runs"])
+    delete_result = delete_originals(str(exp_directory), inventory["runs"])
 
     return {
         "status": "success",
         "mode": "archive",
         "experiment": experiment_name,
-        "archive_dir": archive_dir,
+        "archive_directory": archive_directory,
         "kept": {
             "files": len(copy_result["copied"]),
             "size_mb": _bytes_to_mb(inventory["keep_total_bytes"]),
@@ -422,7 +428,7 @@ def main():
         description="Archive a completed experiment, preserving all experiment "
         "files and deleting only checkpoint directories."
     )
-    parser.add_argument("experiment_dir", help="Path to the experiment directory")
+    parser.add_argument("experiment_directory", help="Path to the experiment directory")
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -449,13 +455,13 @@ def main():
     # grandparent dir. For {scratch}/ck-projects/{project}/{exp}/ this lands
     # at {scratch}/ck-archive/{exp}/.
     if args.archive_base is None:
-        exp_parent = Path(args.experiment_dir).resolve().parent
+        exp_parent = Path(args.experiment_directory).resolve().parent
         archive_base = str(exp_parent.parent.parent / "ck-archive")
     else:
         archive_base = args.archive_base
 
     result = archive_experiment(
-        args.experiment_dir,
+        args.experiment_directory,
         archive_base,
         dry_run=args.dry_run,
         force=args.force,

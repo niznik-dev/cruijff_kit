@@ -92,7 +92,7 @@ You'll need a model to fine-tune and evaluate. Here's how to get one via torchtu
 tune download meta-llama/<model_name> --output-dir <shared_location>/pretrained-llms/<model_name> --hf-token <hf-token>
 ```
 
-Set `models_dir` in your `claude.local.md` to point to `<shared_location>/pretrained-llms/`.
+Set `models_directory` in your `claude.local.md` to point to `<shared_location>/pretrained-llms/`.
 
 See [SUPPORTED_MODELS.md](docs/SUPPORTED_MODELS.md) for the full list of supported models and their resource requirements.
 

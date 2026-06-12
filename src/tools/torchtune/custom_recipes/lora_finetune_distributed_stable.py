@@ -141,7 +141,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._is_rank_zero = self.rank == 0
 
         # logging attributes
-        self._output_dir = cfg.output_dir
+        self._output_directory = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 

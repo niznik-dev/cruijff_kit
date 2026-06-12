@@ -121,7 +121,7 @@ The canonical spec. Schema is documented in `generation.md`. Top level contains:
 - `experiments` (footer credit, name-only)
 - `questions` array
 - `full_writeup_md` — the verbatim contents of `exploration/report.md`
-- `full_writeup_image_dir` — absolute path to `exploration/` so the renderer can resolve image refs
+- `full_writeup_image_directory` — absolute path to `exploration/` so the renderer can resolve image refs
 - `experiment_summary_yaml` — the verbatim contents of `experiment_summary.yaml`
 
 How the renderer places these:
@@ -134,15 +134,15 @@ Always include all three fields.
 
 ```bash
 python -m cruijff_kit.tools.quiz.render_quiz \
-  --spec {experiment_dir}/quiz/quiz.json \
-  --out {experiment_dir}/quiz/quiz.html
+  --spec {experiment_directory}/quiz/quiz.json \
+  --out {experiment_directory}/quiz/quiz.html
 ```
 
 The renderer embeds PNGs as base64 (when used) and inlines all CSS/JS so the resulting file is portable — the recipient can open `quiz.html` from a download folder with no server.
 
 ### 7. Logging → `logging.md`
 
-Append to `{experiment_dir}/logs/create-quiz.log`. Action types: `LOCATE_EXPERIMENT`, `PARSE_INPUTS`, `WRITE_INTRO`, `PLAN_QUESTIONS`, `WRITE_SPEC`, `RENDER_HTML`.
+Append to `{experiment_directory}/logs/create-quiz.log`. Action types: `LOCATE_EXPERIMENT`, `PARSE_INPUTS`, `WRITE_INTRO`, `PLAN_QUESTIONS`, `WRITE_SPEC`, `RENDER_HTML`.
 
 ## Why explanations must be self-sufficient
 
@@ -158,7 +158,7 @@ If you can't write a self-sufficient explanation, drop the question.
 After running, the experiment directory will contain:
 
 ```
-{experiment_dir}/
+{experiment_directory}/
 ├── quiz/
 │   ├── quiz.json     # Canonical spec
 │   └── quiz.html     # Self-contained, self-grading
@@ -194,7 +194,7 @@ Before reporting success, verify:
 - ✓ All numerical_estimate questions use percentage form (0–100) for accuracy values and have `min`/`max` set.
 - ✓ No image_read, equation_or_baseline, anomaly_hunt-as-process, or free_text_intuition questions unless the user explicitly asked for them.
 - ✓ `quiz/quiz.html` exists and is self-contained — grep for `(src|href)="http` and confirm the only external references are: the MathJax CDN, the polyfill.io CDN MathJax depends on, and the `github.com/niznik-dev/cruijff_kit` link in the brand banner. Everything else (CSS, JS, images, the full write-up's images, the YAML appendix) is inline / base64.
-- ✓ The `full_writeup_md`, `full_writeup_image_dir`, and `experiment_summary_yaml` fields are populated. Verify the rendered quiz has the two collapsed `<details>` blocks at the bottom and that PNGs from `report.md` got embedded as base64 (grep `data:image/png;base64,` in the writeup section).
+- ✓ The `full_writeup_md`, `full_writeup_image_directory`, and `experiment_summary_yaml` fields are populated. Verify the rendered quiz has the two collapsed `<details>` blocks at the bottom and that PNGs from `report.md` got embedded as base64 (grep `data:image/png;base64,` in the writeup section).
 - ✓ For two-experiment mode: at least one question references both experiments by name.
 - ✓ `logs/create-quiz.log` was appended to.
 
@@ -209,9 +209,9 @@ Experiment: {experiment_name}
 Questions: {N} ({breakdown by type})
 
 Files:
-- {experiment_dir}/quiz/quiz.html   ← open in browser
-- {experiment_dir}/quiz/quiz.json
-- {experiment_dir}/logs/create-quiz.log
+- {experiment_directory}/quiz/quiz.html   ← open in browser
+- {experiment_directory}/quiz/quiz.json
+- {experiment_directory}/logs/create-quiz.log
 ```
 
 End with the absolute path to `quiz.html` on its own line so the user can command-click it.

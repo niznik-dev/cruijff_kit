@@ -26,7 +26,7 @@ Preparation (training) is only needed for runs that train in *this* experiment. 
 
 ```python
 import yaml
-with open(f"{experiment_dir}/experiment_summary.yaml") as f:
+with open(f"{experiment_directory}/experiment_summary.yaml") as f:
     config = yaml.safe_load(f)
 runs = config.get("runs", []) or []
 finetuned_runs = [r for r in runs if isinstance(r, dict) and r.get("type") == "fine-tuned"]
@@ -82,7 +82,7 @@ Before beginning scaffolding, perform **minimal structural validation**:
 
 1. **experiment_summary.yaml exists:**
    ```bash
-   ls {experiment_dir}/experiment_summary.yaml
+   ls {experiment_directory}/experiment_summary.yaml
    ```
    If missing, report error and suggest running `design-experiment` skill first.
    DO NOT launch subagents.
@@ -90,7 +90,7 @@ Before beginning scaffolding, perform **minimal structural validation**:
 2. **experiment_summary.yaml is readable:**
    ```python
    import yaml
-   with open(f"{experiment_dir}/experiment_summary.yaml") as f:
+   with open(f"{experiment_directory}/experiment_summary.yaml") as f:
        config = yaml.safe_load(f)
    ```
    If unreadable or invalid YAML, report error. DO NOT launch subagents.
@@ -163,7 +163,7 @@ I'll launch both the torchtune and inspect-ai scaffolding subagents in parallel.
 If experiment_summary.yaml contains a `data.data_generation` block, run the prepare_data tool before launching any subagents:
 
 ```bash
-python -m cruijff_kit.tools.experiment.prepare_data {experiment_dir}
+python -m cruijff_kit.tools.experiment.prepare_data {experiment_directory}
 ```
 
 **Behavior:**
@@ -220,7 +220,7 @@ Launch the subagent using the Task tool with the prompt template from the agent 
 
 ## Logging
 
-Create an orchestration log at `{experiment_dir}/logs/scaffold-experiment.log` that records the high-level scaffolding process.
+Create an orchestration log at `{experiment_directory}/logs/scaffold-experiment.log` that records the high-level scaffolding process.
 
 **See [logging.md](logging.md) for:**
 - Complete log format specification

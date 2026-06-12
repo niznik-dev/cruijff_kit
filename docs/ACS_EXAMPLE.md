@@ -17,7 +17,7 @@ Before starting, make sure you have:
 3. **A model downloaded** - A list of models supported by cruijff_kit is in [SUPPORTED_MODELS.md](SUPPORTED_MODELS.md). This guide uses Llama-3.2-1B-Instruct as its example, which you can download from HuggingFace:
    ```bash
    tune download meta-llama/Llama-3.2-1B-Instruct \
-       --output-dir <your_models_dir>/Llama-3.2-1B-Instruct \
+       --output-dir <your_models_directory>/Llama-3.2-1B-Instruct \
        --hf-token <your_hf_token>
    ```
 4. **Access to an HPC cluster with GPUs** - cruijff_kit submits jobs via SLURM; by default, it requests one GPU for fine-tuning and evaluation tasks, but this scales with the size of the model and can be adjusted manually in the SLURM scripts generated during scaffolding. 
@@ -40,7 +40,7 @@ python blueprints/folktexts/generate_data.py \
 # Step 2: Convert to condensed format (recommended for fine-tuning)
 python blueprints/folktexts/modifiers/convert_formats.py \
     --input acs_income_verbose_1000_80P.json \
-    --output-dir {ck_data_dir}/folktexts/
+    --output-dir {ck_data_directory}/folktexts/
 ```
 
 This will produce `acs_income_condensed_1000_80P.json` (condensed) and `acs_income_terse_1000_80P.json` (ultra-compact). This guide uses the condensed version. This is an example entry in the outputted json file:
@@ -99,7 +99,7 @@ Example:
 - **Scientific question**: "Does fine-tuning Llama-3.2-1B-Instruct on ACS income data improve income prediction accuracy compared to the base instruct model?"
 - **Runs**: Two runs - one base model evaluation, one fine-tuned with LoRA rank 8
 - **Model**: Llama-3.2-1B-Instruct
-- **Dataset**: `{ck_data_dir}/folktexts/acs_income_condensed_1000_80P.json` (or whatever dataset size you choose to generate above)
+- **Dataset**: `{ck_data_directory}/folktexts/acs_income_condensed_1000_80P.json` (or whatever dataset size you choose to generate above)
 - **Evaluation task**: `acs_income` (from `blueprints/folktexts/inspect_task.py`)
 - **Epochs**: 1
 - **Scorers**: `match` (output from model will be correct if it exactly matches `0` or `1`)

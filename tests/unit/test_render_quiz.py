@@ -30,7 +30,7 @@ def _tiny_png() -> bytes:
 
 
 @pytest.fixture
-def fixture_dir(tmp_path: Path) -> Path:
+def fixture_directory(tmp_path: Path) -> Path:
     png_path = tmp_path / "headline.png"
     png_path.write_bytes(_tiny_png())
 
@@ -111,14 +111,14 @@ def fixture_dir(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def test_render_writes_file(fixture_dir: Path):
-    out = render(fixture_dir / "quiz.json", fixture_dir / "quiz.html")
+def test_render_writes_file(fixture_directory: Path):
+    out = render(fixture_directory / "quiz.json", fixture_directory / "quiz.html")
     assert out.exists()
     assert out.stat().st_size > 0
 
 
-def test_html_contains_each_prompt(fixture_dir: Path):
-    out = render(fixture_dir / "quiz.json", fixture_dir / "quiz.html")
+def test_html_contains_each_prompt(fixture_directory: Path):
+    out = render(fixture_directory / "quiz.json", fixture_directory / "quiz.html")
     html = out.read_text()
     assert "Pick the right one." in html
     assert "Predict accuracy at k=50, N=500" in html
@@ -128,26 +128,26 @@ def test_html_contains_each_prompt(fixture_dir: Path):
     assert "What would you do next?" in html
 
 
-def test_png_embedded_as_base64(fixture_dir: Path):
-    out = render(fixture_dir / "quiz.json", fixture_dir / "quiz.html")
+def test_png_embedded_as_base64(fixture_directory: Path):
+    out = render(fixture_directory / "quiz.json", fixture_directory / "quiz.html")
     html = out.read_text()
     # Must contain a base64-encoded PNG; must not contain the original path
     assert "data:image/png;base64," in html
-    assert str(fixture_dir / "headline.png") not in html
+    assert str(fixture_directory / "headline.png") not in html
     # The base64 should decode to the same bytes we wrote
     encoded = html.split("data:image/png;base64,")[1].split('"')[0].split("'")[0]
     decoded = base64.b64decode(encoded)
     assert decoded.startswith(b"\x89PNG")
 
 
-def test_mathjax_loaded_when_equations_present(fixture_dir: Path):
-    out = render(fixture_dir / "quiz.json", fixture_dir / "quiz.html")
+def test_mathjax_loaded_when_equations_present(fixture_directory: Path):
+    out = render(fixture_directory / "quiz.json", fixture_directory / "quiz.html")
     html = out.read_text()
     assert "MathJax" in html  # CDN script should be present
 
 
-def test_no_external_refs_except_whitelisted(fixture_dir: Path):
-    out = render(fixture_dir / "quiz.json", fixture_dir / "quiz.html")
+def test_no_external_refs_except_whitelisted(fixture_directory: Path):
+    out = render(fixture_directory / "quiz.json", fixture_directory / "quiz.html")
     html = out.read_text()
     # External http(s) refs must be on the whitelist:
     #   - MathJax CDN + its polyfill dependency (only if intro/questions use math)
@@ -240,8 +240,8 @@ def test_needs_mathjax_detection():
     )
 
 
-def test_questions_json_embedded_for_grading(fixture_dir: Path):
-    out = render(fixture_dir / "quiz.json", fixture_dir / "quiz.html")
+def test_questions_json_embedded_for_grading(fixture_directory: Path):
+    out = render(fixture_directory / "quiz.json", fixture_directory / "quiz.html")
     html = out.read_text()
     assert "const QUESTIONS = " in html
     # All question ids should appear in the embedded JSON
@@ -249,8 +249,8 @@ def test_questions_json_embedded_for_grading(fixture_dir: Path):
         assert f'"{qid}"' in html
 
 
-def test_intro_renders_markdown(fixture_dir: Path):
-    out = render(fixture_dir / "quiz.json", fixture_dir / "quiz.html")
+def test_intro_renders_markdown(fixture_directory: Path):
+    out = render(fixture_directory / "quiz.json", fixture_directory / "quiz.html")
     html = out.read_text()
     # The intro had `## Setup`, `**markdown**`, and a code span — all should render
     assert "<h2>Setup</h2>" in html
@@ -258,8 +258,8 @@ def test_intro_renders_markdown(fixture_dir: Path):
     assert "<code>1 2 3</code>" in html
 
 
-def test_numeric_input_has_min_max(fixture_dir: Path):
-    out = render(fixture_dir / "quiz.json", fixture_dir / "quiz.html")
+def test_numeric_input_has_min_max(fixture_directory: Path):
+    out = render(fixture_directory / "quiz.json", fixture_directory / "quiz.html")
     html = out.read_text()
     # Q2 has min=0, max=100 in spec; the rendered input should carry them as attrs
     import re
@@ -271,8 +271,8 @@ def test_numeric_input_has_min_max(fixture_dir: Path):
     assert 'max="100"' in tag
 
 
-def test_experiments_rendered_after_questions(fixture_dir: Path):
-    out = render(fixture_dir / "quiz.json", fixture_dir / "quiz.html")
+def test_experiments_rendered_after_questions(fixture_directory: Path):
+    out = render(fixture_directory / "quiz.json", fixture_directory / "quiz.html")
     html = out.read_text()
     # Footer credit must appear AFTER the form close tag
     form_close = html.find("</form>")
@@ -283,16 +283,16 @@ def test_experiments_rendered_after_questions(fixture_dir: Path):
     )
 
 
-def test_experiments_no_research_question(fixture_dir: Path):
-    out = render(fixture_dir / "quiz.json", fixture_dir / "quiz.html")
+def test_experiments_no_research_question(fixture_directory: Path):
+    out = render(fixture_directory / "quiz.json", fixture_directory / "quiz.html")
     html = out.read_text()
     # Even if a fixture had research_question, the template should never render it
     assert "research_question" not in html
     assert "Research question" not in html
 
 
-def test_explanation_html_in_questions_json(fixture_dir: Path):
-    out = render(fixture_dir / "quiz.json", fixture_dir / "quiz.html")
+def test_explanation_html_in_questions_json(fixture_directory: Path):
+    out = render(fixture_directory / "quiz.json", fixture_directory / "quiz.html")
     html = out.read_text()
     # explanation_html (markdown-rendered) should appear in the embedded JSON for JS grading
     assert "explanation_html" in html
@@ -300,8 +300,8 @@ def test_explanation_html_in_questions_json(fixture_dir: Path):
     assert "<strong>B = 0.42</strong>" in html
 
 
-def test_brand_banner_with_link(fixture_dir: Path):
-    out = render(fixture_dir / "quiz.json", fixture_dir / "quiz.html")
+def test_brand_banner_with_link(fixture_directory: Path):
+    out = render(fixture_directory / "quiz.json", fixture_directory / "quiz.html")
     html = out.read_text()
     assert 'class="brand"' in html
     assert "github.com/niznik-dev/cruijff_kit" in html
@@ -333,7 +333,7 @@ def test_writeup_appendix_renders_with_embedded_image(tmp_path: Path):
             "![Headline plot](headline.png)\n\n"
             "| col | val |\n|---|---|\n| a | 1 |\n"
         ),
-        "full_writeup_image_dir": str(tmp_path),
+        "full_writeup_image_directory": str(tmp_path),
     }
     spec_path = tmp_path / "quiz.json"
     spec_path.write_text(json.dumps(spec))
@@ -455,7 +455,7 @@ def test_writeup_hidden_until_finalize(tmp_path: Path):
             }
         ],
         "full_writeup_md": "## Results\n\nHeadline 100%.",
-        "full_writeup_image_dir": str(tmp_path),
+        "full_writeup_image_directory": str(tmp_path),
     }
     spec_path = tmp_path / "quiz.json"
     spec_path.write_text(json.dumps(spec))

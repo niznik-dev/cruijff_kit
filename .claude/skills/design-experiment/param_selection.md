@@ -22,13 +22,13 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 
 1. Read the **Scratch directory** field from `claude.local.md`
 2. Determine the `project` — this matches a blueprint directory under `blueprints/` (e.g. `capitalization`, `folktexts`, `model_organisms`). Ask the user if ambiguous.
-3. Derive the experiment directory: `{scratch_dir}/ck-projects/{project}/{experiment_name}/`
+3. Derive the experiment directory: `{scratch_directory}/ck-projects/{project}/{experiment_name}/`
 4. Outputs nest inside the experiment directory (configs, checkpoints, logs, eval results are all co-located per run).
 
 ### Directory Structure
 
 ```
-{scratch_dir}/ck-projects/{project}/{experiment_name}/
+{scratch_directory}/ck-projects/{project}/{experiment_name}/
 ├── {run_name_1}/
 │   ├── setup_finetune.yaml
 │   ├── finetune.yaml
@@ -126,7 +126,7 @@ If the user chooses `context_placement: system_prompt`, the data_generation cont
 - **torchtune** (currently the only option)
   - Used by: `scaffold-experiment` and `run-experiment` skills
   - Generates: `finetune.yaml`, `finetune.slurm`
-  - Produces: Model checkpoints in `{experiment_dir}/{run_name}/artifacts/`
+  - Produces: Model checkpoints in `{experiment_directory}/{run_name}/artifacts/`
 - *Future:* Other fine-tuning frameworks may be supported
 
 **Evaluation (Evaluator):**
@@ -158,7 +158,7 @@ The experiment workflow uses two architectural patterns:
 
 ### Which Models?
 - Which model(s) to fine-tune? (e.g., 1B, 3B, 8B)
-- Check `{models_dir}` from `claude.local.md`
+- Check `{models_directory}` from `claude.local.md`
 
 ### Which Dataset?
 - Training dataset location and format
@@ -225,7 +225,7 @@ If user says "yes" (default), add the constraint/partition values from `claude.l
 - Batch sizes - Use GPU memory data from Step 4b to recommend safe batch sizes.
 - Dataset packing - enabled by default, affects batch size
 - If no prior data is available, start conservative (batch_size=4 for 1B, 2 for 3B, 1 for 8B+)
-- For help estimating: check `{scratch_dir}/ck-projects/*/slurm-*.out` for similar runs
+- For help estimating: check `{scratch_directory}/ck-projects/*/slurm-*.out` for similar runs
 - **Consult past compute utilization analyses** - If previous experiments have `exploration/compute_metrics.json` or a compute section in `report.md`, use that data to inform time limits, memory allocations, and GPU resource requests for new runs
 
 ### Generate Runs List
@@ -244,9 +244,9 @@ Estimate SLURM time limits, GPU counts, and memory allocations using `src/tools/
 #### 1. Discovery
 
 Search for `compute_metrics.json` files from past experiments:
-- `{scratch_dir}/ck-projects/*/exploration/compute_metrics.json`
+- `{scratch_directory}/ck-projects/*/exploration/compute_metrics.json`
 
-**Note:** `compute_metrics.json` lives in `{experiment_dir}/exploration/`, NOT in the output directory.
+**Note:** `compute_metrics.json` lives in `{experiment_directory}/exploration/`, NOT in the output directory.
 
 If none found, skip this entire step silently.
 
@@ -265,7 +265,7 @@ Use the `estimate_from_prior()` function from `src/tools/slurm/estimate_compute.
 
 ```python
 import json, sys
-sys.path.insert(0, "{cruijff_kit_dir}/src/tools/slurm")
+sys.path.insert(0, "{cruijff_kit_directory}/src/tools/slurm")
 from compute_summary import load_summary
 from estimate_compute import estimate_from_prior
 
@@ -481,7 +481,7 @@ Use full model names with experimental factors:
 Now that the design is complete, verify all resources exist (use `claude.local.md` for default paths).
 
 ### Models
-**Command:** `ls {models_dir}/{model_name}`
+**Command:** `ls {models_directory}/{model_name}`
 - Verify each model directory exists
 - Note approximate size
 
@@ -501,7 +501,7 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 - If missing, note as prerequisite (may need `create-inspect-task` skill first)
 
 ### Disk Space
-**Command:** `df -h {scratch_dir}`
+**Command:** `df -h {scratch_directory}`
 - Ensure sufficient space for checkpoints
 
 ### If Resources Missing
@@ -561,7 +561,7 @@ Proceed to `experiment_generation.md` to create the files.
 ```
 I'll help you design this experiment. Let me start by understanding what you want to test.
 
-I see you're working in [directory]. I'll create the experiment in: {base_dir}{experiment_name}/
+I see you're working in [directory]. I'll create the experiment in: {base_directory}{experiment_name}/
 
 What scientific question are you trying to answer?
 ```

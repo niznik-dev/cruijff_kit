@@ -9,14 +9,14 @@ This document covers convert-tabular-to-text-specific logging practices.
 ## Log File Location
 
 ```
-{experiment_dir}/logs/convert-tabular-to-text.log
+{experiment_directory}/logs/convert-tabular-to-text.log
 ```
 
 Created during the dataset generation workflow to record all steps, decisions, and validation results.
 
 **If no experiment directory exists** (standalone usage), write the log to:
 ```
-{scratch_dir}/ck-data/generated/logs/convert-tabular-to-text.log
+{scratch_directory}/ck-data/generated/logs/convert-tabular-to-text.log
 ```
 
 ---

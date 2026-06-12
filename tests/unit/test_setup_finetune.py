@@ -8,7 +8,7 @@ from cruijff_kit.tools.torchtune.setup_finetune import (
     calculate_lora_alpha,
     validate_lr_scheduler,
     validate_dataset_type,
-    construct_artifacts_dir,
+    construct_artifacts_directory,
     configure_dataset_for_format,
     extract_flat_params,
     compute_training_steps,
@@ -137,13 +137,13 @@ def test_validate_dataset_type_invalid():
     assert "invalid_dataset" in str(exc_info.value)
 
 
-# Tests for construct_artifacts_dir()
+# Tests for construct_artifacts_directory()
 
 
 def test_construct_artifacts_dir_with_experiment_and_trailing_slash():
     """Test output dir construction with experiment name and trailing slash."""
-    result = construct_artifacts_dir(
-        project_dir="/scratch/output/",
+    result = construct_artifacts_directory(
+        project_directory="/scratch/output/",
         experiment_name="my_experiment",
         model_run_name="run_123",
     )
@@ -152,8 +152,8 @@ def test_construct_artifacts_dir_with_experiment_and_trailing_slash():
 
 def test_construct_artifacts_dir_with_experiment_no_trailing_slash():
     """Test output dir construction with experiment name, no trailing slash."""
-    result = construct_artifacts_dir(
-        project_dir="/scratch/output",
+    result = construct_artifacts_directory(
+        project_directory="/scratch/output",
         experiment_name="my_experiment",
         model_run_name="run_123",
     )
@@ -163,8 +163,8 @@ def test_construct_artifacts_dir_with_experiment_no_trailing_slash():
 def test_construct_artifacts_dir_empty_experiment_name_raises():
     """Empty experiment_name must raise ValueError (legacy fallback retired)."""
     with pytest.raises(ValueError, match="experiment_name is required"):
-        construct_artifacts_dir(
-            project_dir="/scratch/output/",
+        construct_artifacts_directory(
+            project_directory="/scratch/output/",
             experiment_name="",
             model_run_name="run_123",
         )
@@ -173,28 +173,28 @@ def test_construct_artifacts_dir_empty_experiment_name_raises():
 def test_construct_artifacts_dir_none_experiment_name_raises():
     """None experiment_name must raise ValueError (legacy fallback retired)."""
     with pytest.raises(ValueError, match="experiment_name is required"):
-        construct_artifacts_dir(
-            project_dir="/scratch/output/",
+        construct_artifacts_directory(
+            project_directory="/scratch/output/",
             experiment_name=None,
             model_run_name="run_123",
         )
 
 
 def test_construct_artifacts_dir_empty_project_dir_raises():
-    """Empty project_dir must raise, not silently root the path at '/'."""
-    with pytest.raises(ValueError, match="project_dir is required"):
-        construct_artifacts_dir(
-            project_dir="",
+    """Empty project_directory must raise, not silently root the path at '/'."""
+    with pytest.raises(ValueError, match="project_directory is required"):
+        construct_artifacts_directory(
+            project_directory="",
             experiment_name="my_experiment",
             model_run_name="run_123",
         )
 
 
 def test_construct_artifacts_dir_none_project_dir_raises():
-    """None project_dir must raise ValueError, not AttributeError on .endswith."""
-    with pytest.raises(ValueError, match="project_dir is required"):
-        construct_artifacts_dir(
-            project_dir=None,
+    """None project_directory must raise ValueError, not AttributeError on .endswith."""
+    with pytest.raises(ValueError, match="project_directory is required"):
+        construct_artifacts_directory(
+            project_directory=None,
             experiment_name="my_experiment",
             model_run_name="run_123",
         )
@@ -206,8 +206,8 @@ def test_construct_artifacts_dir_none_project_dir_raises():
 def test_configure_dataset_json_instruct_with_validation():
     """Test JSON instruct_dataset format with validation dataset."""
     config = {
-        "dataset": {"data_dir": "/data/my_dataset", "split": "train"},
-        "dataset_val": {"data_dir": "/data/my_dataset", "split": "validation"},
+        "dataset": {"data_directory": "/data/my_dataset", "split": "train"},
+        "dataset_val": {"data_directory": "/data/my_dataset", "split": "validation"},
     }
 
     result = configure_dataset_for_format(
@@ -222,18 +222,18 @@ def test_configure_dataset_json_instruct_with_validation():
     assert result["dataset"]["data_files"] == "/data/my_dataset.json"
     assert result["dataset"]["field"] == "train"
     assert "split" not in result["dataset"]
-    assert "data_dir" not in result["dataset"]
+    assert "data_directory" not in result["dataset"]
 
     assert result["dataset_val"]["source"] == "json"
     assert result["dataset_val"]["data_files"] == "/data/my_dataset.json"
     assert result["dataset_val"]["field"] == "validation"
     assert "split" not in result["dataset_val"]
-    assert "data_dir" not in result["dataset_val"]
+    assert "data_directory" not in result["dataset_val"]
 
 
 def test_configure_dataset_json_instruct_without_validation():
     """Test JSON instruct_dataset format without validation dataset."""
-    config = {"dataset": {"data_dir": "/data/my_dataset", "split": "train"}}
+    config = {"dataset": {"data_directory": "/data/my_dataset", "split": "train"}}
 
     result = configure_dataset_for_format(
         config,
@@ -247,15 +247,15 @@ def test_configure_dataset_json_instruct_without_validation():
     assert result["dataset"]["data_files"] == "/data/my_dataset.json"
     assert result["dataset"]["field"] == "train"
     assert "split" not in result["dataset"]
-    assert "data_dir" not in result["dataset"]
+    assert "data_directory" not in result["dataset"]
     assert "dataset_val" not in result
 
 
 def test_configure_dataset_json_chat_with_validation():
     """Test JSON chat_dataset format with validation dataset."""
     config = {
-        "dataset": {"data_dir": "/data/my_dataset", "split": "train"},
-        "dataset_val": {"data_dir": "/data/my_dataset", "split": "validation"},
+        "dataset": {"data_directory": "/data/my_dataset", "split": "train"},
+        "dataset_val": {"data_directory": "/data/my_dataset", "split": "validation"},
     }
 
     result = configure_dataset_for_format(
@@ -269,17 +269,17 @@ def test_configure_dataset_json_chat_with_validation():
     assert result["dataset"]["source"] == "json"
     assert result["dataset"]["data_files"] == "/data/my_dataset/train.json"
     assert "split" not in result["dataset"]
-    assert "data_dir" not in result["dataset"]
+    assert "data_directory" not in result["dataset"]
 
     assert result["dataset_val"]["source"] == "json"
     assert result["dataset_val"]["data_files"] == "/data/my_dataset/validation.json"
     assert "split" not in result["dataset_val"]
-    assert "data_dir" not in result["dataset_val"]
+    assert "data_directory" not in result["dataset_val"]
 
 
 def test_configure_dataset_json_chat_without_validation():
     """Test JSON chat_dataset format without validation dataset."""
-    config = {"dataset": {"data_dir": "/data/my_dataset", "split": "train"}}
+    config = {"dataset": {"data_directory": "/data/my_dataset", "split": "train"}}
 
     result = configure_dataset_for_format(
         config,
@@ -292,7 +292,7 @@ def test_configure_dataset_json_chat_without_validation():
     assert result["dataset"]["source"] == "json"
     assert result["dataset"]["data_files"] == "/data/my_dataset/train.json"
     assert "split" not in result["dataset"]
-    assert "data_dir" not in result["dataset"]
+    assert "data_directory" not in result["dataset"]
     assert "dataset_val" not in result
 
 

@@ -19,9 +19,9 @@ def setup_yaml(tmp_path):
     """Write a minimal setup_finetune.yaml config."""
     config = {
         "torchtune_model_name": "Llama-3.2-1B-Instruct",
-        "project_dir": str(tmp_path / "outputs"),
+        "project_directory": str(tmp_path / "outputs"),
         "input_dir_base": str(tmp_path / "inputs") + "/",
-        "models_dir": str(tmp_path / "models"),
+        "models_directory": str(tmp_path / "models"),
         "experiment_name": "test_exp",
         "dataset_label": "test_data",
         "dataset_ext": ".json",
@@ -71,9 +71,9 @@ def test_missing_dataset_type_raises(tmp_path, monkeypatch):
     monkeypatch.setenv("USER", "testuser")
     config = {
         "torchtune_model_name": "Llama-3.2-1B-Instruct",
-        "project_dir": str(tmp_path / "outputs"),
+        "project_directory": str(tmp_path / "outputs"),
         "input_dir_base": str(tmp_path / "inputs") + "/",
-        "models_dir": str(tmp_path / "models"),
+        "models_directory": str(tmp_path / "models"),
         "experiment_name": "test_exp",
         "dataset_label": "test_data",
         "dataset_ext": ".json",
@@ -171,11 +171,11 @@ class TestMainYamlGeneration:
 
     def test_input_dir_constructed(self, run_main, tmp_path):
         config, _ = run_main()
-        assert str(tmp_path) in config["input_dir"]
+        assert str(tmp_path) in config["input_directory"]
 
     def test_models_dir_substituted(self, run_main):
         config, _ = run_main()
-        assert "$USER" not in config["models_dir"]
+        assert "$USER" not in config["models_directory"]
 
     def test_checkpoint_dir_set(self, run_main):
         config, _ = run_main()
@@ -270,7 +270,7 @@ class TestMainSlurmGeneration:
 
     def test_output_dir_in_slurm(self, run_main):
         _, slurm = run_main()
-        assert "<OUTPUT_DIR>" not in slurm
+        assert "<OUTPUT_DIRECTORY>" not in slurm
         assert "test_exp" in slurm
 
     def test_mem_replaced(self, run_main):

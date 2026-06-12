@@ -2,7 +2,7 @@
 
 ## quiz.json schema
 
-The canonical spec the renderer consumes. Path: `{experiment_dir}/quiz/quiz.json`.
+The canonical spec the renderer consumes. Path: `{experiment_directory}/quiz/quiz.json`.
 
 ```json
 {
@@ -56,8 +56,8 @@ The canonical spec the renderer consumes. Path: `{experiment_dir}/quiz/quiz.json
 
   // full_writeup_md: rendered as a `<details>` panel hidden until the recipient clicks "See Final Score".
   // Contains the answers; must not be available before submission. Auto-opens after reveal.
-  "full_writeup_md": "raw markdown content of exploration/report.md. The renderer pre-renders it to HTML. Image references like ![alt](headline.png) are resolved against full_writeup_image_dir and base64-embedded so the file remains portable.",
-  "full_writeup_image_dir": "absolute path to the exploration/ directory (the dir containing the PNGs that report.md references)"
+  "full_writeup_md": "raw markdown content of exploration/report.md. The renderer pre-renders it to HTML. Image references like ![alt](headline.png) are resolved against full_writeup_image_directory and base64-embedded so the file remains portable.",
+  "full_writeup_image_directory": "absolute path to the exploration/ directory (the dir containing the PNGs that report.md references)"
 }
 ```
 
@@ -67,8 +67,8 @@ The canonical spec the renderer consumes. Path: `{experiment_dir}/quiz/quiz.json
 
 ```bash
 python -m cruijff_kit.tools.quiz.render_quiz \
-  --spec {experiment_dir}/quiz/quiz.json \
-  --out {experiment_dir}/quiz/quiz.html
+  --spec {experiment_directory}/quiz/quiz.json \
+  --out {experiment_directory}/quiz/quiz.html
 ```
 
 The renderer:
@@ -95,7 +95,7 @@ The HTML contains:
 ## Output layout
 
 ```
-{experiment_dir}/quiz/
+{experiment_directory}/quiz/
 ├── quiz.json     # ~5-50 KB, the canonical spec
 └── quiz.html     # ~50KB-2MB depending on number of embedded images
 ```

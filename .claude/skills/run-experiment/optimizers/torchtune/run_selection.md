@@ -30,7 +30,7 @@ Match job names to run directories to identify already-running jobs.
 
 Look for SLURM output files:
 ```bash
-ls {run_dir}/slurm-*.out 2>/dev/null
+ls {run_directory}/slurm-*.out 2>/dev/null
 ```
 
 If exists, check final status in file.
@@ -38,7 +38,7 @@ If exists, check final status in file.
 ### Check for Existing Checkpoints
 
 ```bash
-ls {experiment_dir}/{run_name}/artifacts/epoch_{N}/ 2>/dev/null
+ls {experiment_directory}/{run_name}/artifacts/epoch_{N}/ 2>/dev/null
 ```
 
 If checkpoint exists, job completed successfully (skip resubmission).

@@ -68,7 +68,7 @@ KNOWN_STRUCTURAL_KEYS = {
     "model_path",
     "model_hf_name",
     "output_dir",
-    "eval_dir",  # auto-derived in load_eval_config
+    "eval_directory",  # auto-derived in load_eval_config
     "max_connections",  # inspect CLI flag, not a -T arg
     "seed",  # inspect --seed CLI flag, rendered by render_template
     "do_sample",  # -M model arg (greedy vs sampling), rendered by render_template
@@ -150,7 +150,7 @@ def create_parser():
 def load_eval_config(config_path):
     """Load and validate eval_config.yaml.
 
-    Returns the config dict with config_path and eval_dir auto-derived.
+    Returns the config dict with config_path and eval_directory auto-derived.
     """
     config_path = Path(config_path).resolve()
     if not config_path.exists():
@@ -159,8 +159,8 @@ def load_eval_config(config_path):
     with open(config_path, "r") as f:
         config = yaml.safe_load(f) or {}
 
-    # Auto-derive eval_dir and config_path from the config file location
-    config["eval_dir"] = str(config_path.parent)
+    # Auto-derive eval_directory and config_path from the config file location
+    config["eval_directory"] = str(config_path.parent)
     config["config_path"] = str(config_path)
 
     # Validate required keys
@@ -325,17 +325,17 @@ def render_template(cli_args, config):
     script = script.replace("<TIME>", cli_args.time)
     script = script.replace("<NETID>", username)
     script = script.replace("<CONDA_ENV>", cli_args.conda_env)
-    script = script.replace("<OUTPUT_DIR>", output_dir)
+    script = script.replace("<OUTPUT_DIRECTORY>", output_dir)
 
     # GPU metrics go to epoch-specific subdir when epoch is set, so
     # concurrent eval jobs don't overwrite each other (or the finetune CSV).
     if epoch is not None:
-        gpu_metrics_dir = f"{output_dir}epoch_{epoch}"
+        gpu_metrics_directory = f"{output_dir}epoch_{epoch}"
     else:
-        gpu_metrics_dir = output_dir.rstrip("/")
-    script = script.replace("<GPU_METRICS_DIR>", gpu_metrics_dir)
+        gpu_metrics_directory = output_dir.rstrip("/")
+    script = script.replace("<GPU_METRICS_DIRECTORY>", gpu_metrics_directory)
 
-    script = script.replace("<EVAL_DIR>", config["eval_dir"])
+    script = script.replace("<EVAL_DIRECTORY>", config["eval_directory"])
     script = script.replace("<TASK_SCRIPT>", config["task_script"])
     script = script.replace("<MODEL_HF_NAME>", config["model_hf_name"])
     script = script.replace("<MODEL_PATH>", config["model_path"])
