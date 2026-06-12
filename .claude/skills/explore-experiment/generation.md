@@ -402,7 +402,7 @@ After generating visualizations and before the report, add compute metrics. This
 
 **Workflow:**
 
-1. Call `harvest_jids_from_run_logs(experiment_dir)` from `src/tools/slurm/compute_metrics.py`. It returns `(jids_dict, warnings)` where `jids_dict` is `{"finetune": [(name, jid), ...], "eval": [(name, jid), ...]}`. The helper already prints `WARNING:` lines to stderr for any missing or malformed log file, mirroring the canonical regexes in `run-experiment/logging.md`. **If `warnings` is non-empty, do not silently skip the section** — append a "**Compute Utilization unavailable:** ..." note to `report.md` listing each warning so the absence is visible to the operator.
+1. Call `harvest_jids_from_run_logs(experiment_dir)` from `src/tools/slurm/compute_gpu_metrics.py`. It returns `(jids_dict, warnings)` where `jids_dict` is `{"finetune": [(name, jid), ...], "eval": [(name, jid), ...]}`. The helper already prints `WARNING:` lines to stderr for any missing or malformed log file, mirroring the canonical regexes in `run-experiment/logging.md`. **If `warnings` is non-empty, do not silently skip the section** — append a "**Compute Utilization unavailable:** ..." note to `report.md` listing each warning so the absence is visible to the operator.
 2. Check if jobstats is available with `check_jobstats_available()`
 3. For each job:
    a. Run `seff {job_id}` and parse with `parse_seff_output()`. If `time_limit` is None (some clusters omit it), run `sacct -j {job_id} --format=Timelimit -P -n` and parse with `parse_sacct_time_limit()`.
@@ -433,7 +433,7 @@ After generating visualizations and before the report, add compute metrics. This
    `harvest_jids_from_run_logs` returned warnings, surface a "**Compute
    Utilization unavailable:** ..." note instead of silently skipping.
 
-**Key functions** from `tools.slurm.compute_metrics`:
+**Key functions** from `tools.slurm.compute_gpu_metrics`:
 - `check_jobstats_available() -> bool` — auto-detect jobstats on PATH
 - `run_jobstats(job_id, json_mode=True) -> dict | str | None` — run jobstats (JSON or text mode), 30s timeout
 - `parse_jobstats_json(js_data: dict) -> dict` — CPU metrics (cores, efficiency, memory) and GPU metrics (`gpu_util_pct`, `gpu_mem_used_gb`, `gpu_mem_total_gb`) from jobstats JSON

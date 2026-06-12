@@ -129,7 +129,7 @@ See `generation.md` → "Report Generation" for the full shape and rationale.
 
 ### 6b. Compute Utilization Report → `generation.md`
 
-Add a compute-utilization appendix. Call `harvest_jids_from_run_logs(experiment_dir)` (from `src/tools/slurm/compute_metrics.py`) — it returns `(jids_dict, warnings)`:
+Add a compute-utilization appendix. Call `harvest_jids_from_run_logs(experiment_dir)` (from `src/tools/slurm/compute_gpu_metrics.py`) — it returns `(jids_dict, warnings)`:
 
 - **If `warnings` is non-empty**, surface a visible "**Compute Utilization unavailable:** ..." note in `report.md` (one line per warning) — never silently skip the section (issue #451). The warning text tells the operator how to recover (re-run `run-experiment`, or rebuild the log via `src/tools/run/submit_*.py`).
 - **If JIDs are present**, gather per-job metrics (`seff`, `summarize_gpu_metrics()`), format with `format_compute_table()`, save `exploration/compute_metrics.json`, and write the table into `report.md` yourself as a demoted appendix.

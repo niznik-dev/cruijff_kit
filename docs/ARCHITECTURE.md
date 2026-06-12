@@ -44,7 +44,7 @@ cruijff_kit/
 │   │   │   ├── archive_experiment.py    # Archive a completed experiment
 │   │   │   └── prepare_data.py          # Top-level dataset preparation entry point
 │   │   ├── slurm/                  # Compute-estimation/metrics utils for the design-experiment skill (no production importers)
-│   │   │   └── compute_metrics.py       # GPU metrics aggregation
+│   │   │   └── compute_gpu_metrics.py   # GPU metrics aggregation
 │   │   └── model_organisms/        # Synthetic sequence-labeling framework
 │   │       ├── inputs.py                # Input-type registry (bits, digits, letters)
 │   │       ├── rules.py                 # Output-rule registry (parity, first, majority, …)

@@ -1,7 +1,7 @@
-"""Unit tests for tools/slurm/compute_metrics.py
+"""Unit tests for tools/slurm/compute_gpu_metrics.py
 
 Run with:
-    pytest tests/unit/test_compute_metrics.py -v
+    pytest tests/unit/test_compute_gpu_metrics.py -v
 
 Tests use fixture data — no cluster or GPU required.
 """
@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import pytest
 
-from cruijff_kit.tools.slurm.compute_metrics import (
+from cruijff_kit.tools.slurm.compute_gpu_metrics import (
     check_jobstats_available,
     extract_jobstats_notes,
     format_compute_table,
@@ -386,13 +386,13 @@ class TestFormatComputeTable:
 
 
 class TestCheckJobstatsAvailable:
-    @patch("cruijff_kit.tools.slurm.compute_metrics.shutil.which")
+    @patch("cruijff_kit.tools.slurm.compute_gpu_metrics.shutil.which")
     def test_returns_true_when_found(self, mock_which):
         mock_which.return_value = "/usr/bin/jobstats"
         assert check_jobstats_available() is True
         mock_which.assert_called_once_with("jobstats")
 
-    @patch("cruijff_kit.tools.slurm.compute_metrics.shutil.which")
+    @patch("cruijff_kit.tools.slurm.compute_gpu_metrics.shutil.which")
     def test_returns_false_when_missing(self, mock_which):
         mock_which.return_value = None
         assert check_jobstats_available() is False
@@ -416,7 +416,7 @@ class TestRunJobstats:
         "total_time": 592,
     }
 
-    @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
+    @patch("cruijff_kit.tools.slurm.compute_gpu_metrics.subprocess.run")
     def test_json_mode_success(self, mock_run):
         mock_run.return_value = type(
             "R",
@@ -435,7 +435,7 @@ class TestRunJobstats:
             timeout=30,
         )
 
-    @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
+    @patch("cruijff_kit.tools.slurm.compute_gpu_metrics.subprocess.run")
     def test_text_mode_success(self, mock_run):
         mock_run.return_value = type(
             "R",
@@ -454,14 +454,14 @@ class TestRunJobstats:
             timeout=30,
         )
 
-    @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
+    @patch("cruijff_kit.tools.slurm.compute_gpu_metrics.subprocess.run")
     def test_timeout_returns_none(self, mock_run):
         import subprocess as sp
 
         mock_run.side_effect = sp.TimeoutExpired(cmd="jobstats", timeout=30)
         assert run_jobstats("12345") is None
 
-    @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
+    @patch("cruijff_kit.tools.slurm.compute_gpu_metrics.subprocess.run")
     def test_nonzero_exit_returns_none(self, mock_run):
         mock_run.return_value = type(
             "R",
@@ -473,7 +473,7 @@ class TestRunJobstats:
         )()
         assert run_jobstats("12345") is None
 
-    @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
+    @patch("cruijff_kit.tools.slurm.compute_gpu_metrics.subprocess.run")
     def test_empty_nodes_returns_none(self, mock_run):
         mock_run.return_value = type(
             "R",
@@ -485,7 +485,7 @@ class TestRunJobstats:
         )()
         assert run_jobstats("12345") is None
 
-    @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
+    @patch("cruijff_kit.tools.slurm.compute_gpu_metrics.subprocess.run")
     def test_empty_stdout_returns_none(self, mock_run):
         mock_run.return_value = type(
             "R",
@@ -497,7 +497,7 @@ class TestRunJobstats:
         )()
         assert run_jobstats("12345") is None
 
-    @patch("cruijff_kit.tools.slurm.compute_metrics.subprocess.run")
+    @patch("cruijff_kit.tools.slurm.compute_gpu_metrics.subprocess.run")
     def test_invalid_json_returns_none(self, mock_run):
         mock_run.return_value = type(
             "R",
