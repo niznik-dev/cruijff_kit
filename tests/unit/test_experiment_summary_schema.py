@@ -98,6 +98,17 @@ class TestDataSection:
         for key in required:
             assert key in training, f"Missing data.training.{key}"
 
+    def test_legacy_label_key_absent(self, summary):
+        """Regression: data.training.label was renamed to dataset_label (#372).
+
+        Guards against a half-migrated fixture carrying both keys, and against
+        a silent revert of the rename.
+        """
+        training = summary["data"]["training"]
+        assert "label" not in training, (
+            "legacy 'label' key must be gone; use 'dataset_label'"
+        )
+
     def test_splits_add_up(self, summary):
         splits = summary["data"]["training"]["splits"]
         assert "train" in splits
