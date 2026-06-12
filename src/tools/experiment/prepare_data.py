@@ -70,9 +70,7 @@ def generate_model_organism(
             f"data.data_generation (tool=model_organism) missing required fields: {missing}"
         )
 
-    # Migration tripwire: `split` was renamed to `split_ratio`. A stale `split`
-    # would otherwise be silently ignored (split_ratio falls back to 0.8),
-    # quietly changing the train/validation split. Warn loudly instead.
+    # Otherwise a leftover key falls through to the split_ratio=0.8 default unnoticed.
     if "split" in spec:
         logger.warning(
             "data.data_generation key 'split' was renamed to 'split_ratio'; "
