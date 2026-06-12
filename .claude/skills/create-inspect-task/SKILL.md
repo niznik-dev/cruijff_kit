@@ -361,7 +361,47 @@ Result: Will use hf_dataset with json format and custom record_to_sample functio
 
 **Based on evaluation objective, suggest scorers:**
 
-**For exact matching:**
+**cruijff_kit custom scorers (preferred for experiment tasks — driven by the `scorer:` block in `eval_config.yaml`):**
+
+Rather than hard-coding a scorer in the task, read the `scorer:` list from `config_path` and build it via the shared registry. This lets the experiment design (not the task code) pick the scorer:
+
+```python
+from cruijff_kit.tools.inspect.scorers import (
+    build_scorers,
+    configured_scorers_require_logprobs,
+)
+
+scorers = build_scorers(config)  # falls back to DEFAULT_SCORERS if no scorer: block
+```
+
+The `scorer:` block is a list of `{name, params}` entries:
+
+```yaml
+scorer:
+  - name: match
+  - name: risk_scorer
+    params:
+      option_tokens: ["0", "1"]
+```
+
+Registry names: `match`, `includes`, `risk_scorer`, `numeric_risk_scorer`, `continuous_scorer`.
+
+**logprobs contract:** logprob-based scorers (e.g. `risk_scorer`) set `requires_logprobs = True` on their factory. Call `configured_scorers_require_logprobs(config)` and auto-enable logprob capture when it returns `True`:
+
+```python
+scorer_needs_logprobs = configured_scorers_require_logprobs(config)
+enable_logprobs = bool(logprobs) or (logprobs is None and scorer_needs_logprobs)
+if enable_logprobs:
+    generate_config = GenerateConfig(logprobs=True, top_logprobs=top_logprobs)
+else:
+    generate_config = GenerateConfig()
+# ... and fail loudly if the user passed logprobs=False while configuring a
+# scorer that needs them, rather than silently producing unscored logs.
+```
+
+Note: `risk_scorer` accuracy is exact-string-match (`completion == target`), not argmax — it conflates output format with judgment. Keep that in mind when interpreting its `accuracy`.
+
+**For exact matching (inspect-ai built-ins — fine for standalone tasks without the registry):**
 - `match()` - Target appears at beginning/end; ignores case, whitespace, punctuation
   - Options: `location="begin"/"end"/"any"`, `ignore_case=True/False`
 - `exact()` - Precise matching after normalization
@@ -393,12 +433,25 @@ Result: Will use hf_dataset with json format and custom record_to_sample functio
 
 **Should the task accept parameters for flexibility?**
 
-**Common parameters to expose:**
-- `system_prompt` - Allow different system messages
-- `temperature` - Enable temperature tuning
-- `dataset_path` - Support different datasets
-- `grader_model` - For model-graded scoring
-- `config_dir` - (legacy) For runtime config reading; scaffold-inspect uses direct params instead
+**Standard parameters — match the current blueprint tasks so the task drops into the `eval_config.yaml` pipeline** (cleanest reference: `blueprints/capitalization/inspect_task.py`):
+
+- `data_path` — Path to the dataset JSON (required; no default).
+- `config_path` — Path to `eval_config.yaml`. The task reads `prompt`, `system_prompt`, and (optionally) the `scorer:` block from it. `setup_inspect.py` auto-derives this from the config file's own location — you do not pass it by hand.
+- `vis_label` — Optional label appended to the task name (`f"{name}_{vis_label}" if vis_label else name`). **Required for the viz pipeline**: `viz_helpers` reads `vis_label` from the eval log's `task_args` to dedup and label runs. Omit it and multi-variant runs collide in the visualizations.
+- `split` — Which split to evaluate (e.g. `"test"`, `"validation"`).
+- `use_chat_template` — `True` for instruct models (adds a `system_message` solver), `False` for base models (plain text completion).
+- `temperature` / `max_tokens` — Generation params. Greedy default is `temperature=1e-7`.
+- `logprobs` / `top_logprobs` — Capture top logprobs. Leave `logprobs` defaulting to `None` (auto) so it enables only when a configured scorer needs them — see Scorer Selection.
+- `assistant_prefix` — Optional text to seed the assistant turn.
+
+These names are not arbitrary. `setup_inspect.py` maps a fixed `TASK_ARG_KEYS` set onto `-T` flags:
+
+```
+data_path, config_path, vis_label, use_chat_template, split,
+logprobs, top_logprobs, temperature, max_tokens, assistant_prefix
+```
+
+A parameter outside that set will **not** receive a value from `eval_config.yaml` (you'd get a startup warning from `load_eval_config` about an unconsumed key). Add genuinely new task args to `TASK_ARG_KEYS` in `setup_inspect.py` if the task needs them.
 
 **Benefits of parameters:**
 - Run variations without code changes
@@ -419,10 +472,10 @@ inspect eval task.py -T param_name=value
 - `inspect eval task.py --model hf/local -M model_path=/path/to/model`
 - Recommended for most cases
 
-**Option 2: Integration with fine-tuning config (legacy)**
-- Like existing `inspect_task` example
-- Reads from `setup_finetune.yaml` at runtime via `config_dir` parameter
-- Note: scaffold-inspect now bakes values into SLURM instead of using this pattern
+**Option 2: Experiment pipeline (eval_config.yaml)**
+- The model path is baked into the SLURM cell by `setup_inspect.py` from `eval_config.yaml`
+- The task itself only reads `prompt`/`system_prompt`/`scorer` from `config_path` — it never resolves the model
+- This is how `scaffold-inspect` runs tasks; see Generated Task Pattern below
 
 **Option 3: Hard-coded in task**
 - Less flexible but simpler
@@ -468,7 +521,7 @@ def my_task(param1: str = "default"):
     solver = chain(
         system_message("..."),
         prompt_template("{prompt}"),
-        generate({"temperature": 0.0})
+        generate(temperature=0.0)
     )
 
     # Return task
@@ -593,8 +646,10 @@ inspect eval {task_name}_task.py --model hf/local -M model_path=/path/to/model -
 
 **Evaluating fine-tuned model:** {if applicable}
 ```bash
-cd /path/to/experiment/run/epoch_0
-inspect eval {task_name}_task.py --model hf/local -M model_path=$PWD -T config_dir=$PWD
+inspect eval {task_name}_task.py@{task_name} --model hf/local \
+  -M model_path=/path/to/run/artifacts/epoch_0 \
+  -T data_path=/path/to/dataset.json \
+  -T config_path=/path/to/eval_config.yaml
 ```
 
 ## Output Files
@@ -680,7 +735,7 @@ from inspect_ai.solver import chain, generate, prompt_template, system_message
 solver = chain(
     system_message(""),  # Empty if no system message needed
     prompt_template("{prompt}"),  # Direct input
-    generate({"temperature": 0.0})
+    generate(temperature=0.0)
 )
 ```
 
@@ -689,7 +744,7 @@ solver = chain(
 solver = chain(
     system_message("You are an expert classifier. Respond with only the category label."),
     prompt_template("Text: {prompt}\n\nCategory:"),
-    generate({"temperature": 0.0, "max_tokens": 50})
+    generate(temperature=0.0, max_tokens=50)
 )
 ```
 
@@ -699,7 +754,7 @@ from inspect_ai.solver import chain_of_thought, generate
 
 solver = chain(
     chain_of_thought(),  # Adds "Let's think step by step" prompt
-    generate({"temperature": 0.0})
+    generate(temperature=0.0)
 )
 ```
 
@@ -755,105 +810,135 @@ scorer = model_graded_qa(
 
 ### Experiment-Guided Task Creation (Recommended)
 
-When creating tasks for an experiment:
+When creating tasks for an experiment, the task does **not** read fine-tuning configs directly. Instead it reads its prompt/scorer config from the `eval_config.yaml` that `scaffold-inspect` writes, via the auto-derived `config_path`:
 
-1. **Run from experiment directory:**
-   ```bash
-   cd /scratch/gpfs/MSALGANIK/mjs3/my_experiment/
-   # Invoke create-inspect-task skill
-   ```
+1. `design-experiment` produces `experiment_summary.yaml` (research question, data, models, `evaluation.system_prompt`, the `scorer:` block).
+2. `scaffold-inspect` writes one `eval_config.yaml` per (run, task, epoch) cell, carrying `prompt`, `system_prompt`, `scorer`, `data_path`, `vis_label`, etc.
+3. `setup_inspect.py` renders the SLURM script: it auto-derives `config_path` (the path to that `eval_config.yaml`), maps `TASK_ARG_KEYS` onto `-T` flags, and the task reads `prompt`/`system_prompt`/`scorer` back out of `config_path` at runtime.
 
-2. **Skill automatically extracts from experiment_summary.yaml:**
-   - Dataset path and format
-   - System prompt (ensures eval matches training)
-   - Model information
-   - Research objectives
-
-3. **Task parameter modes:**
-   - **Direct parameters (preferred)**: `data_path`, `prompt`, `system_prompt` passed via `-T` flags. scaffold-inspect bakes these into SLURM scripts at scaffolding time.
-   - **config_dir mode (legacy)**: Reads from `setup_finetune.yaml` at runtime. Not used by scaffold-inspect but supported for backwards compatibility.
+So a generated task's job is: accept the standard params, read prompt/system_prompt (and optionally the `scorer:` block) from `config_path`, build the dataset/solver/scorer, and name itself with `vis_label`.
 
 ### Generated Task Pattern
 
-**For tasks integrated with experiments:**
+**For tasks integrated with experiments** (mirrors `blueprints/capitalization/inspect_task.py`, the cleanest reference):
 
 ```python
 import yaml
-from pathlib import Path
+from inspect_ai import Task, task
+from inspect_ai.dataset import hf_dataset, Sample
+from inspect_ai.model import GenerateConfig
+from inspect_ai.solver import chain, generate, system_message
+
+from cruijff_kit.tools.inspect.scorers import (
+    build_scorers,
+    configured_scorers_require_logprobs,
+)
+
 
 @task
 def my_task(
-    config_dir: Optional[str] = None,
-    dataset_path: Optional[str] = None,
-    system_prompt: str = "",
-    temperature: float = 0.0,
-    split: str = "test"
+    data_path: str,
+    config_path: str = "",
+    split: str = "test",
+    temperature: float = 1e-7,
+    max_tokens: int = 20,
+    use_chat_template: bool = True,
+    logprobs: bool | None = None,
+    top_logprobs: int = 20,
+    vis_label: str = "",
 ) -> Task:
     """
-    Evaluate model using configuration from fine-tuning setup or direct paths.
+    Evaluate a model on <task description>.
 
     Args:
-        config_dir: Path to epoch directory (contains ../setup_finetune.yaml).
-                   If provided, reads dataset path and system prompt from config.
-        dataset_path: Direct path to dataset JSON file. Used if config_dir not provided.
-        system_prompt: System message for the model. Overrides config if both provided.
-        temperature: Generation temperature (default: 0.0 for deterministic output).
-        split: Which data split to use (default: "test").
+        data_path: Path to the dataset JSON.
+        config_path: Path to eval_config.yaml (reads prompt/system_prompt/scorer).
+        split: Which split to evaluate (default: "test").
+        temperature: Generation temperature (greedy default 1e-7).
+        max_tokens: Max tokens to generate.
+        use_chat_template: True for instruct models (adds system_message solver),
+            False for base models (plain text completion).
+        logprobs: None = auto (enable iff a configured scorer needs them).
+        top_logprobs: Top-k logprobs to capture when enabled.
+        vis_label: Optional suffix for the task name; read by viz_helpers for
+            dedup/labeling across a multi-variant experiment.
 
     Returns:
         Task: Configured inspect-ai task
     """
+    # Task name carries vis_label so the viz pipeline can label/dedup runs.
+    task_name = f"my_task_{vis_label}" if vis_label else "my_task"
 
-    # Determine configuration source
-    if config_dir:
-        # Mode 1: Read from fine-tuning configuration
-        config_path = Path(config_dir).parent / "setup_finetune.yaml"
+    prompt_str = "{input}"
+    system_prompt = ""
+    config: dict = {}
+    if config_path:
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f) or {}
+        prompt_str = config.get("prompt", "{input}")
+        system_prompt = config.get("system_prompt", "")
 
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
+    def record_to_sample(record):
+        return Sample(
+            input=prompt_str.format(input=record["input"]),
+            target=record["output"],
+            metadata=record.get("metadata", {}),
+        )
 
-        # Extract settings from fine-tuning config
-        dataset_path = config['input_dir_base'] + config['dataset_label'] + config['dataset_ext']
+    dataset = hf_dataset(
+        path="json",
+        data_files=data_path,
+        field=split,
+        split="train",  # HuggingFace quirk — always "train" here
+        sample_fields=record_to_sample,
+    )
 
-        # Use system prompt from config unless overridden
-        if not system_prompt:
-            system_prompt = config.get('system_prompt', '')
-
-    elif dataset_path:
-        # Mode 2: Direct dataset path
-        # system_prompt and other params used as provided
-        pass
+    if use_chat_template:
+        solver = chain(
+            system_message(system_prompt),
+            generate(temperature=temperature, max_tokens=max_tokens),
+        )
     else:
-        raise ValueError("Must provide either config_dir or dataset_path")
+        solver = chain(generate(temperature=temperature, max_tokens=max_tokens))
 
-    # Load dataset
-    dataset = ...  # Load using dataset_path
+    # Scorer + logprobs driven by the eval_config scorer: block.
+    scorers = build_scorers(config)
+    scorer_needs_logprobs = configured_scorers_require_logprobs(config)
+    if logprobs is False and scorer_needs_logprobs:
+        raise ValueError(
+            "A configured scorer requires logprobs, but logprobs=False was set. "
+            "Drop the override or remove the logprob-dependent scorer."
+        )
+    enable_logprobs = bool(logprobs) or (logprobs is None and scorer_needs_logprobs)
+    generate_config = (
+        GenerateConfig(logprobs=True, top_logprobs=top_logprobs)
+        if enable_logprobs
+        else GenerateConfig()
+    )
 
     return Task(
+        name=task_name,
         dataset=dataset,
-        solver=chain(
-            system_message(system_prompt),
-            prompt_template("{prompt}"),
-            generate({"temperature": temperature})
-        ),
-        scorer=...
+        solver=solver,
+        scorer=scorers,
+        config=generate_config,
     )
 ```
 
+For a **standalone** task with no experiment context, drop the `config_path`/`build_scorers`/logprobs machinery and hard-code a built-in scorer (e.g. `scorer=match(...)`) — but keep `vis_label` if the eval logs will feed the viz pipeline.
+
 ### Usage Examples
 
-**Evaluating fine-tuned model from experiment:**
-```bash
-cd /path/to/experiment/run_dir/epoch_0
-inspect eval /path/to/my_task.py --model hf/local -M model_path=$PWD -T config_dir=$PWD
-```
+In the experiment pipeline you don't invoke `inspect eval` by hand — `scaffold-inspect` + `setup_inspect.py` generate the SLURM cell. For a quick manual smoke test of a generated task:
 
-**Evaluating base model (control run):**
 ```bash
-inspect eval my_task.py \
+inspect eval my_task.py@my_task \
   --model hf/local \
   -M model_path=/scratch/gpfs/MSALGANIK/pretrained-llms/Llama-3.2-1B-Instruct \
-  -T dataset_path=/path/to/dataset.json
+  -T data_path=/path/to/dataset.json \
+  -T config_path=/path/to/eval_config.yaml \
+  -T vis_label=smoke \
+  --limit 5
 ```
 
 ### Integration with setup_inspect.py
@@ -886,7 +971,9 @@ Additional checks for experiment-guided mode:
 - ✓ experiment_summary.yaml was successfully parsed
 - ✓ Extracted dataset path exists and format matches
 - ✓ System prompt matches training configuration
-- ✓ Task supports both `config_dir` and `dataset_path` parameters
+- ✓ Task accepts `data_path` + `config_path` and reads prompt/system_prompt/scorer from `config_path`
+- ✓ Task accepts `vis_label` and folds it into the task name
+- ✓ Parameter names are within `setup_inspect.py`'s `TASK_ARG_KEYS`
 - ✓ Documentation includes experiment context (research question, runs)
 - ✓ Usage examples show both fine-tuned and base model evaluation
 - ✓ Log includes extraction details and validation results
@@ -940,9 +1027,9 @@ After creating the task, guide user:
 - Always check for experiment_summary.yaml before starting
 - Extract and validate all configuration before proceeding
 - **System prompt consistency is critical** - eval must match training
-- Generated tasks should work for both fine-tuned and base models
+- Generated tasks should work for both fine-tuned and base models (`use_chat_template` toggles instruct vs. base)
 - Include experiment context in documentation (research question, runs)
-- Use `config_dir` parameter pattern for experiment integration
+- Read prompt/system_prompt/scorer from `config_path` (the eval_config.yaml), and fold `vis_label` into the task name
 - Log all extraction and validation steps for reproducibility
 
 ## Error Handling
