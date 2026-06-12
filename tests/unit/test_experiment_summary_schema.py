@@ -94,9 +94,20 @@ class TestModelsSection:
 class TestDataSection:
     def test_has_training_data(self, summary):
         training = summary["data"]["training"]
-        required = ["path", "label", "format", "size_kb", "splits"]
+        required = ["path", "dataset_label", "format", "size_kb", "splits"]
         for key in required:
             assert key in training, f"Missing data.training.{key}"
+
+    def test_legacy_label_key_absent(self, summary):
+        """Regression: data.training.label was renamed to dataset_label (#372).
+
+        Guards against a half-migrated fixture carrying both keys, and against
+        a silent revert of the rename.
+        """
+        training = summary["data"]["training"]
+        assert "label" not in training, (
+            "legacy 'label' key must be gone; use 'dataset_label'"
+        )
 
     def test_splits_add_up(self, summary):
         splits = summary["data"]["training"]["splits"]
