@@ -10,6 +10,7 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ### Changed
 
+- **`analyze-to-pdf` skill renamed to `md-to-pdf`.** It is a generic markdown→PDF pandoc wrapper that does no "analysis" and converts whatever markdown it's given (explorations, summaries, reports), so the name now matches what it does. **Migration:** invoke `/md-to-pdf` instead of `/analyze-to-pdf`. (#372)
 - Evaluation scaffolding (`scaffold-inspect`) no longer reads `setup_finetune.yaml` — `prompt` and `dataset_type` are propagated into `eval_config.yaml` from `experiment_summary.yaml`, decoupling evaluation from the training artifact. (#478)
 - **`controls.dataset_type` is now required** and used uniformly by training and evaluation. It is no longer inferred from the model name or a per-model `MODEL_CONFIGS` default; an absent value is a hard error at every layer (design validation, both scaffold agents, and `setup_finetune.py`), preventing a silent chat-vs-text mismatch from corrupting train/eval parity. **Migration:** existing `experiment_summary.yaml` files must add `controls.dataset_type` (`chat_completion` | `text_completion`). (#478)
 

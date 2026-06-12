@@ -2,7 +2,7 @@
 
 The module no longer assembles reports (explore-experiment authors ``report.md``
 directly). What remains is the markdown-to-PDF preprocessing used by the
-analyze-to-pdf skill.
+md-to-pdf skill.
 """
 
 from cruijff_kit.tools.inspect.pdf_preprocess import (
