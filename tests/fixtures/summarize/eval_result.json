@@ -8,5 +8,5 @@
   "metrics": {
     "accuracy": 0.85
   },
-  "path": "__SCRATCH__/ck-experiments/workflow_test_2026-03-16/Llama-3.2-1B-Instruct_rank4/eval/logs/test.eval"
+  "path": "__SCRATCH__/ck-projects/workflow_test/workflow_test_2026-03-16/Llama-3.2-1B-Instruct_rank4/eval/logs/test.eval"
 }

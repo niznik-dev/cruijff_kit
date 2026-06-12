@@ -19,6 +19,10 @@ All notable changes to cruijff_kit will be documented in this file.
 - Evaluation scaffolding (`scaffold-inspect`) no longer reads `setup_finetune.yaml` — `prompt` and `dataset_type` are propagated into `eval_config.yaml` from `experiment_summary.yaml`, decoupling evaluation from the training artifact. (#478)
 - **`controls.dataset_type` is now required** and used uniformly by training and evaluation. It is no longer inferred from the model name or a per-model `MODEL_CONFIGS` default; an absent value is a hard error at every layer (design validation, both scaffold agents, and `setup_finetune.py`), preventing a silent chat-vs-text mismatch from corrupting train/eval parity. **Migration:** existing `experiment_summary.yaml` files must add `controls.dataset_type` (`chat_completion` | `text_completion`). (#478)
 
+### Documentation
+
+- **Naming conventions written down** (no renames — doc-only). `CLAUDE.md` now records the `directory`-over-`dir` preference for names we own, the `directory`-vs-`path` (folder-vs-file) distinction, and — on the "Wrapper-only" principle — the external-contract names that are off-limits to our renames (torchtune recipe keys, inspect-ai `@task`/`@scorer`/`@metric` registry names). Also documented: the deliberate `ck-setup` prefix (avoids a built-in `setup` clash), the `src/tools/<domain>/` folder-naming convention and the `inspect/`-shadows-stdlib hazard (`docs/ARCHITECTURE.md` + `src/tools/inspect/__init__.py`), and a fixed stale `ck-experiments/` path in the `create-quiz` skill docs and a test fixture. (#372)
+
 ## [0.3.3] - 2026-06-04
 
 ### Added

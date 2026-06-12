@@ -34,7 +34,7 @@ When working in this project, the following principles should guide your decisio
 
 5. **Self improving** - Always look for ways to learn from earlier experiments to design new experiments, improve skills, and improve analysis. The more work we do, the easier things should be because we have more designs, results, and logs from which to learn.
 
-6. **Wrapper-only** - cruijff_kit integrates with external tools (torchtune, inspect-ai) by wrapping them, not modifying their internals.
+6. **Wrapper-only** - cruijff_kit integrates with external tools (torchtune, inspect-ai) by wrapping them, not modifying their internals. This extends to naming: names that belong to an external contract are off-limits to our renames — e.g. torchtune recipe keys (`lr`, `seed`, `batch_size`, `epochs`, `max_seq_len`, `output_dir`) and inspect-ai's `@task` / `@scorer` / `@metric` registry names. We rename only the names we own: our YAML schema, our folders, and our wrapper scripts.
 
 ## Terminology
 
@@ -64,7 +64,7 @@ For detailed architecture documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE
 cruijff_kit includes Claude Code skills to streamline common workflows. These skills are optional - all workflows can also be performed manually.
 
 ### Setup
-- **ck-setup** ✅ - First-time setup walkthrough OR validate-existing health check for `claude.local.md` (HPC paths, SLURM defaults, conda env). Run this before anything else.
+- **ck-setup** ✅ - First-time setup walkthrough OR validate-existing health check for `claude.local.md` (HPC paths, SLURM defaults, conda env). Run this before anything else. *(The `ck-` prefix is intentional — it avoids a clash with a built-in `setup` skill; a naming audit shouldn't "fix" it.)*
 
 ### Primary Workflows
 - **design-experiment** ✅ - Plan a series of runs that collectively make up an experiment
@@ -110,6 +110,19 @@ All use Llama-3.2-1B-Instruct with `{ck_data_dir}/capitalization/words_5L_80P_10
 **Purpose:** Catch regressions in skills, ensure documentation changes don't break workflows, validate end-to-end integration.
 
 ## Code Conventions
+
+### Naming Conventions
+
+- **`directory` over `dir` for names we own.** When we choose a name (a YAML key, a
+  CLI flag, a documented folder or constant), prefer the spelled-out `directory` —
+  readability beats the saved keystrokes. Use the abbreviated `dir` / `_dir` only when
+  an external tool's convention dictates it (e.g. torchtune's `output_dir`, inspect-ai
+  keys); see the "Wrapper-only" principle on external-contract names. This is
+  forward-looking guidance for new names — the codebase still uses `_dir` widely, and
+  those existing identifiers are not flagged for renaming here.
+- **`directory` vs `path` — keep them true to their meanings.** `directory` (or `_dir`)
+  names a folder; `path` (or `_path`) names a file. Don't label a folder `path` or a
+  file `directory`.
 
 ### Code Comments
 
