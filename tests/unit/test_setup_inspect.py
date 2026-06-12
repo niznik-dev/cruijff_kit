@@ -80,7 +80,7 @@ FULL_EVAL_CONFIG = textwrap.dedent("""\
     epoch: 0
     finetuned: true
     source_model: Llama-3.2-1B-Instruct
-    scorer:
+    scorers:
       - name: match
       - name: risk_scorer
         params:
@@ -146,7 +146,7 @@ class TestLoadEvalConfig:
         assert config["finetuned"] is True
         assert config["source_model"] == "Llama-3.2-1B-Instruct"
         # Scorer config is loaded but not used by setup_inspect
-        assert len(config["scorer"]) == 2
+        assert len(config["scorers"]) == 2
 
     def test_extra_keys_preserved(self, tmp_path):
         """Unknown keys in config are preserved (forward compatibility)."""

@@ -228,7 +228,7 @@ evaluation:
                                    # verbose ACS prompts) can slow evals down — larger batches pad to
                                    # the longest sequence and the forward pass goes memory-bound. See
                                    # issue #318 investigation comment for evidence and discussion.
-  scorer:                            # REQUIRED: Inspect-ai scorer(s) - list of scorers with optional params
+  scorers:                           # REQUIRED: Inspect-ai scorer(s) - list of scorers with optional params
     - name: string                   # REQUIRED: Scorer name (e.g., "match", "includes", "risk_scorer")
       params:                        # OPTIONAL: Parameters passed to the scorer
         key: value                   # e.g., option_tokens: ["0", "1"] for risk_scorer

@@ -222,13 +222,13 @@ class TestMetrics:
 
 class TestRegistry:
     def test_build_scorers_continuous(self):
-        scorers = build_scorers({"scorer": [{"name": "continuous_scorer"}]})
+        scorers = build_scorers({"scorers": [{"name": "continuous_scorer"}]})
         assert len(scorers) == 1
         # Smoke-check that it returns something callable-like (an inspect Scorer)
         assert scorers[0] is not None
 
     def test_build_scorers_continuous_with_empty_params(self):
         scorers = build_scorers(
-            {"scorer": [{"name": "continuous_scorer", "params": {}}]}
+            {"scorers": [{"name": "continuous_scorer", "params": {}}]}
         )
         assert len(scorers) == 1

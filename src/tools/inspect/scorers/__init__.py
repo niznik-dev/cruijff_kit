@@ -52,7 +52,7 @@ def configured_scorers_require_logprobs(config: dict) -> bool:
     whose names happen to match a heuristic but which read text completion
     instead of logprobs (e.g., `numeric_risk_scorer`).
     """
-    for entry in config.get("scorer", []) or []:
+    for entry in config.get("scorers", []) or []:
         factory = SCORER_FACTORIES.get(entry.get("name"))
         if factory is not None and getattr(factory, "requires_logprobs", False):
             return True
@@ -67,16 +67,16 @@ DEFAULT_SCORERS = [
 
 
 def build_scorers(config: dict) -> list:
-    """Build scorer list from eval config YAML scorer section.
+    """Build scorer list from eval config YAML scorers section.
 
     Args:
-        config: Parsed YAML config dict. If it contains a 'scorer' key,
+        config: Parsed YAML config dict. If it contains a 'scorers' key,
                 builds scorers from that list. Otherwise returns DEFAULT_SCORERS.
 
     Returns:
         List of instantiated scorer objects.
     """
-    scorer_config = config.get("scorer")
+    scorer_config = config.get("scorers")
     if not scorer_config:
         return list(DEFAULT_SCORERS)
 
