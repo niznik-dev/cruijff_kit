@@ -94,7 +94,7 @@ class TestModelsSection:
 class TestDataSection:
     def test_has_training_data(self, summary):
         training = summary["data"]["training"]
-        required = ["path", "label", "format", "size_kb", "splits"]
+        required = ["path", "dataset_label", "format", "size_kb", "splits"]
         for key in required:
             assert key in training, f"Missing data.training.{key}"
 

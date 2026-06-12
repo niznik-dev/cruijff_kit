@@ -219,7 +219,7 @@ For each run, create a `setup_finetune.yaml` file by:
 
    **Else** (standard single-file experiments):
    - Use `data.training.path` from experiment_summary.yaml.
-   - Extract `dataset_label` from `data.training.label`.
+   - Extract `dataset_label` from `data.training.dataset_label`.
    - Determine `dataset_ext` from `data.training.format`: `json` → `.json`.
    - Extract `input_dir_base` from parent directory of dataset path.
    - Set `input_formatting: ''`.

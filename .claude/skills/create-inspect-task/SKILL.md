@@ -79,7 +79,7 @@ experiment:
 data:
   training:
     path: string
-    label: string
+    dataset_label: string
     format: string
     splits:
       train: int

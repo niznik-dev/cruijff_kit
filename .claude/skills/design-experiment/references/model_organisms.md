@@ -98,7 +98,7 @@ fit a specific label mapping without generalizing.
 data:
   training:
     path: /full/path/to/experiment_dir/data/bits_parity_k8_memo.json
-    label: bits_parity_k8_memo
+    dataset_label: bits_parity_k8_memo
     format: json
     size_kb: 25
     splits:
@@ -125,7 +125,7 @@ N unique sequences drawn from one distribution, split into train/val.
 data:
   training:
     path: /full/path/to/experiment_dir/data/digits_majority_k10.json
-    label: digits_majority_k10
+    dataset_label: digits_majority_k10
     format: json
     size_kb: 60
     splits:
@@ -155,7 +155,7 @@ Primary train/val as in_distribution; each `ood_tests` entry becomes a
 data:
   training:
     path: /full/path/to/experiment_dir/data/bits_parity_ood.json
-    label: bits_parity_indist8_ood
+    dataset_label: bits_parity_indist8_ood
     format: json
     size_kb: 80
     splits:

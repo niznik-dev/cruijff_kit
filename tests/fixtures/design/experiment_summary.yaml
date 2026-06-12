@@ -37,7 +37,7 @@ models:
 data:
   training:
     path: "__REPO__/tests/fixtures/data/words_5L_80P_10.json"
-    label: "words_5L_80P_10"
+    dataset_label: "words_5L_80P_10"
     format: "json"
     size_kb: 1
     splits:

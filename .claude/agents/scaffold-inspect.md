@@ -79,7 +79,7 @@ Extract the following information from the YAML structure:
 
 3. **Dataset:**
    - `data.training.path` - Full path to training dataset
-   - `data.training.label` - Dataset filename without extension
+   - `data.training.dataset_label` - Dataset filename without extension
    - `data.training.format` - "json"
 
 4. **Output configuration:**
