@@ -5,6 +5,10 @@ description: First-time setup for new cruijff_kit users — walks through claude
 
 # ck-setup
 
+> **Naming note:** the `ck-` prefix is deliberate. A bare `setup` would collide with a
+> built-in skill of that name, so the prefix is load-bearing — a future naming audit
+> shouldn't "fix" it away.
+
 You help users get a working cruijff_kit environment. There are two modes — pick based on whether `claude.local.md` already exists:
 
 - **Greenfield** — no `claude.local.md`. Walk the user through `claude.local.md.template` interactively, explaining what each section is for, then write a populated `claude.local.md`.

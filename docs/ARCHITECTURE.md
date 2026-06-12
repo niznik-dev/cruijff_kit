@@ -374,6 +374,21 @@ At a high level: hand-write `setup_finetune.yaml` in each run directory under `c
 5. Optional: add `baseline.py` (non-LLM comparison) and/or `modifiers/` (data transforms)
 6. Document the workflow in the blueprint README
 
+### Tool Domains
+
+Each subfolder of `src/tools/` is a domain package. Name a domain after the external
+tool when one tool dominates it (`torchtune/`, `inspect/`); otherwise name it after the
+pipeline stage it serves (`experiment/`, `slurm/`) or the framework it provides
+(`model_organisms/`). Code owned by no single domain belongs in `src/utils/`, not a
+tool folder (see below).
+
+> **`inspect/` shadows the stdlib.** `src/tools/inspect/` shares its name with Python's
+> standard-library `inspect` module (it wraps the external inspect-ai tool). No module
+> in that subtree does a bare `import inspect`, and none should rely on one resolving to
+> the stdlib — if that directory ever lands on `sys.path` as a top-level entry, the
+> import could bind to the package instead. Keep stdlib-`inspect` use out of the subtree,
+> or alias it explicitly. The hazard is also recorded in `src/tools/inspect/__init__.py`.
+
 ### Using Utilities
 
 `src/utils/` holds generic, cross-cutting infrastructure owned by no single domain —

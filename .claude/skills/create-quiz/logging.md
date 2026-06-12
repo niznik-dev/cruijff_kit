@@ -27,7 +27,7 @@ If `logs/` doesn't exist, create it. Append to the log on re-runs (don't truncat
 
 ```
 [2026-05-03 16:42:08] LOCATE_EXPERIMENT: length_sweep_nth14
-Details: /scratch/gpfs/MSALGANIK/mjs3/ck-experiments/length_sweep_nth14
+Details: /scratch/gpfs/MSALGANIK/mjs3/ck-projects/length_sweep/length_sweep_nth14
 Result: experiment_summary.yaml present, exploration/report.md present, summary.md absent
 
 [2026-05-03 16:42:09] PARSE_INPUTS: length_sweep_nth14
