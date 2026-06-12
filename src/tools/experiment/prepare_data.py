@@ -51,7 +51,7 @@ def _equivalent_cli(params: dict, out_path: Path) -> str:
         f"--design {params['design']}",
         f"--format {params['fmt']}",
         f"--rule_kwargs '{json.dumps(params['rule_kwargs'])}'",
-        f"--split {params['split']}",
+        f"--split-ratio {params['split_ratio']}",
         f"--ood_tests '{json.dumps(params['ood_tests'] or [])}'",
         f"--output {out_path.name}",
         f"--output_dir {out_path.parent}",
@@ -70,6 +70,15 @@ def generate_model_organism(
             f"data.data_generation (tool=model_organism) missing required fields: {missing}"
         )
 
+    # Otherwise a leftover key falls through to the split_ratio=0.8 default unnoticed.
+    if "split" in spec:
+        logger.warning(
+            "data.data_generation key 'split' was renamed to 'split_ratio'; "
+            "the 'split' key is ignored. Using "
+            f"split_ratio={spec.get('split_ratio', 0.8)}. Rename 'split' to "
+            "'split_ratio' to honor your intended train fraction."
+        )
+
     out_path = _resolve_output(spec["output_path"], experiment_dir)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -82,7 +91,7 @@ def generate_model_organism(
         "design": spec["design"],
         "fmt": spec.get("fmt", "spaced"),
         "rule_kwargs": spec.get("rule_kwargs") or {},
-        "split": spec.get("split", 0.8),
+        "split_ratio": spec.get("split_ratio", 0.8),
         "ood_tests": spec.get("ood_tests") or None,
     }
 

@@ -4,6 +4,8 @@ Run with:
     pytest tests/unit/test_model_organisms.py -v
 """
 
+import json
+
 import pytest
 
 from cruijff_kit.tools.model_organisms import formats
@@ -14,6 +16,7 @@ from cruijff_kit.tools.model_organisms.formats import (
 from cruijff_kit.tools.model_organisms.generate import (
     _sample_sequences_unique,
     generate,
+    main,
 )
 from cruijff_kit.tools.model_organisms.inputs import (
     InputType,
@@ -272,7 +275,7 @@ class TestGenerate:
             N=200,
             seed=1,
             design="in_distribution",
-            split=0.75,
+            split_ratio=0.75,
         )
         assert len(d["train"]) == 150
         assert len(d["validation"]) == 50
@@ -289,7 +292,7 @@ class TestGenerate:
             seed=3,
             design="in_distribution",
             rule_kwargs={"p": 0.3},
-            split=0.5,
+            split_ratio=0.5,
         )
         md = d["metadata"]
         for key in (
@@ -302,7 +305,7 @@ class TestGenerate:
             "N",
             "seed",
             "design",
-            "split",
+            "split_ratio",
         ):
             assert key in md, f"missing metadata key: {key}"
         # seed is stored at the top level, not inside rule_kwargs
@@ -329,7 +332,7 @@ class TestGenerate:
             seed=77,
             design="in_distribution",
             rule_kwargs={"p": 0.5},
-            split=0.5,
+            split_ratio=0.5,
         )
         memo_labels = {r["input"]: r["output"] for r in memo["train"]}
         indist_all = indist["train"] + indist["validation"]
@@ -350,7 +353,7 @@ class TestGenerate:
             )
 
     def test_bad_split_raises(self):
-        # split=0.99 with N=10 makes val empty (round(9.9) = 10)
+        # split_ratio=0.99 with N=10 makes val empty (round(9.9) = 10)
         with pytest.raises(ValueError, match="empty train or validation"):
             generate(
                 input_type="bits",
@@ -359,11 +362,11 @@ class TestGenerate:
                 N=10,
                 seed=0,
                 design="in_distribution",
-                split=0.99,
+                split_ratio=0.99,
             )
 
     def test_split_out_of_range_raises(self):
-        with pytest.raises(ValueError, match="split must be in"):
+        with pytest.raises(ValueError, match="split_ratio must be in"):
             generate(
                 input_type="bits",
                 rule="parity",
@@ -371,8 +374,45 @@ class TestGenerate:
                 N=10,
                 seed=0,
                 design="in_distribution",
-                split=1.5,
+                split_ratio=1.5,
             )
+
+    def test_cli_split_ratio_flag_honored(self, tmp_path, monkeypatch):
+        """The --split-ratio CLI flag drives the train fraction end to end.
+
+        Covers the argparse path (generate.main()), which the in-process
+        generate() tests don't exercise — guards the --split -> --split-ratio
+        flag rename from a silent regression (#372).
+        """
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "generate",
+                "--input_type",
+                "digits",
+                "--rule",
+                "length",
+                "--k",
+                "5",
+                "--N",
+                "20",
+                "--seed",
+                "2",
+                "--design",
+                "in_distribution",
+                "--split-ratio",
+                "0.75",
+                "--output",
+                "cli.json",
+                "--output_dir",
+                str(tmp_path),
+            ],
+        )
+        main()
+        ds = json.loads((tmp_path / "cli.json").read_text())
+        assert len(ds["train"]) == 15  # round(20 * 0.75)
+        assert len(ds["validation"]) == 5
+        assert ds["metadata"]["split_ratio"] == 0.75
 
     def test_applicability_error_parity_on_digits(self):
         with pytest.raises(ValueError, match="not applicable"):
@@ -470,7 +510,7 @@ class TestOOD:
             N=100,
             seed=1,
             design="ood",
-            split=0.8,
+            split_ratio=0.8,
             ood_tests=[
                 {"k": 12, "N": 40},
                 {"k": 16, "N": 40},
@@ -509,7 +549,7 @@ class TestOOD:
             N=40,
             seed=1,
             design="ood",
-            split=0.75,
+            split_ratio=0.75,
             ood_tests=[{"format": "dense", "N": 20}],
         )
         # Primary uses spaced (tokens separated by spaces)
@@ -541,7 +581,7 @@ class TestOOD:
             N=32,
             seed=123,
             design="ood",
-            split=0.75,
+            split_ratio=0.75,
             rule_kwargs={"p": 0.5},
             ood_tests=[{"k": 5, "N": 32}],
         )
@@ -1079,7 +1119,7 @@ class TestWeightedSumBinary:
                 N=64,
                 seed=1,
                 design="ood",
-                split=0.75,
+                split_ratio=0.75,
                 rule_kwargs={"weight_max": 2, "intercept": 0},
                 ood_tests=[{"k": 6, "N": 32}],
             )
@@ -1097,7 +1137,7 @@ class TestWeightedSumBinary:
                 N=20,
                 seed=1,
                 design="ood",
-                split=0.8,
+                split_ratio=0.8,
                 rule_kwargs={"weights": [1, 2, -1, 1]},
                 ood_tests=[{"k": 4, "N": 5}],
             )
