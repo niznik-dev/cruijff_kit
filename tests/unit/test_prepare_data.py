@@ -79,7 +79,7 @@ class TestSingleDataset:
                 N=20,
                 seed=2,
                 design="in_distribution",
-                split=0.75,
+                split_ratio=0.75,
                 output_path="data/dl.json",
             ),
         )

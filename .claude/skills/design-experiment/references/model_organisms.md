@@ -46,7 +46,7 @@ Optional:
 |---|---|---|
 | `fmt` | `spaced` | Separator: `spaced` \| `dense` \| `comma` \| `tab` \| `pipe` |
 | `rule_kwargs` | `{}` | Extra params for rules that take them (e.g. `{p: 0.7}` for `coin`, `{x: 3}` for `nth`) |
-| `split` | `0.8` | Train fraction for `in_distribution` and `ood` |
+| `split_ratio` | `0.8` | Train fraction for `in_distribution` and `ood` |
 | `ood_tests` | — | **Required** when `design: ood`; list of per-split overrides |
 
 ### `rule_kwargs` for `weighted_sum` / `weighted_sum_binary`
@@ -141,7 +141,7 @@ data:
     N: 500
     seed: 42
     design: in_distribution
-    split: 0.8
+    split_ratio: 0.8
     output_path: data/digits_majority_k10.json
 ```
 
@@ -171,7 +171,7 @@ data:
     N: 400
     seed: 1729
     design: ood
-    split: 0.8
+    split_ratio: 0.8
     ood_tests:
       - {k: 12, N: 100}
       - {k: 16, N: 100}
@@ -185,7 +185,7 @@ The generator writes one JSON with `{train, validation, metadata[, validation_oo
 The `data.training` block is **still required** — point it at the same file.
 
 - **memorization**: `splits.train` = `N`, `splits.validation` = `N` (identical rows).
-- **in_distribution** with `split: s`: `splits.train` = round(N × s), `splits.validation` = N − train.
+- **in_distribution** with `split_ratio: s`: `splits.train` = round(N × s), `splits.validation` = N − train.
 - **ood**: same as in_distribution, plus one unreported `validation_ood_i`
   split per `ood_tests` entry (those don't appear in `splits`).
 
