@@ -163,7 +163,7 @@ def extract_from_experiment_summary(path):
 - `path` → Full path to base model (for usage examples)
 
 **From `evaluation` section:**
-- `system_prompt` → Use same prompt for consistency
+- `system_prompt` → from `controls.system_prompt` (the single source, propagated to eval)
 - `temperature` → Default temperature setting
 
 **From `runs[]` section:**
@@ -255,7 +255,7 @@ Result: Verified dataset exists (43KB)
 
 [2025-10-24 14:30:15] EXTRACTED_SYSTEM_PROMPT: System prompt from experiment
 Details: Prompt: "" (empty - no system message)
-Result: Will use empty system prompt for consistency with training
+Result: Will use the system prompt from `controls.system_prompt` (here: empty)
 
 [2025-10-24 14:30:20] EXTRACTED_RESEARCH_QUESTION: Scientific objective
 Details: Compare LoRA ranks and learning rates for capitalization task
@@ -811,7 +811,7 @@ scorer = model_graded_qa(
 
 When creating tasks for an experiment, the task does **not** read fine-tuning configs directly. Instead it reads its prompt/scorers config from the `eval.yaml` that `scaffold-inspect` writes, via the auto-derived `config_path`:
 
-1. `design-experiment` produces `experiment_summary.yaml` (research question, data, models, `evaluation.system_prompt`, the `scorers:` block).
+1. `design-experiment` produces `experiment_summary.yaml` (research question, data, models, `controls.system_prompt`, the `scorers:` block).
 2. `scaffold-inspect` writes one `eval.yaml` per (run, task, epoch) cell, carrying `prompt`, `system_prompt`, `scorers`, `data_path`, `vis_label`, etc.
 3. `setup_inspect.py` renders the SLURM script: it auto-derives `config_path` (the path to that `eval.yaml`), maps `TASK_ARG_KEYS` onto `-T` flags, and the task reads `prompt`/`system_prompt`/`scorers` back out of `config_path` at runtime.
 
@@ -1010,7 +1010,7 @@ Before finishing, verify:
 Additional checks for experiment-guided mode:
 - ✓ experiment_summary.yaml was successfully parsed
 - ✓ Extracted dataset path exists and format matches
-- ✓ System prompt matches training configuration
+- ✓ System prompt sourced from `controls.system_prompt` (single source)
 - ✓ Task accepts `data_path` + `config_path` and reads prompt/system_prompt/scorers from `config_path`
 - ✓ Task accepts `vis_label` and folds it into the task name
 - ✓ Parameter names are within `setup_inspect.py`'s `TASK_ARG_KEYS`
@@ -1066,7 +1066,7 @@ After creating the task, guide user:
 - **Prefer Mode 1 (experiment-guided)** when working with designed experiments
 - Always check for experiment_summary.yaml before starting
 - Extract and validate all configuration before proceeding
-- **System prompt consistency is critical** - eval must match training
+- **System prompt has a single source** - `controls.system_prompt`, propagated to eval (no separate eval copy to match)
 - Generated tasks should work for both fine-tuned and base models (`use_chat_template` toggles instruct vs. base)
 - Include experiment context in documentation (research question, runs)
 - Read prompt/system_prompt/scorers from `config_path` (the eval.yaml), and fold `vis_label` into the task name

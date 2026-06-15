@@ -266,6 +266,73 @@ After running finetune:
 
 ## Key Conventions
 
+### experiment_summary.yaml Section Membership
+
+A field's home in `experiment_summary.yaml` is **predictable, not memorized**. Decide it
+with two questions, answered in order:
+
+**1. Granularity — does the value vary, and at what level?**
+
+| Granularity | Home |
+|---|---|
+| Same for the whole experiment | a top-level design section (`controls` / `data` / `evaluation` / `models` / `output`) |
+| Differs across runs *by design* (the independent variable) | `variables` (the swept axis), echoed per-run in `runs[].parameters` |
+| Differs per eval cell (task / epoch) | `evaluation.tasks[]` / `evaluation.matrix[]` |
+
+**2. Role — what does the value describe?**
+
+| Section | Holds | Test |
+|---|---|---|
+| `experiment` | identity / metadata of the experiment as a whole | "Does this identify or describe the experiment itself?" |
+| `tools` | backend routing | "Does this select which external tool processes it?" |
+| `variables` | the swept axes (independent variables) | "Does this vary across runs by design?" |
+| `controls` | experiment-wide invariants that shape the task or training | "Held constant across all runs, regardless of which stage reads it?" |
+| `models` | model resources consumed | "Is this a model the experiment runs on?" |
+| `data` | facts about the dataset itself (paths, splits, generation spec) | "Is this a property of the data, not the task framing?" |
+| `output` | external publication sinks | "Is this where results/artifacts get published?" |
+| `runs` | per-run instantiations (identity, type, model, parameter *values*) | "Is this a per-run realization of the design?" |
+| `evaluation` | knobs consumed *only* by the eval stage | "Does *only* evaluation read this?" |
+
+**Two boundary rules** (these resolve the recurring confusions):
+
+1. **`controls` is not "training-only."** It is the home for experiment-wide *invariants*,
+   whether training, eval, or both consume them. `prompt`, `system_prompt`, and
+   `dataset_type` live here because they are constant across runs and shared by train and
+   eval — the consuming stage does not decide the home. (Note: single-sourcing `dataset_type`
+   in `controls` also *constrains* it to one modality per experiment — a mixed base
+   `text_completion` vs. instruct `chat_completion` sweep isn't expressible today.)
+2. **A field both train and eval need lives in `controls`, never duplicated into
+   `evaluation`.** `propagate.py` carries the `controls` value into the eval config
+   (`eval.yaml`). One source, no hand-kept copy.
+
+**Duplication vs. independence.** When a value seems to live in two places, classify it:
+
+- **Must-match duplication** (same semantic value, kept equal only by convention) →
+  *collapse to one home + propagate.* Example: `system_prompt` is single-sourced at
+  `controls.system_prompt`.
+- **Legitimately-independent per-stage instance** (the two values may validly differ) →
+  *keep both, document the independence.* Example: `controls.seed` (training stochasticity)
+  and `evaluation.seed` (eval sampling RNG) are independent; both default to 14.
+
+**Three "system prompt" surfaces** (name them to avoid conflation): generation-time
+`data.data_generation.context` (with `context_placement: system_prompt`, baked into the
+dataset text); the runtime `controls.system_prompt` (training + eval); and the per-cell
+`evaluation.tasks[].system_prompt` override. They operate at different stages and are
+genuinely distinct.
+
+**`prompt` vs. `system_prompt` — why one collapses and the other layers.** They are not
+peers. `prompt` is the per-sample *user-message* template (`{input}` wrapper) applied to
+every example for both chat and base models — it carries the task content (instructions,
+hints, appended sentences). `system_prompt` is a chat-only system-role framing, dropped
+for `text_completion` base models. Empirically `prompt` is the high-frequency lever (the
+prompt-engineering sweeps vary it) while `system_prompt` is held constant — so `prompt`
+gets explicit override *layers* rather than collapsing: experiment-wide `controls.prompt`,
+per-run `runs[].parameters.prompt` (flows to a fine-tune's training *and* its eval cells,
+preserving train/eval parity), and per-task `evaluation.tasks[].prompt` (the eval-side
+sweep). Precedence at a cell: per-task > per-run > `controls.prompt`. All three travel the
+same idempotent override-wins propagation — the agent writes the more-specific value before
+`propagate_*_fields()`, which then declines to overwrite it.
+
 ### Configuration Defaults
 
 - **LoRA alpha**: Automatically set to 2 × rank by `setup_finetune.py`

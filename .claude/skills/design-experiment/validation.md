@@ -58,8 +58,7 @@ Run through this checklist before presenting the plan:
 - ✓ Wandb project name specified
 
 ### Evaluation Validation
-- ✓ System prompt matches training system prompt (controls.system_prompt) **by default** — per-task overrides exist for experiments that intentionally probe prompt variations (e.g. cue-presence ablations); flag a mismatch only when no task-level override is set
-- ✓ **CRITICAL:** System prompt consistency is essential for inspect-ai *unless* a per-task override is in play
+- ✓ `controls.system_prompt` is set — the single source for training and eval (propagated to both, so parity is automatic; there is no separate `evaluation.system_prompt` to match). Per-task variations live at `evaluation.tasks[].system_prompt`.
 - ✓ Temperature specified (typically 0.0)
 - ✓ Scorer specified and appropriate for task
 - ✓ All evaluation tasks listed with name, script, description
@@ -69,7 +68,9 @@ Run through this checklist before presenting the plan:
 - ✓ Control runs use `epochs: null`
 - ✓ Epochs are 0-indexed in matrix
 - ✓ Task names in matrix match tasks defined in evaluation.tasks
-- ✓ Optional per-task overrides (`system_prompt`, `assistant_prefix`) are strings if present
+- ✓ Optional per-task overrides (`prompt`, `system_prompt`, `assistant_prefix`) are strings if present
+- ✓ If `prompt` varies (per-task `evaluation.tasks[].prompt` or per-run `runs[].parameters.prompt`), each value contains the `{input}` placeholder
+- ✓ When a matrix entry lists multiple tasks (e.g. a prompt sweep where the cells share one `@task` script and differ only by `prompt`), each cell's `vis_label` resolves uniquely — composed as `"{vis_label} ({task_name})"` from the matrix task `name`, not the shared registered `@task`. Identical labels let the report step merge distinct prompt conditions.
 
 ### Resources Validation
 - ✓ All verifications logged in design-experiment.log
@@ -95,12 +96,17 @@ Run through this checklist before presenting the plan:
 
 ## Common Issues to Check
 
-### System Prompt Mismatch
-**Problem:** Training uses one system prompt, evaluation uses another (or blank)
-**Impact:** inspect-ai evaluations may fail or give invalid results
-**Fix:** Ensure `evaluation.system_prompt` exactly matches `controls.system_prompt`
+### System Prompt (single source — mismatch prevented by construction)
+**Design:** the system prompt has one home, `controls.system_prompt`. It is propagated to both training and eval (`eval.yaml`) by `propagate.py`, so train/eval parity is guaranteed — there is no separate `evaluation.system_prompt` that could drift out of sync.
+**Per-task variation:** when a task legitimately needs a different prompt (e.g. a cue vs. no-cue ablation), set `evaluation.tasks[].system_prompt`; the per-task override beats the propagated default for that cell only.
+**Check:** confirm `controls.system_prompt` is present and correct. A stray top-level `evaluation.system_prompt` is not read — remove it.
 
-**How it works:** scaffold-inspect generates eval scripts that set `CONFIG_PATH` to point at `setup_finetune.yaml`. The inspect-ai task reads the system prompt from this config, ensuring train/eval parity automatically. However, the experiment_summary.yaml must still document both for validation purposes.
+### Prompt Variation (per-task vs per-run)
+**Design:** the user prompt has one experiment-wide home, `controls.prompt`, propagated to both training and eval. Two override surfaces let it vary:
+- **Per-task** `evaluation.tasks[].prompt` — the eval-only prompt-sweep lever (N tasks, one script, a different appended sentence each). The canonical zero-finetuning prompt-engineering pattern.
+- **Per-run** `runs[].parameters.prompt` — a run trains *and* evaluates on its own prompt (flows to `setup_finetune.yaml` and the run's eval cells). A per-task prompt still wins over it for that cell.
+
+**Check:** every prompt (controls + any override) keeps the `{input}` placeholder. When prompt is the swept axis across runs, give runs short meaningful names — don't fold the prompt string into a directory name.
 
 ### 1-Indexed Epochs
 **Problem:** Documenting epochs as [1, 2, 3] instead of [0, 1, 2]

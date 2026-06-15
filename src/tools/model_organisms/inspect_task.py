@@ -79,6 +79,12 @@ def model_organism(
             config = yaml.safe_load(f) or {}
         prompt_str = config.get("prompt", "{input}")
         system_prompt = config.get("system_prompt", "")
+        if "{input}" not in prompt_str:
+            raise ValueError(
+                f"prompt must contain the '{{input}}' placeholder, got: {prompt_str!r}. "
+                "Without it, str.format drops the record silently and every sample "
+                "is evaluated on the same input-less text."
+            )
 
     def record_to_sample(record):
         formatted_input = prompt_str.format(input=record["input"])

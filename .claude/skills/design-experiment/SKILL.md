@@ -64,7 +64,7 @@ Before presenting plan to user (step 8), validate completeness:
 - ✓ All run names follow convention
 - ✓ All parameters documented (variables and controls)
 - ✓ Evaluation plan is consistent (0-indexed epochs, base vs fine-tuned)
-- ✓ **System prompt matches between training and evaluation** (critical!)
+- ✓ **`controls.system_prompt` is set** — the single source for training and eval (no separate eval copy to match)
 - ✓ All resources verified (or noted as prerequisites)
 
 **See `validation.md` for:**
@@ -122,7 +122,8 @@ Reference materials for output generation:
 - **Dataset format terminology:** Describe JSON datasets as "JSON with input/output keys" - never invent format type names
 - **Use paths from `claude.local.md`** for models, datasets, scratch directories
 - **Always verify resources** exist before finalizing plan (log all verification)
-- **System prompt consistency is critical** - must match between training and evaluation for inspect-ai
+- **System prompt has a single source** - set `controls.system_prompt`; it propagates to both training and eval, so parity is automatic (per-task variation: `evaluation.tasks[].system_prompt`)
+- **Prompt can be swept** - the user `prompt` defaults to `controls.prompt` but can vary per-task (`evaluation.tasks[].prompt` — eval-only prompt sweep) or per-run (`runs[].parameters.prompt` — a fine-tune trains on its own prompt). Author the structure, don't make the user hand-edit configs. See param_selection.md → **Prompt Sweeps**
 - **Epochs are 0-indexed** - Use [0, 1, 2] in evaluation matrix
 - **Base models and eval-only checkpoints** use `epochs: null`, **fine-tuned models** use `epochs: [0, 1]`
 - **`controls.dataset_type` is required** (`"chat_completion"` | `"text_completion"`) — read by torchtune at training time and propagated to drive chat-template choice at eval time for every run type, including eval-only

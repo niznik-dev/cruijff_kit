@@ -14,6 +14,7 @@ still own judgment work (per-cell system_prompt overrides, path composition,
 branching on dataset type) but no longer touch flat field copies.
 """
 
+import warnings
 from typing import Any
 
 
@@ -23,18 +24,15 @@ DEFAULT_SEED = 14
 
 
 EVAL_FIELDS: dict[str, str] = {
-    "evaluation.system_prompt": "system_prompt",
     "evaluation.temperature": "temperature",
     "evaluation.do_sample": "do_sample",
     "evaluation.max_tokens": "max_tokens",
     "evaluation.max_connections": "max_connections",
     "evaluation.scorers": "scorers",
-    # The @task reads `prompt` from config_path at runtime (default "{input}")
-    # and the agent derives `use_chat_template` from `dataset_type`. Both lived
-    # only in setup_finetune.yaml before; carrying them here lets an eval-only
-    # run (no fine-tuning, no setup_finetune.yaml) source them from the
-    # experiment_summary single source of truth instead of silently defaulting.
+    # Task-framing invariants source from `controls` (shared by train and eval),
+    # so an eval-only run with no setup_finetune.yaml still gets them.
     "controls.prompt": "prompt",
+    "controls.system_prompt": "system_prompt",
     "controls.dataset_type": "dataset_type",
 }
 
@@ -99,12 +97,23 @@ def propagate_eval_fields(experiment_summary: dict, eval_config: dict) -> dict:
     """Copy EVAL_FIELDS from experiment_summary into eval_config in place.
 
     Idempotent: existing non-None values in eval_config take precedence so the
-    agent's per-cell decisions (e.g. per-task system_prompt overrides) survive
-    propagation.
+    agent's per-cell decisions (e.g. per-task prompt / system_prompt overrides,
+    or a per-run prompt carried in for train/eval parity) survive propagation.
 
     The eval seed is resolved (evaluation.seed, else DEFAULT_SEED) and written
     unless the agent already set a per-cell seed, which wins.
+
+    Warns on a stray ``evaluation.system_prompt`` (no longer a source) so an
+    un-migrated file can't silently mismatch training.
     """
+    if _get_dotted(experiment_summary, "evaluation.system_prompt") is not None:
+        warnings.warn(
+            "evaluation.system_prompt is no longer read — system_prompt is "
+            "single-sourced at controls.system_prompt (propagated to eval). "
+            "Remove evaluation.system_prompt; for per-task variation set "
+            "evaluation.tasks[].system_prompt.",
+            stacklevel=2,
+        )
     _propagate(experiment_summary, eval_config, EVAL_FIELDS)
     if eval_config.get("seed") is None:
         eval_config["seed"] = resolve_seed(experiment_summary, "evaluation.seed")

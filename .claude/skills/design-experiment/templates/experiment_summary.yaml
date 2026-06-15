@@ -38,7 +38,11 @@ variables:
   # batch_size: [2, 4, 8]
 
 controls:
-  system_prompt: string            # Training system prompt ("" for blank)
+  system_prompt: string            # REQUIRED: single source for the system prompt (use "" for a
+                                   # deliberately blank prompt), shared by training and eval
+                                   # (propagated to eval.yaml). Set it even when blank — an absent
+                                   # value defaults to "" silently. Per-task eval overrides live
+                                   # under evaluation.tasks[].system_prompt.
   prompt: string                   # Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
   dataset_type: string             # REQUIRED: "chat_completion" (instruct/chat models) |
                                    # "text_completion" (base models). Read by torchtune (training)
@@ -167,6 +171,11 @@ runs:
       lora_rank: int               # Include all varied parameters
       lr: float
       # Empty dict {} for control and eval-only runs
+      # prompt: string             # OPTIONAL (per-run): overrides controls.prompt for THIS
+      #                            #   run — flows to both training (setup_finetune.yaml) and
+      #                            #   the run's eval cells, so it trains and evaluates on the
+      #                            #   same prompt. Use when prompt is a swept axis across runs;
+      #                            #   for an eval-only prompt sweep prefer evaluation.tasks[].prompt.
       # checkpoint_path: string    # OPTIONAL (eval-only): absolute path to a pre-existing
                                    #   checkpoint dir (e.g. .../some_run/artifacts/epoch_0).
                                    #   Used verbatim as model_path. If omitted, scaffold-inspect
@@ -203,7 +212,6 @@ runs:
 # =============================================================================
 
 evaluation:
-  system_prompt: string            # REQUIRED: Must match training system prompt
   temperature: float               # OPTIONAL: Sampling temperature. Required ONLY when do_sample: true,
                                    # where it must be > 0 (HF's TemperatureLogitsWarper does
                                    # `scores / temperature` and raises ValueError at <= 0). Under the
@@ -248,7 +256,10 @@ evaluation:
       # OPTIONAL per-task overrides. When set, override the experiment-wide
       # values for cells produced from this task. This lets two cells in the
       # same run carry different prompts (e.g. cue vs. no-cue ablations).
-      # system_prompt: string      # Overrides evaluation.system_prompt for this task
+      # prompt: string             # Overrides controls.prompt for this task. The
+      #                            # eval-side prompt-sweep lever: N tasks, one
+      #                            # script, a different appended sentence each.
+      # system_prompt: string      # Overrides controls.system_prompt for this task
       # assistant_prefix: string   # Overrides evaluation.assistant_prefix for this task
 
   # OPTIONAL: Compute estimates for evaluation jobs (from prior runs)
