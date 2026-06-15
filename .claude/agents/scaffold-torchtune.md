@@ -257,6 +257,7 @@ lora_rank: {from run.parameters.lora_rank, if present}
 lr: {from run.parameters.lr, format as 1e-5 or 5e-5, if present}
 batch_size: {from run.parameters.batch_size if varies — overrides the helper-propagated controls.batch_size for this run}
 seed: {from run.parameters.seed, if present}
+prompt: {from run.parameters.prompt, if present — overrides the helper-propagated controls.prompt so this fine-tune trains on its own prompt. setup_finetune.py merges it (config_file > argparse default), so it reaches the training dataset. When prompt is the swept axis, give each run a short meaningful name — don't fold the prompt string into the directory name.}
 
 # Training-loop bookkeeping (not in TRAIN_FIELDS — keep inline)
 log_every_n_steps: {use template default, typically 1}

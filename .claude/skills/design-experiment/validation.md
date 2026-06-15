@@ -68,7 +68,8 @@ Run through this checklist before presenting the plan:
 - ✓ Control runs use `epochs: null`
 - ✓ Epochs are 0-indexed in matrix
 - ✓ Task names in matrix match tasks defined in evaluation.tasks
-- ✓ Optional per-task overrides (`system_prompt`, `assistant_prefix`) are strings if present
+- ✓ Optional per-task overrides (`prompt`, `system_prompt`, `assistant_prefix`) are strings if present
+- ✓ If `prompt` varies (per-task `evaluation.tasks[].prompt` or per-run `runs[].parameters.prompt`), each value contains the `{input}` placeholder
 
 ### Resources Validation
 - ✓ All verifications logged in design-experiment.log
@@ -98,6 +99,13 @@ Run through this checklist before presenting the plan:
 **Design:** the system prompt has one home, `controls.system_prompt`. It is propagated to both training and eval (`eval.yaml`) by `propagate.py`, so train/eval parity is guaranteed — there is no separate `evaluation.system_prompt` that could drift out of sync.
 **Per-task variation:** when a task legitimately needs a different prompt (e.g. a cue vs. no-cue ablation), set `evaluation.tasks[].system_prompt`; the per-task override beats the propagated default for that cell only.
 **Check:** confirm `controls.system_prompt` is present and correct. A stray top-level `evaluation.system_prompt` is not read — remove it.
+
+### Prompt Variation (per-task vs per-run)
+**Design:** the user prompt has one experiment-wide home, `controls.prompt`, propagated to both training and eval. Two override surfaces let it vary:
+- **Per-task** `evaluation.tasks[].prompt` — the eval-only prompt-sweep lever (N tasks, one script, a different appended sentence each). The canonical zero-finetuning prompt-engineering pattern.
+- **Per-run** `runs[].parameters.prompt` — a run trains *and* evaluates on its own prompt (flows to `setup_finetune.yaml` and the run's eval cells). A per-task prompt still wins over it for that cell.
+
+**Check:** every prompt (controls + any override) keeps the `{input}` placeholder. When prompt is the swept axis across runs, give runs short meaningful names — don't fold the prompt string into a directory name.
 
 ### 1-Indexed Epochs
 **Problem:** Documenting epochs as [1, 2, 3] instead of [0, 1, 2]

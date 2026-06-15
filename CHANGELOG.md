@@ -7,6 +7,7 @@ All notable changes to cruijff_kit will be documented in this file.
 ### Added
 
 - **Evaluation-only experiments**: `experiment_summary.yaml` gains a third run type, `eval-only`, for evaluating a pre-existing checkpoint (via `parameters.checkpoint_path`) without retraining. `scaffold-experiment` skips `scaffold-torchtune` entirely when no run is `fine-tuned`, so an experiment can be made up of base models and/or pre-existing checkpoints. (#478)
+- **Per-task and per-run prompt overrides**: the user `prompt` can now vary as a first-class field, not just the experiment-wide `controls.prompt`. Set `evaluation.tasks[].prompt` for an eval-side prompt sweep (N tasks, one script, a different appended sentence each — the zero-finetuning prompt-engineering pattern, previously done by hand-patching each cell's `eval.yaml`), or `runs[].parameters.prompt` to give a fine-tune its own prompt across both training and its eval cells (train/eval parity). Both ride the existing override-wins propagation; precedence is per-task > per-run > `controls.prompt`. (#562)
 
 ### Changed
 

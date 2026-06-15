@@ -524,3 +524,39 @@ class TestTrainingSamples:
     def test_no_training_samples_means_no_max_samples(self, run_main):
         config, _ = run_main()
         assert "max_samples" not in config["dataset"]
+
+
+class TestPromptFlow:
+    """The training prompt must reach the dataset config from setup_finetune.yaml.
+
+    This is the mechanism that lets prompt vary in fine-tuning: the experiment-wide
+    `controls.prompt` is propagated into setup_finetune.yaml, and a per-run
+    `parameters.prompt` override (written by scaffold-torchtune after propagation)
+    lands in the same key. Either way the value must flow through to the dataset and
+    not be silently clobbered by the argparse default. Precedence is the standard
+    CLI > config_file > default.
+    """
+
+    def test_prompt_via_yaml_reaches_dataset(self, run_main, setup_yaml):
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["prompt"] = "Capitalize: {input}\n"
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        config, _ = run_main()
+        assert config["dataset"]["prompt"] == "Capitalize: {input}\n"
+
+    def test_prompt_via_cli_overrides_yaml(self, run_main, setup_yaml):
+        """An explicit --prompt wins over the config-file value (CLI > config_file)."""
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["prompt"] = "Capitalize: {input}\n"
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        config, _ = run_main(extra_args=["--prompt", "CLI: {input}"])
+        assert config["dataset"]["prompt"] == "CLI: {input}"
+
+    def test_prompt_default_when_unset(self, run_main):
+        """No prompt anywhere → the argparse default reaches the dataset."""
+        config, _ = run_main()
+        assert config["dataset"]["prompt"] == "{input}\n"

@@ -171,6 +171,11 @@ runs:
       lora_rank: int               # Include all varied parameters
       lr: float
       # Empty dict {} for control and eval-only runs
+      # prompt: string             # OPTIONAL (per-run): overrides controls.prompt for THIS
+      #                            #   run — flows to both training (setup_finetune.yaml) and
+      #                            #   the run's eval cells, so it trains and evaluates on the
+      #                            #   same prompt. Use when prompt is a swept axis across runs;
+      #                            #   for an eval-only prompt sweep prefer evaluation.tasks[].prompt.
       # checkpoint_path: string    # OPTIONAL (eval-only): absolute path to a pre-existing
                                    #   checkpoint dir (e.g. .../some_run/artifacts/epoch_0).
                                    #   Used verbatim as model_path. If omitted, scaffold-inspect
@@ -254,6 +259,9 @@ evaluation:
       # OPTIONAL per-task overrides. When set, override the experiment-wide
       # values for cells produced from this task. This lets two cells in the
       # same run carry different prompts (e.g. cue vs. no-cue ablations).
+      # prompt: string             # Overrides controls.prompt for this task. The
+      #                            # eval-side prompt-sweep lever: N tasks, one
+      #                            # script, a different appended sentence each.
       # system_prompt: string      # Overrides controls.system_prompt for this task
       # assistant_prefix: string   # Overrides evaluation.assistant_prefix for this task
 

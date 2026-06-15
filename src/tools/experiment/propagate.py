@@ -102,8 +102,8 @@ def propagate_eval_fields(experiment_summary: dict, eval_config: dict) -> dict:
     """Copy EVAL_FIELDS from experiment_summary into eval_config in place.
 
     Idempotent: existing non-None values in eval_config take precedence so the
-    agent's per-cell decisions (e.g. per-task system_prompt overrides) survive
-    propagation.
+    agent's per-cell decisions (e.g. per-task prompt / system_prompt overrides,
+    or a per-run prompt carried in for train/eval parity) survive propagation.
 
     The eval seed is resolved (evaluation.seed, else DEFAULT_SEED) and written
     unless the agent already set a per-cell seed, which wins.

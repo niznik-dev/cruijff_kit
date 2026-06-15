@@ -320,6 +320,19 @@ dataset text); the runtime `controls.system_prompt` (training + eval); and the p
 `evaluation.tasks[].system_prompt` override. They operate at different stages and are
 genuinely distinct.
 
+**`prompt` vs. `system_prompt` — why one collapses and the other layers.** They are not
+peers. `prompt` is the per-sample *user-message* template (`{input}` wrapper) applied to
+every example for both chat and base models — it carries the task content (instructions,
+hints, appended sentences). `system_prompt` is a chat-only system-role framing, dropped
+for `text_completion` base models. Empirically `prompt` is the high-frequency lever (the
+prompt-engineering sweeps vary it) while `system_prompt` is held constant — so `prompt`
+gets explicit override *layers* rather than collapsing: experiment-wide `controls.prompt`,
+per-run `runs[].parameters.prompt` (flows to a fine-tune's training *and* its eval cells,
+preserving train/eval parity), and per-task `evaluation.tasks[].prompt` (the eval-side
+sweep). Precedence at a cell: per-task > per-run > `controls.prompt`. All three travel the
+same idempotent override-wins propagation — the agent writes the more-specific value before
+`propagate_*_fields()`, which then declines to overwrite it.
+
 ### Configuration Defaults
 
 - **LoRA alpha**: Automatically set to 2 × rank by `setup_finetune.py`

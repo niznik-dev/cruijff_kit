@@ -163,6 +163,28 @@ def test_eval_per_task_override_beats_controls_source(representative_summary):
     assert eval_config["system_prompt"] == "CUE: think step by step"
 
 
+def test_eval_per_task_prompt_override_beats_controls_source(representative_summary):
+    """A per-cell prompt (agent-written before propagation) must win over the
+    propagated controls.prompt. Same override-wins path serves both eval levers:
+    a per-task prompt (`evaluation.tasks[].prompt`) for a prompt sweep, and a
+    per-run prompt (`runs[].parameters.prompt`) carried into a fine-tune's eval
+    cells so it is evaluated with the same prompt it trained on (train/eval parity).
+    """
+    eval_config = {"prompt": "{input} High earners are a minority here."}
+    propagate_eval_fields(representative_summary, eval_config)
+    assert eval_config["prompt"] == "{input} High earners are a minority here."
+
+
+def test_train_per_run_prompt_override_survives(representative_summary):
+    """A per-run prompt written into setup_finetune before propagation wins over
+    controls.prompt — the mechanism that lets the training prompt vary across
+    fine-tuning runs.
+    """
+    setup_finetune = {"prompt": "Per-run train: {input}"}
+    propagate_train_fields(representative_summary, setup_finetune)
+    assert setup_finetune["prompt"] == "Per-run train: {input}"
+
+
 def test_warn_on_stray_evaluation_system_prompt(representative_summary):
     """A leftover top-level evaluation.system_prompt is no longer a source and
     must warn loudly so an un-migrated file isn't silently mismatched (#562)."""
