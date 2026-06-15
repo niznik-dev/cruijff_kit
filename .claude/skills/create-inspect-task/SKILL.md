@@ -900,7 +900,7 @@ def my_task(
     else:
         solver = chain(generate(temperature=temperature, max_tokens=max_tokens))
 
-    # Scorer + logprobs driven by the eval_config scorers: block.
+    # Scorer + logprobs driven by the eval config's scorers: block.
     scorers = build_scorers(config)
     scorer_needs_logprobs = configured_scorers_require_logprobs(config)
     if logprobs is False and scorer_needs_logprobs:
