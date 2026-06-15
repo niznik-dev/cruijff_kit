@@ -58,8 +58,7 @@ Run through this checklist before presenting the plan:
 - ✓ Wandb project name specified
 
 ### Evaluation Validation
-- ✓ System prompt matches training system prompt (controls.system_prompt) **by default** — per-task overrides exist for experiments that intentionally probe prompt variations (e.g. cue-presence ablations); flag a mismatch only when no task-level override is set
-- ✓ **CRITICAL:** System prompt consistency is essential for inspect-ai *unless* a per-task override is in play
+- ✓ `controls.system_prompt` is set — the single source for training and eval (propagated to both, so parity is automatic; there is no separate `evaluation.system_prompt` to match). Per-task variations live at `evaluation.tasks[].system_prompt`.
 - ✓ Temperature specified (typically 0.0)
 - ✓ Scorer specified and appropriate for task
 - ✓ All evaluation tasks listed with name, script, description

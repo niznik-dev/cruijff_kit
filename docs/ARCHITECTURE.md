@@ -298,7 +298,9 @@ with two questions, answered in order:
 1. **`controls` is not "training-only."** It is the home for experiment-wide *invariants*,
    whether training, eval, or both consume them. `prompt`, `system_prompt`, and
    `dataset_type` live here because they are constant across runs and shared by train and
-   eval — the consuming stage does not decide the home.
+   eval — the consuming stage does not decide the home. (Note: single-sourcing `dataset_type`
+   in `controls` also *constrains* it to one modality per experiment — a mixed base
+   `text_completion` vs. instruct `chat_completion` sweep isn't expressible today.)
 2. **A field both train and eval need lives in `controls`, never duplicated into
    `evaluation`.** `propagate.py` carries the `controls` value into the eval config
    (`eval.yaml`). One source, no hand-kept copy.

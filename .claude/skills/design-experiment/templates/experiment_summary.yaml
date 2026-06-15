@@ -38,9 +38,11 @@ variables:
   # batch_size: [2, 4, 8]
 
 controls:
-  system_prompt: string            # Single source for the system prompt ("" for blank), shared by
-                                   # training and eval (propagated to eval.yaml). Per-task eval
-                                   # overrides live under evaluation.tasks[].system_prompt.
+  system_prompt: string            # REQUIRED: single source for the system prompt (use "" for a
+                                   # deliberately blank prompt), shared by training and eval
+                                   # (propagated to eval.yaml). Set it even when blank — an absent
+                                   # value defaults to "" silently. Per-task eval overrides live
+                                   # under evaluation.tasks[].system_prompt.
   prompt: string                   # Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
   dataset_type: string             # REQUIRED: "chat_completion" (instruct/chat models) |
                                    # "text_completion" (base models). Read by torchtune (training)

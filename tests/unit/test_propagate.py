@@ -139,22 +139,50 @@ def test_train_idempotence_preserves_per_run_value(representative_summary):
     assert setup_finetune["batch_size"] == 999
 
 
-def test_eval_system_prompt_sourced_from_controls(representative_summary):
-    """`system_prompt` is single-sourced in `controls`, not `evaluation` (#562).
+def test_eval_blank_system_prompt_propagates():
+    """controls.system_prompt: "" is an explicitly supported value (template),
+    not 'missing' — it must land in eval_config, not be skipped (#562).
 
-    Guards the de-duplication: eval must derive `system_prompt` from
-    `controls.system_prompt`. A stray `evaluation.system_prompt` is not a source
-    and must be ignored, so it can never silently override the single source.
+    Guards the None-vs-falsy boundary: `_propagate` skips on None only, so a
+    deliberately blank prompt must still propagate as a present, empty key.
     """
-    summary = dict(representative_summary)
-    summary["evaluation"] = {
-        **summary["evaluation"],
-        "system_prompt": "STALE eval-side value",
-    }
+    summary = {"controls": {"system_prompt": ""}}
     eval_config: dict = {}
     propagate_eval_fields(summary, eval_config)
+    assert "system_prompt" in eval_config
+    assert eval_config["system_prompt"] == ""
+
+
+def test_eval_per_task_override_beats_controls_source(representative_summary):
+    """A per-task system_prompt (agent-written into the cell before propagation)
+    must win over the propagated controls.system_prompt — the cue/no-cue
+    ablation depends on this, and the source key moved to controls (#562).
+    """
+    eval_config = {"system_prompt": "CUE: think step by step"}
+    propagate_eval_fields(representative_summary, eval_config)
+    assert eval_config["system_prompt"] == "CUE: think step by step"
+
+
+def test_warn_on_stray_evaluation_system_prompt(representative_summary):
+    """A leftover top-level evaluation.system_prompt is no longer a source and
+    must warn loudly so an un-migrated file isn't silently mismatched (#562)."""
+    summary = dict(representative_summary)
+    summary["evaluation"] = {**summary["evaluation"], "system_prompt": "stale"}
+    eval_config: dict = {}
+    with pytest.warns(UserWarning, match="evaluation.system_prompt is no longer read"):
+        propagate_eval_fields(summary, eval_config)
+    # …and it still does the right thing: controls wins, stray ignored.
     assert eval_config["system_prompt"] == _SAMPLE_VALUES["system_prompt"]
-    assert eval_config["system_prompt"] != "STALE eval-side value"
+
+
+def test_no_warn_when_no_stray_evaluation_system_prompt(representative_summary):
+    """The stray-key warning must NOT fire for a clean (migrated) summary."""
+    import warnings as _warnings
+
+    eval_config: dict = {}
+    with _warnings.catch_warnings():
+        _warnings.simplefilter("error")  # any warning becomes an error
+        propagate_eval_fields(representative_summary, eval_config)
 
 
 def test_double_propagation_is_stable(representative_summary):

@@ -84,7 +84,7 @@ Extract the following information from the YAML structure:
 
 4. **Output configuration:**
    - `experiment.dir` - Where checkpoints are saved
-   - `controls.system_prompt` - System prompt (must match training)
+   - `controls.system_prompt` - System prompt (single source; training and eval both derive from it)
 
 5. **Runs:**
    - `runs[]` - List of all runs (fine-tuned + control)
@@ -845,7 +845,7 @@ Each cell directory contains:
 
 ✓ **capitalization**: `/path/to/inspect_task.py`
   - Dataset: Reads from fine-tuning config
-  - System prompt: Matches training configuration
+  - System prompt: from `controls.system_prompt` (single source, propagated to eval)
   - Epochs evaluated: Last epoch only (epoch 0)
 
 ### Next Steps
@@ -875,7 +875,7 @@ Before reporting success, verify:
 - ✓ Scripts start with `#!/bin/bash` (no backslash escape)
 - ✓ Scripts reference correct model paths
 - ✓ Scripts reference correct task scripts
-- ✓ System prompts match training configuration
+- ✓ System prompt sourced from `controls.system_prompt` (single source; per-task overrides applied where set)
 - ✓ Log directory paths are correct
 - ✓ Fine-tuned scripts include `--metadata epoch={N}` and `--metadata is_finetuned=true`
 - ✓ Control model scripts include `--metadata is_finetuned=false` (no epoch)
@@ -890,7 +890,7 @@ Before reporting success, verify:
 
 - All cell SLURM scripts point `config_path` to `eval.yaml` in the same cell directory (auto-derived from where `setup_inspect.py` is run)
 - Evaluation scripts should not be submitted until fine-tuning completes
-- System prompt consistency between training and evaluation is critical *by default*; per-task `system_prompt` overrides exist for experiments that intentionally probe prompt variations (e.g. cue-presence ablations)
+- System prompt is single-sourced at `controls.system_prompt` (propagated to both training and eval), so train/eval parity is automatic; per-task `system_prompt` overrides exist for experiments that intentionally probe prompt variations (e.g. cue-presence ablations)
 - Model paths reference fine-tuning output directories that don't exist yet (created during training)
 - inspect-ai task scripts must exist before scaffolding (or note as prerequisite)
 - Control model evaluations use original model paths, not fine-tuned checkpoints

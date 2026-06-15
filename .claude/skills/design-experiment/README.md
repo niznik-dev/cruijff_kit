@@ -68,7 +68,7 @@ Interactive conversation to gather all parameters:
 
 Before presenting to user (step 8), verify plan completeness:
 - Preparation: Run names, parameters, configurations
-- Evaluation: Epochs (0-indexed!), system prompt consistency (critical!)
+- Evaluation: Epochs (0-indexed!), single-source system prompt (`controls.system_prompt`)
 - Resources: All verified and accessible
 
 ### Stage 3: GENERATION (experiment_generation.md)
@@ -128,7 +128,7 @@ Output structure reference:
 
 ### validation.md
 - Checklist for each aspect (preparation, evaluation, resources)
-- Identify common issues (system prompt mismatch, 1-indexed epochs)
+- Identify common issues (missing `controls.system_prompt`, 1-indexed epochs)
 - Don't block on missing resources - document as prerequisites
 
 ### experiment_generation.md
@@ -149,6 +149,6 @@ Output structure reference:
 
 - This skill is tool-agnostic TODAY (only torchtune/inspect-ai exist) but structured to support multiple tools in the future
 - Logging is critical - design-experiment.log enables debugging, reproducibility, and improvement
-- System prompt consistency between training and evaluation is critical for inspect-ai
+- System prompt is single-sourced at `controls.system_prompt` (propagated to training and eval) — parity is automatic
 - Validation before presenting ensures we don't waste user's time with incomplete plans
 - Pattern consistency with scaffold/run (action verbs) while being appropriately simpler (fewer files)

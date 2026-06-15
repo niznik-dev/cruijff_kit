@@ -14,6 +14,7 @@ still own judgment work (per-cell system_prompt overrides, path composition,
 branching on dataset type) but no longer touch flat field copies.
 """
 
+import warnings
 from typing import Any
 
 
@@ -106,7 +107,21 @@ def propagate_eval_fields(experiment_summary: dict, eval_config: dict) -> dict:
 
     The eval seed is resolved (evaluation.seed, else DEFAULT_SEED) and written
     unless the agent already set a per-cell seed, which wins.
+
+    Warns on a stray top-level ``evaluation.system_prompt``: it is no longer a
+    source (system_prompt is single-sourced at ``controls.system_prompt``), so
+    a leftover value from an un-migrated file is silently ignored. The warning
+    catches that migration footgun before it becomes a silent train/eval
+    mismatch — mirroring ``prepare_data.py``'s warn-on-stale-``split``.
     """
+    if _get_dotted(experiment_summary, "evaluation.system_prompt") is not None:
+        warnings.warn(
+            "evaluation.system_prompt is no longer read — system_prompt is "
+            "single-sourced at controls.system_prompt (propagated to eval). "
+            "Remove evaluation.system_prompt; for per-task variation set "
+            "evaluation.tasks[].system_prompt.",
+            stacklevel=2,
+        )
     _propagate(experiment_summary, eval_config, EVAL_FIELDS)
     if eval_config.get("seed") is None:
         eval_config["seed"] = resolve_seed(experiment_summary, "evaluation.seed")

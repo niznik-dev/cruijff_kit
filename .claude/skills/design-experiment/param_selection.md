@@ -409,7 +409,7 @@ If the user declines estimates or no prior data exists, omit `compute` blocks en
 - Multiple evaluation datasets (comprehensive assessment)
 
 ### Evaluation Configuration
-- System prompt must match training for consistency
+- System prompt is single-sourced at `controls.system_prompt` (propagated to both training and eval) — no separate eval copy to keep in sync
 - Temperature typically 0.0 for deterministic evaluation
 
 ### Scorer Selection
@@ -594,4 +594,4 @@ Does this look correct? Any adjustments needed?
 2. **Log everything** - All verifications go in design-experiment.log (see `logging.md`)
 3. **Validate before presenting** - Use `validation.md` to ensure plan is complete
 4. **Handle missing resources gracefully** - Note as prerequisites, don't block the plan
-5. **System prompt consistency** - Critical for inspect-ai, verify it matches between training and eval
+5. **System prompt single source** - set `controls.system_prompt` only; it propagates to both training and eval, so train/eval parity is automatic (use `evaluation.tasks[].system_prompt` for intentional per-task variation)
