@@ -188,7 +188,7 @@ The experiment workflow uses two architectural patterns:
 - How many GPUs per job? (default: 1)
 - Should validation run during training? (default: yes)
 - System prompt for training and evaluation? (default: "")
-- Prompt with {input} placeholder (default: "{input}\n"; e.g., "Capitalize: {input}\n")
+- Prompt with {input} placeholder (default: "{input}\n"; e.g., "Capitalize: {input}\n"). This is the experiment-wide `controls.prompt`. To *vary* the prompt across conditions, see **Prompt Sweeps** under Evaluation Configuration below.
 
 ### Available Hyperparameters for Torchtune
 
@@ -236,6 +236,7 @@ Create the runs list in experiment_summary.yaml:
 - For eval-only runs (evaluate a pre-existing checkpoint without retraining): Include `name`, `type: "eval-only"`, `model` (the base model the checkpoint was finetuned from), and `parameters: {checkpoint_path: <absolute path to the existing checkpoint directory>}`. Use this when the user wants to throw new tasks/prompts at a model they already trained in an earlier experiment. An experiment may mix eval-only runs with control and/or fine-tuned runs.
 - Run names should include model and varying parameter values (e.g., `Llama-3.2-1B-Instruct_rank4`)
 - Parameters dict should only include values that vary across runs (e.g., `lora_rank: 4`)
+- `prompt` may be a per-run parameter when a fine-tune should train on its own prompt — see **Prompt Sweeps → Pattern B** under Evaluation Configuration. Use a short run name; don't put the prompt text in the name.
 
 ### Step 4b: Compute Estimation (from prior runs)
 
@@ -411,6 +412,50 @@ If the user declines estimates or no prior data exists, omit `compute` blocks en
 ### Evaluation Configuration
 - System prompt is single-sourced at `controls.system_prompt` (propagated to both training and eval) — no separate eval copy to keep in sync
 - Temperature typically 0.0 for deterministic evaluation
+
+### Prompt Sweeps (varying the user `prompt`)
+
+The user `prompt` (the `{input}` template, e.g. `"{input} Bear in mind high earners are a minority."`) defaults to the experiment-wide `controls.prompt`. **Recognize a prompt sweep** when the user wants to compare framings, appended sentences, hints, base-rate cues, or "prompt-engineering" conditions. Don't make them hand-edit configs after scaffolding — author the structure here. Two patterns:
+
+**Pattern A — eval-only prompt sweep (the common case; no fine-tuning needed).** N conditions that differ *only* by the prompt, all run against the same base model(s) and the same task script. Author one `evaluation.tasks[]` entry per condition: same `script` (and same `dataset`/`eval_condition`), a short distinct `name`, and a per-task `prompt`. Then fan each run across all N tasks in the matrix.
+
+```yaml
+evaluation:
+  tasks:
+    - name: p1_baseline           # short, meaningful names — NOT the prompt text
+      script: /path/to/inspect_task.py
+      eval_condition: acs_income
+      description: "Baseline, no appended sentence"
+      prompt: "{input}"
+    - name: p2_minority
+      script: /path/to/inspect_task.py
+      eval_condition: acs_income
+      description: "Minority base-rate cue"
+      prompt: "{input} Bear in mind high earners are a minority in this population."
+    # ... p3, p4, p5 ...
+  matrix:
+    - run: Llama-3.2-1B-Instruct_base
+      tasks: [p1_baseline, p2_minority, p3_explicit, p4_directive, p5_overcorrect]
+      epochs: null
+```
+
+Keep `controls.prompt` as the neutral baseline; each task's `prompt` overrides it for that cell. Every prompt must keep the `{input}` placeholder.
+
+**Pattern B — per-run prompt (a fine-tune trains *and* evaluates on its own prompt).** Use only when the prompt is tied to training — i.e. you want each fine-tune to learn under a different prompt. Put `prompt` in the run's `parameters`; it flows to that run's training *and* its eval cells (train/eval parity). Give the run a short meaningful name — don't fold the prompt string into the directory name. A per-task `prompt` (Pattern A) still wins for that cell if both are set.
+
+```yaml
+runs:
+  - name: ft_terse_prompt
+    type: fine-tuned
+    model: Llama-3.2-1B-Instruct
+    parameters: {lora_rank: 8, prompt: "{input}"}
+  - name: ft_verbose_prompt
+    type: fine-tuned
+    model: Llama-3.2-1B-Instruct
+    parameters: {lora_rank: 8, prompt: "Carefully read, then answer: {input}"}
+```
+
+**Which pattern?** If the model is fixed and you're only changing what you *ask* it → Pattern A (cheaper, no training). If the prompt is part of what you're *training on* → Pattern B. They compose: Pattern B for the training prompt, Pattern A to additionally probe eval-time prompts per fine-tune.
 
 ### Scorer Selection
 
