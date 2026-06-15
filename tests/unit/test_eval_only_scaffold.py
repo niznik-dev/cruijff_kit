@@ -16,10 +16,7 @@ from pathlib import Path
 import yaml
 
 GOLDEN = (
-    Path(__file__).resolve().parents[1]
-    / "fixtures"
-    / "eval_only"
-    / "eval.golden.yaml"
+    Path(__file__).resolve().parents[1] / "fixtures" / "eval_only" / "eval.golden.yaml"
 )
 
 
