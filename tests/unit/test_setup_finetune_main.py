@@ -560,3 +560,17 @@ class TestPromptFlow:
         """No prompt anywhere → the argparse default reaches the dataset."""
         config, _ = run_main()
         assert config["dataset"]["prompt"] == "{input}\n"
+
+    def test_prompt_via_yaml_text_completion(self, run_main, setup_yaml):
+        """The prompt must reach the text_completion dataset too — base models
+        are the prompt-engineering use case, and that path also reads args.prompt.
+        """
+        with open(setup_yaml) as f:
+            data = yaml.safe_load(f)
+        data["dataset_type"] = "text_completion"
+        data["prompt"] = "Complete: {input}\n"
+        with open(setup_yaml, "w") as f:
+            yaml.dump(data, f)
+        config, _ = run_main()
+        assert "text_completion" in config["dataset"]["_component_"]
+        assert config["dataset"]["prompt"] == "Complete: {input}\n"
