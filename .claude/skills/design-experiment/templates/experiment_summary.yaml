@@ -38,7 +38,9 @@ variables:
   # batch_size: [2, 4, 8]
 
 controls:
-  system_prompt: string            # Training system prompt ("" for blank)
+  system_prompt: string            # Single source for the system prompt ("" for blank), shared by
+                                   # training and eval (propagated to eval.yaml). Per-task eval
+                                   # overrides live under evaluation.tasks[].system_prompt.
   prompt: string                   # Prompt template with {input} placeholder (e.g., "Capitalize: {input}\n")
   dataset_type: string             # REQUIRED: "chat_completion" (instruct/chat models) |
                                    # "text_completion" (base models). Read by torchtune (training)
@@ -203,7 +205,9 @@ runs:
 # =============================================================================
 
 evaluation:
-  system_prompt: string            # REQUIRED: Must match training system prompt
+  # NOTE: the system prompt is NOT set here — it has a single source at
+  # controls.system_prompt (propagated to eval). Per-task overrides go under
+  # evaluation.tasks[].system_prompt below.
   temperature: float               # OPTIONAL: Sampling temperature. Required ONLY when do_sample: true,
                                    # where it must be > 0 (HF's TemperatureLogitsWarper does
                                    # `scores / temperature` and raises ValueError at <= 0). Under the
@@ -248,7 +252,7 @@ evaluation:
       # OPTIONAL per-task overrides. When set, override the experiment-wide
       # values for cells produced from this task. This lets two cells in the
       # same run carry different prompts (e.g. cue vs. no-cue ablations).
-      # system_prompt: string      # Overrides evaluation.system_prompt for this task
+      # system_prompt: string      # Overrides controls.system_prompt for this task
       # assistant_prefix: string   # Overrides evaluation.assistant_prefix for this task
 
   # OPTIONAL: Compute estimates for evaluation jobs (from prior runs)

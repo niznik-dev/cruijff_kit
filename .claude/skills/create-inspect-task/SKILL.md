@@ -811,7 +811,7 @@ scorer = model_graded_qa(
 
 When creating tasks for an experiment, the task does **not** read fine-tuning configs directly. Instead it reads its prompt/scorers config from the `eval.yaml` that `scaffold-inspect` writes, via the auto-derived `config_path`:
 
-1. `design-experiment` produces `experiment_summary.yaml` (research question, data, models, `evaluation.system_prompt`, the `scorers:` block).
+1. `design-experiment` produces `experiment_summary.yaml` (research question, data, models, `controls.system_prompt`, the `scorers:` block).
 2. `scaffold-inspect` writes one `eval.yaml` per (run, task, epoch) cell, carrying `prompt`, `system_prompt`, `scorers`, `data_path`, `vis_label`, etc.
 3. `setup_inspect.py` renders the SLURM script: it auto-derives `config_path` (the path to that `eval.yaml`), maps `TASK_ARG_KEYS` onto `-T` flags, and the task reads `prompt`/`system_prompt`/`scorers` back out of `config_path` at runtime.
 

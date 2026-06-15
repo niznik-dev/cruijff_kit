@@ -36,6 +36,7 @@ Each requires migrating existing config files; see the migration note per item.
 - **Post-run flow restructured**: `summarize-experiment` is now the required post-run step, and the optional `analyze-experiment` skill is renamed `explore-experiment` (output dir `analysis/` → `exploration/`). `report_generator.py` is retired (renamed `pdf_preprocess.py`) — `explore-experiment` authors `report.md` directly. (#539)
 - **Deterministic `experiment_summary.yaml` propagation** — `propagate_*_fields()` is a mandatory propagate-first step in scaffolding, so generated `eval_config.yaml` / `setup_finetune.yaml` derive from one verified source. (#502)
 - Evaluation scaffolding (`scaffold-inspect`) no longer reads `setup_finetune.yaml` — `prompt` and `dataset_type` are propagated from `experiment_summary.yaml`, decoupling eval from the training artifact. (#478)
+- **`system_prompt` is now single-sourced at `controls.system_prompt`** — the duplicate `evaluation.system_prompt` (kept equal to training only by convention) is removed; eval derives it via propagation, alongside the other task-framing invariants `prompt` and `dataset_type`. Per-task eval variation stays at `evaluation.tasks[].system_prompt`. **Breaking:** delete `evaluation.system_prompt` from existing files; its value should already equal `controls.system_prompt`, which is now the only home. A stray `evaluation.system_prompt` is silently ignored. (#562)
 - **`utils/` namespace audit** — single-domain scripts moved out of `src/utils/` into their domain folders; the `utils/` charter is documented in `docs/ARCHITECTURE.md`. (#535)
 - **`create-inspect-task` skill** updated to the current `eval_config.yaml` / per-cell architecture. (#566)
 
@@ -48,6 +49,7 @@ Each requires migrating existing config files; see the migration note per item.
 
 - **Naming conventions + external-contract boundary written down** (`CLAUDE.md`, no renames): the `dir`-over-`directory` preference and the `dir`-vs-`path` (folder-vs-file) distinction, plus the names off-limits to renames because they belong to an external contract — torchtune recipe keys and inspect-ai's `@task`/`@scorer`/`@metric` registry names. Also records why `ck-setup` keeps its prefix (a bare `setup` would collide with a built-in skill). (#372)
 - **Tool-domain folder convention + `inspect/`-shadows-stdlib hazard** documented (`docs/ARCHITECTURE.md`, `src/tools/inspect/__init__.py`) and locked by a guard test (`tests/unit/test_inspect_no_stdlib_shadow.py`). Stale `ck-experiments/` paths fixed in the `create-quiz` docs and a `summarize` test fixture. (#372)
+- **`experiment_summary.yaml` section-membership principle written down** (`docs/ARCHITECTURE.md`): a field's home is decided by granularity × role, with two boundary rules (`controls` holds experiment-wide invariants regardless of consuming stage; a field both train and eval need lives in `controls`, never duplicated into `evaluation`) and a duplication-vs-independence test (`system_prompt` collapses; `seed` stays per-stage). Names the three distinct "system prompt" surfaces. (#562)
 
 ## [0.3.3] - 2026-06-04
 

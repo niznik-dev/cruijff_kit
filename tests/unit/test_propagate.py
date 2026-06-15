@@ -29,8 +29,9 @@ def _set_dotted(d: dict, path: str, value) -> dict:
     return d
 
 
-# Representative values per intermediate-YAML key. Shared by EVAL_FIELDS and
-# TRAIN_FIELDS (system_prompt lives in both).
+# Representative values per intermediate-YAML key. `system_prompt` is a single
+# source in `controls` (propagated to both eval and train) — not duplicated
+# into `evaluation`.
 _SAMPLE_VALUES: dict = {
     # eval
     "system_prompt": "Be helpful and concise.",
@@ -83,7 +84,6 @@ def test_no_train_field_can_silently_drop(source_path, target_key):
 def representative_summary() -> dict:
     return {
         "evaluation": {
-            "system_prompt": _SAMPLE_VALUES["system_prompt"],
             "temperature": _SAMPLE_VALUES["temperature"],
             "do_sample": _SAMPLE_VALUES["do_sample"],
             "max_tokens": _SAMPLE_VALUES["max_tokens"],
@@ -137,6 +137,24 @@ def test_train_idempotence_preserves_per_run_value(representative_summary):
     setup_finetune = {"batch_size": 999}
     propagate_train_fields(representative_summary, setup_finetune)
     assert setup_finetune["batch_size"] == 999
+
+
+def test_eval_system_prompt_sourced_from_controls(representative_summary):
+    """`system_prompt` is single-sourced in `controls`, not `evaluation` (#562).
+
+    Guards the de-duplication: eval must derive `system_prompt` from
+    `controls.system_prompt`. A stray `evaluation.system_prompt` is not a source
+    and must be ignored, so it can never silently override the single source.
+    """
+    summary = dict(representative_summary)
+    summary["evaluation"] = {
+        **summary["evaluation"],
+        "system_prompt": "STALE eval-side value",
+    }
+    eval_config: dict = {}
+    propagate_eval_fields(summary, eval_config)
+    assert eval_config["system_prompt"] == _SAMPLE_VALUES["system_prompt"]
+    assert eval_config["system_prompt"] != "STALE eval-side value"
 
 
 def test_double_propagation_is_stable(representative_summary):

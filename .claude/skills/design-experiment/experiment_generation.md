@@ -24,7 +24,7 @@ Create structured configuration in `{experiment_dir}/experiment_summary.yaml` us
 
 **Important notes:**
 - Use actual paths from `claude.local.md`, not placeholders
-- **System prompt consistency is critical** - `evaluation.system_prompt` must match `controls.system_prompt` for inspect-ai
+- **System prompt has a single source** - set `controls.system_prompt` only; it is propagated to eval automatically (no separate `evaluation.system_prompt` to keep in sync). Per-task eval variations go under `evaluation.tasks[].system_prompt`.
 - **Prompt with {input} placeholder is critical**
 - **Epochs are 0-indexed** - Use `[0, 1, 2]` in evaluation matrix for epochs 0, 1, 2
 - Control runs: Set `epochs: null` in evaluation matrix (no epoch suffix)

@@ -23,18 +23,20 @@ DEFAULT_SEED = 14
 
 
 EVAL_FIELDS: dict[str, str] = {
-    "evaluation.system_prompt": "system_prompt",
     "evaluation.temperature": "temperature",
     "evaluation.do_sample": "do_sample",
     "evaluation.max_tokens": "max_tokens",
     "evaluation.max_connections": "max_connections",
     "evaluation.scorers": "scorers",
-    # The @task reads `prompt` from config_path at runtime (default "{input}")
-    # and the agent derives `use_chat_template` from `dataset_type`. Both lived
-    # only in setup_finetune.yaml before; carrying them here lets an eval-only
-    # run (no fine-tuning, no setup_finetune.yaml) source them from the
-    # experiment_summary single source of truth instead of silently defaulting.
+    # Task-framing invariants live in `controls` (one home, shared by training
+    # and eval) — not duplicated into `evaluation`. The @task reads `prompt` and
+    # `system_prompt` from config_path at runtime and the agent derives
+    # `use_chat_template` from `dataset_type`. Sourcing all three from `controls`
+    # lets an eval-only run (no fine-tuning, no setup_finetune.yaml) get them
+    # from the experiment_summary single source of truth, and removes the old
+    # `evaluation.system_prompt` copy that had to be hand-kept equal to training.
     "controls.prompt": "prompt",
+    "controls.system_prompt": "system_prompt",
     "controls.dataset_type": "dataset_type",
 }
 

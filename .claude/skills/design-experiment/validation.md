@@ -95,12 +95,10 @@ Run through this checklist before presenting the plan:
 
 ## Common Issues to Check
 
-### System Prompt Mismatch
-**Problem:** Training uses one system prompt, evaluation uses another (or blank)
-**Impact:** inspect-ai evaluations may fail or give invalid results
-**Fix:** Ensure `evaluation.system_prompt` exactly matches `controls.system_prompt`
-
-**How it works:** scaffold-inspect generates eval scripts that set `CONFIG_PATH` to point at `setup_finetune.yaml`. The inspect-ai task reads the system prompt from this config, ensuring train/eval parity automatically. However, the experiment_summary.yaml must still document both for validation purposes.
+### System Prompt (single source — mismatch prevented by construction)
+**Design:** the system prompt has one home, `controls.system_prompt`. It is propagated to both training and eval (`eval.yaml`) by `propagate.py`, so train/eval parity is guaranteed — there is no separate `evaluation.system_prompt` that could drift out of sync.
+**Per-task variation:** when a task legitimately needs a different prompt (e.g. a cue vs. no-cue ablation), set `evaluation.tasks[].system_prompt`; the per-task override beats the propagated default for that cell only.
+**Check:** confirm `controls.system_prompt` is present and correct. A stray top-level `evaluation.system_prompt` is not read — remove it.
 
 ### 1-Indexed Epochs
 **Problem:** Documenting epochs as [1, 2, 3] instead of [0, 1, 2]
