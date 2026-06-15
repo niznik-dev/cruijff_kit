@@ -148,6 +148,9 @@ def create_parser():
 def load_eval_config(config_path):
     """Load and validate eval.yaml.
 
+    Named for the parsed config object, not the file: the identifier stays
+    ``eval_config`` (and ``eval`` is a builtin) while the file is ``eval.yaml``.
+
     Returns the config dict with config_path and eval_dir auto-derived.
     """
     config_path = Path(config_path).resolve()
