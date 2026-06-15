@@ -1,6 +1,6 @@
 ---
 name: scaffold-inspect
-description: Sets up inspect-ai evaluation configurations for all runs in a designed experiment. Reads experiment_summary.yaml and generates one cell directory per (run, task, epoch), each containing eval_config.yaml and cell.slurm.
+description: Sets up inspect-ai evaluation configurations for all runs in a designed experiment. Reads experiment_summary.yaml and generates one cell directory per (run, task, epoch), each containing eval.yaml and cell.slurm.
 tools: Read, Edit, Write, Grep, Glob, Bash
 permissionMode: default
 ---
@@ -9,7 +9,7 @@ You help automatically set up inspect-ai evaluation configurations for all runs 
 
 ## Per-Cell Layout
 
-Each evaluation is a **cell** — a unique combination of (run, task, epoch). Every cell gets its own directory at `{run}/eval/{cell_name}/` containing its own `eval_config.yaml` and `cell.slurm`. This is what enables two cells in the same run to carry different per-task overrides (e.g. `system_prompt`, `assistant_prefix`) without colliding (issue #498).
+Each evaluation is a **cell** — a unique combination of (run, task, epoch). Every cell gets its own directory at `{run}/eval/{cell_name}/` containing its own `eval.yaml` and `cell.slurm`. This is what enables two cells in the same run to carry different per-task overrides (e.g. `system_prompt`, `assistant_prefix`) without colliding (issue #498).
 
 Cell name convention:
 - Fine-tuned cell: `{task_name}_epoch{N}` (e.g. `capitalization_epoch0`)
@@ -31,7 +31,7 @@ This subagent can be invoked in two ways:
 2. **Read experiment_summary.yaml** — Parse only the structural sections you need to make per-cell decisions (matrix, tasks, runs, models). **Do not enumerate or extract fields covered by `EVAL_FIELDS`** — that's step 5's job, not yours.
 3. **Read claude.local.md** — Get environment-specific settings (conda env, account, etc.).
 4. **Verify inspect-ai tasks exist** — Check if evaluation task scripts are available.
-5. **For each cell, build `eval_config.yaml` in two passes (in this order):**
+5. **For each cell, build `eval.yaml` in two passes (in this order):**
    1. **Call `propagate_eval_fields(experiment_summary, eval_config)` first** to populate experiment-wide defaults (see "Key Pattern: Propagate First" below).
    2. **Then** layer in per-cell judgment fields (`model_path`, `data_path`, `vis_label`, `use_chat_template`, per-task `system_prompt` overrides). Propagation is idempotent — your overrides win.
 6. **Run `setup_inspect.py`** for each cell to render `cell.slurm`.
@@ -40,7 +40,7 @@ This subagent can be invoked in two ways:
 
 ## Key Pattern: Propagate First
 
-Before writing any other field into `eval_config.yaml`, call:
+Before writing any other field into `eval.yaml`, call:
 
 ```python
 from cruijff_kit.tools.experiment.propagate import propagate_eval_fields
@@ -172,7 +172,7 @@ Extract for each scorer:
 
 **Backward compatibility:** If `evaluation.scorers` is a plain string (e.g., `"match"`), treat it as a single scorer with no params: `[{name: "match"}]`.
 
-The scorer configuration is written into `eval_config.yaml` so that task files can read it at runtime and instantiate scorers dynamically.
+The scorer configuration is written into `eval.yaml` so that task files can read it at runtime and instantiate scorers dynamically.
 
 ### Reading claude.local.md
 
@@ -228,13 +228,13 @@ For each evaluation task in the experiment:
 4. **Verify task is compatible with experiment:**
    - Task should accept `data_path` and `config_path` parameters
    - `prompt` and `system_prompt` are *not* passed directly — they live in the
-     `eval_config.yaml` that `config_path` points to, and the task reads them at
+     `eval.yaml` that `config_path` points to, and the task reads them at
      runtime (see "Handling Different Evaluation Scenarios" below)
    - Check docstring/parameters if accessible
 
 ## Handling Control and Eval-only Model Evaluation
 
-Control runs (base model, as-is) and eval-only runs (a pre-existing checkpoint, evaluated without retraining) don't undergo fine-tuning in this experiment, so neither has a `setup_finetune.yaml` file. For these runs, every value scaffold-inspect needs comes from `experiment_summary.yaml` — `propagate_eval_fields()` copies the flat fields (including `prompt` and `dataset_type`) into `eval_config.yaml`, and the agent composes the per-cell judgment fields (`model_path`, `data_path`, …). Nothing reads `setup_finetune.yaml`. The only difference between the two: a control run's `model_path` is the base model, while an eval-only run's `model_path` is its `parameters.checkpoint_path`.
+Control runs (base model, as-is) and eval-only runs (a pre-existing checkpoint, evaluated without retraining) don't undergo fine-tuning in this experiment, so neither has a `setup_finetune.yaml` file. For these runs, every value scaffold-inspect needs comes from `experiment_summary.yaml` — `propagate_eval_fields()` copies the flat fields (including `prompt` and `dataset_type`) into `eval.yaml`, and the agent composes the per-cell judgment fields (`model_path`, `data_path`, …). Nothing reads `setup_finetune.yaml`. The only difference between the two: a control run's `model_path` is the base model, while an eval-only run's `model_path` is its `parameters.checkpoint_path`.
 
 ### Detection Logic
 
@@ -245,7 +245,7 @@ From the `runs[]` list in experiment_summary.yaml, identify control runs:
 
 ### Per-cell agent work (Fine-tuned and Control)
 
-For every cell — fine-tuned or control — `eval_config.yaml` is built by
+For every cell — fine-tuned or control — `eval.yaml` is built by
 **calling `propagate_eval_fields()` first**, then layering in the per-cell
 judgment fields below. **Do not "copy" or "extract" any `EVAL_FIELDS`
 value by hand** — that is the helper's job.
@@ -253,8 +253,8 @@ value by hand** — that is the helper's job.
 The fields that *do* require agent judgment, per cell:
 
 - `model_path` — Fine-tuned: `{experiment_dir}/{run_name}/artifacts/epoch_{N}`. Control: `models.base[].path`. Eval-only: `parameters.checkpoint_path` verbatim (a pre-existing checkpoint trained outside this experiment).
-- `data_path` — resolved per the precedence ladder in "Populating eval_config.yaml" below.
-- `model_hf_name`, `output_dir`, `vis_label`, `use_chat_template`, `epoch`, `is_finetuned`, `source_model` — composed per the rules in "Populating eval_config.yaml".
+- `data_path` — resolved per the precedence ladder in "Populating eval.yaml" below.
+- `model_hf_name`, `output_dir`, `vis_label`, `use_chat_template`, `epoch`, `is_finetuned`, `source_model` — composed per the rules in "Populating eval.yaml".
 - Per-task overrides (`system_prompt`, `assistant_prefix`) — when an `evaluation.tasks[]` entry sets these, write them *after* the propagation call so they take precedence over the experiment-wide defaults.
 
 1. **Create the cell directory + logs dir for every (task, epoch) pair:**
@@ -272,13 +272,13 @@ The fields that *do* require agent judgment, per cell:
    mkdir -p {experiment_dir}/rank4/eval/acs_income_nocue_epoch0/logs
    ```
 
-2. **Generate eval_config.yaml** in each cell directory with all experiment-specific configuration (see full schema below). Per-task overrides (e.g. `system_prompt`) get baked into the cell that came from that task.
+2. **Generate eval.yaml** in each cell directory with all experiment-specific configuration (see full schema below). Per-task overrides (e.g. `system_prompt`) get baked into the cell that came from that task.
 
-3. **Call `setup_inspect.py` from inside each cell directory** so the rendered `cell.slurm` lands alongside its `eval_config.yaml`:
+3. **Call `setup_inspect.py` from inside each cell directory** so the rendered `cell.slurm` lands alongside its `eval.yaml`:
    ```bash
    cd {experiment_dir}/{run_dir}/eval/{cell_name}
    python {cruijff_kit_path}/src/tools/inspect/setup_inspect.py \
-     --config eval_config.yaml \
+     --config eval.yaml \
      --model_name "Llama-3.2-1B-Instruct" \
      --time "0:10:00" \
      --account "msalganik" \
@@ -286,7 +286,7 @@ The fields that *do* require agent judgment, per cell:
    ```
    `setup_inspect.py` writes `cell.slurm` into the current directory by default.
 
-#### eval_config.yaml Schema
+#### eval.yaml Schema
 
 **Required keys** (used by `setup_inspect.py` for SLURM rendering):
 
@@ -322,9 +322,9 @@ tolerates missing/extra values: `do_sample` defaults to `false` at the
 SLURM-render layer when absent; `max_connections` defaults to 32. The
 agent's only responsibility is to call the helper.
 
-Note: `config_path` and `eval_dir` are **auto-derived** from the location of the YAML file — do not include them in eval_config.yaml.
+Note: `config_path` and `eval_dir` are **auto-derived** from the location of the YAML file — do not include them in eval.yaml.
 
-#### Populating eval_config.yaml
+#### Populating eval.yaml
 
 The order is fixed: **propagate first, judgment second.**
 
@@ -334,7 +334,7 @@ cell, before writing the YAML.
 
 Note on `temperature`: the helper copies it unconditionally when present.
 `setup_inspect.py` drops `temperature` from rendered task args when
-`do_sample` is false, so an inert value in `eval_config.yaml` is harmless.
+`do_sample` is false, so an inert value in `eval.yaml` is harmless.
 
 **Step 2 — Write the per-cell judgment fields.** These require composition,
 branching, or per-cell overrides. Because Step 1 ran first and the helper
@@ -366,13 +366,13 @@ don't tabulate the propagated values per-field — they weren't decisions.
 
 #### setup_inspect.py Usage
 
-After writing `eval_config.yaml` to the cell directory, render the SLURM script
+After writing `eval.yaml` to the cell directory, render the SLURM script
 **from inside that cell directory** so `cell.slurm` lands next to its config:
 
 ```bash
 cd {run_dir}/eval/{cell_name}
 python {cruijff_kit_path}/src/tools/inspect/setup_inspect.py \
-  --config eval_config.yaml \
+  --config eval.yaml \
   --model_name "Llama-3.2-1B-Instruct" \
   --time "0:10:00" \
   --account "msalganik" \
@@ -383,7 +383,7 @@ python {cruijff_kit_path}/src/tools/inspect/setup_inspect.py \
 ```bash
 cd {run_dir}/eval/{cell_name}
 python {cruijff_kit_path}/src/tools/inspect/setup_inspect.py \
-  --config eval_config.yaml \
+  --config eval.yaml \
   --model_name "Llama-3.2-1B-Instruct" \
   --time "0:05:00" \
   --mem "80G" \
@@ -400,16 +400,16 @@ This renders `src/tools/inspect/templates/eval_template.slurm` with the correct 
 - `cd` to eval_dir (the cell directory) before running inspect
 - SLURM log move on success
 - Output filename: **`cell.slurm`** (always — the cell directory name carries the task+epoch info). Override with `--output_slurm` if you really need a different filename.
-- **`output_dir` derivation:** for fine-tuned runs (epoch is set), `setup_inspect.py` derives `output_dir` from `model_path`'s parent — agent-supplied `output_dir` in eval_config is ignored. This guarantees GPU metrics land alongside the model checkpoint at `{run}/artifacts/epoch_N/gpu_metrics.csv`.
+- **`output_dir` derivation:** for fine-tuned runs (epoch is set), `setup_inspect.py` derives `output_dir` from `model_path`'s parent — agent-supplied `output_dir` in the eval config is ignored. This guarantees GPU metrics land alongside the model checkpoint at `{run}/artifacts/epoch_N/gpu_metrics.csv`.
 
 **Verification after rendering:**
-After `setup_inspect.py` writes the SLURM script, spot-check that `GPU_METRICS_DIR` in the rendered file resolves to a path containing `/artifacts/epoch_N` for fine-tuned runs. If it doesn't, `model_path` is malformed (missing `/artifacts/epoch_N` segment) and should be fixed in eval_config.yaml.
+After `setup_inspect.py` writes the SLURM script, spot-check that `GPU_METRICS_DIR` in the rendered file resolves to a path containing `/artifacts/epoch_N` for fine-tuned runs. If it doesn't, `model_path` is malformed (missing `/artifacts/epoch_N` segment) and should be fixed in eval.yaml.
 
 **CLI arguments** (infrastructure — shared across all evals in the experiment):
 
 | Arg | Required | Description |
 |-----|----------|-------------|
-| `--config` | Yes | Path to eval_config.yaml |
+| `--config` | Yes | Path to eval.yaml |
 | `--model_name` | Yes | Key in MODEL_CONFIGS for SLURM resource lookup |
 | `--time` | No | SLURM time limit (default: `0:10:00`) |
 | `--account` | No | SLURM account |
@@ -441,11 +441,11 @@ Each run's SLURM script will have its own `SYSTEM_PROMPT` variable set appropria
 
 ### Determining Chat Template Usage
 
-When generating inspect.slurm scripts, determine whether to use chat templates from `dataset_type`, which `propagate_eval_fields()` has already copied into `eval_config.yaml` from `controls.dataset_type`. This is the single source of truth for **every** run type — fine-tuned, control, and eval-only alike.
+When generating inspect.slurm scripts, determine whether to use chat templates from `dataset_type`, which `propagate_eval_fields()` has already copied into `eval.yaml` from `controls.dataset_type`. This is the single source of truth for **every** run type — fine-tuned, control, and eval-only alike.
 
 **Detection Logic:**
 
-1. Read `dataset_type` from the cell's `eval_config.yaml` (propagated, not read from `setup_finetune.yaml`):
+1. Read `dataset_type` from the cell's `eval.yaml` (propagated, not read from `setup_finetune.yaml`):
    - `chat_completion` → `use_chat_template=true`
    - `text_completion` → `use_chat_template=false`
 
@@ -490,11 +490,11 @@ Organize evaluations within run directories — one cell directory per (task, ep
 │                                #   eval-only runs have no setup_finetune.yaml at all).
 └── eval/
     ├── {task_name}_epoch0/
-    │   ├── eval_config.yaml
+    │   ├── eval.yaml
     │   ├── cell.slurm
     │   └── logs/                 # populated at eval time with *.eval logs
     ├── {task_name}_epoch1/
-    │   ├── eval_config.yaml
+    │   ├── eval.yaml
     │   ├── cell.slurm
     │   └── logs/
     └── ...
@@ -505,7 +505,7 @@ Organize evaluations within run directories — one cell directory per (task, ep
 {experiment_dir}/{run_dir}_control/
 └── eval/
     └── {task_name}/
-        ├── eval_config.yaml
+        ├── eval.yaml
         ├── cell.slurm
         └── logs/
 ```
@@ -514,11 +514,11 @@ Organize evaluations within run directories — one cell directory per (task, ep
 ```
 {experiment_dir}/{run_dir}/eval/
 ├── {task_name}_with_cue_epoch0/
-│   ├── eval_config.yaml    # carries the cue system_prompt
+│   ├── eval.yaml    # carries the cue system_prompt
 │   ├── cell.slurm
 │   └── logs/
 └── {task_name}_no_cue_epoch0/
-    ├── eval_config.yaml    # carries the no-cue system_prompt
+    ├── eval.yaml    # carries the no-cue system_prompt
     ├── cell.slurm
     └── logs/
 ```
@@ -541,7 +541,7 @@ SLURM scripts are generated by `setup_inspect.py` from `eval_template.slurm` —
 | Flag | Value | Source |
 |------|-------|--------|
 | `-M model_path` | `"$MODEL_PATH"` | Variable set above |
-| `-M do_sample` | `false` | Always emitted by setup_inspect.py (greedy argmax default); `true` if `do_sample: true` in eval_config |
+| `-M do_sample` | `false` | Always emitted by setup_inspect.py (greedy argmax default); `true` if `do_sample: true` in `eval.yaml` |
 | `-M device` | `"auto"` | Auto-added by setup_inspect.py when model requires >1 GPU |
 
 **Eval metadata (`--metadata`) - stored in .eval log for filtering:**
@@ -566,7 +566,7 @@ For control models:
 
 ### Multi-Task vis_label Composition
 
-When a matrix entry has `tasks` with more than one item, compose a unique vis_label for each eval_config as `"{vis_label} ({task_name})"`. When a matrix entry has exactly one task, use the original vis_label unchanged.
+When a matrix entry has `tasks` with more than one item, compose a unique vis_label for each eval config as `"{vis_label} ({task_name})"`. When a matrix entry has exactly one task, use the original vis_label unchanged.
 
 **Example:**
 ```yaml
@@ -577,7 +577,7 @@ matrix:
     epochs: [0]
 ```
 
-This produces two eval_configs with vis_labels:
+This produces two eval configs with vis_labels:
 - `"original (acs_income)"`
 - `"original (acs_income_shuffled)"`
 
@@ -591,18 +591,18 @@ If the entry had only one task, the vis_label would remain `"original"`.
 
 ### Scenario 1: Fine-tuned Model Evaluation
 
-Fine-tuned models use `eval_config.yaml` in the run's eval directory, which scaffold-inspect builds from `experiment_summary.yaml` (via `propagate_eval_fields()` plus the per-cell judgment fields):
+Fine-tuned models use `eval.yaml` in the run's eval directory, which scaffold-inspect builds from `experiment_summary.yaml` (via `propagate_eval_fields()` plus the per-cell judgment fields):
 ```bash
 OUTPUT_BASE="{experiment_dir}/{run_name}/artifacts"
 MODEL_PATH="$OUTPUT_BASE/epoch_0"
-CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval_config.yaml"
+CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval.yaml"
 ```
 
 ```bash
-# Values from eval_config.yaml:
+# Values from eval.yaml:
 OUTPUT_BASE="/absolute/path/to/{run_name}/artifacts"
 MODEL_PATH="$OUTPUT_BASE/epoch_0"
-CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval_config.yaml"
+CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval.yaml"
 DATA_PATH="{ck_data_dir}/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="true"  # from dataset_type: chat_completion
 
@@ -624,19 +624,19 @@ inspect eval inspect_task.py@capitalization \\
 - The `--model` argument uses a descriptive name (`hf/{run_name}_epoch_{N}`) that gets recorded in the `.eval` file for identification
 - Metadata flags (`--metadata epoch`, `--metadata is_finetuned`, `--metadata source_model`) are stored in `log.eval.metadata` for inspect-viz filtering/grouping
 - The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_rank4`) for visualization
-- `config_path` points to `eval_config.yaml`, which is built from `experiment_summary.yaml` and includes prompt/system_prompt and scorer configuration
-- `use_chat_template` is determined from the propagated `dataset_type` in `eval_config.yaml`
+- `config_path` points to `eval.yaml`, which is built from `experiment_summary.yaml` and includes prompt/system_prompt and scorer configuration
+- `use_chat_template` is determined from the propagated `dataset_type` in `eval.yaml`
 - Ensures exact match between training and evaluation parameters
 
 ### Scenario 2: Control Model Evaluation
 
-For control (not fine-tuned) models, scaffold-inspect generates `eval_config.yaml` from experiment_summary.yaml (see "Extracting Values for All Runs" above):
+For control (not fine-tuned) models, scaffold-inspect generates `eval.yaml` from experiment_summary.yaml (see "Extracting Values for All Runs" above):
 
 **For instruct models:**
 ```bash
 # Control model evaluation:
 MODEL_PATH="/path/to/pretrained-llms/Llama-3.2-1B-Instruct"
-CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval_config.yaml"
+CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval.yaml"
 DATA_PATH="{ck_data_dir}/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="true"  # Instruct model, use chat template
 
@@ -657,7 +657,7 @@ inspect eval inspect_task.py@capitalization \\
 ```bash
 # Values for base model without instruct training:
 MODEL_PATH="/path/to/pretrained-llms/Llama-3.2-1B"
-CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval_config.yaml"
+CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval.yaml"
 DATA_PATH="{ck_data_dir}/capitalization/words_5L_80P_1000.json"
 USE_CHAT_TEMPLATE="false"  # Base model, no chat template
 
@@ -678,16 +678,16 @@ inspect eval inspect_task.py@capitalization \\
 - The `--model` argument uses a descriptive name (`hf/{run_name}_control`) that gets recorded in the `.eval` file for identification
 - The `vis_label` task arg sets a dynamic task name suffix (e.g., `capitalization_1B_control`) for visualization
 - Control models use the same dataset/prompt/system_prompt as fine-tuned runs for fair comparison
-- `config_path` points to `eval_config.yaml` (generated from experiment_summary.yaml and stored in `{run_dir}/eval/`), which the task reads at runtime
+- `config_path` points to `eval.yaml` (generated from experiment_summary.yaml and stored in `{run_dir}/eval/`), which the task reads at runtime
 
 ### Scenario 3: Eval-only Model Evaluation
 
-For eval-only runs — a checkpoint trained in a *different* experiment, evaluated here without retraining — `eval_config.yaml` is built from `experiment_summary.yaml` exactly as for control runs. The only differences: `model_path` is the run's `parameters.checkpoint_path` (used verbatim), and the model is a fine-tuned one, so `is_finetuned=true`. There is no training epoch in this experiment, so emit **no** `--metadata epoch` (the epoch, if any, is baked into the checkpoint path).
+For eval-only runs — a checkpoint trained in a *different* experiment, evaluated here without retraining — `eval.yaml` is built from `experiment_summary.yaml` exactly as for control runs. The only differences: `model_path` is the run's `parameters.checkpoint_path` (used verbatim), and the model is a fine-tuned one, so `is_finetuned=true`. There is no training epoch in this experiment, so emit **no** `--metadata epoch` (the epoch, if any, is baked into the checkpoint path).
 
 ```bash
 # Eval-only: evaluate a pre-existing checkpoint as-is
 MODEL_PATH="/scratch/.../prior_exp/income_rank8/artifacts/epoch_1"  # = parameters.checkpoint_path
-CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval_config.yaml"
+CONFIG_PATH="{experiment_dir}/{run_dir}/eval/{cell_name}/eval.yaml"
 DATA_PATH="{ck_data_dir}/acs_income/income_5feat_test.json"
 USE_CHAT_TEMPLATE="true"  # from propagated dataset_type: chat_completion
 
@@ -719,15 +719,15 @@ Create per-cell directories as needed — one per (task, epoch) pair:
 # cell directory by setup_inspect.py (it defaults to cell.slurm).
 mkdir -p {experiment_dir}/{run_dir}/eval/{cell_name}/logs
 
-# Write eval_config.yaml into the cell directory:
-cat > {experiment_dir}/{run_dir}/eval/{cell_name}/eval_config.yaml << 'EOF'
+# Write eval.yaml into the cell directory:
+cat > {experiment_dir}/{run_dir}/eval/{cell_name}/eval.yaml << 'EOF'
 {config content}
 EOF
 
 # Render cell.slurm by running setup_inspect.py from inside the cell directory
 cd {experiment_dir}/{run_dir}/eval/{cell_name}
 python {cruijff_kit_path}/src/tools/inspect/setup_inspect.py \
-  --config eval_config.yaml \
+  --config eval.yaml \
   --model_name "{model_name}" \
   --account "{account}" \
   --conda_env "{conda_env}"
@@ -837,7 +837,7 @@ Successfully created 8 evaluation configurations in:
 ✓ rank64_lr5e-5/eval/capitalization_epoch0/
 
 Each cell directory contains:
-- eval_config.yaml (per-cell evaluation configuration)
+- eval.yaml (per-cell evaluation configuration)
 - cell.slurm (SLURM script)
 - logs/ (for inspect-ai `.eval` output)
 
@@ -870,7 +870,7 @@ See `scaffold-inspect.log` for detailed creation log.
 
 Before reporting success, verify:
 - ✓ All cell directories created (one per `(run, task, epoch)` in the matrix)
-- ✓ Each cell has both `eval_config.yaml` and `cell.slurm`
+- ✓ Each cell has both `eval.yaml` and `cell.slurm`
 - ✓ Each cell has a `logs/` subdir ready for inspect-ai output
 - ✓ Scripts start with `#!/bin/bash` (no backslash escape)
 - ✓ Scripts reference correct model paths
@@ -888,7 +888,7 @@ Before reporting success, verify:
 
 ## Important Notes
 
-- All cell SLURM scripts point `config_path` to `eval_config.yaml` in the same cell directory (auto-derived from where `setup_inspect.py` is run)
+- All cell SLURM scripts point `config_path` to `eval.yaml` in the same cell directory (auto-derived from where `setup_inspect.py` is run)
 - Evaluation scripts should not be submitted until fine-tuning completes
 - System prompt consistency between training and evaluation is critical *by default*; per-task `system_prompt` overrides exist for experiments that intentionally probe prompt variations (e.g. cue-presence ablations)
 - Model paths reference fine-tuning output directories that don't exist yet (created during training)
@@ -897,6 +897,6 @@ Before reporting success, verify:
 - This subagent is typically called by `scaffold-experiment` orchestrator but can be run standalone
 - Evaluation logs will be written to `{run_dir}/eval/{cell_name}/logs/` subdirectories (one logs/ per cell)
 - **Metadata flags (`--metadata`) are critical for inspect-viz** - stored in `log.eval.metadata` for filtering/grouping
-- `vis_label` defaults to run name if not specified in matrix. For multi-task matrix entries (>1 task), vis_label is auto-composed as `"{vis_label} ({task_name})"` per eval_config
+- `vis_label` defaults to run name if not specified in matrix. For multi-task matrix entries (>1 task), vis_label is auto-composed as `"{vis_label} ({task_name})"` per eval config
 - `source_model` should be the human-readable model name (e.g., "Llama-3.2-1B-Instruct"), not the path
 - **Never pass prompt or system_prompt via `-T` CLI args.** Always use `-T config_path` instead. inspect-ai's CLI parser runs `yaml.safe_load()` on `-T` values, which misparses strings containing curly braces (e.g., `{input}\n` is interpreted as a YAML flow mapping and causes errors).

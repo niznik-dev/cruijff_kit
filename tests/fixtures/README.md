@@ -29,10 +29,10 @@ fixtures/
 │   └── inspect/
 │       ├── rank4/
 │       │   └── eval/
-│       │       └── eval_config.yaml # Per-run scaffold-inspect input
+│       │       └── eval.yaml # Per-run scaffold-inspect input
 │       └── rank8/
 │           └── eval/
-│               └── eval_config.yaml
+│               └── eval.yaml
 └── summarize/
     ├── slurm_training_output.txt    # Synthetic SLURM stdout with loss lines
     └── eval_result.json             # Synthetic parse_eval_log output
@@ -44,7 +44,7 @@ fixtures/
 |---------|----------|---------|
 | `design/experiment_summary.yaml` | Template + `.claude/workflow_tests/workflow_test.md` | Reference design; validates schema |
 | `scaffold/torchtune/*/setup_finetune.yaml` | test_setup_finetune_main.py pattern | Input to setup_finetune.py |
-| `scaffold/inspect/*/eval/eval_config.yaml` | test_setup_inspect.py pattern | Input to setup_inspect.py |
+| `scaffold/inspect/*/eval/eval.yaml` | test_setup_inspect.py pattern | Input to setup_inspect.py |
 | `summarize/slurm_training_output.txt` | Synthetic (uses `__SCRATCH__` placeholders) | Loss regex extraction testing |
 | `summarize/eval_result.json` | parse_eval_log output format | Eval parsing without .eval files |
 

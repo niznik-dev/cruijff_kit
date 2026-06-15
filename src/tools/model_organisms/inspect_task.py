@@ -10,7 +10,7 @@ Usage::
         --model hf/local \\
         -M model_path=/path/to/checkpoint \\
         -T data_path=/path/to/dataset.json \\
-        -T config_path=/path/to/eval_config.yaml
+        -T config_path=/path/to/eval.yaml
 
 Logprob capture is enabled in two ways:
 

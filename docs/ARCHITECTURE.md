@@ -120,13 +120,13 @@ setup_finetune.yaml → setup_finetune.py → finetune.yaml + finetune.slurm
 
 ### 2. Evaluation Workflow
 
-> **Note:** The `scaffold-inspect` agent (invoked via `scaffold-experiment` skill) is the recommended way to set up evaluations. It writes `eval_config.yaml` and calls `setup_inspect.py` to render SLURM scripts from a template.
+> **Note:** The `scaffold-inspect` agent (invoked via `scaffold-experiment` skill) is the recommended way to set up evaluations. It writes `eval.yaml` and calls `setup_inspect.py` to render SLURM scripts from a template.
 
-**Entry point:** `src/tools/inspect/setup_inspect.py` (reads `eval_config.yaml`, renders `eval_template.slurm`)
+**Entry point:** `src/tools/inspect/setup_inspect.py` (reads `eval.yaml`, renders `eval_template.slurm`)
 
 **Process** (per-cell layout, issue #498 — one cell directory per (task, epoch)):
 ```
-eval/{cell_name}/eval_config.yaml → setup_inspect.py → eval/{cell_name}/cell.slurm
+eval/{cell_name}/eval.yaml → setup_inspect.py → eval/{cell_name}/cell.slurm
                                                               ↓
                                                         sbatch cell.slurm
                                                               ↓
@@ -137,7 +137,7 @@ eval/{cell_name}/eval_config.yaml → setup_inspect.py → eval/{cell_name}/cell
 
 **Key files:**
 - `src/tools/inspect/setup_inspect.py` - Renders eval SLURM scripts from `eval_template.slurm`
-  - Reads experiment-specific config from `eval_config.yaml`
+  - Reads experiment-specific config from `eval.yaml`
   - Looks up GPU resources from `model_configs.py`
   - Template includes GPU monitoring, SLURM log management
 

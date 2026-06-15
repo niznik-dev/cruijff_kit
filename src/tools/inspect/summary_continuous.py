@@ -126,7 +126,7 @@ def compute_metrics(path: Path) -> dict:
         "status": "success",
         "path": str(path),
         # Output key: the name of the scorer that ran, distinct from the input
-        # `scorers` list in eval_config.yaml (see parse_eval_log.py).
+        # `scorers` list in eval.yaml (see parse_eval_log.py).
         "scorer": scorer_name,
         "samples": n,
         "parsed": n_parsed,

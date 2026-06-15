@@ -54,7 +54,7 @@ inspect eval blueprints/folktexts/inspect_task.py@acs_employment \
     --model hf/Llama-3.2-1B-Instruct \
     -M model_path=/path/to/pretrained/Llama-3.2-1B-Instruct \
     -T data_path=/path/to/acs_employment_condensed_50000_80P.json \
-    -T config_path=/path/to/eval_config.yaml
+    -T config_path=/path/to/eval.yaml
 ```
 
 **Note:** The `config_path` provides `system_prompt` and `prompt` settings. For base models without a setup_finetune.yaml, create a simple YAML with these fields.
@@ -122,7 +122,7 @@ inspect eval blueprints/folktexts/inspect_task_acs_continuous.py@acs_income_cont
     --model hf/local \
     -M model_path=/path/to/checkpoint/epoch_0 \
     -T data_path=/path/to/pincp_continuous_test.json \
-    -T config_path=/path/to/eval_config.yaml
+    -T config_path=/path/to/eval.yaml
 ```
 
 Task parameters mirror `inspect_task.py` (see the table above), except `max_tokens` defaults to `10` rather than `5` — continuous answers can be multi-digit.

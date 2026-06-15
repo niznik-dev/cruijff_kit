@@ -132,7 +132,7 @@ ck-projects/{project}/{experiment_name}/
 │   ├── slurm-{jobid}.out          # From run-experiment (torchtune phase)
 │   └── eval/
 │       └── {task}_epoch{N}/         # One cell per (task, epoch) — issue #498
-│           ├── eval_config.yaml     # From scaffold-inspect
+│           ├── eval.yaml     # From scaffold-inspect
 │           ├── cell.slurm           # From scaffold-inspect
 │           └── logs/
 │               └── *.eval           # inspect-ai outputs

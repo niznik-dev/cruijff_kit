@@ -1,4 +1,4 @@
-# Reference eval_config.yaml for rank8 evaluation
+# Reference eval.yaml for rank8 evaluation
 # Path placeholders: __SCRATCH__, __REPO__ (replaced at test time)
 
 task_script: "__REPO__/blueprints/capitalization/inspect_task.py@capitalization"
