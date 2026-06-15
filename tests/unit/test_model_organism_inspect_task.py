@@ -167,3 +167,19 @@ class TestSolver:
     def test_no_chat_template_is_generate_only(self, tiny_dataset):
         t = model_organism(data_path=tiny_dataset, use_chat_template=False)
         assert len(t.solver) == 1
+
+
+class TestPromptPlaceholderGuard:
+    def test_prompt_without_input_placeholder_raises(self, tiny_dataset, tmp_path):
+        """A prompt missing {input} fails loudly — str.format would otherwise drop
+        the record silently and evaluate every sample on the same input-less text."""
+        config_path = tmp_path / "eval.yaml"
+        config_path.write_text("prompt: 'Answer yes or no.'\nsystem_prompt: ''\n")
+        with pytest.raises(ValueError, match=r"\{input\}"):
+            model_organism(data_path=tiny_dataset, config_path=str(config_path))
+
+    def test_prompt_with_input_placeholder_ok(self, tiny_dataset, tmp_path):
+        config_path = tmp_path / "eval.yaml"
+        config_path.write_text("prompt: 'Classify: {input}'\nsystem_prompt: ''\n")
+        t = model_organism(data_path=tiny_dataset, config_path=str(config_path))
+        assert t is not None

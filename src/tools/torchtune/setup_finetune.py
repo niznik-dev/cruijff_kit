@@ -621,6 +621,15 @@ def main():
     # Validate lr_scheduler (after config file has been loaded and merged)
     validate_lr_scheduler(args.lr_scheduler)
 
+    # The training prompt (controls.prompt, a per-run parameters.prompt, or
+    # --prompt) must keep the {input} placeholder. str.format silently drops the
+    # record when it's missing, so every example would train on the same
+    # input-less text — fail loudly at scaffold time instead.
+    if "{input}" not in args.prompt:
+        raise ValueError(
+            f"prompt must contain the '{{input}}' placeholder, got: {args.prompt!r}."
+        )
+
     # Training step guard: compute and warn if --training_samples provided
     if args.training_samples is not None:
         step_info = compute_training_steps(

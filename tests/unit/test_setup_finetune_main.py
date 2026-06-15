@@ -574,3 +574,9 @@ class TestPromptFlow:
         config, _ = run_main()
         assert "text_completion" in config["dataset"]["_component_"]
         assert config["dataset"]["prompt"] == "Complete: {input}\n"
+
+    def test_prompt_without_input_placeholder_raises(self, run_main):
+        """A prompt missing {input} fails loudly at scaffold time — str.format
+        would otherwise silently drop the record and train on input-less text."""
+        with pytest.raises(ValueError, match=r"\{input\}"):
+            run_main(extra_args=["--prompt", "Just answer."])
