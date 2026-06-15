@@ -30,11 +30,11 @@ For experiments with multiple runs (e.g., parameter sweeps):
      sleep 5
    done
    ```
-5. Once fine-tuning completes, set up evaluation. Each run gets an `eval/` subdirectory holding one **cell directory per (task, epoch)** pair (per-cell layout, issue #498). Each cell directory contains its own `eval_config.yaml`. Render the per-cell SLURM script (`cell.slurm`) from inside each cell dir:
+5. Once fine-tuning completes, set up evaluation. Each run gets an `eval/` subdirectory holding one **cell directory per (task, epoch)** pair (per-cell layout, issue #498). Each cell directory contains its own `eval.yaml`. Render the per-cell SLURM script (`cell.slurm`) from inside each cell dir:
    ```bash
    for dir in run_*/eval/*/; do
      (cd "$dir" && python -m cruijff_kit.tools.inspect.setup_inspect \
-       --config eval_config.yaml \
+       --config eval.yaml \
        --model_name Llama-3.2-1B-Instruct)
    done
    ```

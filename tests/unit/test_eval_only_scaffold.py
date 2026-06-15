@@ -1,6 +1,6 @@
 """Golden-fixture oracle for the eval-only scaffolding path (#478).
 
-`tests/fixtures/eval_only/eval_config.golden.yaml` was minted by a real
+`tests/fixtures/eval_only/eval.golden.yaml` was minted by a real
 `scaffold-experiment` run on an experiment with no fine-tuned runs and no
 `setup_finetune.yaml`. These assertions pin the invariants that the eval /
 torchtune decoupling must preserve, so a regression in propagation or in the
@@ -19,7 +19,7 @@ GOLDEN = (
     Path(__file__).resolve().parents[1]
     / "fixtures"
     / "eval_only"
-    / "eval_config.golden.yaml"
+    / "eval.golden.yaml"
 )
 
 

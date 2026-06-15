@@ -121,6 +121,16 @@ All use Llama-3.2-1B-Instruct with `{ck_data_dir}/capitalization/words_5L_80P_10
   spelled-out `directory` for prose; avoid it in identifiers and keys.
 - **`dir` vs `path` — keep them true to their meanings.** `dir` (or `_dir`) names a
   folder; `path` (or `_path`) names a file. Don't label a folder `path` or a file `dir`.
+- **Config filenames: name by activity; reserve `setup_` for a two-stage transform.**
+  A per-run config file is named for the activity it drives (`eval.yaml`,
+  `finetune.yaml`). Prefix `setup_` *only* when the file is the build-time input of a
+  genuine generate-then-run transform, where it would otherwise collide with the
+  generated runtime config — `setup_finetune.yaml` is consumed by `setup_finetune.py`
+  to emit `finetune.yaml`, so `setup_` disambiguates the input from its output. A
+  single-stage config that is read directly at runtime takes no `setup_` (and no
+  `_config` suffix): the eval config is `eval.yaml`, not `setup_inspect.yaml` or
+  `eval_config.yaml`, because the inspect task reads it live via `-T config_path=`.
+  The asymmetry between the two sides is the truth, not an inconsistency to paper over.
 
 ### Code Comments
 

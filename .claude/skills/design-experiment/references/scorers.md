@@ -147,7 +147,7 @@ Parses a numeric value from the model's text output and computes regression metr
 When a user selects scorers during experiment design, follow these guidelines:
 
 - **Multiple scorers can be combined** — each runs independently and all results are stored in the eval log.
-- **Scorer parameters** (e.g., `option_tokens`) are specified in experiment_summary.yaml and flow through to eval_config.yaml at scaffold time. Task files read them at runtime.
+- **Scorer parameters** (e.g., `option_tokens`) are specified in experiment_summary.yaml and flow through to eval.yaml at scaffold time. Task files read them at runtime.
 - **If `risk_scorer` is selected:** Ask which tokens represent the answer classes (default: `["0", "1"]` for binary). The task file will automatically request logprobs when `risk_scorer` is in the scorer list.
 - **If `numeric_risk_scorer` is selected:** Ask what the ground-truth target values are in the dataset (default: `["0", "1"]` for binary). The model should be prompted to output a single probability as text.
 - **If `continuous_scorer` is selected:** No parameters to ask about. Confirm the target is a continuous quantity (not a class label), and that `max_tokens` is wide enough for the expected number of digits. For base models, suggest an `assistant_prefix` so `parse_rate` doesn't start at zero.

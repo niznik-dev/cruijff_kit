@@ -1,5 +1,5 @@
 """Deterministic propagation of fields from experiment_summary.yaml into the
-intermediate YAMLs that scaffold-* agents write (eval_config.yaml,
+intermediate YAMLs that scaffold-* agents write (eval.yaml,
 setup_finetune.yaml).
 
 Background (#502): the scaffold-inspect and scaffold-torchtune agents

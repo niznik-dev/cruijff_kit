@@ -66,7 +66,7 @@ Each of `Llama-3.2-1B-Instruct_rank4/` and `Llama-3.2-1B-Instruct_rank16/` shoul
 - `setup_finetune.yaml`
 - `finetune.yaml`
 - `finetune.slurm`
-- `eval/capitalization_epoch0/eval_config.yaml`
+- `eval/capitalization_epoch0/eval.yaml`
 - `eval/capitalization_epoch0/cell.slurm`
 - `slurm-*.out`
 - `eval/capitalization_epoch0/logs/*.eval`

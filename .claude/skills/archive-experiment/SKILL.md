@@ -164,7 +164,7 @@ the project name:
 │   ├── setup_finetune.yaml
 │   └── eval/
 │       └── {task}_epoch{N}/       # One cell per (task, epoch) — issue #498
-│           ├── eval_config.yaml
+│           ├── eval.yaml
 │           ├── cell.slurm
 │           └── logs/*.eval
 ├── exploration/

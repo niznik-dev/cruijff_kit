@@ -40,8 +40,8 @@ def tiny_dataset(tmp_path):
 
 
 def _write_config(tmp_path, *, scorers=None):
-    """Write a minimal eval_config.yaml. ``scorers`` is a list of name strings."""
-    config_path = tmp_path / "eval_config.yaml"
+    """Write a minimal eval.yaml. ``scorers`` is a list of name strings."""
+    config_path = tmp_path / "eval.yaml"
     lines = ["prompt: '{input}'", "system_prompt: ''"]
     if scorers is not None:
         lines.append("scorers:")

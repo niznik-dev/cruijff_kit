@@ -293,7 +293,7 @@ Successfully scaffolded experiment:
 - Llama-3.2-1B-Instruct_rank8/eval/capitalization_epoch0/
 
 **Each cell directory contains:**
-- eval_config.yaml (per-cell evaluation configuration)
+- eval.yaml (per-cell evaluation configuration)
 - cell.slurm (SLURM script)
 - logs/ (for inspect-ai `.eval` output)
 

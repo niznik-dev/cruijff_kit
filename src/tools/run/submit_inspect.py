@@ -13,7 +13,7 @@ Usage:
 
 Reads:
     {experiment_dir}/<run>/eval/<cell>/cell.slurm
-    {experiment_dir}/<run>/eval/<cell>/eval_config.yaml
+    {experiment_dir}/<run>/eval/<cell>/eval.yaml
 
 Writes:
     {experiment_dir}/logs/run-inspect.log
@@ -82,7 +82,7 @@ def _preflight_adapter_base_paths(experiment_dir: Path) -> None:
     where pretrained-llms/ has moved between fine-tune and eval.
     """
     problems: list[str] = []
-    for cfg_path in sorted(experiment_dir.glob("*/eval/*/eval_config.yaml")):
+    for cfg_path in sorted(experiment_dir.glob("*/eval/*/eval.yaml")):
         cfg = yaml.safe_load(cfg_path.read_text()) or {}
         model_path = cfg.get("model_path")
         if not model_path:

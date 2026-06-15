@@ -25,6 +25,7 @@ Each requires migrating existing config files; see the migration note per item.
 
 #### Renames (modules / skills)
 
+- **`eval_config.yaml` → `eval.yaml`** (per-cell evaluation config) — the file is read directly at runtime (passed to the inspect task as `-T config_path=`), not a setup-only input that transforms away the way `setup_finetune.yaml` becomes `finetune.yaml`. The `_config` suffix and a mooted `setup_` prefix both implied a staging role it doesn't have, so the bare activity name is the honest one. Convention recorded: name by activity; reserve `setup_` for the build-time input of a genuine two-stage transform. **Migration:** rename `eval/{cell}/eval_config.yaml` to `eval.yaml` in any experiment dir you intend to re-run; freshly scaffolded experiments use the new name. (#572)
 - **`compute_metrics.py` → `compute_gpu_metrics.py`** — disambiguates GPU/`seff` *hardware* metrics from the eval-accuracy `compute_metrics()` functions. Module-only; the `compute_metrics.json` artifact is unchanged. (#372)
 - **`analyze-to-pdf` skill → `md-to-pdf`** — it's a generic markdown→PDF pandoc wrapper, not an "analysis" step. **Migration:** invoke `/md-to-pdf`. (#372)
 - **`output_*` path variables renamed to match the `artifacts/` layout** (and archive dedup). (#443)

@@ -114,7 +114,7 @@ Claude will verify that the model and data exist, then create an `experiment_sum
 
 This will spin up two subagents that generate all configuration files and SLURM scripts for the runs:
 - `setup_finetune.yaml`, `finetune.yaml`, `finetune.slurm` for fine-tuning runs
-- One cell directory per (task, epoch) at `eval/acs_income_epoch0/`, each containing `eval_config.yaml` and `cell.slurm` (per-cell layout, issue #498)
+- One cell directory per (task, epoch) at `eval/acs_income_epoch0/`, each containing `eval.yaml` and `cell.slurm` (per-cell layout, issue #498)
 - For any base model comparisons, the generated directory will only contain relevant evaluation scripts. 
 
 ### Step 3: Run the Experiment
