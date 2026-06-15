@@ -68,7 +68,7 @@ Each experiment lives in a single self-contained directory. The root contains th
 │           └── ...
 └── exploration/                 # explore-experiment output ("Claude's Exploration")
     ├── report.md                # "Claude's Exploration" report
-    ├── compute_utilization.json     # Raw compute metrics (JSON, see explore-experiment/generation.md for schema)
+    ├── compute_utilization.json     # Compute-utilization summary (JSON, derived from per-job gpu_metrics.csv; schema in explore-experiment/generation.md)
     ├── *.html                   # Interactive HTML plots
     └── *.png                    # Static plot exports
 ```
