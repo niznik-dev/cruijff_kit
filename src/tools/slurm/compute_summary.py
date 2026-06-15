@@ -1,4 +1,4 @@
-"""Summary wrapper for compute_metrics.json.
+"""Summary wrapper for compute_utilization.json.
 
 Wraps the raw job metrics list with experiment-level metadata,
 producing the summary format consumed by design-experiment for
@@ -119,10 +119,10 @@ def save_summary(
 
 
 def load_summary(path: str | Path) -> dict:
-    """Load and validate a compute_metrics.json summary.
+    """Load and validate a compute_utilization.json summary.
 
     Args:
-        path: Path to compute_metrics.json.
+        path: Path to compute_utilization.json.
 
     Returns:
         Parsed summary dict.

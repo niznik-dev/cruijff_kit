@@ -17,7 +17,7 @@ seff {job_id}
 Log the metrics:
 
 ```
-[YYYY-MM-DD HH:MM:SS] COMPUTE_METRICS: {identifier}
+[YYYY-MM-DD HH:MM:SS] COMPUTE_UTILIZATION: {identifier}
 Job ID: {job_id}
 GPU Time: {wall_time} / {time_limit} ({time_eff}%)
 Memory: {mem_used} / {mem_requested}
@@ -27,7 +27,7 @@ CPU Efficiency: {cpu_eff}%
 If the wall time exceeds the time limit (job state TIMEOUT), flag it:
 
 ```
-[YYYY-MM-DD HH:MM:SS] COMPUTE_METRICS: {identifier}
+[YYYY-MM-DD HH:MM:SS] COMPUTE_UTILIZATION: {identifier}
 Job ID: {job_id}
 GPU Time: {wall_time} / {time_limit} (**EXCEEDED**)
 Memory: {mem_used} / {mem_requested}
@@ -69,7 +69,7 @@ When a value is available, log as:
 tps/gpu = {tps_now} (predicted {tps_predicted}, ratio {tps_now/tps_predicted:.2f})
 ```
 
-`tps_predicted` is the value from the prior experiment's `compute_metrics.json` (the `tps_gpu_train_mean` field on the matching finetune job), pulled at the start of run-experiment. If no prior is available, omit the `(predicted …, ratio …)` parenthetical.
+`tps_predicted` is the value from the prior experiment's `compute_utilization.json` (the `tps_gpu_train_mean` field on the matching finetune job), pulled at the start of run-experiment. If no prior is available, omit the `(predicted …, ratio …)` parenthetical.
 
 If the ratio falls below 0.7 for two consecutive polls, surface a visible warning:
 

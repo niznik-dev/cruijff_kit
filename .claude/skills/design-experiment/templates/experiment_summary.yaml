@@ -188,7 +188,7 @@ runs:
     parameters:
       checkpoint_path: string      # absolute path to the existing checkpoint directory
 
-  # OPTIONAL: Compute estimates (from prior runs via compute_metrics.json)
+  # OPTIONAL: Compute estimates (from prior runs via compute_utilization.json)
   # Only present when design-experiment finds and uses prior compute data.
   # If omitted, scaffold falls back to default time/resource allocations.
   #
