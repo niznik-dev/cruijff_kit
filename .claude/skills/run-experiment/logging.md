@@ -29,7 +29,7 @@ Detailed sub-logs are created during job execution. The orchestration log record
 | `SUBMIT_JOB` | Submit individual fine-tuning job to SLURM |
 | `STATUS_CHECK` | Poll SLURM for job statuses |
 | `STATE_CHANGE` | Record job state transition |
-| `COMPUTE_METRICS` | Record seff compute metrics when job reaches terminal state |
+| `COMPUTE_UTILIZATION` | Record seff compute metrics when job reaches terminal state |
 | `RESOURCE_STATUS` | Report GPU utilization from gpu_metrics.csv during monitoring |
 | `ALL_COMPLETE` | Mark all fine-tuning jobs finished |
 | `MONITOR_DETACHED` | Watcher exited via SIGINT / SIGTERM / sentinel; jobs continue running |
@@ -54,7 +54,7 @@ Detailed sub-logs are created during job execution. The orchestration log record
 | `ALL_SUBMITTED` | All evaluation jobs submitted |
 | `STATUS_CHECK` | Poll SLURM for job statuses |
 | `STATE_CHANGE` | Record job state transition |
-| `COMPUTE_METRICS` | Record seff compute metrics when eval job reaches terminal state |
+| `COMPUTE_UTILIZATION` | Record seff compute metrics when eval job reaches terminal state |
 | `RESOURCE_STATUS` | Report GPU utilization from gpu_metrics.csv during monitoring |
 | `ALL_COMPLETE` | Mark all evaluations finished |
 | `MONITOR_DETACHED` | Watcher exited via SIGINT / SIGTERM / sentinel; jobs continue running |

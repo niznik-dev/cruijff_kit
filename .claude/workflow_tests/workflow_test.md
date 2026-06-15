@@ -54,7 +54,7 @@ Each of `Llama-3.2-1B-Instruct_rank4/` and `Llama-3.2-1B-Instruct_rank8/` should
 - Evaluation jobs complete successfully and produce result logs
 - `logs/run-torchtune.log` exists and contains canonical `SUBMIT_JOB:` blocks (regex: `r'SUBMIT_JOB: ([\w.-]+)\n.*?\nJob ID: (\d+)'`)
 - `logs/run-inspect.log` exists and contains canonical `SUBMIT_EVAL:` blocks
-- After running `explore-experiment`, `exploration/report.md` contains a `## Compute Utilization` header **and** `exploration/compute_metrics.json` exists with at least one entry per submitted job (closes #451 silent-skip gap)
+- After running `explore-experiment`, `exploration/report.md` contains a `## Compute Utilization` header **and** `exploration/compute_utilization.json` exists with at least one entry per submitted job (closes #451 silent-skip gap)
 
 ## Estimated wall time
 

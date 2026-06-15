@@ -28,7 +28,7 @@ Created during analysis to record data loading, visualization selection, and gen
 | `GENERATE_PLOT` | Create individual visualization |
 | `RECORD_INTERPRETATION` | Record a conclusion and the cell-level evidence behind it |
 | `GENERATE_REPORT` | Create markdown report with metrics |
-| `COMPUTE_METRICS` | Extract and format compute utilization data |
+| `COMPUTE_UTILIZATION` | Extract and format compute utilization data |
 | `COMPLETE` | Mark exploration finished with summary |
 
 ---

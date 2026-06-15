@@ -417,7 +417,7 @@ After generating visualizations and before the report, add compute metrics. This
    - **GPU memory / power**: from nvidia-smi CSV (`gpu_mem_used_mean_gb`, `gpu_mem_total_gb`, `power_mean_w`)
    - **Throughput**: call `enrich_job_with_throughput(job, slurm_out_path)` from `src/tools/slurm/throughput_parsers.py`. For fine-tunes, the slurm-out lives at `{output_dir}/{run}/artifacts/slurm-{job_id}.out`; for evals, at `{output_dir}/{run}/artifacts/epoch_{N}/slurm-{job_id}.out`. The helper adds `tps_gpu_train_mean` (finetune) or `tps_gpu_eval_e2e` + `total_tokens` (eval) to the job dict. On parse failure it warns to stderr and leaves the dict unchanged — downstream `estimate_compute` will raise a clear error if it later tries to scale from a job that lacks tps fields.
 5. Format with `format_compute_table(jobs, recommendations=recs)` → markdown table with optional recommendations
-6. Build and save compute_metrics.json using `compute_summary.py`:
+6. Build and save compute_utilization.json using `compute_summary.py`:
    ```python
    from cruijff_kit.tools.slurm.compute_summary import build_summary, save_summary
 
@@ -425,7 +425,7 @@ After generating visualizations and before the report, add compute metrics. This
        jobs=jobs,  # list of job metric dicts from steps 3-4
        experiment_summary_path=os.path.join(experiment_dir, "experiment_summary.yaml"),
    )
-   save_summary(summary, os.path.join(experiment_dir, "exploration", "compute_metrics.json"))
+   save_summary(summary, os.path.join(experiment_dir, "exploration", "compute_utilization.json"))
    ```
    `build_summary()` reads `experiment_summary.yaml` to extract metadata (model, dataset_size, epochs, batch_size, date) and wraps the job list in the summary format. `save_summary()` writes the JSON file.
 7. Write the `format_compute_table` output into `report.md` yourself — as an
@@ -450,4 +450,4 @@ After generating visualizations and before the report, add compute metrics. This
 
 ## Logging
 
-Log generation actions using `GENERATE_PLOT`, `GENERATE_REPORT`, and `COMPUTE_METRICS` action types. See `logging.md` for format specification.
+Log generation actions using `GENERATE_PLOT`, `GENERATE_REPORT`, and `COMPUTE_UTILIZATION` action types. See `logging.md` for format specification.

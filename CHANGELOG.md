@@ -25,7 +25,8 @@ Each requires migrating existing config files; see the migration note per item.
 
 #### Renames (modules / skills)
 
-- **`compute_metrics.py` → `compute_gpu_metrics.py`** — disambiguates GPU/`seff` *hardware* metrics from the eval-accuracy `compute_metrics()` functions. Module-only; the `compute_metrics.json` artifact is unchanged. (#372)
+- **`compute_metrics.py` → `compute_gpu_metrics.py`** — disambiguates GPU/`seff` *hardware* metrics from the eval-accuracy `compute_metrics()` functions. Module-only. (#372)
+- **`compute_metrics.json` → `compute_utilization.json`** (the compute-utilization summary artifact in `{experiment_dir}/exploration/`) — matches the `## Compute Utilization` report header it's documented under and ends the one-underscore clash with the unrelated raw-telemetry `gpu_metrics.csv`. The `COMPUTE_METRICS` log marker is renamed `COMPUTE_UTILIZATION` to match; `gpu_metrics.csv` keeps its name (it accurately labels the raw nvidia-smi dump). **Clean break:** `design-experiment` / `run-experiment` glob and read only the new name, so compute estimates won't seed from experiment dirs written before this change. (#571)
 - **`analyze-to-pdf` skill → `md-to-pdf`** — it's a generic markdown→PDF pandoc wrapper, not an "analysis" step. **Migration:** invoke `/md-to-pdf`. (#372)
 - **`output_*` path variables renamed to match the `artifacts/` layout** (and archive dedup). (#443)
 

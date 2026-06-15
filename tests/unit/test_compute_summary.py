@@ -157,20 +157,20 @@ class TestSaveAndLoadSummary:
             "date": "2025-10-22",
             "jobs": SAMPLE_JOBS,
         }
-        out_path = tmp_path / "exploration" / "compute_metrics.json"
+        out_path = tmp_path / "exploration" / "compute_utilization.json"
         save_summary(summary, out_path)
         loaded = load_summary(out_path)
         assert loaded == summary
 
     def test_creates_parent_dirs(self, tmp_path):
         summary = {"experiment_name": "test", "jobs": []}
-        out_path = tmp_path / "deep" / "nested" / "compute_metrics.json"
+        out_path = tmp_path / "deep" / "nested" / "compute_utilization.json"
         result = save_summary(summary, out_path)
         assert result.exists()
 
     def test_rejects_old_format(self, tmp_path):
         """Bare list (old format) should raise ValueError."""
-        old_path = tmp_path / "compute_metrics.json"
+        old_path = tmp_path / "compute_utilization.json"
         with open(old_path, "w") as f:
             json.dump(SAMPLE_JOBS, f)
 

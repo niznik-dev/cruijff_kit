@@ -345,7 +345,7 @@ def estimate_from_prior(
     new_seq_len: int,
     new_eval_dataset_size: int | None = None,
 ) -> dict:
-    """Top-level estimation from a prior compute_metrics.json summary.
+    """Top-level estimation from a prior compute_utilization.json summary.
 
     Uses throughput-based scaling: prior tokens-per-second-per-GPU
     (parsed from slurm-out and stored on each job dict via
