@@ -45,7 +45,7 @@ inspect eval blueprints/folktexts/inspect_task.py@acs_income \
     --model hf/model_name \
     -M model_path=/path/to/checkpoint/epoch_0 \
     -T data_path=/path/to/acs_income_condensed_50000_80P.json \
-    -T config_path=/path/to/setup_finetune.yaml
+    -T config_path=/path/to/eval.yaml
 ```
 
 Evaluate a base model (no fine-tuning):
@@ -57,14 +57,14 @@ inspect eval blueprints/folktexts/inspect_task.py@acs_employment \
     -T config_path=/path/to/eval.yaml
 ```
 
-**Note:** The `config_path` provides `system_prompt` and `prompt` settings. For base models without a setup_finetune.yaml, create a simple YAML with these fields.
+**Note:** The `config_path` is the run's `eval.yaml` (scaffolded for you), which provides `system_prompt` and `prompt` settings. For a standalone base-model eval, hand-write a simple `eval.yaml` with just those fields.
 
 ### Task Parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `data_path` | required | Path to JSON dataset |
-| `config_path` | `""` | Path to setup_finetune.yaml (reads prompt/system_prompt) |
+| `config_path` | `""` | Path to eval.yaml (reads prompt/system_prompt) |
 | `split` | `test` | Data split: train, validation, or test |
 | `temperature` | `1e-7` | Generation temperature |
 | `max_tokens` | `5` | Max tokens to generate |
@@ -84,7 +84,7 @@ Example:
 ```bash
 inspect eval inspect_task.py@acs_income --model hf/local \
     -M model_path=meta-llama/Meta-Llama-3.1-8B \
-    -T config_path=/path/to/setup_finetune.yaml \
+    -T config_path=/path/to/eval.yaml \
     -T data_path=/path/to/acs_income_condensed_50000_80P.json \
     -T use_chat_template=False \
     -T assistant_prefix="Answer: "
