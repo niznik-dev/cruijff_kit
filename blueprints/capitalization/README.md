@@ -65,12 +65,12 @@ wandb sync /path/to/output/folder/logs/wandb/latest-run
 
 ### Part 4 - Test the model
 
-Create an `eval_config.yaml` in your eval directory with the experiment-specific config (see `.claude/skills/scaffold-experiment/evaluators/inspect_agent.md` for the full schema), then render the SLURM script:
+Create an `eval.yaml` in your eval directory with the experiment-specific config (see `.claude/skills/scaffold-experiment/evaluators/inspect_agent.md` for the full schema), then render the SLURM script:
 
 ```bash
 cd /path/to/experiment/run/eval
 python ../../src/tools/inspect/setup_inspect.py \
-  --config eval_config.yaml \
+  --config eval.yaml \
   --model_name Llama-3.2-1B-Instruct
 ```
 
@@ -94,11 +94,11 @@ Did your finetuning and/or choice of prompt help?
 
 ### Part 5 - Test the base model
 
-To evaluate the base model, create an `eval_config.yaml` pointing to the base model path (with `is_finetuned: false` in metadata) and run [setup_inspect.py](../../src/tools/inspect/setup_inspect.py) the same way:
+To evaluate the base model, create an `eval.yaml` pointing to the base model path (with `is_finetuned: false` in metadata) and run [setup_inspect.py](../../src/tools/inspect/setup_inspect.py) the same way:
 
 ```bash
 cd /path/to/experiment/base_run/eval
 python ../../src/tools/inspect/setup_inspect.py \
-  --config eval_config.yaml \
+  --config eval.yaml \
   --model_name Llama-3.2-1B-Instruct
 ```

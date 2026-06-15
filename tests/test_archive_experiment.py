@@ -73,7 +73,7 @@ def _make_experiment(tmp_path, run_names=None, include_eval=True, extras=None):
             cell_dir = run_dir / "eval" / "test_task_epoch0"
             eval_logs = cell_dir / "logs"
             eval_logs.mkdir(parents=True)
-            (cell_dir / "eval_config.yaml").write_text("task_name: test_task\n")
+            (cell_dir / "eval.yaml").write_text("task_name: test_task\n")
             (cell_dir / "cell.slurm").write_text("#!/bin/bash")
             (eval_logs / "test_task_epoch0.eval").write_text('{"results": {}}')
 
@@ -120,7 +120,7 @@ def test_inventory_complete_experiment(tmp_path):
     # Entire experiment dir is kept, so eval logs use their original paths
     # (cell-per-(task,epoch) layout from issue #498)
     assert "run_rank4/eval/test_task_epoch0/logs/test_task_epoch0.eval" in archive_paths
-    assert "run_rank4/eval/test_task_epoch0/eval_config.yaml" in archive_paths
+    assert "run_rank4/eval/test_task_epoch0/eval.yaml" in archive_paths
     # Configs and SLURM scripts are also kept
     assert "run_rank4/finetune.yaml" in archive_paths
     assert "run_rank4/finetune.slurm" in archive_paths

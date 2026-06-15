@@ -1,12 +1,12 @@
 """Generate eval SLURM scripts from eval_template.slurm.
 
-Reads experiment-specific config from eval_config.yaml (task script, model
+Reads experiment-specific config from eval.yaml (task script, model
 paths, metadata, task args) and combines it with SLURM infrastructure args
 from the CLI and model_configs.py to render a complete SLURM script.
 
 Usage:
     python tools/inspect/setup_inspect.py \
-        --config eval_config.yaml \
+        --config eval.yaml \
         --model_name Llama-3.2-1B-Instruct \
         --time 0:10:00 \
         --account msalganik
@@ -37,7 +37,7 @@ TEMPLATE_PATH = Path(__file__).parent / "templates" / "eval_template.slurm"
 # `experiment_summary.yaml`.
 DEFAULT_MAX_CONNECTIONS = 32
 
-# Keys in eval_config.yaml that become -T (task) args in the inspect command
+# Keys in eval.yaml that become -T (task) args in the inspect command
 TASK_ARG_KEYS = [
     "data_path",
     "config_path",
@@ -56,7 +56,7 @@ TASK_ARG_KEYS = [
 # quoting to survive inspect-ai's per-value YAML parse.
 YAML_PROTECTED_TASK_ARG_KEYS = {"assistant_prefix"}
 
-# Keys in eval_config.yaml that become --metadata args in the inspect command
+# Keys in eval.yaml that become --metadata args in the inspect command
 METADATA_ARG_KEYS = ["epoch", "is_finetuned", "source_model"]
 
 # Structural keys consumed by the SLURM renderer and the inspect task at runtime
@@ -85,13 +85,11 @@ KNOWN_STRUCTURAL_KEYS = {
 def create_parser():
     """Create and return the argument parser."""
     parser = argparse.ArgumentParser(
-        description="Generate an eval SLURM script from eval_config.yaml and the eval template."
+        description="Generate an eval SLURM script from eval.yaml and the eval template."
     )
 
     # --- Config file (has all experiment-specific values) ---
-    parser.add_argument(
-        "--config", type=str, required=True, help="Path to eval_config.yaml"
-    )
+    parser.add_argument("--config", type=str, required=True, help="Path to eval.yaml")
 
     # --- Model (for SLURM resource lookup) ---
     parser.add_argument(
@@ -148,7 +146,10 @@ def create_parser():
 
 
 def load_eval_config(config_path):
-    """Load and validate eval_config.yaml.
+    """Load and validate eval.yaml.
+
+    Named for the parsed config object, not the file: the identifier stays
+    ``eval_config`` (and ``eval`` is a builtin) while the file is ``eval.yaml``.
 
     Returns the config dict with config_path and eval_dir auto-derived.
     """
@@ -167,9 +168,7 @@ def load_eval_config(config_path):
     required = ["task_script", "task_name", "model_path", "model_hf_name", "output_dir"]
     missing = [k for k in required if k not in config]
     if missing:
-        raise ValueError(
-            f"eval_config.yaml missing required keys: {', '.join(missing)}"
-        )
+        raise ValueError(f"eval.yaml missing required keys: {', '.join(missing)}")
 
     # If the model_path is an adapter dir, verify its baked-in base path still
     # resolves on disk. Catches the case where pretrained-llms/ has moved
@@ -184,7 +183,7 @@ def load_eval_config(config_path):
     unknown = sorted(k for k in config.keys() if k not in known)
     if unknown:
         warnings.warn(
-            f"eval_config.yaml has keys not consumed by setup_inspect.py or the task: "
+            f"eval.yaml has keys not consumed by setup_inspect.py or the task: "
             f"{unknown}. They will not reach the eval. If these should propagate, "
             f"add them to TASK_ARG_KEYS / METADATA_ARG_KEYS.",
             stacklevel=2,
@@ -200,14 +199,14 @@ def load_eval_config(config_path):
     if do_sample:
         if temperature is None:
             raise ValueError(
-                "eval_config.yaml sets do_sample: true (sampling) but provides no "
+                "eval.yaml sets do_sample: true (sampling) but provides no "
                 "temperature. Sampling needs an explicit temperature > 0 (e.g. 1.0). "
                 "For deterministic decoding, omit do_sample — it defaults to false "
                 "(greedy argmax)."
             )
         if temperature <= 0:
             raise ValueError(
-                f"eval_config.yaml has temperature={temperature}, which HuggingFace's "
+                f"eval.yaml has temperature={temperature}, which HuggingFace's "
                 f"TemperatureLogitsWarper rejects (it would divide logits by zero). "
                 f"Use a positive value (e.g. 1.0)."
             )
@@ -398,7 +397,7 @@ def render_template(cli_args, config):
 
 
 def main():
-    """Generate an eval SLURM script from eval_config.yaml and the template."""
+    """Generate an eval SLURM script from eval.yaml and the template."""
     parser = create_parser()
     cli_args = parser.parse_args()
 

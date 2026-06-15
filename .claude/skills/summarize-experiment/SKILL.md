@@ -180,7 +180,7 @@ Record the literal file that backed each training run and each evaluation. For g
 Read from (in order of preference):
 
 1. `{experiment_dir}/{run_name}/setup_finetune.yaml` → `input_dir_base` + `dataset_label` + `dataset_ext` = training dataset path for that run. This is authoritative — it's what torchtune actually loaded.
-2. `{experiment_dir}/{run_name}/eval/*/eval_config.yaml` (per-cell — one config per (task, epoch); see issue #498) → test dataset path for that evaluation. Equivalently, the inspect `cell.slurm` script's `DATA_PATH`.
+2. `{experiment_dir}/{run_name}/eval/*/eval.yaml` (per-cell — one config per (task, epoch); see issue #498) → test dataset path for that evaluation. Equivalently, the inspect `cell.slurm` script's `DATA_PATH`.
 3. `logs/scaffold-torchtune.log` and `logs/scaffold-inspect.log` — include `resolve_dataset_path` entries recording the exact path scaffold chose.
 
 | Run | Training dataset | Eval dataset(s) |

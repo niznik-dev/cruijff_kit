@@ -38,7 +38,7 @@ Each experiment lives in a single self-contained directory. The root contains th
 │   │   │                        # issue #498.
 │   │   └── {task}_epoch{N}/     # One cell per (task, epoch) — name omits
 │   │       │                    # `_epoch{N}` for base evals
-│   │       ├── eval_config.yaml # Per-cell evaluation configuration
+│   │       ├── eval.yaml # Per-cell evaluation configuration
 │   │       ├── cell.slurm       # Per-cell SLURM script (always named cell.slurm)
 │   │       └── logs/            # inspect-ai evaluation logs
 │   │           └── *.eval
@@ -117,7 +117,7 @@ After archiving with `archive-experiment`, the experiment is mirrored under its 
 │   ├── finetune.slurm
 │   └── eval/
 │       └── {task}_epoch{N}/     # One cell per (task, epoch)
-│           ├── eval_config.yaml
+│           ├── eval.yaml
 │           ├── cell.slurm
 │           └── logs/
 │               └── *.eval

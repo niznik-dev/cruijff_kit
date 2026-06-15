@@ -35,7 +35,7 @@ Guide the user through the 9-step interactive workflow to gather all experiment 
 │   ├── finetune.slurm
 │   ├── artifacts/epoch_{N}/             # model checkpoints
 │   └── eval/{task}_epoch{N}/             # one cell per (task, epoch) — issue #498
-│       ├── eval_config.yaml
+│       ├── eval.yaml
 │       ├── cell.slurm
 │       └── logs/*.eval                   # populated at eval time
 └── {run_name_2}/
@@ -524,7 +524,7 @@ Now that the design is complete, verify all resources exist (use `claude.local.m
 
 Record verified resources in experiment_summary.yaml:
 - `models.base`: List with `name`, `path`, `size_gb` for each model
-- `controls.dataset_type`: **REQUIRED** — set `"chat_completion"` for instruct/chat models or `"text_completion"` for base models. Read by torchtune at training time and propagated into every `eval_config.yaml`. If you cannot determine it, ask the user; do not omit it or guess from the model name.
+- `controls.dataset_type`: **REQUIRED** — set `"chat_completion"` for instruct/chat models or `"text_completion"` for base models. Read by torchtune at training time and propagated into every `eval.yaml`. If you cannot determine it, ask the user; do not omit it or guess from the model name.
 - `data.training`: Include `path`, `dataset_label`, `format`, `size_kb`, and `splits` with train/validation/test counts
 - `evaluation.tasks`: List with `name`, `script`, optional `dataset`, and `description` for each task
 

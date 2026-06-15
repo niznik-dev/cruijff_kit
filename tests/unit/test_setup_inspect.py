@@ -25,7 +25,7 @@ from cruijff_kit.tools.inspect.setup_inspect import (
 def make_cli_args(**overrides):
     """Create a namespace mimicking parsed CLI args."""
     defaults = dict(
-        config="eval_config.yaml",
+        config="eval.yaml",
         model_name="Llama-3.2-1B-Instruct",
         time="0:10:00",
         account=None,
@@ -96,7 +96,7 @@ FULL_EVAL_CONFIG = textwrap.dedent("""\
 class TestLoadEvalConfig:
     def test_loads_required_keys(self, tmp_path):
         """Config with required keys loads successfully."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG)
 
         config = load_eval_config(str(config_file))
@@ -108,7 +108,7 @@ class TestLoadEvalConfig:
 
     def test_auto_derives_eval_dir(self, tmp_path):
         """eval_dir is auto-derived from config file location."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG)
 
         config = load_eval_config(str(config_file))
@@ -116,7 +116,7 @@ class TestLoadEvalConfig:
 
     def test_auto_derives_config_path(self, tmp_path):
         """config_path is auto-derived as absolute path to config file."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG)
 
         config = load_eval_config(str(config_file))
@@ -124,7 +124,7 @@ class TestLoadEvalConfig:
 
     def test_missing_required_key_raises(self, tmp_path):
         """Missing required key raises ValueError."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text("task_script: /path/to/task.py\n")
 
         with pytest.raises(ValueError, match="missing required keys"):
@@ -133,11 +133,11 @@ class TestLoadEvalConfig:
     def test_file_not_found_raises(self):
         """Non-existent config file raises FileNotFoundError."""
         with pytest.raises(FileNotFoundError):
-            load_eval_config("/nonexistent/eval_config.yaml")
+            load_eval_config("/nonexistent/eval.yaml")
 
     def test_full_config_with_optional_keys(self, tmp_path):
         """Full config with optional keys loads correctly."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text(FULL_EVAL_CONFIG)
 
         config = load_eval_config(str(config_file))
@@ -150,7 +150,7 @@ class TestLoadEvalConfig:
 
     def test_extra_keys_preserved(self, tmp_path):
         """Unknown keys in config are preserved (forward compatibility)."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG + "custom_field: hello\n")
 
         config = load_eval_config(str(config_file))
@@ -158,7 +158,7 @@ class TestLoadEvalConfig:
 
     def test_empty_yaml_raises(self, tmp_path):
         """Empty YAML file raises ValueError (missing required keys)."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text("")
 
         with pytest.raises(ValueError, match="missing required keys"):
@@ -167,7 +167,7 @@ class TestLoadEvalConfig:
     def test_assistant_prefix_not_warned_as_unknown(self, tmp_path, recwarn):
         """assistant_prefix is in TASK_ARG_KEYS and must not trigger the
         unknown-key warning (regression guard for #511)."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG + 'assistant_prefix: "Answer: "\n')
         load_eval_config(str(config_file))
         unknown_warnings = [
@@ -183,7 +183,7 @@ class TestLoadEvalConfig:
         """A pre-rename `scorer:` (singular) is no longer a known key, so it
         trips the unknown-key warning at scaffold time — the migration tripwire
         for the scorer -> scorers rename (#372)."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG + "scorer:\n  - name: match\n")
         with pytest.warns(UserWarning, match="scorer"):
             load_eval_config(str(config_file))
@@ -528,7 +528,7 @@ class TestDoSample:
     def test_do_sample_not_warned_as_unknown(self, tmp_path, recwarn):
         """do_sample is in KNOWN_STRUCTURAL_KEYS and must not trigger the
         unknown-key warning (regression guard for #499)."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG + "do_sample: false\n")
         load_eval_config(str(config_file))
         unknown_warnings = [
@@ -551,7 +551,7 @@ class TestTemperatureGating:
     default greedy argmax it is inert: dropped from config, never rendered."""
 
     def _write(self, tmp_path, extra):
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG + extra)
         return str(config_file)
 
@@ -768,12 +768,12 @@ class TestCreateParser:
         args = parser.parse_args(
             [
                 "--config",
-                "eval_config.yaml",
+                "eval.yaml",
                 "--model_name",
                 "Llama-3.2-1B-Instruct",
             ]
         )
-        assert args.config == "eval_config.yaml"
+        assert args.config == "eval.yaml"
         assert args.model_name == "Llama-3.2-1B-Instruct"
 
     def test_all_args_parse(self):
@@ -782,7 +782,7 @@ class TestCreateParser:
         args = parser.parse_args(
             [
                 "--config",
-                "eval_config.yaml",
+                "eval.yaml",
                 "--model_name",
                 "Llama-3.2-1B-Instruct",
                 "--time",
@@ -810,7 +810,7 @@ class TestCreateParser:
         args = parser.parse_args(
             [
                 "--config",
-                "eval_config.yaml",
+                "eval.yaml",
                 "--model_name",
                 "Llama-3.2-1B-Instruct",
             ]
@@ -830,7 +830,7 @@ class TestMain:
     def test_writes_cell_slurm_with_epoch(self, tmp_path, monkeypatch):
         """main() writes cell.slurm when epoch is set. The cell directory
         name (containing the slurm) encodes task+epoch — issue #498."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG + "epoch: 0\n")
 
         monkeypatch.setattr(
@@ -855,7 +855,7 @@ class TestMain:
 
     def test_writes_cell_slurm_without_epoch(self, tmp_path, monkeypatch):
         """main() writes cell.slurm when epoch is not set (base eval)."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG)
 
         monkeypatch.setattr(
@@ -876,7 +876,7 @@ class TestMain:
 
     def test_output_slurm_override(self, tmp_path, monkeypatch):
         """--output_slurm overrides the default cell.slurm filename."""
-        config_file = tmp_path / "eval_config.yaml"
+        config_file = tmp_path / "eval.yaml"
         config_file.write_text(MINIMAL_EVAL_CONFIG + "epoch: 0\n")
 
         monkeypatch.setattr(

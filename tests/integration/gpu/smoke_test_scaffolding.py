@@ -74,7 +74,7 @@ def test_setup_inspect(work_dir: Path):
         "is_finetuned": True,
         "source_model": "Llama-3.2-1B-Instruct",
     }
-    config_path = work_dir / "eval_config.yaml"
+    config_path = work_dir / "eval.yaml"
     with open(config_path, "w") as f:
         yaml.dump(config, f)
 

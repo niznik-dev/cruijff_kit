@@ -1,4 +1,4 @@
-# Golden eval_config.yaml for an EVAL-ONLY run (type: eval-only), minted by a
+# Golden eval.yaml for an EVAL-ONLY run (type: eval-only), minted by a
 # real scaffold-experiment run on an experiment with no fine-tuned runs and no
 # setup_finetune.yaml (#478). Absolute paths are replaced with {PLACEHOLDERS}
 # so the fixture is portable; test_eval_only_scaffold.py asserts the invariants

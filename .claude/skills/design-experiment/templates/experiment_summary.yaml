@@ -217,7 +217,7 @@ evaluation:
                                    # both default to 14, so they match unless you set them differently.
                                    # Consumed only when do_sample: true — greedy decoding has no sampling
                                    # RNG, so the seed is inert under the default. The resolved value is
-                                   # still recorded in eval_config.yaml for provenance.
+                                   # still recorded in eval.yaml for provenance.
   max_tokens: int                  # OPTIONAL: Cap on tokens generated per response.
                                    # If omitted, the @task function's per-task default applies
                                    # (5 for ACS / model_organism, 20 for capitalization).
