@@ -70,6 +70,7 @@ Run through this checklist before presenting the plan:
 - ✓ Task names in matrix match tasks defined in evaluation.tasks
 - ✓ Optional per-task overrides (`prompt`, `system_prompt`, `assistant_prefix`) are strings if present
 - ✓ If `prompt` varies (per-task `evaluation.tasks[].prompt` or per-run `runs[].parameters.prompt`), each value contains the `{input}` placeholder
+- ✓ When a matrix entry lists multiple tasks (e.g. a prompt sweep where the cells share one `@task` script and differ only by `prompt`), each cell's `vis_label` resolves uniquely — composed as `"{vis_label} ({task_name})"` from the matrix task `name`, not the shared registered `@task`. Identical labels let the report step merge distinct prompt conditions.
 
 ### Resources Validation
 - ✓ All verifications logged in design-experiment.log

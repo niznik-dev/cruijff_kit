@@ -212,9 +212,6 @@ runs:
 # =============================================================================
 
 evaluation:
-  # NOTE: the system prompt is NOT set here — it has a single source at
-  # controls.system_prompt (propagated to eval). Per-task overrides go under
-  # evaluation.tasks[].system_prompt below.
   temperature: float               # OPTIONAL: Sampling temperature. Required ONLY when do_sample: true,
                                    # where it must be > 0 (HF's TemperatureLogitsWarper does
                                    # `scores / temperature` and raises ValueError at <= 0). Under the

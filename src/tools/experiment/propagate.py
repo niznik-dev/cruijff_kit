@@ -29,13 +29,8 @@ EVAL_FIELDS: dict[str, str] = {
     "evaluation.max_tokens": "max_tokens",
     "evaluation.max_connections": "max_connections",
     "evaluation.scorers": "scorers",
-    # Task-framing invariants live in `controls` (one home, shared by training
-    # and eval) — not duplicated into `evaluation`. The @task reads `prompt` and
-    # `system_prompt` from config_path at runtime and the agent derives
-    # `use_chat_template` from `dataset_type`. Sourcing all three from `controls`
-    # lets an eval-only run (no fine-tuning, no setup_finetune.yaml) get them
-    # from the experiment_summary single source of truth, and removes the old
-    # `evaluation.system_prompt` copy that had to be hand-kept equal to training.
+    # Task-framing invariants source from `controls` (shared by train and eval),
+    # so an eval-only run with no setup_finetune.yaml still gets them.
     "controls.prompt": "prompt",
     "controls.system_prompt": "system_prompt",
     "controls.dataset_type": "dataset_type",
@@ -108,11 +103,8 @@ def propagate_eval_fields(experiment_summary: dict, eval_config: dict) -> dict:
     The eval seed is resolved (evaluation.seed, else DEFAULT_SEED) and written
     unless the agent already set a per-cell seed, which wins.
 
-    Warns on a stray top-level ``evaluation.system_prompt``: it is no longer a
-    source (system_prompt is single-sourced at ``controls.system_prompt``), so
-    a leftover value from an un-migrated file is silently ignored. The warning
-    catches that migration footgun before it becomes a silent train/eval
-    mismatch — mirroring ``prepare_data.py``'s warn-on-stale-``split``.
+    Warns on a stray ``evaluation.system_prompt`` (no longer a source) so an
+    un-migrated file can't silently mismatch training.
     """
     if _get_dotted(experiment_summary, "evaluation.system_prompt") is not None:
         warnings.warn(

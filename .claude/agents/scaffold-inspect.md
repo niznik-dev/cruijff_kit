@@ -580,7 +580,7 @@ For control models:
 
 ### Multi-Task vis_label Composition
 
-When a matrix entry has `tasks` with more than one item, compose a unique vis_label for each eval config as `"{vis_label} ({task_name})"`. When a matrix entry has exactly one task, use the original vis_label unchanged.
+When a matrix entry has `tasks` with more than one item, compose a unique vis_label for each eval config as `"{vis_label} ({task_name})"`. When a matrix entry has exactly one task, use the original vis_label unchanged. `{task_name}` is the matrix task `name` (e.g. `cap_default`), which stays distinct even in a prompt sweep where every task points at the *same* registered `@task` script — compose on the `name`, never the `@task`, or the conditions collapse to one label and the report merges them.
 
 **Example:**
 ```yaml
