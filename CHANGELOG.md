@@ -4,6 +4,8 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-06-18
+
 ### Added
 
 - **Evaluation-only experiments**: `experiment_summary.yaml` gains a third run type, `eval-only`, for evaluating a pre-existing checkpoint (via `parameters.checkpoint_path`) without retraining. `scaffold-experiment` skips `scaffold-torchtune` entirely when no run is `fine-tuned`, so an experiment can be made up of base models and/or pre-existing checkpoints. (#478)
@@ -11,13 +13,13 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ### Changed
 
-#### Schema-key renames (`experiment_summary.yaml` / `eval_config.yaml`)
+#### Schema-key renames (`experiment_summary.yaml` / `eval.yaml`)
 
 Each requires migrating existing config files; see the migration note per item.
 
 - **`experiment.directory` → `experiment.dir`** — the lone spelled-out `directory` in a codebase that otherwise uses `dir`/`_dir` (and sits beside torchtune's `output_dir`/`checkpoint_dir`). Local `*_directory` identifiers collapse to `*_dir` too. **Migration:** rename `directory:` to `dir:` under `experiment`; `archive_experiment` fails loudly and names the legacy key on an un-migrated file. (#372)
 - **`evaluation.scorer` → `evaluation.scorers`** — the key holds a list, so the plural matches its sibling `tasks:`. **Migration:** rename `scorer:` to `scorers:`. A leftover singular is silently ignored at runtime (falls back to default `match` + `includes`); `setup_inspect.py` warns about the unknown key at scaffold time. (#372)
-- **`finetuned` → `is_finetuned`** (eval-config metadata) — aligns with our other `is_`-style booleans (`use_chat_template`, `emit_source_parquet`). **Migration:** rename in `eval_config.yaml`; eval logs written before this change leave the `is_finetuned` column null. (#372)
+- **`finetuned` → `is_finetuned`** (eval-config metadata) — aligns with our other `is_`-style booleans (`use_chat_template`, `emit_source_parquet`). **Migration:** rename in `eval.yaml`; eval logs written before this change leave the `is_finetuned` column null. (#372)
 - **`data_generation.split` → `split_ratio`** (model-organism; a float train fraction) — matches the tabular generator and frees `split` to mean a *split name* everywhere. **Migration:** rename under `data.data_generation`. A stale `split:` is ignored (falls back to 0.8) but `prepare_data.py` warns when it sees it. (#372)
 - **`data.training.label` → `dataset_label`** — the schema now matches the downstream name; bare `label` read as a class label. **Migration:** rename under `data.training`. (#372)
 - **`controls.dataset_type` is now required** and used uniformly by training and eval — no longer inferred from the model name or a `MODEL_CONFIGS` default. An absent value is a hard error at every layer, preventing a silent chat-vs-text mismatch from corrupting train/eval parity. **Migration:** add `controls.dataset_type` (`chat_completion` | `text_completion`). (#478)
@@ -35,11 +37,11 @@ Each requires migrating existing config files; see the migration note per item.
 #### Structure & workflow
 
 - **Post-run flow restructured**: `summarize-experiment` is now the required post-run step, and the optional `analyze-experiment` skill is renamed `explore-experiment` (output dir `analysis/` → `exploration/`). `report_generator.py` is retired (renamed `pdf_preprocess.py`) — `explore-experiment` authors `report.md` directly. (#539)
-- **Deterministic `experiment_summary.yaml` propagation** — `propagate_*_fields()` is a mandatory propagate-first step in scaffolding, so generated `eval_config.yaml` / `setup_finetune.yaml` derive from one verified source. (#502)
+- **Deterministic `experiment_summary.yaml` propagation** — `propagate_*_fields()` is a mandatory propagate-first step in scaffolding, so generated `eval.yaml` / `setup_finetune.yaml` derive from one verified source. (#502)
 - Evaluation scaffolding (`scaffold-inspect`) no longer reads `setup_finetune.yaml` — `prompt` and `dataset_type` are propagated from `experiment_summary.yaml`, decoupling eval from the training artifact. (#478)
 - **`system_prompt` is now single-sourced at `controls.system_prompt`** — the duplicate `evaluation.system_prompt` is removed; eval derives it via propagation. Per-task variation stays at `evaluation.tasks[].system_prompt`. **Breaking:** delete `evaluation.system_prompt` from existing files (it should already equal `controls.system_prompt`, now `REQUIRED`); a leftover is no longer read and `propagate_eval_fields` warns on it. (#562)
 - **`utils/` namespace audit** — single-domain scripts moved out of `src/utils/` into their domain folders; the `utils/` charter is documented in `docs/ARCHITECTURE.md`. (#535)
-- **`create-inspect-task` skill** updated to the current `eval_config.yaml` / per-cell architecture. (#566)
+- **`create-inspect-task` skill** updated to the current `eval.yaml` / per-cell architecture. (#566)
 
 ### Fixed
 
