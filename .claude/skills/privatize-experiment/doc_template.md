@@ -11,9 +11,12 @@
   left margin below it.
 
   CRITICAL: the verification snippets are pure ```python``` blocks (NOT `python -
-  <<PY` bash heredocs) with {{REAL_DATA_DIR}}/{{REAL_LABEL}} substituted to literal
-  paths, so the user pastes them straight into ipython. Use ```bash``` only for
-  real shell commands (sed/grep/sbatch/submitters).
+  <<PY` bash heredocs). ipython CANNOT see the shell's env vars, so never use
+  os.environ — a one-time fill block sets REAL_DATA_DIR/REAL_LABEL as plain Python
+  strings (substituted from {{...}}; the user edits them if placeholders) and the
+  checks reference the derived `JSON`. Use ```bash``` only for real shell commands
+  (sed/grep/sbatch/submitters), and never put `< >` angle-bracket placeholders in a
+  bash line — `<` is shell redirection and the line errors. Use `/PATH/TO/...` markers.
 --}}
 # 🔐 Private-Data Runbook — `{{DST_NAME}}`
 
@@ -75,12 +78,20 @@ grep -rl '__FILL_REAL_LABEL__'    . | xargs -r sed -i "s#__FILL_REAL_LABEL__#{{R
 
 Run each on the private JSON; update `experiment_summary.yaml` provenance to match.
 
-**3a — Splits & class balance** (synthetic: {{SYNTH_SPLITS}}) — prints `pos` per
-split. Paste into ipython:
+First, in ipython, set the path once (ipython can't see your shell's vars — fill it
+here, not via os.environ):
+
+```python
+REAL_DATA_DIR = "{{REAL_DATA_DIR}}"   # EDIT if this is a placeholder
+REAL_LABEL = "{{REAL_LABEL}}"
+JSON = f"{REAL_DATA_DIR}/{REAL_LABEL}.json"
+```
+
+**3a — Splits & class balance** (synthetic: {{SYNTH_SPLITS}}) — prints `pos` per split:
 
 ```python
 import json
-d = json.load(open("{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json"))
+d = json.load(open(JSON))
 for k, v in d.items():
     pos = sum(e["output"] == "1" for e in v)
     print(f"{k}: n={len(v)} pos={pos} rate={pos/len(v):.3f}")
@@ -96,7 +107,7 @@ for k, v in d.items():
 import json
 from transformers import AutoTokenizer
 tok = AutoTokenizer.from_pretrained("{{MODEL_PATH}}")
-d = json.load(open("{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json"))
+d = json.load(open(JSON))
 m = max(len(tok(e["input"])["input_ids"]) for v in d.values() for e in v)
 print(f"max input tokens = {m}  -> {'OK' if m < {{MAX_SEQ_LEN}}-32 else 'BUMP max_seq_len in finetune.yaml + setup_finetune.yaml'}")
 ```
