@@ -27,10 +27,18 @@ Reads real microdata → fully yours.
 - [ ] **Build the canonical JSON** at `{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json`, shape
   `{"train":[...],"validation":[...],"test":[...]}`, each entry `{input, output}` —
   identical structure to the synthetic file. Run the discovered generator with the
-  flags that reproduce the synthetic build:
+  flags that reproduce the synthetic build, **defaulting the column selection to the
+  full synthetic list** so a wide real source doesn't emit every column:
   {{DATA_GEN_COMMAND_BLOCK}}
-  {{!-- a runnable ```bash``` block if a generator was found; else a precise
+  {{!-- a runnable ```bash``` block if a generator was found — include its column-set
+       default, e.g. --cols-file column_sets/synthetic_full.txt; else a precise
        description of the required output shape and "apply your own source→JSON step" --}}
+- [ ] **Narrow the columns per question** by copying the full column-set file into a
+  subset (keep the label-source column for a target). The §3b token-length check
+  catches a body that grew wider than the synthetic one.
+- [ ] ⚠️ **Re-running overwrites `--out`** (the generator writes, never appends): same
+  args reproduce an identical file, but a different column set / flags clobber the
+  prior one.
 - [ ] 🧷 **Re-verify the leakage / label derivation on real columns** (correctness-
   critical, cannot be delegated): {{LEAKAGE_CHECK}}. Confirm no *other* real column
   trivially encodes the outcome.
