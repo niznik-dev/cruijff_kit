@@ -93,14 +93,25 @@ into the runbook:
 - **`input_formatting`:** confirm it stays as set in `setup_finetune.yaml` (flat JSON
   is `''`; a non-empty value appends `raw/` and the job dies at `_setup_data`).
 
-### 4. Identify the leakage / label-derivation to re-verify
+### 4. Identify the data-gen command + leakage to re-verify
 
-The single check you cannot do for the user. Read the task script
-(`evaluation.tasks[].script`) and any reachable data-gen provenance to name the
-**specific** target derivation and dropped/leakage columns (e.g. "ever_kid derives
-from `KID_1`; `KID_*`/`IKID_*` dropped from input"). Where provenance isn't
-reachable, instruct re-verification generically but name the target. This goes in
-the runbook as a 🧷 correctness-critical, user-only step.
+Two things, from reading the task script (`evaluation.tasks[].script`) and any
+reachable data-gen provenance:
+
+- **The concrete CSV→JSON (or source→JSON) command.** The user starts from raw
+  source, not the JSON — so the runbook must give a *runnable* build step, not "apply
+  your logic." If a generator is discoverable (e.g. a `to_books_of_life.py` with a
+  CLI), render its exact invocation with the flags that reproduce the synthetic build
+  (target, split ratios, seed, separator). Note any column-set divergence that would
+  change the input body / token length. If no generator is reachable, say so and
+  describe the required output shape precisely.
+- **The leakage / label derivation to re-verify.** Name the **specific** target
+  derivation and dropped/leakage columns (e.g. "ever_kid derives from `KID_1`;
+  `KID_*`/`IKID_*` dropped from input"). Where provenance isn't reachable, instruct
+  re-verification generically but name the target.
+
+Both go in the runbook's Step 1 — the build command as a runnable block, the leakage
+re-verify as a 🧷 correctness-critical, user-only checkbox.
 
 ### 5. Gather targets (ask the user)
 
