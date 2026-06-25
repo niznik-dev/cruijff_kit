@@ -9,6 +9,11 @@
   IndentationError (so it prints nothing) AND the indented closing `PY` stops
   terminating the block. Put the checkbox/prose first, then the code block at the
   left margin below it.
+
+  CRITICAL: the verification snippets are pure ```python``` blocks (NOT `python -
+  <<PY` bash heredocs) with {{REAL_DATA_DIR}}/{{REAL_LABEL}} substituted to literal
+  paths, so the user pastes them straight into ipython. Use ```bash``` only for
+  real shell commands (sed/grep/sbatch/submitters).
 --}}
 # 🔐 Private-Data Runbook — `{{DST_NAME}}`
 
@@ -70,16 +75,15 @@ grep -rl '__FILL_REAL_LABEL__'    . | xargs -r sed -i "s#__FILL_REAL_LABEL__#{{R
 
 Run each on the private JSON; update `experiment_summary.yaml` provenance to match.
 
-**3a — Splits & class balance** (synthetic: {{SYNTH_SPLITS}}) — prints `pos` per split:
+**3a — Splits & class balance** (synthetic: {{SYNTH_SPLITS}}) — prints `pos` per
+split. Paste into ipython:
 
-```bash
-python - <<PY
+```python
 import json
 d = json.load(open("{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json"))
 for k, v in d.items():
     pos = sum(e["output"] == "1" for e in v)
     print(f"{k}: n={len(v)} pos={pos} rate={pos/len(v):.3f}")
-PY
 ```
 
 → update `data.training.splits` + `size_kb`; reread any base-rate baseline through the
@@ -88,15 +92,13 @@ PY
 **3b — Max token length vs `max_seq_len: {{MAX_SEQ_LEN}}`** (over-length inputs
 **truncate silently** = dropped features):
 
-```bash
-python - <<PY
+```python
 import json
 from transformers import AutoTokenizer
 tok = AutoTokenizer.from_pretrained("{{MODEL_PATH}}")
 d = json.load(open("{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json"))
 m = max(len(tok(e["input"])["input_ids"]) for v in d.values() for e in v)
 print(f"max input tokens = {m}  -> {'OK' if m < {{MAX_SEQ_LEN}}-32 else 'BUMP max_seq_len in finetune.yaml + setup_finetune.yaml'}")
-PY
 ```
 
 **3c — Warmup vs total steps.** `total_steps = {{EPOCHS}} * ceil(N_train /
