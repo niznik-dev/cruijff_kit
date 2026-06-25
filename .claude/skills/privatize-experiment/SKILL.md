@@ -146,10 +146,16 @@ re-verify as a 🧷 correctness-critical, user-only checkbox.
 ### 6. Pre-stage the clone (assistant-safe)
 
 ```bash
-cp -r "$SRC" "$DST"            # $DST basename = the new experiment name
-rm -rf "$DST"/*/artifacts      # drop synthetic checkpoints + eval logs; jobs rebuild (both slurm scripts mkdir -p)
-rm -rf "$DST"/logs             # CRITICAL: stale run-*.state.json would make the resume-safe submitters SKIP the private run
-rm -f  "$DST/summary.md"       # synthetic results must not masquerade as private ones
+# Config-only copy. The excludes drop, in one pass, everything a fresh clone must
+# not inherit — and avoid copying GBs of checkpoints just to delete them:
+#   artifacts/  → synthetic checkpoints + GPU metrics (jobs rebuild; slurm mkdir -p)
+#   logs/       → matches BOTH the experiment-root logs/ (stale run-*.state.json
+#                 would make the resume-safe submitters SKIP the run) AND every
+#                 per-cell eval/<cell>/logs/ (stale synthetic *.eval logs)
+#   summary.md / *runbook_filled.md → synthetic results must not masquerade as real
+# $DST basename = the new experiment name; trailing slashes copy CONTENTS into $DST.
+rsync -a --exclude='artifacts/' --exclude='logs/' --exclude='summary.md' \
+         --exclude='*runbook_filled.md' --exclude='private_data_runbook.md' "$SRC/" "$DST/"
 cd "$DST"
 # 🅳 experiment name → real name (known): updates every internal path
 grep -rl '<SRC_NAME>'  . | xargs -r sed -i "s#<SRC_NAME>#<DST_NAME>#g"
