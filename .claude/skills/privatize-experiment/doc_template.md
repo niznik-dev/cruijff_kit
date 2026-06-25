@@ -3,6 +3,12 @@
   {{DST}}/private_data_runbook.md, substituting every {{...}}. Drop the "Step 2"
   block entirely if real data dir/label were baked in (no placeholders). Keep the
   emoji + checkbox style — this is a human-facing follow-along.
+
+  CRITICAL: render every fenced code block FLUSH-LEFT (column 0), never indented
+  under a list item. An indented heredoc breaks twice: Python raises
+  IndentationError (so it prints nothing) AND the indented closing `PY` stops
+  terminating the block. Put the checkbox/prose first, then the code block at the
+  left margin below it.
 --}}
 # 🔐 Private-Data Runbook — `{{DST_NAME}}`
 
@@ -24,15 +30,17 @@ microdata the assistant must never read**.
 
 Reads real microdata → fully yours.
 
-- [ ] **Build the canonical JSON** at `{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json`, shape
-  `{"train":[...],"validation":[...],"test":[...]}`, each entry `{input, output}` —
-  identical structure to the synthetic file. Run the discovered generator with the
-  flags that reproduce the synthetic build, **defaulting the column selection to the
-  full synthetic list** so a wide real source doesn't emit every column:
-  {{DATA_GEN_COMMAND_BLOCK}}
-  {{!-- a runnable ```bash``` block if a generator was found — include its column-set
-       default, e.g. --cols-file column_sets/synthetic_full.txt; else a precise
-       description of the required output shape and "apply your own source→JSON step" --}}
+**Build the canonical JSON** at `{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json`, shape
+`{"train":[...],"validation":[...],"test":[...]}`, each entry `{input, output}` —
+identical structure to the synthetic file. Run the discovered generator with the
+flags that reproduce the synthetic build, **defaulting the column selection to the
+full synthetic list** so a wide real source doesn't emit every column:
+
+{{DATA_GEN_COMMAND_BLOCK}}
+{{!-- a runnable FLUSH-LEFT ```bash``` block if a generator was found — include its
+     column-set default, e.g. --cols-file column_sets/synthetic_full.txt; else a
+     precise description of the required output shape and "apply your own source→JSON step" --}}
+
 - [ ] **Narrow the columns per question** by copying the full column-set file into a
   subset (keep the label-source column for a target). The §3b token-length check
   catches a body that grew wider than the synthetic one.
@@ -62,39 +70,45 @@ grep -rl '__FILL_REAL_LABEL__'    . | xargs -r sed -i "s#__FILL_REAL_LABEL__#{{R
 
 Run each on the private JSON; update `experiment_summary.yaml` provenance to match.
 
-- [ ] **3a — Splits & class balance** (synthetic: {{SYNTH_SPLITS}}):
-  ```bash
-  python - <<PY
-  import json; d=json.load(open("{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json"))
-  for k,v in d.items():
-      pos=sum(e["output"]=="1" for e in v); print(f"{k}: n={len(v)} pos={pos} rate={pos/len(v):.3f}")
-  PY
-  ```
-  → update `data.training.splits` + `size_kb`; reread any base-rate baseline through
-  the *private* positive rate (not an accuracy floor).
+**3a — Splits & class balance** (synthetic: {{SYNTH_SPLITS}}) — prints `pos` per split:
 
-- [ ] **3b — Max token length vs `max_seq_len: {{MAX_SEQ_LEN}}`** (over-length inputs
-  **truncate silently** = dropped features):
-  ```bash
-  python - <<PY
-  import json
-  from transformers import AutoTokenizer
-  tok=AutoTokenizer.from_pretrained("{{MODEL_PATH}}")
-  d=json.load(open("{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json"))
-  m=max(len(tok(e["input"])["input_ids"]) for v in d.values() for e in v)
-  print(f"max input tokens = {m}  -> {'OK' if m < {{MAX_SEQ_LEN}}-32 else 'BUMP max_seq_len in finetune.yaml + setup_finetune.yaml'}")
-  PY
-  ```
+```bash
+python - <<PY
+import json
+d = json.load(open("{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json"))
+for k, v in d.items():
+    pos = sum(e["output"] == "1" for e in v)
+    print(f"{k}: n={len(v)} pos={pos} rate={pos/len(v):.3f}")
+PY
+```
 
-- [ ] **3c — Warmup vs total steps.** `total_steps = {{EPOCHS}} * ceil(N_train /
-  ({{BATCH_SIZE}} * {{GRAD_ACCUM}}))`. If that is `< 100` (the warmup), the LR never
-  leaves warmup and "no convergence" is an artifact. Only a risk if `N_train` is small.
+→ update `data.training.splits` + `size_kb`; reread any base-rate baseline through the
+*private* positive rate (not an accuracy floor).
 
-- [ ] **3d — `input_formatting: '{{INPUT_FORMATTING}}'` unchanged** (a non-empty value
-  appends `raw/` and the job dies at `_setup_data`):
-  ```bash
-  grep -n "input_formatting" {{DST}}/*_ft/setup_finetune.yaml
-  ```
+**3b — Max token length vs `max_seq_len: {{MAX_SEQ_LEN}}`** (over-length inputs
+**truncate silently** = dropped features):
+
+```bash
+python - <<PY
+import json
+from transformers import AutoTokenizer
+tok = AutoTokenizer.from_pretrained("{{MODEL_PATH}}")
+d = json.load(open("{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json"))
+m = max(len(tok(e["input"])["input_ids"]) for v in d.values() for e in v)
+print(f"max input tokens = {m}  -> {'OK' if m < {{MAX_SEQ_LEN}}-32 else 'BUMP max_seq_len in finetune.yaml + setup_finetune.yaml'}")
+PY
+```
+
+**3c — Warmup vs total steps.** `total_steps = {{EPOCHS}} * ceil(N_train /
+({{BATCH_SIZE}} * {{GRAD_ACCUM}}))`. If that is `< 100` (the warmup), the LR never
+leaves warmup and "no convergence" is an artifact. Only a risk if `N_train` is small.
+
+**3d — `input_formatting: '{{INPUT_FORMATTING}}'` unchanged** (a non-empty value
+appends `raw/` and the job dies at `_setup_data`):
+
+```bash
+grep -n "input_formatting" {{DST}}/*_ft/setup_finetune.yaml
+```
 
 ---
 
