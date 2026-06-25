@@ -24,9 +24,13 @@ microdata the assistant must never read**.
 
 Reads real microdata → fully yours.
 
-- [ ] Produce the canonical JSON at `{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json`, shape
+- [ ] **Build the canonical JSON** at `{{REAL_DATA_DIR}}/{{REAL_LABEL}}.json`, shape
   `{"train":[...],"validation":[...],"test":[...]}`, each entry `{input, output}` —
-  identical structure to the synthetic file (same fields, same split logic).
+  identical structure to the synthetic file. Run the discovered generator with the
+  flags that reproduce the synthetic build:
+  {{DATA_GEN_COMMAND_BLOCK}}
+  {{!-- a runnable ```bash``` block if a generator was found; else a precise
+       description of the required output shape and "apply your own source→JSON step" --}}
 - [ ] 🧷 **Re-verify the leakage / label derivation on real columns** (correctness-
   critical, cannot be delegated): {{LEAKAGE_CHECK}}. Confirm no *other* real column
   trivially encodes the outcome.
