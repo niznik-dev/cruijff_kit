@@ -41,13 +41,17 @@ must be read, that artifact is user-only — the user hands back a scrubbed erro
 `slurm-*.out`, W&B sample tables, or `summary.md` before the user confirms it
 quotes no verbatim examples.
 
-**Read-deny + blind-verify guardrail.** Fill + verify run through
+**Read-deny + blind-verify guardrail.** Fill + the **full pre-submit check suite**
+(placeholders cleared, eval cells point at the JSON, JSON exists, split balance, max
+tokens vs `max_seq_len`, warmup vs total steps, `input_formatting`) run through
 `scripts/privatize_fill.py`, which the *user* runs in their own terminal — real paths
-never enter the assistant's context (its stdout is counts/booleans only; detail goes
-to `<DST>/verify.runbook_filled.md`). A committed `.claude/settings.json` denies the
-Read tool on `*runbook_filled.md`, backstopping accidental access. Any verify command
-that would surface a real path must redirect into a `*runbook_filled.md` file so
-stdout stays path-free.
+never enter the assistant's context (its stdout is counts/booleans/aggregate numbers
+only; real paths go to `<DST>/verify.runbook_filled.md`). The script reads every
+parameter from the clone's own configs, so the runbook needs no per-experiment
+numbers and no ipython snippets. A committed `.claude/settings.json` denies the Read
+tool on `*runbook_filled.md`, backstopping accidental access. Any verify command that
+would surface a real path must redirect into a `*runbook_filled.md` file so stdout
+stays path-free.
 
 ## Prerequisites & scope check
 
@@ -163,12 +167,14 @@ grep -rn -e '<SRC_INPUT_DIR>' -e '<SRC_LABEL>' -e '<SRC_NAME>' "$DST"   # must b
 
 ### 7. Generate the runbook
 
-Render `doc_template.md` into `$DST/private_data_runbook.md`, substituting every
-`{{...}}` — paths, the four guardrail numbers and formulas, the named leakage check,
-the data tokens, and `{{CK_DIR}}` (the cruijff_kit repo root, for the fill-assistant
-path). The generated doc covers: build the private JSON, fill + verify via
-`scripts/privatize_fill.py` (Step 2), the optional cleanliness re-check, submit, and
-the data-blind handback packet.
+Render `doc_template.md` into `$DST/private_data_runbook.md`, substituting only
+`{{DST_NAME}}` `{{SRC_NAME}}` `{{DST}}` `{{CK_DIR}}` `{{REAL_LABEL}}`
+`{{DATA_GEN_COMMAND_BLOCK}}` `{{LEAKAGE_CHECK}}` — the per-experiment numbers
+(`max_seq_len`, epochs, splits, …) are NOT substituted because
+`scripts/privatize_fill.py` reads and checks them from the clone's configs. The
+generated doc is three commands: build the private JSON (Step 1), fill + run the full
+check suite via the assistant (Step 2), submit (Step 3) — plus the data-blind
+handback packet (Step 4).
 
 ### 8. Report
 
