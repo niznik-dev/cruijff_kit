@@ -145,6 +145,7 @@ def main():
     model_path = scan(setup, "model_checkpoint", str, None)
 
     checks = []  # (icon, name, stdout-safe summary)
+    hints = []  # ready-to-paste fix commands for failed checks
     report = [f"# privatize_fill report — {dst}", ""]
 
     # 1. placeholders cleared (critical)
@@ -229,6 +230,21 @@ def main():
                 f"## max input tokens: {mt} vs max_seq_len {max_seq_len} — {'OK' if ok else 'BUMP max_seq_len'}",
                 "",
             ]
+            if not ok:
+                # round up to the next multiple of 128 above the real max (headroom)
+                new = ((mt // 128) + 1) * 128
+                cmd = (
+                    f"grep -rl 'max_seq_len: {max_seq_len}' \"{dst}\" | "
+                    f"xargs -r sed -i 's#max_seq_len: {max_seq_len}#max_seq_len: {new}#g'"
+                )
+                hints.append(
+                    f"max tokens ({mt}) ≥ max_seq_len ({max_seq_len}) — raise it to {new}, then re-run:\n    {cmd}"
+                )
+                report += [
+                    f"## FIX: bump max_seq_len {max_seq_len} → {new}",
+                    f"    {cmd}",
+                    "",
+                ]
 
         # 5. warmup vs total steps (advisory)
         total_steps = epochs * math.ceil(n_train / max(batch * grad_accum, 1))
@@ -259,6 +275,10 @@ def main():
     for icon, name, summary in checks:
         print(f"  {icon} {name:<26} {summary}")
     ready = not leftovers and json_ok and not any(i == "❌" for i, _, _ in checks)
+    if hints:
+        print("\n──── suggested fixes ────")
+        for h in hints:
+            print(f"  • {h}")
     print(f"\n{'✅ READY to submit.' if ready else '⛔ NOT ready — fix the ❌ rows.'}")
     print(f"📄 details + real paths → {os.path.join(dst, REPORT_NAME)}")
     print("   (open it yourself; Claude is denied from reading *runbook_filled.md)")
