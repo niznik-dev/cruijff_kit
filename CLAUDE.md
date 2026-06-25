@@ -75,6 +75,7 @@ cruijff_kit includes Claude Code skills to streamline common workflows. These sk
 - **explore-experiment** ✅ - *Optional, any time after run.* Generate interactive HTML visualizations from evaluation logs using inspect-viz; selects views based on experimental variables (model, factor, task, metric) and adds calibration / ROC plots when `risk_scorer` is present
 - **md-to-pdf** ✅ - Convert markdown files to PDF using pandoc (commonly experiment reports/explorations)
 - **create-quiz** ✅ - Turn one or two completed experiments into a self-contained, self-grading HTML quiz that tests a recipient's intuition. Each answer cites the row/figure/section it came from
+- **privatize-experiment** ✅ - *Privacy handoff.* Turn a proven synthetic experiment into a "redo on private data" package: pre-stage a repointed, renamed clone (assistant-safe — reads only configs, never a record) plus a tailored `private_data_runbook.md` for the data-touching steps the user must do alone. Flat-JSON experiments only (warns on tabular-to-text)
 - **archive-experiment** ✅ - Archive completed experiments, preserving all experiment files while deleting checkpoint directories
 
 ### Utility
