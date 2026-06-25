@@ -98,13 +98,21 @@ into the runbook:
 Two things, from reading the task script (`evaluation.tasks[].script`) and any
 reachable data-gen provenance:
 
-- **The concrete CSV→JSON (or source→JSON) command.** The user starts from raw
-  source, not the JSON — so the runbook must give a *runnable* build step, not "apply
-  your logic." If a generator is discoverable (e.g. a `to_books_of_life.py` with a
-  CLI), render its exact invocation with the flags that reproduce the synthetic build
-  (target, split ratios, seed, separator). Note any column-set divergence that would
-  change the input body / token length. If no generator is reachable, say so and
-  describe the required output shape precisely.
+- **The concrete source→JSON command.** The user starts from raw source, not the
+  JSON — so the runbook must give a *runnable* build step, not "apply your logic." If
+  a generator is discoverable (e.g. `to_books_of_life.py` with a CLI), render its
+  exact invocation with the flags that reproduce the synthetic build (target, split
+  ratios, seed, separator), plus:
+  - **Default the column selection to the canonical full list.** If the generator can
+    restrict which columns it emits (e.g. `--cols-file`), render the command *with*
+    the full synthetic column-set file (e.g. `column_sets/synthetic_full.txt`) — a
+    wide real source otherwise dumps every column. Tell the user to copy that file
+    into narrower per-question subsets, keeping the label-source column for a target.
+  - **State the output write semantics.** `to_books_of_life.py` opens `--out` in write
+    mode → it silently *overwrites* on re-run (never appends); deterministic, so
+    identical args reproduce an identical file, but a different column set / flags
+    clobber the prior one. Surface this so re-runs aren't a surprise.
+  If no generator is reachable, say so and describe the required output shape precisely.
 - **The leakage / label derivation to re-verify.** Name the **specific** target
   derivation and dropped/leakage columns (e.g. "ever_kid derives from `KID_1`;
   `KID_*`/`IKID_*` dropped from input"). Where provenance isn't reachable, instruct
