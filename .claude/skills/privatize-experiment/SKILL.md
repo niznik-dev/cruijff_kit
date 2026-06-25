@@ -41,6 +41,14 @@ must be read, that artifact is user-only — the user hands back a scrubbed erro
 `slurm-*.out`, W&B sample tables, or `summary.md` before the user confirms it
 quotes no verbatim examples.
 
+**Read-deny + blind-verify guardrail.** Fill + verify run through
+`scripts/privatize_fill.py`, which the *user* runs in their own terminal — real paths
+never enter the assistant's context (its stdout is counts/booleans only; detail goes
+to `<DST>/verify.runbook_filled.md`). A committed `.claude/settings.json` denies the
+Read tool on `*runbook_filled.md`, backstopping accidental access. Any verify command
+that would surface a real path must redirect into a `*runbook_filled.md` file so
+stdout stays path-free.
+
 ## Prerequisites & scope check
 
 1. `claude.local.md` must exist (paths/SLURM defaults). If missing, stop → `/ck-setup`.
@@ -156,11 +164,11 @@ grep -rn -e '<SRC_INPUT_DIR>' -e '<SRC_LABEL>' -e '<SRC_NAME>' "$DST"   # must b
 ### 7. Generate the runbook
 
 Render `doc_template.md` into `$DST/private_data_runbook.md`, substituting every
-`{{...}}` with this experiment's actual values (paths, the four guardrail numbers
-and formulas, the named leakage check, the placeholder-or-real data tokens). The
-generated doc is short because the clone+rename is already done — it covers: build
-the private JSON, replace the data placeholders (if used), run the guardrail checks,
-the verify grep, submit, and the data-blind handback packet.
+`{{...}}` — paths, the four guardrail numbers and formulas, the named leakage check,
+the data tokens, and `{{CK_DIR}}` (the cruijff_kit repo root, for the fill-assistant
+path). The generated doc covers: build the private JSON, fill + verify via
+`scripts/privatize_fill.py` (Step 2), the optional cleanliness re-check, submit, and
+the data-blind handback packet.
 
 ### 8. Report
 

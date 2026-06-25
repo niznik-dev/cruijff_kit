@@ -60,17 +60,22 @@ full synthetic list** so a wide real source doesn't emit every column:
   trivially encodes the outcome.
 - [ ] Stage it in a **governed, non-public** location (not a public git repo).
 
-{{!-- Step 2 only if placeholders were used --}}
-## 🩹 Step 2 — Fill the data placeholders 🤖→🧑
+## 🩹 Step 2 — Fill + verify with the assistant 🧑
 
-The clone carries `__FILL_REAL_DATA_DIR__` / `__FILL_REAL_LABEL__` where the data
-pointer goes. From `{{DST}}`, swap in your real values:
+Run the fill assistant **in your own terminal** (not via Claude). It asks for your
+private data folder, fills the clone's `__FILL_*__` placeholders, verifies, and writes
+the real paths + splits to `{{DST}}/verify.runbook_filled.md` — which Claude is denied
+from reading. Only pass/fail counts reach the screen.
 
 ```bash
-cd {{DST}}
-grep -rl '__FILL_REAL_DATA_DIR__' . | xargs -r sed -i "s#__FILL_REAL_DATA_DIR__#{{REAL_DATA_DIR}}#g"
-grep -rl '__FILL_REAL_LABEL__'    . | xargs -r sed -i "s#__FILL_REAL_LABEL__#{{REAL_LABEL}}#g"
+python {{CK_DIR}}/scripts/privatize_fill.py "{{DST}}"
 ```
+
+It prints **✅ READY to submit** when 0 placeholders remain, every eval cell points at
+your JSON, and the JSON exists. Open `verify.runbook_filled.md` for the actual paths.
+
+Manual fallback (sed, no verify): `cd {{DST}} && grep -rl '__FILL_REAL_DATA_DIR__' . |
+xargs -r sed -i "s#__FILL_REAL_DATA_DIR__#YOUR_PRIVATE_DIR#g"`
 
 ---
 
@@ -125,18 +130,26 @@ grep -n "input_formatting" {{DST}}/*_ft/setup_finetune.yaml
 
 ---
 
-## 🔎 Step 4 — Prove the redirect is clean 🤖 *assistant-safe*
+## 🔎 Step 4 — Prove the redirect is clean
 
-Both must pass before submitting:
+Step 2's assistant already checked placeholders, paths, and JSON presence — see
+`{{DST}}/verify.runbook_filled.md`. Optional independent re-check:
+
+**Cleanliness (assistant-safe — no real paths in this output):**
 
 ```bash
-# (1) must return NOTHING — no synthetic identity survived:
+# must return NOTHING — no synthetic identity or unfilled placeholder survived:
 grep -rn -e '{{SRC_INPUT_DIR}}' -e '{{SRC_LABEL}}' -e '{{SRC_NAME}}' -e '__FILL_' {{DST}}
-# (2) must echo the private path on every eval cell:
-grep -rh 'data_path' {{DST}}/*/eval/*/eval.yaml | sort -u
 ```
 
-- [ ] (1) prints nothing  → ✅  (2) every line points at the private JSON → ✅
+**Real paths (blind — appended to the Claude-denied report):**
+
+```bash
+grep -rh 'data_path' {{DST}}/*/eval/*/eval.yaml | sort -u >> {{DST}}/verify.runbook_filled.md
+echo "appended eval data_paths to verify.runbook_filled.md — open it; Claude is blocked"
+```
+
+- [ ] cleanliness grep prints nothing → ✅   assistant reported **READY** → ✅
 
 ---
 

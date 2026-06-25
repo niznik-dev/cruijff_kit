@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(//**/*runbook_filled.md)",
+      "Read(**/*runbook_filled.md)"
+    ]
+  }
+}
