@@ -1,8 +1,9 @@
 {{!--
   Output skeleton for privatize-experiment. Render to
-  {{DST}}/private_data_runbook.md, substituting every {{...}}. Drop the "Step 2"
-  block entirely if real data dir/label were baked in (no placeholders). Keep the
-  emoji + checkbox style — this is a human-facing follow-along.
+  {{DST}}/private_data_runbook.md, substituting every {{...}}. Step 0 exports the
+  shell vars for the bash steps; the assistant in Step 2 fills + verifies (it is a
+  no-op-but-verify when paths are already baked). Keep the emoji + checkbox style —
+  this is a human-facing follow-along.
 
   CRITICAL: render every fenced code block FLUSH-LEFT (column 0), never indented
   under a list item. An indented heredoc breaks twice: Python raises
@@ -31,6 +32,26 @@ microdata the assistant must never read**.
 - 🧑 **Left to you (touches real data):** the steps below.
 - 🔐 The full who-sees-what contract is in the `privatize-experiment` skill; the
   short version is the gate at the bottom.
+
+> ℹ️ **`bash` blocks** run in your shell (Step 0 sets their vars). **`python` blocks**
+> paste into ipython, which can't see your shell's vars — so the Step 3 Python block
+> has its own one-line path fill. Copy blocks whole; they start at the left margin.
+
+---
+
+## 🧰 Step 0 — Set the variables (do this once)
+
+Edit the two `/PATH/TO/...` lines (your private paths — the assistant can't see them).
+**No `< >` brackets** — bash reads `<` as redirection and the line errors. These cover
+the `bash` steps; the Step 3 Python checks fill their path separately.
+
+```bash
+export REAL_CSV=/PATH/TO/real_source.csv            # <-- EDIT
+export REAL_DATA_DIR=/PATH/TO/private_data_folder   # <-- EDIT
+export REAL_LABEL={{REAL_LABEL}}
+export DST={{DST}}
+echo "CSV=$REAL_CSV"; echo "JSON=$REAL_DATA_DIR/$REAL_LABEL.json"
+```
 
 ---
 
@@ -182,7 +203,7 @@ python -m cruijff_kit.tools.run.submit_inspect   {{DST}}   # only after fine-tun
 ## ✅ Gate before `sbatch`
 
 - [ ] private JSON built; leakage/label derivation re-verified on real columns (Step 1)
-- [ ] Step 4 check (1) prints **nothing**; check (2) shows the private path
+- [ ] clone filled + assistant reported **READY** (Step 2); Step 4 cleanliness grep prints **nothing**
 - [ ] splits + balance updated; `total_steps > 100`; `max tokens < max_seq_len`
 - [ ] `input_formatting` unchanged
 - [ ] private JSON in a **governed, non-public** dir
