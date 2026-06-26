@@ -7,6 +7,7 @@
 
 from inspect_ai.scorer import match, includes
 from .risk_scorer import risk_scorer
+from .reasoning_risk_scorer import reasoning_risk_scorer
 from .numeric_risk_scorer import numeric_risk_scorer
 from .continuous_scorer import continuous_scorer
 from .calibration_metrics import (
@@ -21,6 +22,7 @@ SCORER_FACTORIES = {
     "match": match,
     "includes": includes,
     "risk_scorer": risk_scorer,
+    "reasoning_risk_scorer": reasoning_risk_scorer,
     "numeric_risk_scorer": numeric_risk_scorer,
     "continuous_scorer": continuous_scorer,
 }
@@ -35,6 +37,9 @@ SCORER_REGISTRY = {
         includes(**params) if params else includes(ignore_case=False)
     ),
     "risk_scorer": lambda params: risk_scorer(**params) if params else risk_scorer(),
+    "reasoning_risk_scorer": lambda params: (
+        reasoning_risk_scorer(**params) if params else reasoning_risk_scorer()
+    ),
     "numeric_risk_scorer": lambda params: (
         numeric_risk_scorer(**params) if params else numeric_risk_scorer()
     ),

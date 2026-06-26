@@ -13,6 +13,8 @@ This page lists all models currently supported by cruijff_kit. The canonical sou
 | Llama-3.3-70B-Instruct | Llama | Instruct | 70B | 4 | 80G | `tune download meta-llama/Llama-3.3-70B-Instruct --output-dir <model_dir> --hf-token <token>` |
 | Qwen2.5-3B | Qwen | Base | 3B | 1 | 80G | `tune download Qwen/Qwen2.5-3B --output-dir <model_dir>` |
 | Qwen2.5-3B-Instruct | Qwen | Instruct | 3B | 1 | 80G | `tune download Qwen/Qwen2.5-3B-Instruct --output-dir <model_dir>` |
+| Qwen3-8B | Qwen | Instruct | 8B | 1 | 80G | `tune download Qwen/Qwen3-8B --output-dir <model_dir>` |
+| Qwen3-14B | Qwen | Instruct | 14B | 1 | 80G | `tune download Qwen/Qwen3-14B --output-dir <model_dir>` |
 
 **VRAM** is the per-GPU partition size you should request. For multi-GPU models like Llama-3.3-70B-Instruct, the same per-GPU partition is requested for each of the `GPUs` cards.
 
@@ -21,6 +23,7 @@ This page lists all models currently supported by cruijff_kit. The canonical sou
 - **Base vs Instruct**: Base models use the `text_completion` dataset format; instruct models use `chat_completion`. This is **not** inferred from the model — you set it explicitly per experiment via `controls.dataset_type` in `experiment_summary.yaml` (a required field). Choose `text_completion` for base models and `chat_completion` for instruct/chat models; a wrong choice silently breaks train/eval parity.
 - **HuggingFace access**: Meta Llama models require requesting access on HuggingFace before downloading. Navigate to the model page, agree to the license, and wait for confirmation before running the download command.
 - **HuggingFace token**: Llama downloads require `--hf-token`. Qwen models are openly available and do not require a token. **Never commit your HuggingFace token to a repository.**
+- **Qwen3 reasoning ("thinking") mode**: Qwen3 instruct models emit a `<think>...</think>` block before answering by default. For classification-style evals this breaks logprob scoring (the first generated token is `<think>`, not the answer) and exact-match accuracy. Two complementary controls exist: set `enable_thinking: false` under `evaluation` in `eval.yaml` to suppress it (renders `-M enable_thinking=False`), and/or use the `reasoning_risk_scorer`, which finds the answer token after `</think>` and strips the block from the completion. The `Qwen3-*-Base` and `Qwen3-32B` checkpoints download fine but are not yet in `MODEL_CONFIGS`.
 
 ## Adding a New Model
 
