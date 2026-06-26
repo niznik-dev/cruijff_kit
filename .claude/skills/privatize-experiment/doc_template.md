@@ -101,6 +101,12 @@ python -m cruijff_kit.tools.run.submit_inspect   $DST   # only after fine-tunes 
   jobs; re-attach with `--resume-monitor`.
 - [ ] ⚠️ a job fails? its `slurm-*.out` may echo a real row — **read it yourself**,
   hand back only the scrubbed error class.
+- [ ] 🔁 fixed a knob (batch size, `--time`) and need to **resubmit** a failed run?
+  The "already submitted" memory is `$DST/logs/run-torchtune.state.json`, **not**
+  `artifacts/` — clearing artifacts alone won't redispatch. Delete that run's entry
+  (keyed `<run>/finetune.slurm`), or the whole state file, to redispatch. Also confirm
+  no `logs/.detach` from above is still lurking — it's sticky and silently blocks
+  submission until removed.
 
 ---
 
