@@ -72,6 +72,7 @@ KNOWN_STRUCTURAL_KEYS = {
     "max_connections",  # inspect CLI flag, not a -T arg
     "seed",  # inspect --seed CLI flag, rendered by render_template
     "do_sample",  # -M model arg (greedy vs sampling), rendered by render_template
+    "enable_thinking",  # -M model arg; suppresses <think> for reasoning models
     # Read by the @task function at runtime, not by setup_inspect.py:
     "scorers",
     "system_prompt",
@@ -347,6 +348,19 @@ def render_template(cli_args, config):
     script = script.replace(
         "<DOSAMPLE_ARGS>", f"  -M do_sample={_format_value(do_sample)} \\\n"
     )
+
+    # Reasoning models (e.g. Qwen3) emit <think>...</think> before answering;
+    # enable_thinking=False suppresses it so the answer is the first generated
+    # token. Only emitted when set in eval.yaml, so non-reasoning evals are
+    # byte-for-byte unchanged.
+    enable_thinking = config.get("enable_thinking")
+    if enable_thinking is None:
+        script = script.replace("<THINKING_ARGS>", "")
+    else:
+        script = script.replace(
+            "<THINKING_ARGS>",
+            f"  -M enable_thinking={_format_value(enable_thinking)} \\\n",
+        )
 
     max_connections = config.get("max_connections", DEFAULT_MAX_CONNECTIONS)
     script = script.replace("<MAX_CONNECTIONS>", str(max_connections))

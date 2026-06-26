@@ -184,6 +184,46 @@ MODEL_CONFIGS = {
             "gpus": 1,
         },
     },
+    # -------------------------------------------------------------------------
+    # Qwen3 models - use BPE tokenizer (vocab.json + merges.txt)
+    # Instruct variants are the post-trained models (HF repo without "-Base").
+    # -------------------------------------------------------------------------
+    "Qwen3-8B": {
+        "component": "torchtune.models.qwen3.lora_qwen3_8b_instruct",
+        "checkpoint_files": {
+            "filename_format": "model-{}-of-{}.safetensors",
+            "max_filename": "00005",
+        },
+        "model_type": "QWEN3",
+        "tokenizer": {
+            "component": "torchtune.models.qwen3.qwen3_tokenizer",
+            "model_family": "qwen",
+        },
+        "min_gpu_vram_gb": 40,
+        "slurm": {
+            "mem": "80G",
+            "cpus": 1,
+            "gpus": 1,
+        },
+    },
+    "Qwen3-14B": {
+        "component": "torchtune.models.qwen3.lora_qwen3_14b_instruct",
+        "checkpoint_files": {
+            "filename_format": "model-{}-of-{}.safetensors",
+            "max_filename": "00008",
+        },
+        "model_type": "QWEN3",
+        "tokenizer": {
+            "component": "torchtune.models.qwen3.qwen3_tokenizer",
+            "model_family": "qwen",
+        },
+        "min_gpu_vram_gb": 80,
+        "slurm": {
+            "mem": "80G",
+            "cpus": 1,
+            "gpus": 1,
+        },
+    },
 }
 
 
