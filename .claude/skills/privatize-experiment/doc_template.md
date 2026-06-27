@@ -22,10 +22,15 @@ the assistant must never read**.
 
 - 🧬 **Method:** the synthetic scaffold was cloned, renamed, and repointed for you
   — a *redirect of a green run*, not a rebuild.
-- ✅ **Already staged (assistant-safe — no record was read):** clone at `{{DST}}`,
-  every internal path renamed `{{SRC_NAME}}` → `{{DST_NAME}}`, synthetic
-  checkpoints/logs/summary cleared, data dir left as `__FILL_REAL_DATA_DIR__`.
-- 🧑 **Left to you (touches real data):** the steps below — three commands.
+- ✅ **Already staged (assistant-safe — no record was read):** clone at `{{DST}}`
+  (neutral name, **not yet locked**), every internal path renamed
+  `{{SRC_NAME}}` → `{{DST_NAME}}`, synthetic checkpoints/logs/summary cleared, data dir
+  left as `__FILL_REAL_DATA_DIR__`. This runbook lives in a **record-free store** and is
+  **symlinked** into the clone, so the assistant can keep it updated even after you lock.
+- 🔒 **Your first action (Step 0) is to LOCK the folder** — drop a `.ck-private` marker
+  that walls Claude out of the entire clone before any real data goes near it. Until you
+  run it, this is just a neutral clone; that marker is what makes the privacy guard real.
+- 🧑 **Left to you (touches real data):** the steps below.
 - 🔐 The full who-sees-what contract is in the `privatize-experiment` skill; the
   short version is the gate at the bottom.
 
@@ -34,7 +39,7 @@ the assistant must never read**.
 
 ---
 
-## 🧰 Step 0 — Set the variables (do this once)
+## 🧰 Step 0 — Set the variables & 🔒 lock the folder (do this once)
 
 Edit the two `/PATH/TO/...` lines (your private paths — the assistant can't see them).
 **No `< >` brackets** — bash reads `<` as redirection and the line errors.
@@ -45,6 +50,23 @@ export REAL_DATA_DIR=/PATH/TO/private_data_folder   # <-- EDIT
 export REAL_LABEL={{REAL_LABEL}}
 export DST={{DST}}
 echo "CSV=$REAL_CSV"; echo "JSON=$REAL_DATA_DIR/$REAL_LABEL.json"
+```
+
+🔒 **Lock the folder now — before any real data touches it.** This drops a `.ck-private`
+marker that walls Claude out of the *entire* clone (configs, logs, `.eval`s, all of it)
+for the rest of the run. You still drive every command below yourself in your shell; the
+runbook stays assistant-editable because it lives outside the folder (this file is a
+symlink to a record-free store).
+
+```bash
+touch "$DST/.ck-private"
+```
+
+Optional belt-and-suspenders — also adopt the `_private_` naming convention (closes a
+relative-path gap in the guard; the runbook symlink resolves regardless):
+
+```bash
+LOCKED="${DST}_private_$(date +%F)"; mv "$DST" "$LOCKED" && export DST="$LOCKED"
 ```
 
 ---
@@ -112,8 +134,35 @@ python -m cruijff_kit.tools.run.submit_inspect   $DST   # only after fine-tunes 
 
 ## 📊 Step 4 — Results, data-blind 🧑 *you-only → 🤖 handback*
 
-- [ ] Run `summarize-experiment` yourself (it reads `.eval` logs = echoed real
-  inputs). Treat `summary.md` as 🔴 until you confirm it quotes **no** verbatim examples.
+`summarize-experiment` reads `.eval` logs (= echoed real inputs), so **you** run it —
+never the shared assistant. Two equivalent ways:
+
+**A — drive the skill** in your *own* terminal/session: `cd $DST` and invoke
+`summarize-experiment`. It walks the extraction below and writes `summary.md`.
+
+**B — extract aggregates by hand** (no skill needed). Activate your conda env first
+(these need inspect-ai), then print the core metrics for every eval cell:
+
+```bash
+cd "$DST"
+for f in */eval/*/logs/*.eval; do
+  echo "=== $f ==="
+  python -m cruijff_kit.tools.inspect.parse_eval_log "$f"   # -> task, accuracy, samples, scorer, model
+done
+```
+
+Then, keyed on each cell's reported `scorer`, add the scorer-specific reads:
+
+```bash
+# binary 0/1 (match / exact_match): balanced acc, F1, class balance
+python -m cruijff_kit.tools.inspect.summary_binary "$f" --json
+# continuous_scorer (regression): mae / rmse / r2 / parse_rate -- no accuracy
+python -m cruijff_kit.tools.inspect.summary_continuous "$f" --json
+# risk_scorer: parse_eval_log ONLY -- summary_binary.py crashes on its archives;
+#   argmax acc + format% are explore-experiment's job, not summarize's
+```
+
+- [ ] Treat `summary.md` and any stdout as 🔴 until you confirm it quotes **no** verbatim examples.
 - [ ] 📨 Hand the assistant only the **aggregate packet** — per-cell balanced acc,
   AUC, ECE/RCE, format%; private class balance (as provenance); whether fine-tuning
   fixed format/calibration. ❌ never the `.eval` files, raw completions, or example inputs.
@@ -122,6 +171,7 @@ python -m cruijff_kit.tools.run.submit_inspect   $DST   # only after fine-tunes 
 
 ## ✅ Gate before `sbatch`
 
+- [ ] 🔒 folder locked: `.ck-private` dropped before any real data (Step 0)
 - [ ] private JSON built; leakage/label derivation re-verified on real columns (Step 1)
 - [ ] Step 2 assistant printed **✅ READY** (no ❌ rows)
 - [ ] private JSON in a **governed, non-public** dir
