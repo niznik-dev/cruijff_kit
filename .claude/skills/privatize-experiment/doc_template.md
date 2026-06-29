@@ -142,14 +142,16 @@ never the shared assistant. Two equivalent ways:
 `summarize-experiment`. It walks the extraction below and writes `summary.md`.
 
 **B — extract aggregates by hand** (no skill needed). Activate your conda env first
-(these need inspect-ai), then print the core metrics for every eval cell:
+(these need inspect-ai), then print **and save** the core metrics for every eval cell —
+the loop tees into `eval_aggregates.txt` inside the clone (marker-protected) so you both
+watch it scroll and keep a copy to assemble the handback packet from:
 
 ```bash
 cd "$DST"
 for f in */eval/*/logs/*.eval; do
   echo "=== $f ==="
   python -m cruijff_kit.tools.inspect.parse_eval_log "$f"   # -> task, accuracy, samples, scorer, model
-done
+done 2>&1 | tee eval_aggregates.txt
 ```
 
 Then, keyed on each cell's reported `scorer`, add the scorer-specific reads:
@@ -163,7 +165,7 @@ python -m cruijff_kit.tools.inspect.summary_continuous "$f" --json
 #   argmax acc + format% are explore-experiment's job, not summarize's
 ```
 
-- [ ] Treat `summary.md` and any stdout as 🔴 until you confirm it quotes **no** verbatim examples.
+- [ ] Treat `summary.md`, `eval_aggregates.txt`, and any stdout as 🔴 until you confirm they quote **no** verbatim examples.
 - [ ] 📨 Hand the assistant only the **aggregate packet** — per-cell balanced acc,
   AUC, ECE/RCE, format%; private class balance (as provenance); whether fine-tuning
   fixed format/calibration. ❌ never the `.eval` files, raw completions, or example inputs.
