@@ -62,11 +62,14 @@ symlink to a record-free store).
 touch "$DST/.ck-private"
 ```
 
-Optional belt-and-suspenders — also adopt the `_private_` naming convention (closes a
-relative-path gap in the guard; the runbook symlink resolves regardless):
+Optional belt-and-suspenders — also adopt the `_private_<date>` naming convention, the
+form the guard's name-walk recognizes (it closes a relative-path gap the absolute-only
+marker-walk misses; the runbook symlink resolves regardless). The clone name already ends
+in its date, so this slots `_private` *before* that date — one date, not two — and reuses
+the clone's own date rather than stamping a fresh one:
 
 ```bash
-LOCKED="${DST}_private_$(date +%F)"; mv "$DST" "$LOCKED" && export DST="$LOCKED"
+LOCKED="${DST%_*}_private_${DST##*_}"; mv "$DST" "$LOCKED" && export DST="$LOCKED"
 ```
 
 ---
@@ -94,7 +97,9 @@ so a wide real source doesn't emit every column:
 ## 🩹 Step 2 — Fill + check with the assistant 🧑
 
 Run the assistant **in your own terminal** (not via Claude). It asks for your private
-data folder, fills the clone's `__FILL_REAL_DATA_DIR__`, and runs the **full
+data folder (or, if you exported `REAL_DATA_DIR` in Step 0, offers that value — press
+Enter to accept, or type a different folder if a parallel clone clobbered the var),
+fills the clone's `__FILL_REAL_DATA_DIR__`, and runs the **full
 pre-submit suite** — placeholders cleared, eval cells point at the JSON, JSON exists,
 split balance, max tokens vs `max_seq_len`, warmup vs total steps, `input_formatting`
 — all read from the clone's own configs. It prints **✅ READY to submit** or the
