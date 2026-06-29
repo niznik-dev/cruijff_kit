@@ -4,7 +4,8 @@
 # Denies any tool call that touches a private experiment folder. Private folders
 # are marked two independent ways so the guard survives a rename:
 #   1. the _private_<date> naming convention (e.g. ggs_ever_kid_private_2026-06-25), and
-#   2. a .ck-private marker file at the folder root (written by privatize-experiment).
+#   2. a .ck-private marker file at the folder root (dropped by the user per the
+#      runbook's lock step; privatize-experiment stages the clone unlocked).
 #
 # Bias is fail-safe: when a path looks private, deny. Reads the tool-call JSON on
 # stdin and, on a match, emits a PreToolUse deny decision. A hook deny overrides
