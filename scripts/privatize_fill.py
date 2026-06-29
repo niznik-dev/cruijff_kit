@@ -122,9 +122,19 @@ def main():
     print(f"📂 clone: {dst}")
     print(f"   config files awaiting your data folder: {len(pending)}\n")
 
-    real_dir = ask(
-        "Your PRIVATE data folder (holds the .json — the assistant can't see it)"
-    )
+    # Data folder: prefer an exported REAL_DATA_DIR, but never use it silently —
+    # in a two-clone shell that var can be clobbered, so display it (tied to the
+    # clone printed above) and require an explicit Enter to accept it.
+    env_dir = os.environ.get("REAL_DATA_DIR", "").strip()
+    if env_dir:
+        print(f"🌐 REAL_DATA_DIR is set in your environment: {env_dir}")
+        print("   Confirm this is the data folder for the clone shown above.")
+        resp = ask("   Enter to use it, or type a different folder")
+        real_dir = resp or env_dir
+    else:
+        real_dir = ask(
+            "Your PRIVATE data folder (holds the .json — the assistant can't see it)"
+        )
     real_dir = os.path.abspath(os.path.expanduser(real_dir)).rstrip("/")
     if not real_dir:
         sys.exit("❌ no folder given; nothing filled.")
