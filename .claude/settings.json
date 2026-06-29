@@ -2,17 +2,7 @@
   "permissions": {
     "deny": [
       "Read(//**/*runbook_filled.md)",
-      "Read(**/*runbook_filled.md)",
-      "Read(//**/*_private_*/**)",
-      "Read(**/*_private_*/**)",
-      "Edit(//**/*_private_*/**)",
-      "Edit(**/*_private_*/**)",
-      "Write(//**/*_private_*/**)",
-      "Write(**/*_private_*/**)",
-      "Grep(//**/*_private_*/**)",
-      "Grep(**/*_private_*/**)",
-      "Glob(//**/*_private_*/**)",
-      "Glob(**/*_private_*/**)"
+      "Read(**/*runbook_filled.md)"
     ]
   },
   "hooks": {
