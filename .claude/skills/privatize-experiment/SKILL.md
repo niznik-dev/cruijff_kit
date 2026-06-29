@@ -124,6 +124,14 @@ reachable data-gen provenance:
     mode → it silently *overwrites* on re-run (never appends); deterministic, so
     identical args reproduce an identical file, but a different column set / flags
     clobber the prior one. Surface this so re-runs aren't a surprise.
+  - **Add real-vs-synthetic divergence flags the synthetic build didn't need.** The
+    synthetic CSV is narrower than the real export, so flags that were no-ops on
+    synthetic data become required on real data — render them in the command with a note
+    on *why*. For `to_books_of_life.py` the key one is `--country <code>` (e.g. `2081`
+    for Denmark): the synthetic file is single-country so it was omitted, but the real
+    GGS-II microdata is multi-country and without it every country's rows flow through.
+    It matches the leading code or the full `<code>. <Label> …` cell and errors listing
+    the codes present on a miss, so a wrong value fails loudly.
   If no generator is reachable, say so and describe the required output shape precisely.
 - **The leakage / label derivation to re-verify.** Name the **specific** target
   derivation and dropped/leakage columns (e.g. "ever_kid derives from `KID_1`;
