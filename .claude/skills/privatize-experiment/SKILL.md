@@ -135,13 +135,16 @@ re-verify as a 🧷 correctness-critical, user-only checkbox.
 
 ### 5. Gather targets (ask the user)
 
-- **New experiment name** — default `<source_name>` with the date advanced; confirm
-  with the user. This becomes the clone dir basename and token 🅳's replacement (known
-  now → fully baked in). **Keep it neutral — never bake `_private_` into the staged
-  name.** The privacy guard keys on the `.ck-private` marker the *user* drops (runbook
-  Step 0), not the folder name; a `_private_` name would block the assistant's own
-  staging and symlink steps. (The user may optionally rename to a `_private_…` form
-  after locking, for extra coverage — that's their call, in their terminal.)
+- **New experiment name** — default `<source_stem>_private_<today>`, where
+  `<source_stem>` is the source name with its trailing date stripped (e.g.
+  `ggs_ever_kid_base_vs_ft_qwen_2026-06-26` → `ggs_ever_kid_base_vs_ft_qwen_private_2026-06-28`);
+  confirm with the user. This becomes the clone dir basename and token 🅳's replacement
+  (known now → fully baked in). **Bake `private` into the name at stage time** so the
+  folder is self-evidently a private redo — the name is a human label, not a lock. The
+  privacy guard keys solely on the `.ck-private` marker the *user* drops (runbook Step 0),
+  so a `private` name does NOT block the assistant's staging, repoint, or symlink steps,
+  and the basename is correct from the start — no neutral-then-rename (a later rename
+  would orphan ~17 baked-in absolute self-references and break the run).
 - **Private data dir + label** — ask if known. If given, bake them in (a fully-ready
   clone). If not, use the placeholders `__FILL_REAL_DATA_DIR__` /
   `__FILL_REAL_LABEL__` (the runbook's first edit replaces them).
@@ -180,12 +183,12 @@ grep -rn -e '<SRC_INPUT_DIR>' -e '<SRC_LABEL>' -e '<SRC_NAME>' "$DST"   # must b
 ### 7. Generate the runbook (into a record-free store, symlinked back)
 
 The runbook must stay **assistant-editable after the user locks the folder**, so it does
-not live inside the clone — it lives in a record-free **runbook store** and is symlinked
-into the clone under the familiar name. The store defaults to `<scratch>/ck-runbooks/` (a
-sibling of the projects root; override in `claude.local.md` if set). The store filename
-must not contain the `_private_` token (it would re-block the assistant), so name it
-`<clone_name>.private-runbook.md` — the clone name is neutral per step 5, and
-`private-runbook` is hyphenated → safe.
+not live inside the clone — once the user drops `.ck-private`, the marker walk denies
+everything under the clone, this runbook included. It lives in a record-free **runbook
+store** and is symlinked into the clone under the familiar name. The store defaults to
+`<scratch>/ck-runbooks/` (a sibling of the projects root; override in `claude.local.md`
+if set). Name it `<clone_name>.private-runbook.md`; the store sits outside any marked
+folder, so the assistant can keep editing it regardless of the clone's name or lock state.
 
 ```bash
 STORE=<scratch>/ck-runbooks
@@ -194,9 +197,10 @@ mkdir -p "$STORE"
 ln -s "$STORE/<clone_name>.private-runbook.md" "$DST/private_data_runbook.md"  # absolute target
 ```
 
-Both `$DST` and the store are neutrally named and unmarked at this point, so `ln -s` is
-not blocked. The clone's rsync already excluded any inherited `private_data_runbook.md`,
-so the symlink is the only one present.
+Neither `$DST` nor the store is marked (no `.ck-private` yet — the user drops that in
+Step 0), so `ln -s` is not blocked; the `private` in the name is just a label. The clone's
+rsync already excluded any inherited `private_data_runbook.md`, so the symlink is the only
+one present.
 
 Substitute only `{{DST_NAME}}` `{{SRC_NAME}}` `{{DST}}` `{{CK_DIR}}` `{{REAL_LABEL}}`
 `{{DATA_GEN_COMMAND_BLOCK}}` `{{LEAKAGE_CHECK}}` — the per-experiment numbers
@@ -208,20 +212,22 @@ packet (Step 4).
 
 ### 8. Report
 
-Tell the user, concisely: where `$DST` is, what's already done (clone + rename +
-the assistant-safe swaps), and the short list of what's left for them (build JSON →
+Tell the user, concisely: where `$DST` is, what's already done (clone + repoint +
+the assistant-safe swaps), and the short list of what's left for them (lock → build JSON →
 fill placeholders → checks → grep → submit). Point them at the generated runbook.
 
 ## Notes
 
 - **Do not** create any script under `src/` — the repoint is `cp` + three `sed`s,
   executed from the skill. Don't over-engineer.
-- **Locking is the user's act, not the assistant's.** The clone is staged neutral and
-  *unlocked*; the runbook's Step 0 has the user drop the `.ck-private` marker (and
-  optionally rename to `_private_…`). The assistant must never create the marker or bake
-  `_private_` into the staged name — both would wall the assistant out of its own
-  staging/symlink steps. The guard (`.claude/hooks/block-private.sh` + `settings.json`)
-  then enforces hands-off via the marker walk (and the name, if the user added it).
+- **Locking is the user's act, not the assistant's.** The clone is staged with its
+  `private` label but *unlocked*; the runbook's Step 0 has the user drop the `.ck-private`
+  marker. The assistant must never create the marker — that is the one act that walls the
+  assistant out, and it belongs to the user. The folder name is a human label only: the
+  guard (`.claude/hooks/block-private.sh`) enforces hands-off purely via the marker walk,
+  so the assistant can stage, repoint, and symlink the private-named clone right up until
+  the marker drops. Never rename a clone after staging — the basename is baked into ~17
+  absolute self-references and a rename orphans them.
 - **Wrapper-only:** rename only names we own. Never touch torchtune recipe keys or
   inspect `@task`/`@scorer` registry names while repointing.
 - If the user later wants tabular-to-text support, that's a v2: the real

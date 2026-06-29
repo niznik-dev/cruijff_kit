@@ -23,13 +23,14 @@ the assistant must never read**.
 - 🧬 **Method:** the synthetic scaffold was cloned, renamed, and repointed for you
   — a *redirect of a green run*, not a rebuild.
 - ✅ **Already staged (assistant-safe — no record was read):** clone at `{{DST}}`
-  (neutral name, **not yet locked**), every internal path renamed
+  (`private`-labelled but **not yet locked**), every internal path renamed
   `{{SRC_NAME}}` → `{{DST_NAME}}`, synthetic checkpoints/logs/summary cleared, data dir
   left as `__FILL_REAL_DATA_DIR__`. This runbook lives in a **record-free store** and is
   **symlinked** into the clone, so the assistant can keep it updated even after you lock.
 - 🔒 **Your first action (Step 0) is to LOCK the folder** — drop a `.ck-private` marker
-  that walls Claude out of the entire clone before any real data goes near it. Until you
-  run it, this is just a neutral clone; that marker is what makes the privacy guard real.
+  that walls Claude out of the entire clone before any real data goes near it. The folder
+  name says `private`, but that is only a human label; the marker is what makes the guard
+  real, so until you run it the clone is still assistant-accessible.
 - 🧑 **Left to you (touches real data):** the steps below.
 - 🔐 The full who-sees-what contract is in the `privatize-experiment` skill; the
   short version is the gate at the bottom.
@@ -62,15 +63,10 @@ symlink to a record-free store).
 touch "$DST/.ck-private"
 ```
 
-Optional belt-and-suspenders — also adopt the `_private_<date>` naming convention, the
-form the guard's name-walk recognizes (it closes a relative-path gap the absolute-only
-marker-walk misses; the runbook symlink resolves regardless). The clone name already ends
-in its date, so this slots `_private` *before* that date — one date, not two — and reuses
-the clone's own date rather than stamping a fresh one:
-
-```bash
-LOCKED="${DST%_*}_private_${DST##*_}"; mv "$DST" "$LOCKED" && export DST="$LOCKED"
-```
+The folder is already named with `private` for humans to recognize — that name is just a
+label, the marker above is the actual lock. **Do not rename the folder**: its basename is
+baked into every config, slurm `--output`, `cd`, adapter `model_path`, and `config_path`,
+so a rename would orphan all of them and break the run.
 
 ---
 
