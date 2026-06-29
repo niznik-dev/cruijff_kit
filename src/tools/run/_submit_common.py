@@ -572,11 +572,40 @@ def queue_depth(user: str) -> int:
     return sum(1 for line in r.stdout.splitlines() if line.strip())
 
 
+_SBATCH_LOG_RE = re.compile(r"^#SBATCH\s+(?:--output|--error|-o|-e)(?:=|\s+)(\S+)")
+
+
+def ensure_sbatch_log_dirs(work_dir: Path, slurm_name: str) -> None:
+    """Create the parent dir of every #SBATCH --output/--error path.
+
+    SLURM opens the --output file at launch and does NOT create its parent;
+    if the directory is missing the job's stdout is lost (and on many configs
+    the job fails to start). Our finetune.slurm writes into <run>/artifacts/,
+    a directory a privatize clone deliberately excludes — so guarantee it here,
+    at the single submission chokepoint, for every run. Idempotent; a no-op
+    when the dirs already exist.
+    """
+    script = work_dir / slurm_name
+    try:
+        lines = script.read_text().splitlines()
+    except OSError:
+        return  # submission will fail loudly in sbatch_submit instead
+    for raw_line in lines:
+        m = _SBATCH_LOG_RE.match(raw_line.strip())
+        if not m:
+            continue  # skips ##SBATCH comments (two leading #) too
+        target = Path(m.group(1))  # %j/%x tokens, if any, sit in the basename
+        if not target.is_absolute():
+            target = work_dir / target
+        target.parent.mkdir(parents=True, exist_ok=True)
+
+
 def sbatch_submit(work_dir: Path, slurm_name: str) -> str:
     """Submit one slurm script, return the job ID as a string.
 
     Raises CalledProcessError on submission failure so the caller can log it.
     """
+    ensure_sbatch_log_dirs(work_dir, slurm_name)
     r = subprocess.run(
         ["sbatch", "--parsable", slurm_name],
         cwd=str(work_dir),

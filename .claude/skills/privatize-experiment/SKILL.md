@@ -152,7 +152,9 @@ re-verify as a 🧷 correctness-critical, user-only checkbox.
 ```bash
 # Config-only copy. The excludes drop, in one pass, everything a fresh clone must
 # not inherit — and avoid copying GBs of checkpoints just to delete them:
-#   artifacts/  → synthetic checkpoints + GPU metrics (jobs rebuild; slurm mkdir -p)
+#   artifacts/  → synthetic checkpoints + GPU metrics. Safe to drop: the submitter
+#                 (sbatch_submit -> ensure_sbatch_log_dirs) mkdir -p's the
+#                 --output dir before sbatch, recreating this empty at run time.
 #   logs/       → matches BOTH the experiment-root logs/ (stale run-*.state.json
 #                 would make the resume-safe submitters SKIP the run) AND every
 #                 per-cell eval/<cell>/logs/ (stale synthetic *.eval logs)
