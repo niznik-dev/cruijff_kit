@@ -93,6 +93,26 @@ scorers:
       ignore_case: false
 ```
 
+## Tabular ML Baseline
+
+**Script:** `blueprints/ggs/baseline.py`
+
+Trains CatBoost on the same books-of-life JSON the eval consumes, so its AUC is
+directly comparable to the LLM's. Unique-per-row IDs (`RESPID`, `ARID`) and
+constant columns (`COUNTRY`, `YEAR_S`) are dropped and reported — the LLM reads
+them as inert prompt text, but a high-cardinality identifier would distort a tree
+model, so excluding them keeps the comparison fair.
+
+Needs the `xgboost` env (it has catboost), not `cruijff`:
+
+```bash
+module load anaconda3/2025.6 && conda activate xgboost
+python blueprints/ggs/baseline.py /path/to/ggs_hh_dk_basic_books_of_life.json
+```
+
+Add `--json` for a machine-readable summary, or `--id-threshold` to tune the
+distinct-value fraction at which a column counts as an identifier (default 0.5).
+
 ## Research Questions
 
 1. **Does fine-tuning beat base?** How much does fine-tuning lift accuracy / AUC over a base model, given the ~63/37 class skew?
