@@ -41,7 +41,7 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-cov",
-    "ruff",
+    "ruff>=0.15.6,<0.16",  # pinned: 0.16 formats Python inside Markdown, reformatting our skills/agent docs. See #595.
     # Note: GitHub CLI (gh) must be installed via conda separately:
     # conda install -c conda-forge gh -y
 ]
