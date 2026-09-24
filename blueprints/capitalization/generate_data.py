@@ -44,6 +44,12 @@ parser.add_argument(
     default=None,
     help="Input word list file (default: blueprints/capitalization/input/words_alpha.txt)",
 )
+parser.add_argument(
+    "--seed",
+    type=int,
+    default=42,
+    help="Random seed for word sampling (default: 42).",
+)
 
 args = parser.parse_args()
 
@@ -82,6 +88,7 @@ logger.info(f"{len(all_n_letter_words)} {WORD_LEN}-letter words found.")
 if len(all_n_letter_words) < NUMBER_OF_WORDS:
     raise ValueError(f"Not enough unique {WORD_LEN}-letter words found.")
 
+random.seed(args.seed)
 n_letter_words_sample = random.sample(all_n_letter_words, NUMBER_OF_WORDS)
 
 # Build nested structure with top-level split keys
