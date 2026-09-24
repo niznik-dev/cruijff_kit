@@ -30,7 +30,6 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
 )
-from sklearn.preprocessing import LabelEncoder
 
 
 # Map verbose field names to short names
@@ -155,12 +154,16 @@ def prepare_catboost_data(train_raw, test_raw, numeric_cols, categorical_cols):
 
 
 def prepare_xgboost_data(train_raw, test_raw, numeric_cols, categorical_cols):
-    """Prepare data for XGBoost (needs label encoding)."""
+    """Prepare data for XGBoost (needs integer-coded categoricals).
+
+    Encoders are fit on train only. A test value never seen in train maps to
+    -1 instead of receiving its own code, so the test set cannot shape the
+    vocabulary (#428).
+    """
     encoders = {}
     for col in categorical_cols:
-        encoders[col] = LabelEncoder()
-        all_values = [ex.get(col, "") for ex in train_raw + test_raw]
-        encoders[col].fit(all_values)
+        train_values = sorted({ex.get(col, "") for ex in train_raw})
+        encoders[col] = {val: i for i, val in enumerate(train_values)}
 
     def to_numeric_array(raw_data):
         X = []
@@ -173,7 +176,7 @@ def prepare_xgboost_data(train_raw, test_raw, numeric_cols, categorical_cols):
                 except ValueError:
                     row.append(0)
             for col in categorical_cols:
-                row.append(encoders[col].transform([ex.get(col, "")])[0])
+                row.append(encoders[col].get(ex.get(col, ""), -1))
             X.append(row)
         return np.array(X)
 
