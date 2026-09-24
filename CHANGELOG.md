@@ -4,6 +4,34 @@ All notable changes to cruijff_kit will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-09-24
+
+Final release. The repository is archived after this version.
+
+### Added
+
+#### Evaluation & Metrics
+
+- Qwen3-8B and Qwen3-14B instruct in `MODEL_CONFIGS`. `evaluation.enable_thinking` in `eval.yaml` renders `-M enable_thinking=...`. `reasoning_risk_scorer` reads the answer token after `</think>`. (#600)
+
+#### Documentation & Data
+
+- `blueprints/ggs/`: `ever_kid` inspect task over synthetic GGS-II books-of-life data, with a CatBoost baseline. (#601)
+- `--seed` for `blueprints/capitalization/generate_data.py`, default 42. (#603)
+- `scratch/` at the repo root is gitignored. (#597)
+
+### Changed
+
+- README, CLAUDE.md, and KNOWN_ISSUES.md describe the archived state. Status badge `alpha` → `archived`. (#604, #605)
+- `max_connections` comment records the measured slowdown without asserting a cause. (#598)
+- ruff pinned to 0.15.x so CI and local agree. (#596)
+- CI actions: checkout 7.0.1, setup-python 7.0.0, dynamic-badges-action 1.9.0. (#591, #592, #593)
+
+### Fixed
+
+- Eval SLURM `--output` pointed at a directory absent at submit time for base runs, dropping the console log. Now `<EVAL_DIR>/logs/`; `sbatch_submit` creates every `#SBATCH --output`/`--error` parent directory before submitting. (#599, #589)
+- folktexts XGBoost baseline fit `LabelEncoder` on train + test. Encoders now fit on train only; unseen test values map to `-1`. (#603, #428)
+
 ## [0.3.4] - 2026-06-18
 
 ### Added
