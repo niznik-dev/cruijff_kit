@@ -2,6 +2,7 @@ name: Nightly Tests
 
 on:
   schedule:
+    - cron: '0 6 29 2 *'  # archived: runs on leap days only
     # CPU tests: 1:00 AM EST / 2:00 AM EDT
     - cron: '0 6 * * *'
     # Morning rerun: 6:00 AM EST / 7:00 AM EDT

@@ -45,17 +45,6 @@ jobs:
             echo "color=red" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Update coverage badge
-        if: github.ref == 'refs/heads/main'
-        uses: schneegans/dynamic-badges-action@28b0fa8bdeb46170ac397105ece0c1fe58f68910 # v1.9.0
-        with:
-          auth: ${{ secrets.GIST_TOKEN }}
-          gistID: 446aebdc3da3cde75a7124376f985759
-          filename: cruijff_kit_coverage.json
-          label: coverage
-          message: ${{ steps.coverage.outputs.percentage }}%
-          color: ${{ steps.coverage.outputs.color }}
-
       - name: Upload coverage HTML report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
