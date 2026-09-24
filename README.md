@@ -7,7 +7,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+"></a>
-  <a href="#-alpha-release-"><img src="https://img.shields.io/badge/status-alpha-orange.svg" alt="Status: Alpha"></a>
+  <a href="#-archived-"><img src="https://img.shields.io/badge/status-archived-lightgrey.svg" alt="Status: Archived"></a>
   <a href="https://github.com/niznik-dev/cruijff_kit/actions/workflows/coverage.yml"><img src="https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/niznik-dev/446aebdc3da3cde75a7124376f985759/raw/cruijff_kit_coverage.json" alt="Coverage"></a>
 </p>
 
@@ -26,11 +26,13 @@ cruijff_kit lets you **design**, **scaffold**, **run**, and **explore** LLM expe
 - **Run** - Submit fine-tuning and evaluation jobs with dependency management
 - **Explore** - Collect metrics, generate visualizations, compare across runs
 
-## ⚠ Alpha Release ⚠
+## 📦 Archived 📦
 
-This project is under active development. The core workflows are functional, but you may encounter bugs or breaking changes between updates. We'd love to collaborate - your feedback and bug reports are valuable!
+cruijff_kit was archived in September 2026 at v0.3.5 and is no longer maintained. The repository is read-only: no further releases, and issues and pull requests are closed. The code works as documented against the dependency stack recorded in [KNOWN_ISSUES.md](KNOWN_ISSUES.md), which also lists the limitations and unfinished work we knew about at the end.
 
-See [CHANGELOG.md](CHANGELOG.md) for release history and [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for current limitations.
+Forks are welcome. The closed issues hold design notes, rejected alternatives, and half-finished plans that never made it into the docs, so search them before building something the project already thought about.
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Quick Start
 
@@ -169,4 +171,4 @@ cruijff_kit is maintained by [Mattie Niznik](https://github.com/niznik-dev).
 
 ## How to Cite
 
-If you use cruijff_kit in your research, please cite our package. But remember we are still in alpha.  If you are using cruijff_kit in your research, please contact us.
+If you use cruijff_kit in your research, please cite the final release, v0.3.5. Citation metadata is in [CITATION.cff](CITATION.cff), which GitHub renders as APA and BibTeX under "Cite this repository" in the sidebar.
