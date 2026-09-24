@@ -28,7 +28,7 @@ cruijff_kit lets you **design**, **scaffold**, **run**, and **explore** LLM expe
 
 ## 📦 Archived 📦
 
-cruijff_kit was archived in September 2026 at v0.3.5 and is no longer maintained. The repository is read-only: no further releases, and issues and pull requests are closed. The code works as documented against the dependency stack recorded in [KNOWN_ISSUES.md](KNOWN_ISSUES.md), which also lists the limitations and unfinished work we knew about at the end.
+cruijff_kit was archived in September 2026 and is no longer maintained. The repository is read-only: no further releases, and issues and pull requests are closed. The code works as documented against the dependency stack recorded in [KNOWN_ISSUES.md](KNOWN_ISSUES.md), which also lists the limitations and unfinished work we knew about at the end.
 
 Forks are welcome. The closed issues hold design notes, rejected alternatives, and half-finished plans that never made it into the docs, so search them before building something the project already thought about.
 
@@ -171,4 +171,4 @@ cruijff_kit is maintained by [Mattie Niznik](https://github.com/niznik-dev).
 
 ## How to Cite
 
-If you use cruijff_kit in your research, please cite the final release, v0.3.5. Citation metadata is in [CITATION.cff](CITATION.cff), which GitHub renders as APA and BibTeX under "Cite this repository" in the sidebar.
+If you use cruijff_kit in your research, please cite this repository and the release tag you used (see [CHANGELOG.md](CHANGELOG.md) for the list).
