@@ -30,9 +30,10 @@ TEMPLATE_PATH = Path(__file__).parent / "templates" / "eval_template.slurm"
 
 # Default ceiling on samples per HF batch for inspect-ai's HF provider.
 # Matches inspect-ai's upstream default. Empirically, raising this on
-# variable-length workloads
-# (e.g. verbose ACS prompts) can slow evals down because larger batches
-# pad to the longest sequence and the forward pass becomes memory-bound.
+# variable-length workloads (e.g. verbose ACS prompts) slows evals down:
+# 256 ran ~2x slower than 32 on a 3B ACS eval. The cause was never
+# profiled; the slowdown appears even at low VRAM utilization, so it may
+# live in inspect-ai's sample coordination rather than on the GPU.
 # Users can override per experiment via `evaluation.max_connections` in
 # `experiment_summary.yaml`.
 DEFAULT_MAX_CONNECTIONS = 32
