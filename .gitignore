@@ -20,6 +20,9 @@ htmlcov/
 # Environment-specific configuration (users should customize from template)
 claude.local.md
 
+# Working drafts and notes (design drafts, experiment plans, thinking-out-loud files)
+scratch/
+
 # User-specific cache directory (i.e., torchtune recipes)
 .claude/cache/
 

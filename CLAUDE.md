@@ -8,6 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - All paths, environment names, and cluster-specific details in this file are examples only. Users should configure their actual environment in `claude.local.md`. See `claude.local.md.template` for an example configuration.
 
+- `scratch/` at the repo root is gitignored. Use it for working drafts, experiment plans, and other thinking-out-loud files that shouldn't be committed.
+
 ## Project Overview
 
 cruijff_kit is a toolkit for research with social data and LLMs.
