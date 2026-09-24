@@ -542,6 +542,57 @@ class TestDoSample:
 
 
 # ---------------------------------------------------------------------------
+# enable_thinking (reasoning models, e.g. Qwen3)
+# ---------------------------------------------------------------------------
+
+
+class TestEnableThinking:
+    """enable_thinking suppresses <think> on reasoning models. Only emitted when
+    set, so non-reasoning evals render byte-for-byte as before."""
+
+    def test_absent_by_default(self):
+        """No enable_thinking in config: no -M enable_thinking arg, no leftover
+        placeholder."""
+        script = render_template(make_cli_args(), make_config())
+        assert "enable_thinking" not in script
+        assert "<THINKING_ARGS>" not in script
+
+    def test_false_renders_lowercase(self):
+        """enable_thinking: false renders -M enable_thinking=false."""
+        config = make_config(enable_thinking=False)
+        script = render_template(make_cli_args(), config)
+        assert "-M enable_thinking=false" in script
+
+    def test_true_renders_lowercase(self):
+        config = make_config(enable_thinking=True)
+        script = render_template(make_cli_args(), config)
+        assert "-M enable_thinking=true" in script
+
+    def test_position_after_model_path_before_log_dir(self):
+        config = make_config(enable_thinking=False)
+        script = render_template(make_cli_args(), config)
+        mp_pos = script.index("-M model_path=")
+        et_pos = script.index("-M enable_thinking=")
+        logdir_pos = script.index("--log-dir")
+        assert mp_pos < et_pos < logdir_pos
+
+    def test_not_warned_as_unknown(self, tmp_path, recwarn):
+        """enable_thinking is in KNOWN_STRUCTURAL_KEYS and must not trigger the
+        unknown-key warning."""
+        config_file = tmp_path / "eval.yaml"
+        config_file.write_text(MINIMAL_EVAL_CONFIG + "enable_thinking: false\n")
+        load_eval_config(str(config_file))
+        unknown_warnings = [
+            w
+            for w in recwarn.list
+            if "enable_thinking" in str(w.message) and "not consumed" in str(w.message)
+        ]
+        assert unknown_warnings == [], (
+            f"enable_thinking should not be warned as unknown; got: {unknown_warnings}"
+        )
+
+
+# ---------------------------------------------------------------------------
 # temperature gating (live only under sampling)
 # ---------------------------------------------------------------------------
 
