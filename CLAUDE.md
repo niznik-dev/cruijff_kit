@@ -215,7 +215,7 @@ All input data lives outside the repo at `{ck_data_dir}` (configured in `claude.
 
 ## Project Status
 
-**Archived** (September 2026): the repository is read-only and no longer maintained. Core workflows are functional against the dependency stack in `KNOWN_ISSUES.md`; nothing will change from here.
+**Archived** (September 2026): the repository is no longer maintained. Core workflows are functional against the dependency stack in `KNOWN_ISSUES.md`; nothing will change from here.
 
 **HPC Environment**: Designed for SLURM-based HPC clusters. Configure your specific cluster settings in `claude.local.md`.
 

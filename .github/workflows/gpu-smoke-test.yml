@@ -3,7 +3,7 @@ name: GPU Smoke Test
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 6 * * *'  # 1:30 AM EST / 2:30 AM EDT
+    - cron: '0 6 29 2 *'  # archived: runs on leap days only
 
 permissions:
   contents: read

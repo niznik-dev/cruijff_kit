@@ -4,3 +4,4 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 0  # archived: no more update PRs

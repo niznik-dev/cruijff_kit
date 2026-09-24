@@ -28,7 +28,7 @@ cruijff_kit lets you **design**, **scaffold**, **run**, and **explore** LLM expe
 
 ## 📦 Archived 📦
 
-cruijff_kit was archived in September 2026 and is no longer maintained. The repository is read-only: no further releases, and issues and pull requests are closed. The code works as documented against the dependency stack recorded in [KNOWN_ISSUES.md](KNOWN_ISSUES.md), which also lists the limitations and unfinished work we knew about at the end.
+cruijff_kit was archived in September 2026 and is no longer maintained. There will be no further releases, and issues and pull requests will not be actioned. The code works as documented against the dependency stack recorded in [KNOWN_ISSUES.md](KNOWN_ISSUES.md), which also lists the limitations and unfinished work we knew about at the end.
 
 Forks are welcome. The closed issues hold design notes, rejected alternatives, and half-finished plans that never made it into the docs, so search them before building something the project already thought about.
 
